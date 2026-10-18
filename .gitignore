@@ -1,0 +1,61 @@
+# ===== .NET / Visual Studio =====
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+artifacts/
+TestResults/
+
+# .NET build outputs
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+# .NET user secrets / local config (ห้าม commit secrets)
+secrets.json
+appsettings.*.Local.json
+
+# ===== Node / Next.js (ครอบทั้ง repo — frontend มี .gitignore ของตัวเองด้วย) =====
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.npm
+.pnpm-store/
+
+# env files (frontend: .env.example ให้ commit ได้)
+.env
+.env.local
+.env.*.local
+
+# ===== Logs / temp =====
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tmp
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Tool state =====
+*.DotSettings.user
+.idea/
