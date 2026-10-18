@@ -13,12 +13,14 @@
 1. `/AGENTS.md` (root) — กฎเหล็ก + สถาปัตยกรรมรวม
 2. `/backend/AGENTS.md` หรือ `/frontend/AGENTS.md` — ตามขอบเขตงาน (แตะ schema ต้องอ่านทั้งคู่)
 3. **เอกสารนี้** — Phase ที่งานสัมพันธ์ + Decision Points ของ Phase นั้น
-4. `/docs/REQUIREMENTS.md` — **รายการ requirement (FR) + สถานะ + สิ่งที่นอก scope** — ถ้างานระบุ/ตั้งคำถามเรื่อง "ต้องทำอะไร"
-5. `/docs/ARCHITECTURE.md` — **สถาปัตยกรรมล็อกแล้ว** (ผัง, dependency, lifecycle) — อ่านก่อนออกแบบโครงสร้างโค้ดใด ๆ
-6. `/docs/DataDictionary.md` — **ถ้างานแตะ schema / Entity / API contract**
-7. `/docs/API_SPECIFICATION.md` — **ถ้างานแตะ endpoint / DTO / error shape / SignalR events**
-8. **`frontend/pocketwise-web/DESIGN.md` — ถ้างานแตะ UI / Component / หน้าจอ** (Design System, ห้ามเดาสี-font-spacing)
-9. โค้ดจริงใน `/backend/src` และ `/frontend/pocketwise-web/src` — ตาม Pre-Implementation Protocol
+3. `/docs/DEVELOPMENT_GUIDELINE.md` — **รายการ requirement (FR) + สถานะ + ขอบเขตนอก scope** — ถ้างานระบุ/ตั้งคำถามเรื่อง "ต้องทำอะไร"
+4. `/docs/IMPLEMENTATION_CHECKLIST.md` — **สถานะ implement รายรายการ** (อัปเดตทุกครั้งที่ implement เสร็จ — กติกา §11) และดูว่างานถัดไปคืออะไร
+5. `/docs/REQUIREMENTS.md` — **รายการ requirement (FR) + สถานะ + สิ่งที่นอก scope** — ถ้างานระบุ/ตั้งคำถามเรื่อง "ต้องทำอะไร"
+6. `/docs/ARCHITECTURE.md` — **สถาปัตยกรรมล็อกแล้ว** (ผัง, dependency, lifecycle) — อ่านก่อนออกแบบโครงสร้างโค้ดใด ๆ
+7. `/docs/DataDictionary.md` — **ถ้างานแตะ schema / Entity / API contract**
+8. `/docs/API_SPECIFICATION.md` — **ถ้างานแตะ endpoint / DTO / error shape / SignalR events**
+9. **`frontend/pocketwise-web/DESIGN.md` — ถ้างานแตะ UI / Component / หน้าจอ** (Design System, ห้ามเดาสี-font-spacing)
+10. โค้ดจริงใน `/backend/src` และ `/frontend/pocketwise-web/src` — ตาม Pre-Implementation Protocol
 
 ### Source of Truth ของแต่ละเรื่อง
 
@@ -32,6 +34,7 @@
 | **Design tokens, UI components** | **DESIGN.md** | `/frontend/pocketwise-web/DESIGN.md` |
 | Stack, Security baseline, Version policy | Tech_Stack | `/docs/Tech_Stack.md` |
 | **ขั้นตอน/คำสั่ง/สถานะ/Decision Points** | **เอกสารนี้** | `/docs/DEVELOPMENT_GUIDELINE.md` |
+| **สถานะ implement รายรายการต่อ phase** | **IMPLEMENTATION_CHECKLIST** | `/docs/IMPLEMENTATION_CHECKLIST.md` |
 
 ### สัญลักษณ์ที่ใช้ในเอกสารนี้
 
@@ -55,6 +58,7 @@
 8. **งานต้องมี requirement รองรับ** — ฟีเจอร์ที่จะสร้างให้ระบุ FR id ใน `/docs/REQUIREMENTS.md` ได้ (หรือได้คำสั่งใหม่จากเจ้าของโปรเจค) และจบ feature แล้วอัปเดตสถานะ FR (⬜ → 🟡 → ✅) ในไฟล์เดียวกัน — **REQUIREMENTS.md คือขอบเขตระบบ (SoT ของ "ทำอะไร")**
 9. **โครงสร้างโค้ดใหม่ต้องตรง ARCHITECTURE.md** — ทุก feature ใช้เลเยอร์เดียวกัน (orchestration ใน Application, EF ที่ Infrastructure ผ่าน interface, Controller เบา) เพื่อให้ระบบมีสถาปัตยกรรมเดียวกันทั้งโปรเจค
 10. **API ใหม่/แก้ DTO ต้องไปตาม API_SPECIFICATION.md** — ก่อน implement endpoint ใหม่ ให้เพิ่ม/แก้สัญญาลงไฟล์นั้นก่อน แล้ว implement ตาม (และ Swagger ใน dev ต้องตรงกัน)
+11. **implement จบ = อัปเดต `/docs/IMPLEMENTATION_CHECKLIST.md` ทุกครั้ง** — ติ๊กสถานะรายการที่เสร็จจริงในไฟล์ checklist (⬜ → 🟡/✅) ตามขั้นที่ทำจริง + ถ้าปิดทั้ง phase ให้ sync ตารางสถานะ §3 ของ playbook ด้วย — ตามขั้นตอน "วิธีอัปเดต" ท้ายไฟล์ checklist
 
 ---
 
@@ -274,6 +278,7 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 - [ ] Tests ที่เกี่ยวข้องรันผ่าน (`dotnet test` / vitest เมื่อ setup)
 - [ ] FE types/schemas ตรงกับ DTOs ล่าสุด (Sync with Frontend rule)
 - [ ] **สถานะ FR ใน `/docs/REQUIREMENTS.md` อัปเดตแล้ว** (feature ใหม่/เปลี่ยนขอบเขต)
+- [ ] **`/docs/IMPLEMENTATION_CHECKLIST.md` อัปเดตแล้ว** — ติ๊กรายการที่ implement เสร็จจริงของ phase นั้น (กติกา §11)
 - [ ] เอกสาร sync: DataDictionary (ถ้า schema เปลี่ยน), API_SPECIFICATION (ถ้า endpoint/DTO เปลี่ยน), ARCHITECTURE (ถ้าเพิ่มการเชื่อมต่อเลเยอร์ใหม่), ตารางสถานะในเอกสารนี้, Appendix D (ถ้ามี decision ปิดใหม่)
 - [ ] ไม่มี secret/คีย์จริง เหลือใน repo
 - [ ] Decision Points ที่พบระหว่างทาง — **แก้ด้วยการถาม ไม่ใช่การเดา**

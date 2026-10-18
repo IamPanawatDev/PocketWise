@@ -68,6 +68,7 @@ copy .env.example .env.local     # Windows (Linux: cp)
 - [`AGENTS.md`](AGENTS.md) — กฎเหล็กระดับ root + navigation
 - [`backend/AGENTS.md`](backend/AGENTS.md) / [`frontend/AGENTS.md`](frontend/AGENTS.md) — กฎต่อขอบเขต + ตำแหน่งไฟล์
 - [`docs/DEVELOPMENT_GUIDELINE.md`](docs/DEVELOPMENT_GUIDELINE.md) — Playbook ต่อ Phase + Decision Ledger
+- [`docs/IMPLEMENTATION_CHECKLIST.md`](docs/IMPLEMENTATION_CHECKLIST.md) — Checklist ติดตามงาน implement รายรายการ (อัปเดตทุกครั้งที่ implement เสร็จ)
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — Requirements (FR) + สถานะ
 - [`docs/DataDictionary.md`](docs/DataDictionary.md) — Schema (implement 20/25 ตาราง ตาม D12)
 - [`docs/API_SPECIFICATION.md`](docs/API_SPECIFICATION.md) — สัญญา REST/SignalR

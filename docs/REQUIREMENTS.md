@@ -169,6 +169,7 @@
 - [ ] FR ไหนที่จะเริ่มสร้าง — ทำ mapping ไปที่ Phase ของ playbook แล้ว
 - [ ] ข้อมูลขาด (ระบุใน §4) — ถามเจ้าของโปรเจคก่อนเขียนโค้ด (Zero Guessing)
 - [ ] จบ feature: อัปเดตสถานะ FR ในเอกสารนี้ (⬜ → 🟡 → ✅) ควบคู่กับตารางสถานะใน DEVELOPMENT_GUIDELINE.md
+- [ ] **จบ implement: อัปเดตรายการที่เกี่ยวข้องใน `/docs/IMPLEMENTATION_CHECKLIST.md` ทุกครั้ง** (ติ๊ก ⬜ → 🟡 → ✴️/✅ ตามขอบเขต — และบันทึก FR id ที่จับคู่ไว้ ให้ตรงกับ status ในเอกสารนี้)
 - [ ] Schema/contract เปลี่ยน — sync กับ DataDictionary และ types ฝั่ง FE ในงานเดียวกัน
 
 ---

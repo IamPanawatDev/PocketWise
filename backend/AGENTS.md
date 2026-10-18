@@ -74,7 +74,7 @@ backend/src/
     └── Program.cs                   # Application Entry point & Pipeline configuration
 ```
 
-> 🗺️ **ก่อนเริ่มงานทุกครั้ง** ให้อ่าน Playbook ต่อ Phase ที่ [`/docs/DEVELOPMENT_GUIDELINE.md`](file:///D:/Projects/PocketWise/docs/DEVELOPMENT_GUIDELINE.md) ร่วมด้วยเสมอ (ขั้นตอน, คำสั่ง, สถานะ Phase, Decision Points) — แตะ schema ใด ๆ ต้องอ้างอิง [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) และแตะ requirement ใด ๆ ต้องอ้างอิง [`/docs/REQUIREMENTS.md`](file:///D:/Projects/PocketWise/docs/REQUIREMENTS.md) (รายการ FR + สถานะ — Source of Truth ของ "ทำอะไร/ไม่ทำอะไร") — สัญญา REST/SignalR ระหว่าง Frontend–Backend อยู่ที่ [`/docs/API_SPECIFICATION.md`](file:///D:/Projects/PocketWise/docs/API_SPECIFICATION.md)
+> 🗺️ **ก่อนเริ่มงานทุกครั้ง** ให้อ่าน Playbook ต่อ Phase ที่ [`/docs/DEVELOPMENT_GUIDELINE.md`](file:///D:/Projects/PocketWise/docs/DEVELOPMENT_GUIDELINE.md) ร่วมด้วยเสมอ (ขั้นตอน, คำสั่ง, สถานะ Phase, Decision Points) — แตะ schema ใด ๆ ต้องอ้างอิง [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) และแตะ requirement ใด ๆ ต้องอ้างอิง [`/docs/REQUIREMENTS.md`](file:///D:/Projects/PocketWise/docs/REQUIREMENTS.md) (รายการ FR + สถานะ — Source of Truth ของ "ทำอะไร/ไม่ทำอะไร") — สัญญา REST/SignalR ระหว่าง Frontend–Backend อยู่ที่ [`/docs/API_SPECIFICATION.md`](file:///D:/Projects/PocketWise/docs/API_SPECIFICATION.md) — **จบงาน implement ต้องอัปเดตสถานะที่ [`/docs/IMPLEMENTATION_CHECKLIST.md`](file:///D:/Projects/PocketWise/docs/IMPLEMENTATION_CHECKLIST.md) ทุกครั้ง**
 
 ### ตารางจับคู่ประเภทงานกับโฟลเดอร์:
 
