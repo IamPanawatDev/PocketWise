@@ -1,1 +1,37 @@
 @import "tailwindcss";
+
+:root {
+  --pw-canvas: #0a0d3a;
+  --pw-primary: #5865f2;
+  --pw-on-primary: #ffffff;
+  --pw-green: #35ed7e;
+  --pw-magenta: #ec48bd;
+  --pw-link: #00b0f4;
+  --pw-surface-indigo: #1e2353;
+  --pw-surface-onyx: #23272a;
+  --pw-surface-black: #000000;
+  --pw-ink: #ffffff;
+  --pw-ink-dark: #000000;
+  --pw-muted: #333333;
+  --pw-hairline: #23272a;
+
+  --pw-rounded-xs: 6px;
+  --pw-rounded-sm: 12px;
+  --pw-rounded-md: 14px;
+  --pw-rounded-lg: 16px;
+  --pw-rounded-xl: 40px;
+  --pw-rounded-pill: 50px;
+  --pw-rounded-full: 9999px;
+}
+
+html,
+body {
+  background-color: var(--pw-canvas);
+  color: var(--pw-ink);
+  min-height: 100%;
+}
+
+body {
+  font-family: "Inter", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.5;
+}

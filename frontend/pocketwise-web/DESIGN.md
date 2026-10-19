@@ -527,6 +527,18 @@ Media is presented at soft-cornered rectangles (`{rounded.lg}`–`{rounded.xl}`)
 - Properties: `backgroundColor`, `rounded`, `padding`, `typography`
 
 
+## Feedback & Confirmation (Toast vs AlertDialog — กฎบังคับ)
+
+> ดูรายละเอียดเต็มที่ `/frontend/AGENTS.md` §5 — สรุปสำหรับงาน UI:
+
+| กลไก | Library | ใช้เมื่อ | ห้าม |
+|---|---|---|---|
+| **Toast** | `sonner` | แจ้งผลสำเร็จ/ล้มเหลว (ไม่ต้องให้ผู้ใช้ตอบ) | ใช้ยืนยันการทำลายข้อมูล |
+| **AlertDialog** | `@radix-ui/react-alert-dialog` (shadcn/ui) | ยืนยันการกระทำสำคัญ/กลับไม่ได้ (ลบ/ออกจากระบบ) | ใช้แจ้งผลเฉย ๆ |
+
+- ห้ามใช้ `alert()` / `confirm()` / `window.confirm()` / `window.location.reload()` แทนทั้งสองตัวนี้
+- `Toaster` ต่อใน root layout ครั้งเดียว; `ConfirmDialog` ที่ใช้ซ้ำอยู่ `src/components/shared/ConfirmDialog.tsx`
+
 ## Do's and Don'ts
 
 ### Do

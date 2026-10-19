@@ -112,3 +112,23 @@ frontend/pocketwise-web/
    - Discord เป็น dark, gaming, all-caps เมื่อธรรมชาติขัดกับการเงิน (เช่น ความอ่านยากของตารางตัวเลขจำนวนมากใน all-caps) — ใช้ **tokens เป็นสถาปัตยกรรมหลัก** (canvas, Blurple, radius scale, spacing) และปรับ typography ของ body/บัญชี่ให้เหมาะกับข้อมูลการเงินโดย**ไม่ลดความโดดเด่นของ display type**
    - หาก UX ทับซ้อนกับ a11y (เช่น contrast ของ ink บน canvas) — พิสูจน์ด้วย contrast ≥ 4.5:1 สำหรับ body text ก่อน commit
 5. **ความสอดคล้องกับ stack:** ยังไม่ต้อง implement เป็น Tailwind theme จนกว่าจะเริ่ม UI จริง — เมื่อถึงจังหวะ ให้ map tokens ข้างต้นเป็น CSS variables / Tailwind theme ผ่าน `src/app/globals.css` และอัปเดต DESIGN.md เมื่อมีการปรับ
+
+---
+
+## 🔔 5. Feedback & Confirmation (Toast vs AlertDialog — กฎบังคับ)
+
+> ติดตั้งแล้ว: `sonner` (Toast) + `@radix-ui/react-alert-dialog` (ใช้ทำ `AlertDialog` แบบ shadcn/ui) — ใช้ทั้งสองตัวนี้เป็นมาตรฐานเดียวทั้งโปรเจค
+
+1. **Toast (`sonner`) — ใช้สำหรับ "แจ้งผล" เท่านั้น**
+   - แจ้งว่าการกระทำสำเร็จ/ล้มเหลว (เช่น "บันทึกรายการแล้ว", "ลบหมวดหมู่แล้ว", "เกิดข้อผิดพลาด")
+   - ไม่ต้องให้ผู้ใช้ตัดสินใจ — ปรากฏแล้วหายไปเอง
+   - ห้ามใช้ `alert()` / `confirm()` / `window.location.reload()` เพื่อแจ้งผล — ใช้ toast + invalidate query แทน
+2. **AlertDialog (shadcn/ui) — ใช้สำหรับ "การตัดสินใจที่ต้องยืนยัน" เท่านั้น**
+   - การกระทำที่ทำลายข้อมูลหรือกลับไม่ได้ (ลบรายการ/ลบแท็ก/ลบบัญชี/ออกจากระบบ ฯลฯ)
+   - ต้องมีปุ่มยืนยัน + ยกเลิกชัดเจน — ไม่ใช่ toast
+   - ห้ามใช้ `window.confirm()` — ใช้ `AlertDialog`
+3. **การวางไฟล์:**
+   - `Toaster` ต่อใน root layout (`src/app/layout.tsx`) — ครั้งเดียว
+   - `AlertDialog` primitive → `src/components/ui/alert-dialog.tsx`
+   - `ConfirmDialog` (wrapper ที่ใช้ซ้ำ) → `src/components/shared/ConfirmDialog.tsx`
+4. **หลักเลือกใช้:** ถ้าต้องการให้ผู้ใช้ "ตอบ" → AlertDialog; ถ้าต้องการ "บอก" ผล → Toast
