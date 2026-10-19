@@ -4,7 +4,8 @@
 > **หมายเหตุสำคัญ:** เป็นแบบจำลองเริ่มต้นสำหรับ SQL Server; ต้องยืนยัน business rules และปรับชื่อ/ชนิดข้อมูลก่อนสร้างฐานข้อมูลจริง  
 > **วิธีอ่าน:** PK = Primary Key; FK = Foreign Key; Nullable = อนุญาต NULL; Constraint = เงื่อนไข/ค่าเริ่มต้นที่เสนอ  
 > **Google Sheets ต้นทาง:** [ระบบบันทึกรายรับรายจ่าย](https://docs.google.com/spreadsheets/d/11xfdjcAKEbh7a6l6B9u8y_1ksIM2il1xeDpOelm7KRw/edit) (ID: `11xfdjcAKEbh7a6l6B9u8y_1ksIM2il1xeDpOelm7KRw`)
-> **ขอบเขตการ implement (D12 ใน playbook):** สร้าง Entity/ตารางจริง **เฉพาะ 20 ตารางที่มี requirement รองรับ** (FR ใน `/docs/REQUIREMENTS.md`) — ยกเว้น 5 ตาราง: `Roles`, `Permissions`, `UserRoles`, `RolePermissions`, `AuditLogs` (ไม่มี FR — คงอธิบายไว้เป็นแบบจำลองเริ่มต้น แต่**ห้ามสร้าง**จนกว่าจะมี requirement ใหม่) — รายละเอียด FR ที่ผูกตารางแต่ละตารางดู badge "ขอบเขตฟีเจอร์" ของแต่ละตาราง + `/docs/REQUIREMENTS.md`
+> **ขอบเขตการ implement (อัปเดตตาม D13):** สร้าง Entity/ตารางจริง **ครบทั้ง 25 ตาราง** — รายการ FR ที่ผูกตารางแต่ละตารางดู badge "ขอบเขตฟีเจอร์" ของแต่ละตาราง + `/docs/REQUIREMENTS.md` (F7/F8 ครอบ Roles/Permissions/UserRoles/RolePermissions/AuditLogs — เพิ่มโดยเจ้าของโปรเจค)
+> **หมายเหตุ D12:** คำสั่งเก่า "implement เฉพาะ 20/25 ตาราง" ถูก **ยกเลิก** แล้ว (เจ้าของโปรเจคเพิ่ม F7/F8) — ใช้ D13 แทน
 
 ---
 
@@ -23,10 +24,10 @@
 | 9 | [Notifications](#notifications) | การแจ้งเตือน | `คงไว้` | บันทึกสถานะการแจ้งเตือนและส่งอีเมล |
 | 10 | [UserSettings](#usersettings) | การตั้งค่าส่วนบุคคล | `คงไว้` | ธีม ภาษา สกุลเงิน และอีเมลแจ้งเตือน |
 | 11 | [ImportJobs](#importjobs) | สถานะงานนำเข้าและผลการประมวลผล | `คงไว้และเพิ่มชนิดงาน` | ติดตามการนำเข้าสลิป/statement และรายการซ้ำ |
-| 12 | [Roles](#roles) | บทบาทผู้ใช้ | `คงไว้` ⛔ D12 | ~~กำหนดบทบาท~~ — **ไม่มี FR รองรับ — ห้ามสร้าง Entity (D12)** |
-| 13 | [Permissions](#permissions) | รายการสิทธิ์ | `คงไว้` ⛔ D12 | ~~กำหนดสิทธิ์~~ — **ไม่มี FR รองรับ — ห้ามสร้าง Entity (D12)** |
-| 14 | [UserRoles](#userroles) | ผู้ใช้กับบทบาท | `คงไว้` ⛔ D12 | ~~ความสัมพันธ์ many-to-many~~ — **ไม่มี FR รองรับ — ห้ามสร้าง Entity (D12)** |
-| 15 | [RolePermissions](#rolepermissions) | บทบาทกับสิทธิ์ | `คงไว้` ⛔ D12 | ~~ความสัมพันธ์ many-to-many~~ — **ไม่มี FR รองรับ — ห้ามสร้าง Entity (D12)** |
+| 12 | [Roles](#roles) | บทบาทผู้ใช้ | `คงไว้` | กำหนดบทบาท (FR7.1) |
+| 13 | [Permissions](#permissions) | รายการสิทธิ์ | `คงไว้` | กำหนดสิทธิ์ (FR7.2) |
+| 14 | [UserRoles](#userroles) | ผู้ใช้กับบทบาท | `คงไว้` | ความสัมพันธ์ many-to-many (FR7.3) |
+| 15 | [RolePermissions](#rolepermissions) | บทบาทกับสิทธิ์ | `คงไว้` | ความสัมพันธ์ many-to-many (FR7.4) |
 | 16 | [CreditCards](#creditcards) | บัตรเครดิต | `เพิ่มใหม่` | แยกข้อมูลบัตร วันสรุปยอด และวงเงิน |
 | 17 | [CreditCardStatements](#creditcardstatements) | ใบแจ้งยอดบัตรเครดิต | `เพิ่มใหม่` | เก็บหัว statement และยอดสรุป |
 | 18 | [CreditCardStatementItems](#creditcardstatementitems) | รายการย่อยใบแจ้งยอด | `เพิ่มใหม่` | เก็บยอดซื้อ ดอกเบี้ย เงินคืน ยอดผ่อน และเชื่อม Transaction |
@@ -35,7 +36,7 @@
 | 21 | [CategoryRules](#categoryrules) | กฎจัดหมวดหมู่อัตโนมัติ | `เพิ่มใหม่` | จำรูปแบบการจัดหมวดหมู่เพื่อใช้ครั้งถัดไป |
 | 22 | [InstallmentPlans](#installmentplans) | แผนผ่อนบัตรเครดิต | `เพิ่มใหม่` | ติดตามยอดรวม จำนวนงวด และยอดต่อเดือน |
 | 23 | [TransferGroups](#transfergroups) | กลุ่มการโอนระหว่างบัญชี | `เพิ่มใหม่` | จับคู่โอนออก/โอนเข้าไม่ให้คิดเป็นรายรับรายจ่ายซ้ำ |
-| 24 | [AuditLogs](#auditlogs) | ประวัติการเปลี่ยนแปลง (ส่วนเสริม) | `เพิ่มใหม่` ⛔ D12 | ~~ช่วยตรวจสอบการแก้ไขและนำเข้าข้อมูลย้อนหลัง~~ — **ไม่มี FR รองรับ — ห้ามสร้าง Entity (D12)** |
+| 24 | [AuditLogs](#auditlogs) | ประวัติการเปลี่ยนแปลง (ส่วนเสริม) | `เพิ่มใหม่` | ช่วยตรวจสอบการแก้ไขและนำเข้าข้อมูลย้อนหลัง (FR8.1–8.2) |
 | 25 | [UserRefreshTokens](#userrefreshtokens) | เก็บ Refresh Token สำหรับต่ออายุ Access Token และจัดการเซสชันผู้ใช้ | `เพิ่มใหม่` | รองรับ JWT Authentication, Token Rotation, Multi-device Sessions และการ Revoke รายเครื่อง — **สร้างใน migration แรกเลย (D6)** |
 
 ---
@@ -50,7 +51,7 @@
   - **Token Rotation:** ทุกครั้งที่มีการขอ Access Token ใหม่ด้วย Refresh Token เดิม ให้ทำการยกเลิก Token เก่า (`RevokedAt`) และออก Token คู่ใหม่ทันที พร้อมบันทึก `ReplacedByTokenHash` เพื่อตรวจจับการนำ Token เก่ามาใช้ซ้ำ (Token Reuse / Theft Detection) หากพบการใช้ซ้ำ ให้สั่งเพิกถอน Token ทั้งหมดของผู้ใช้ทันที
   - **Multi-device Sessions:** ตาราง `UserRefreshTokens` รองรับการเข้าสู่ระบบพร้อมกันหลายเครื่อง (Mobile, Desktop) และสามารถเลือก Logout เฉพาะอุปกรณ์ได้
 - **Timezone:** เก็บเวลาเป็น UTC ทั้งหมด (`datetime2`) และแสดงผลตาม timezone ของผู้ใช้
-- **Soft Delete (ยึด D5 ล็อกแล้ว):** ใช้ soft delete (`IsDeleted`) **เฉพาะตารางกลุ่มการเงิน 9 ตาราง** = Transactions, BankAccounts, CreditCards, Budgets, RecurringTransactions, InstallmentPlans, TransferGroups, CreditCardStatements, CreditCardStatementItems — ตารางกลุ่มนี้ที่ยังไม่มีคอลัมน์ `IsDeleted` ในเอกสารนี้ (Budgets, RecurringTransactions, CreditCards, TransferGroups, InstallmentPlans, CreditCardStatements, CreditCardStatementItems — มีแค่ Transactions, BankAccounts ตอนนี้) ต้อง**เพิ่มคอลัมน์ตอนสร้าง Entity + ยื่นแก้เอกสารนี้ในงานเดียวกัน**; ตารางอื่นใช้ hard delete ปกติ (ลบจริง)
+- **Soft Delete (ยึด D5 ล็อกแล้ว):** ใช้ soft delete (`IsDeleted`) **เฉพาะตารางกลุ่มการเงิน 9 ตาราง** = `Transactions`, `BankAccounts`, `CreditCards`, `Budgets`, `RecurringTransactions`, `InstallmentPlans`, `TransferGroups`, `CreditCardStatements`, `CreditCardStatementItems` — ทั้ง 9 ตารางนี้มีคอลัมน์ `IsDeleted` ครบแล้ว (เติมใน 7 ตารางที่ขาดใน Phase 2) + global query filter / ตารางอื่นใช้ hard delete ปกติ (ลบจริง)
 - **ตรวจรายการซ้ำ (Duplicate Detection):** ตรวจสอบด้วย FileHash, TransactionReference, จำนวนเงิน และวันเวลา
 - **Tag Limit:** กำหนดให้ไม่เกิน 20 tags ต่อผู้ใช้งาน
 
@@ -251,6 +252,7 @@ erDiagram
 | `EndDate` | `date` |  |  | YES | Must be >= StartDate | วันที่สิ้นสุดรอบงบ; NULL สำหรับรอบซ้ำ | 2026-10-31 |
 | `AlertThresholdPercent` | `tinyint` |  |  | NO | DEFAULT 80; 1..100 | เปอร์เซ็นต์ที่เริ่มแจ้งเตือน | 80 |
 | `IsActive` | `bit` |  |  | NO | DEFAULT 1 | สถานะงบ | 1 |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
 ### <a id="recurringtransactions"></a>8. RecurringTransactions
@@ -273,6 +275,7 @@ erDiagram
 | `EndDate` | `date` |  |  | YES |  | วันที่สิ้นสุด | 2027-09-30 |
 | `NextRunAt` | `datetime2` |  |  | NO |  | เวลาที่ต้องสร้างรายการครั้งถัดไป | 2026-11-01T00:00:00 |
 | `IsActive` | `bit` |  |  | NO | DEFAULT 1 | สถานะการทำงาน | 1 |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
 ### <a id="notifications"></a>9. Notifications
@@ -334,11 +337,9 @@ erDiagram
 
 ### <a id="roles"></a>12. Roles
 
-> ⛔ **D12: ห้ามสร้าง Entity ตารางนี้** — ไม่มี requirement (FR) รองรับ ระบบใช้ per-user ownership + JWT claims แทน RBAC — คงอธิบายไว้เป็นแบบจำลองเริ่มต้นเท่านั้น
-
 > **ชื่อไทย:** Roles — บทบาทผู้ใช้  
 > **หน้าที่:** บทบาทผู้ใช้ (คงไว้)  
-> **ขอบเขตฟีเจอร์:** กำหนดสิทธิ์การเข้าถึงระบบ
+> **ขอบเขตฟีเจอร์:** กำหนดสิทธิ์การเข้าถึงระบบ (FR7.1)
 
 | Column | Data Type | PK | FK | Nullable | Default / Constraint | รายละเอียด | ตัวอย่าง |
 |---|---|:---:|---|:---:|---|---|---|
@@ -351,11 +352,9 @@ erDiagram
 
 ### <a id="permissions"></a>13. Permissions
 
-> ⛔ **D12: ห้ามสร้าง Entity ตารางนี้** — ไม่มี requirement (FR) รองรับ — คงอธิบายไว้เป็นแบบจำลองเริ่มต้นเท่านั้น
-
 > **ชื่อไทย:** Permissions — รายการสิทธิ์ที่ระบบอนุญาต  
 > **หน้าที่:** รายการสิทธิ์ (คงไว้)  
-> **ขอบเขตฟีเจอร์:** กำหนดสิทธิ์ดู/เพิ่ม/แก้ไข/ลบข้อมูล
+> **ขอบเขตฟีเจอร์:** กำหนดสิทธิ์ดู/เพิ่ม/แก้ไข/ลบข้อมูล (FR7.2)
 
 | Column | Data Type | PK | FK | Nullable | Default / Constraint | รายละเอียด | ตัวอย่าง |
 |---|---|:---:|---|:---:|---|---|---|
@@ -368,11 +367,9 @@ erDiagram
 
 ### <a id="userroles"></a>14. UserRoles
 
-> ⛔ **D12: ห้ามสร้าง Entity ตารางนี้** — ไม่มี requirement (FR) รองรับ — คงอธิบายไว้เป็นแบบจำลองเริ่มต้นเท่านั้น
-
 > **ชื่อไทย:** UserRoles — เชื่อมผู้ใช้กับบทบาท  
 > **หน้าที่:** ผู้ใช้กับบทบาท (คงไว้)  
-> **ขอบเขตฟีเจอร์:** กำหนดหนึ่งหรือหลายบทบาทให้ผู้ใช้
+> **ขอบเขตฟีเจอร์:** กำหนดหนึ่งหรือหลายบทบาทให้ผู้ใช้ (FR7.3)
 
 | Column | Data Type | PK | FK | Nullable | Default / Constraint | รายละเอียด | ตัวอย่าง |
 |---|---|:---:|---|:---:|---|---|---|
@@ -382,11 +379,9 @@ erDiagram
 
 ### <a id="rolepermissions"></a>15. RolePermissions
 
-> ⛔ **D12: ห้ามสร้าง Entity ตารางนี้** — ไม่มี requirement (FR) รองรับ — คงอธิบายไว้เป็นแบบจำลองเริ่มต้นเท่านั้น
-
 > **ชื่อไทย:** RolePermissions — เชื่อมบทบาทกับสิทธิ์  
 > **หน้าที่:** บทบาทกับสิทธิ์ (คงไว้)  
-> **ขอบเขตฟีเจอร์:** กำหนดสิทธิ์แต่ละบทบาท
+> **ขอบเขตฟีเจอร์:** กำหนดสิทธิ์แต่ละบทบาท (FR7.4)
 
 | Column | Data Type | PK | FK | Nullable | Default / Constraint | รายละเอียด | ตัวอย่าง |
 |---|---|:---:|---|:---:|---|---|---|
@@ -411,6 +406,7 @@ erDiagram
 | `PaymentDueDay` | `tinyint` |  |  | YES | 1..31 | วันครบกำหนดชำระ | 10 |
 | `CreditLimit` | `decimal(18,2)` |  |  | YES | CHECK >= 0 | วงเงินบัตร | 50000.00 |
 | `IsActive` | `bit` |  |  | NO | DEFAULT 1 | สถานะบัตร | 1 |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
 ### <a id="creditcardstatements"></a>17. CreditCardStatements
@@ -436,6 +432,7 @@ erDiagram
 | `PaymentAmount` | `decimal(18,2)` |  |  | NO | DEFAULT 0 | ยอดชำระ | 2000.00 |
 | `TotalDue` | `decimal(18,2)` |  |  | NO |  | ยอดที่ต้องชำระตามใบแจ้งยอด | 3150.00 |
 | `Status` | `varchar(20)` |  |  | NO | IMPORTED/REVIEWED/PAID | สถานะใบแจ้งยอด | REVIEWED |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลานำเข้า | 2026-10-26T10:00:00Z |
 
 ### <a id="creditcardstatementitems"></a>18. CreditCardStatementItems
@@ -457,6 +454,7 @@ erDiagram
 | `TransactionId` | `bigint` |  | `Transactions.TransactionId` | YES | UNIQUE when linked | รายการที่สร้างในระบบหลังยืนยัน | 50002 |
 | `ExternalReference` | `nvarchar(150)` |  |  | YES |  | เลขอ้างอิงจากไฟล์ต้นทาง | REF-ABC123 |
 | `IsDuplicate` | `bit` |  |  | NO | DEFAULT 0 | ตรวจพบว่าซ้ำหรือไม่ | 0 |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | เวลานำเข้า | 2026-10-26T10:00:00Z |
 
 ### <a id="slipimportfiles"></a>19. SlipImportFiles
@@ -538,6 +536,7 @@ erDiagram
 | `InterestRatePercent` | `decimal(7,4)` |  |  | NO | DEFAULT 0; CHECK >= 0 | อัตราดอกเบี้ยเป็นเปอร์เซ็นต์ต่อปีหรือตามสัญญา ต้องกำหนดนิยามให้ชัด | 0.0000 |
 | `StartDate` | `date` |  |  | NO |  | วันที่เริ่มผ่อน | 2026-10-01 |
 | `Status` | `varchar(20)` |  |  | NO | ACTIVE/COMPLETED/CANCELLED | สถานะแผนผ่อน | ACTIVE |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
 ### <a id="transfergroups"></a>23. TransferGroups
@@ -556,15 +555,14 @@ erDiagram
 | `TransferDate` | `datetime2` |  |  | NO |  | วันเวลาโอน | 2026-10-15T12:00:00 |
 | `Reference` | `nvarchar(150)` |  |  | YES |  | เลขอ้างอิงการโอน | TXN-123 |
 | `Status` | `varchar(20)` |  |  | NO | PENDING/MATCHED/CONFIRMED/VOID | สถานะจับคู่รายการโอน | CONFIRMED |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-15T12:01:00 |
 
 ### <a id="auditlogs"></a>24. AuditLogs
 
-> ⛔ **D12: ห้ามสร้าง Entity ตารางนี้** — ไม่มี requirement (FR) รองรับ (ส่วนเสริมเฉย ๆ) — คงอธิบายไว้เป็นแบบจำลองเริ่มต้นเท่านั้น; งาน audit จริงใช้ structured logging + traceId ตาม Tech_Stack/ARCHITECTURE
-
 > **ชื่อไทย:** AuditLogs — บันทึกเหตุการณ์สำคัญเพื่อช่วยตรวจสอบย้อนหลัง  
 > **หน้าที่:** ประวัติการเปลี่ยนแปลง (ส่วนเสริม) (เพิ่มใหม่)  
-> **ขอบเขตฟีเจอร์:** ส่วนเสริมแนะนำสำหรับติดตามการแก้ไข/ลบข้อมูลและเหตุการณ์นำเข้า
+> **ขอบเขตฟีเจอร์:** ส่วนเสริมแนะนำสำหรับติดตามการแก้ไข/ลบข้อมูลและเหตุการณ์นำเข้า (FR8.1–8.2)
 
 | Column | Data Type | PK | FK | Nullable | Default / Constraint | รายละเอียด | ตัวอย่าง |
 |---|---|:---:|---|:---:|---|---|---|
