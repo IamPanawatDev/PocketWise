@@ -235,6 +235,72 @@ Content-Type: application/json
 
 ---
 
+## 5A. Phase 4 — Core Transactions (contract ล็อกแล้ว)
+
+> **สถานะ:** implement แล้วใน Phase 4 (FR2.1–FR2.6, FR3.1.2–FR3.1.4, FR3.2.1–FR3.2.6, FR4.1–FR4.5, FR4.7, FR4.9, FR1.4–FR1.5)
+> ใช้ envelope `{ success, data }` / error codes จาก §2 กับ §3; pagination ตาม §4; auth ตาม §5
+
+### Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|:-:|---|:-:|---|
+| `GET` | `/api/v1/transactions` | ต้อง | รายการ transactions (list + filter + sort + pagination) |
+| `GET` | `/api/v1/transactions/{id}` | ต้อง | รายการเดี่ยว |
+| `POST` | `/api/v1/transactions` | ต้อง | เพิ่มรายการ (manual) |
+| `PUT` | `/api/v1/transactions/{id}` | ต้อง | แก้ไขรายการ |
+| `DELETE` | `/api/v1/transactions/{id}` | ต้อง | soft delete รายการ |
+| `GET` | `/api/v1/categories` | ต้อง | หมวดหมู่ทั้งหมด (user + system) |
+| `GET` | `/api/v1/categories/{id}` | ต้อง | หมวดหมู่เดี่ยว |
+| `POST` | `/api/v1/categories` | ต้อง | สร้างหมวดหมู่ |
+| `PUT` | `/api/v1/categories/{id}` | ต้อง | แก้ไขหมวดหมู่ |
+| `PUT` | `/api/v1/categories/reorder` | ต้อง | เรียงลำดับหมวดหมู่ |
+| `DELETE` | `/api/v1/categories/{id}` | ต้อง | ลบหมวดหมู่ (ถ้าไม่มี transaction ใช้) |
+| `GET` | `/api/v1/tags` | ต้อง | แท็กทั้งหมด |
+| `GET` | `/api/v1/tags/{id}` | ต้อง | แท็กเดี่ยว |
+| `POST` | `/api/v1/tags` | ต้อง | สร้างแท็ก (จำกัด 20/ผู้ใช้ → `TAG_LIMIT_REACHED`) |
+| `PUT` | `/api/v1/tags/{id}` | ต้อง | แก้ไขแท็ก |
+| `PUT` | `/api/v1/tags/reorder` | ต้อง | เรียงลำดับแท็ก |
+| `DELETE` | `/api/v1/tags/{id}` | ต้อง | ลบแท็ก |
+| `GET` | `/api/v1/bank-accounts` | ต้อง | บัญชีทั้งหมด |
+| `GET` | `/api/v1/bank-accounts/{id}` | ต้อง | บัญชีเดี่ยว |
+| `POST` | `/api/v1/bank-accounts` | ต้อง | สร้างบัญชี |
+| `PUT` | `/api/v1/bank-accounts/{id}` | ต้อง | แก้ไขบัญชี |
+| `DELETE` | `/api/v1/bank-accounts/{id}` | ต้อง | soft delete บัญชี (ถ้าไม่มี transaction ใช้) |
+| `GET` | `/api/v1/transfers` | ต้อง | กลุ่มโอนทั้งหมด |
+| `GET` | `/api/v1/transfers/{id}` | ต้อง | กลุ่มโอนเดี่ยว |
+| `POST` | `/api/v1/transfers` | ต้อง | สร้างการโอน → auto สร้าง 2 transactions (โอนออก/โอนเข้า) |
+
+### Filter params ของ `GET /api/v1/transactions`
+
+| Param | กำหนด |
+|---|---|
+| `categoryId` | กรองตามหมวดหมู่ |
+| `tagId` | กรองตามแท็ก |
+| `bankAccountId` | กรองตามบัญชีธนาคาร |
+| `type` | `income` / `expense` / `transfer` |
+| `fromDate` / `toDate` | ช่วงเวลา (UTC ISO) |
+| `q` | ค้นใน description / ชื่อหมวดหมู่ |
+| `page` / `pageSize` | pagination ตาม §4 (default `1` / `20`, max `100`) |
+| `sortBy` / `sortDesc` | `transactionDate` (default) หรือ `amount`; `sortDesc` default `true` |
+
+### Enums (ส่ง/รับเป็น string — `camelCase`)
+
+- `TransactionType`: `income` / `expense` / `transfer`
+- `CategoryType`: `income` / `expense` / `both`
+- `AccountType`: `cash` / `bank` / `wallet` / `other`
+- `SourceType`: `manual` / `slip` / `cardStatement` / `recurring`
+- `TransactionStatus`: `draft` / `confirmed` / `void`
+- `TransferGroupStatus`: `pending` / `matched` / `confirmed` / `void`
+
+### Business rules ที่บังคับใช้
+
+- Tag จำกัด 20 ต่อผู้ใช้ (`TAG_LIMIT_REACHED` → 409)
+- ลบหมวดหมู่/บัญชีที่มี transaction ใช้อยู่ → `CONFLICT` (409)
+- หมวดหมู่ระบบ (`IsSystem=true`) แก้ไข/ลบไม่ได้ → `FORBIDDEN` (403)
+- การโอน (transfer) สร้าง 2 transactions อัตโนมัติผูก `transferGroupId` เดียวกัน
+
+---
+
 ## 6. SignalR Events (section เปิด — ล็อกตอน Phase 6 เริ่ม, ตาม D11 แต่ 5ข)
 
 **สถานะ:** ยัง**ไม่ล็อก** — กำหนด event contract ลง section นี้ **ก่อน implement Phase 6** โดยใช้ข้อมูลจาก playbook (ขั้นที่ 4 ของ Phase 6) + ผ้งการชี้ของ ARCHITECTURE §6

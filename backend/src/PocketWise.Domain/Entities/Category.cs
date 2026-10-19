@@ -7,7 +7,7 @@ public class Category
     public long CategoryId { get; set; }
     public long? UserId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
-    public TransactionType CategoryType { get; set; }
+    public CategoryType CategoryType { get; set; }
     public string? Icon { get; set; }
     public string? Color { get; set; }
     public int SortOrder { get; set; }

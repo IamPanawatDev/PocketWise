@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using PocketWise.Api.Configuration;
 using PocketWise.Api.Middleware;
 using PocketWise.Infrastructure.Configuration;
@@ -11,7 +12,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddPocketWiseAuthentication(builder.Configuration);
 builder.Services.AddApplicationServices();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
