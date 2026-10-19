@@ -15,7 +15,7 @@ public class TransferGroup
     public bool IsDeleted { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public User User { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
     public BankAccount FromBankAccount { get; set; } = null!;
     public BankAccount ToBankAccount { get; set; } = null!;
     public ICollection<Transaction> Transactions { get; set; } = [];

@@ -47,10 +47,10 @@ npm install
 # 3) ตั้ง env ฝั่ง frontend
 copy .env.example .env.local     # Windows (Linux: cp)
 
-# 4) รันทั้งสองฝั่งพร้อมกัน (จาก repo root — ต้องมี Windows Terminal)
+# 4) รันทั้งสองฝั่งพร้อมกัน (จาก repo root — Windows Terminal เป็นทางเลือก)
 ..\..\run.cmd
 # หรือรันแยก:
-#   Backend : cd backend/src/PocketWiseApi && dotnet watch run   → https://localhost:7023
+#   Backend : cd backend/src/PocketWise.Api && dotnet watch run   → http://localhost:5268
 #   Frontend: cd frontend/pocketwise-web && npm run dev          → http://localhost:3000
 ```
 

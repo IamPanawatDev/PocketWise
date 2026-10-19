@@ -9,5 +9,5 @@ public class Permission
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<RolePermission> RolePermissions { get; set; } = [];
+    public ICollection<ApplicationRolePermission> RolePermissions { get; set; } = [];
 }

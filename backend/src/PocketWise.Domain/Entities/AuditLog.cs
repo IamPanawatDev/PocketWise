@@ -12,5 +12,5 @@ public class AuditLog
     public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
     public string? DetailsJson { get; set; }
 
-    public User? User { get; set; }
+    public ApplicationUser? User { get; set; }
 }

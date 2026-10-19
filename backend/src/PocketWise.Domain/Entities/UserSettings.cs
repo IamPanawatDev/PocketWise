@@ -11,5 +11,5 @@ public class UserSettings
     public bool EmailBudgetAlertsEnabled { get; set; } = true;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public User User { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
 }

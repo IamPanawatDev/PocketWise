@@ -4,9 +4,9 @@ using PocketWise.Domain.Entities;
 
 namespace PocketWise.Infrastructure.Configurations;
 
-public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermission>
+public class ApplicationRolePermissionConfiguration : IEntityTypeConfiguration<ApplicationRolePermission>
 {
-    public void Configure(EntityTypeBuilder<RolePermission> builder)
+    public void Configure(EntityTypeBuilder<ApplicationRolePermission> builder)
     {
         builder.ToTable("RolePermissions");
 

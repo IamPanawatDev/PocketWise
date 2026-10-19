@@ -21,7 +21,7 @@ public class SlipImportFile
     public ReviewStatus ReviewStatus { get; set; } = ReviewStatus.Pending;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public User User { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
     public ImportJob? ImportJob { get; set; }
     public Transaction? Transaction { get; set; }
     public Merchant? Merchant { get; set; }

@@ -15,7 +15,7 @@ public class Category
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public User? User { get; set; }
+    public ApplicationUser? User { get; set; }
     public ICollection<Transaction> Transactions { get; set; } = [];
     public ICollection<Budget> Budgets { get; set; } = [];
     public ICollection<CategoryRule> CategoryRules { get; set; } = [];

@@ -1,23 +1,22 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PocketWise.Domain.Entities;
-using PocketWise.Infrastructure.Configurations;
 using System.Reflection;
 
 namespace PocketWise.Infrastructure.Persistence;
 
-public class PocketWiseDbContext : DbContext
+public class PocketWiseDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, long, IdentityUserClaim<long>, ApplicationUserRole, IdentityUserLogin<long>, IdentityRoleClaim<long>, IdentityUserToken<long>>
 {
     public PocketWiseDbContext(DbContextOptions<PocketWiseDbContext> options)
         : base(options)
     {
     }
 
-    public DbSet<User> Users => Set<User>();
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
-    public DbSet<Role> Roles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();
-    public DbSet<UserRole> UserRoles => Set<UserRole>();
-    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<ApplicationUserRole> ApplicationUserRoles => Set<ApplicationUserRole>();
+    public DbSet<ApplicationRolePermission> ApplicationRolePermissions => Set<ApplicationRolePermission>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
@@ -46,5 +45,13 @@ public class PocketWiseDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        modelBuilder.Entity<ApplicationUser>().ToTable("Users");
+        modelBuilder.Entity<ApplicationRole>().ToTable("Roles");
+        modelBuilder.Entity<ApplicationUserRole>().ToTable("UserRoles");
+        modelBuilder.Entity<IdentityUserClaim<long>>().ToTable("UserClaims");
+        modelBuilder.Entity<IdentityUserLogin<long>>().ToTable("UserLogins");
+        modelBuilder.Entity<IdentityUserToken<long>>().ToTable("UserTokens");
+        modelBuilder.Entity<IdentityRoleClaim<long>>().ToTable("RoleClaims");
     }
 }
