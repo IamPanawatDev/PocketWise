@@ -30,7 +30,7 @@
 | **สถาปัตยกรรม, ทิศทาง dependency, request lifecycle** | **ARCHITECTURE** | `/docs/ARCHITECTURE.md` |
 | **สัญญา REST/SignalR, endpoint, error envelope, pagination** | **API_SPECIFICATION** | `/docs/API_SPECIFICATION.md` |
 | **Requirement, ขอบเขตระบบ (ทำอะไร/ไม่ทำอะไร)** | **REQUIREMENTS** | `/docs/REQUIREMENTS.md` |
-| Schema ฐานข้อมูล, Business rules ข้อมูล | DataDictionary | `/docs/DataDictionary.md` — **implement เฉพาะ 20/25 ตาราง (D12)** |
+| Schema ฐานข้อมูล, Business rules ข้อมูล | DataDictionary | `/docs/DataDictionary.md` — **25 ตาราง (ครบทั้งหมดตาม D13)** |
 | **Design tokens, UI components** | **DESIGN.md** | `/frontend/pocketwise-web/DESIGN.md` |
 | Stack, Security baseline, Version policy | Tech_Stack | `/docs/Tech_Stack.md` |
 | **ขั้นตอน/คำสั่ง/สถานะ/Decision Points** | **เอกสารนี้** | `/docs/DEVELOPMENT_GUIDELINE.md` |
@@ -68,7 +68,7 @@
 |:---:|:---:|---|
 | 0 สภาพแวดล้อม | ✅ | `run.cmd`, local tool manifest พร้อม + **SQL Server 2025 ที่ localhost ตรวจแล้ว — `PocketWiseDb` พร้อม (ว่าง 0 ตาราง)** |
 | 1 Foundation | ✅ | Solution 4 โปรเจค, Next.js app, ESLint, `.env.example` |
-| 2 Data Model | 🟡 | ติดตั้ง EF Core pack แล้ว — **ยังไม่มีโค้ด Entity/DbContext** (สร้างตามขอบเขต FR — ดู Phase 2 ข้อ 1) |
+| 2 Data Model | 🟡 | ติดตั้ง EF Core pack แล้ว — **ยังไม่มีโค้ด Entity/DbContext** (สร้างครบ 25 ตารางตาม FR — ดู Phase 2 ข้อ 1) |
 | 3 Identity | 🟡 | ติดตั้ง Identity package แล้ว — auth strategy ล็อกแล้ว (JWT + Refresh, ดู Phase 3) |
 | 4 Core Transactions | ⬜ | รวม transfers, หมวดหมู่, แท็ก (FR mapping ใน section) |
 | 5 Budgets, Credit Cards & Reports | ⬜ | รวมงบ, บัตรเครดิตพื้นฐาน, รายการประจำ, จัดหมวดอัตโนมัติ, reports |
@@ -125,8 +125,8 @@ npm install                # จาก package.json (+ package-lock.json)
 
 **ขั้นตอน:**
 
-1. **สร้าง Entities ตาม `DataDictionary.md` — เฉพาะ 20 ตารางที่มี requirement รองรับ (ขอบเขตตาม REQUIREMENTS.md + D12)** → `src/PocketWise.Domain/Entities/` ไฟล์ละ entity ชื่อเดียวกับตาราง + Enums → `Enums/`, ValueObjects → `ValueObjects/`
-   - ขอบเขต: สร้าง Entities ให้ตรงกับรายการ FR ใน REQUIREMENTS.md — รายชื่อตารางปัจจุบันดู D12 ใน Appendix D (อัปเดตอัตโนมัติเมื่อ REQUIREMENTS เพิ่ม FR)
+1. **สร้าง Entities ตาม `DataDictionary.md` — ครบ 25 ตาราง (ขอบเขตตาม REQUIREMENTS.md + D13)** → `src/PocketWise.Domain/Entities/` ไฟล์ละ entity ชื่อเดียวกับตาราง + Enums → `Enums/`, ValueObjects → `ValueObjects/`
+   - ขอบเขต: สร้าง Entities ให้ตรงกับรายการ FR ใน REQUIREMENTS.md (F1–F8 ครอบทั้ง 25 ตาราง) — รายชื่อตารางปัจจุบันดู D13 ใน Appendix D
    - ❓ หากความสัมพันธ์ (1–many / many–many), ชนิด field หรือ constraint ไม่ชัดใน DataDictionary → **ถามก่อนเขียน**
 2. **สร้าง `PocketWiseDbContext`** → `src/PocketWise.Infrastructure/Persistence/`
    - DbSet ต่อตารางที่สร้าง, ตามกฎระบบ: เก็บเวลาเป็น UTC (`datetime2`), soft delete (`IsDeleted` + global query filter) สำหรับข้อมูลการเงิน และ precision ของ `decimal` ที่เป็นจำนวนเงิน ตาม DataDictionary
@@ -160,7 +160,7 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 - ✅ ฐานข้อมูล: localhost + `PocketWiseDb` (D4) — ตรวจแล้วพร้อมจริง
 - ✅ **ขอบเขต soft delete (D5 — ล็อกแล้ว):** ใช้ **ตารางกลุ่มการเงิน 9 ตาราง** — `Transactions`, `BankAccounts`, `CreditCards`, `Budgets`, `RecurringTransactions`, `InstallmentPlans`, `TransferGroups`, `CreditCardStatements`, `CreditCardStatementItems` (หลักคิด: ข้อมูลที่ถูกนำไปรวมในรายงาน/สรุปยอด ไม่ลบถาวร) — คอลัมน์ `IsDeleted` ที่ยังไม่มีใน DataDictionary ให้เพิ่มตอนสร้าง entity + sync DataDictionary (ถูกบันทึกไว้ที่ §3 NFR ของ REQUIREMENTS ด้วย)
 - ✅ `UserRefreshTokens` รวมใน migration แรกเลย (D6)
-- ✅ **ขอบเขต Entities ตาม FR (D12)** — รายชื่อตาราง + เหตุผลอยู่ที่ D12 (ที่เดียว อ่านจาก Appendix D)
+- ✅ **สร้างครบ 25 ตาราง** (D13) — F7 (RBAC: Roles/Permissions/UserRoles/RolePermissions) และ F8 (AuditLogs) ถูกเพิ่มโดยเจ้าของโปรเจค ให้รวมใน migration แรกด้วย
 
 ---
 
@@ -354,7 +354,8 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D9 | Requirement source นอกชีต | Requirement เริ่มต้น = Google Sheets "ระบบบันทึกรายรับรายจ่าย" (2 แผ่น) → แปลงเป็น `/docs/REQUIREMENTS.md` (structured FR + status) — ชีตต้นทางคือ **requirement source**, ไฟล์ REQUIREMENTS.md คือ **structured record + status tracking**; เพิ่ม/แก้ FR หลังนี้ต้องมาจากเจ้าของโปรเจคเสมอ | เจ้าของโปรเจค | ✅ ล็อก |
 | D10 | เอกสารสถาปัตยกรรม/สัญญา API | สร้าง `/docs/ARCHITECTURE.md` (architecture of record — กันสร้าง architecture คนละแบบ) และ `/docs/API_SPECIFICATION.md` (สัญญา FE↔BE ก่อนพัฒนา) — REST ใช้ **Swagger/OpenAPI เป็น spec หลัก** (ไฟล์ md สรุป + ชี้ OpenAPI), SignalR จัดรายละเอียดแยกในลำดับถัดไป | เจ้าของโปรเจค | ✅ ล็อก |
 | D11 | API spec decisions (5 ข้อ) | ① versioning = **path segment** `/api/v1/...` ② pagination = **`page/pageSize`** + data `{ items, page, pageSize, totalItems, totalPages }` ③ error codes = **ชุด 12 UPPER_SNAKE** (VALIDATION_ERROR, UNAUTHORIZED, TOKEN_EXPIRED, INVALID_REFRESH_TOKEN, INVALID_CREDENTIALS, FORBIDDEN, NOT_FOUND, CONFLICT, DUPLICATE_TRANSACTION, TAG_LIMIT_REACHED, RATE_LIMITED, INTERNAL_ERROR) ④ status = **เข้ม REST-style** (200/201/204/401/403/404/409/422/429/500) + envelope ประกอบ ⑤ SignalR = **section เปิด ล็อกตอน Phase 6 เริ่ม** | เจ้าของโปรเจค | ✅ ล็อก |
-| D12 | Schema scope ต่อ FR (audit 12/2026) | **Entities ถูกสร้างตามขอบเขตของ REQUIREMENTS.md** — ปัจจุบันครอบคลุม 20 ตาราง (Users, Transactions, Categories, Tags, TransactionTags, BankAccounts, Budgets, RecurringTransactions, Notifications, UserSettings, ImportJobs, CreditCards, CreditCardStatements, CreditCardStatementItems, SlipImportFiles, Merchants, CategoryRules, InstallmentPlans, TransferGroups, UserRefreshTokens) — ส่วนแบบจำลองเริ่มต้น 5 ตาราง (Roles, Permissions, UserRoles, RolePermissions, AuditLogs) อยู่ใน DataDictionary เป็นข้อมูลอ้างอิง **จะถูก implement เมื่อ REQUIREMENTS เพิ่ม FR ที่ใช้** + คอลัมน์ `IsDeleted` ที่ยังขาดใน 7 ตารางการเงิน ให้เพิ่มตอนสร้าง entity แล้ว sync DataDictionary ในงานเดียวกัน + REQUIREMENTS.md เป็นหลักร่วมกับ playbook — phase mapping ครบ FR ทุกกลุ่ม (มี Phase 5.5 Settings) | เจ้าของโปรเจค | ✅ ล็อก |
+| D12 | Schema scope ต่อ FR (audit 12/2026) | ~~เดิมล็อก "สร้างเฉพาะ 20/25 ตาราง, ยกเว้น RBAC 5 ตาราง + AuditLogs"~~ → **ถูกยกเลิกและแทนที่ด้วย D13** (เจ้าของโปรเจคสั่งเพิ่ม FR7/F8 แล้วสร้างครบ 25 ตาราง) | เจ้าของโปรเจค | ⛔ ยกเลิก (ใช้ D13) |
+| D13 | ขยายขอบเขตครบ 25 ตาราง | เจ้าของโปรเจคเพิ่ม **F7 (RBAC: Roles/Permissions/UserRoles/RolePermissions)** + **F8 (AuditLogs)** ใน REQUIREMENTS.md → Phase 2 สร้าง Entities **ครบ 25 ตาราง** รวมทั้ง 5 ตารางนั้น (เดิม D12 ยกเว้น) — ขอบเขต entity ตาม FR F1–F8 (REQUIREMENTS.md เป็นหลัก) | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
@@ -366,7 +367,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 - Phase 6: hub event contract (สัญญาตาม D11-⑤ — ล็อกตอนเริ่ม phase, ชื่อ candidate อยู่ที่ API_SPECIFICATION §6), scale-out (เลื่อน Phase 8)
 - Phase 7: file storage, ข้อจำกัดไฟล์, OCR provider
 - Phase 8: hosting, backup policy, CI แบบไหน, monitoring
-- Schema เพิ่มในอนาคต (เช่น RBAC 5 ตาราง) — เริ่มจาก **เพิ่ม FR ใน REQUIREMENTS.md** ก่อน แล้วขยาย DataDictionary + Entities ตาม (กระบวนการเดียวกับกติกา §8)
+- Schema เพิ่มในอนาคต — เริ่มจาก **เพิ่ม FR ใน REQUIREMENTS.md** ก่อน แล้วขยาย DataDictionary + Entities ตาม (กระบวนการเดียวกับกติกา §8)
 
 ---
 
