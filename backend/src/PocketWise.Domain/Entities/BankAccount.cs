@@ -15,7 +15,7 @@ public class BankAccount
     public bool IsDeleted { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public User User { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
     public ICollection<Transaction> Transactions { get; set; } = [];
     public ICollection<TransferGroup> FromTransferGroups { get; set; } = [];
     public ICollection<TransferGroup> ToTransferGroups { get; set; } = [];

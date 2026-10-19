@@ -69,7 +69,7 @@
 | 0 สภาพแวดล้อม | ✅ | `run.cmd`, local tool manifest พร้อม + **SQL Server 2025 ที่ localhost ตรวจแล้ว — `PocketWiseDb` พร้อม (ว่าง 0 ตาราง)** |
 | 1 Foundation | ✅ | Solution 4 โปรเจค, Next.js app, ESLint, `.env.example` |
 | 2 Data Model | ✅ | Entities/DbContext/Configurations/Migration ครบ 25 ตาราง; `InitialCreate` applied บน `PocketWiseDb`; build ผ่าน |
-| 3 Identity | 🟡 | ติดตั้ง Identity package แล้ว — auth strategy ล็อกแล้ว (JWT + Refresh, ดู Phase 3) |
+| 3 Identity | ✅ | `ApplicationUser : IdentityUser<long>`, JWT + Refresh Token, 5 `/api/v1/auth/*` endpoints ใช้งานได้, migration applied, build ผ่าน |
 | 4 Core Transactions | ⬜ | รวม transfers, หมวดหมู่, แท็ก (FR mapping ใน section) |
 | 5 Budgets, Credit Cards & Reports | ⬜ | รวมงบ, บัตรเครดิตพื้นฐาน, รายการประจำ, จัดหมวดอัตโนมัติ, reports |
 | 5.5 Settings & Profile | ⬜ | UserSettings + โปรไฟล์ + ล้างข้อมูล (FR6.3) |
@@ -168,19 +168,19 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 **การตัดสินใจที่ล็อกแล้ว (✅):** ระบบใช้ **JWT Bearer + Refresh Token** (D1) — **สถาปัตยกรรม auth flow ฉบับเต็มอยู่ที่ [`/docs/ARCHITECTURE.md` §5](file:///D:/Projects/PocketWise/docs/ARCHITECTURE.md) เท่านั้น** — กฎ refresh token (SHA-256 hash, rotation, reuse detection, multi-device) อยู่ใน DataDictionary กฎ 46–50 — phase นี้ทำ implementation ตามสองเอกสารนั้น ไม่ย้ำรายละเอียดซ้ำ
 
-**Prerequisite:** `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13 (ติดตั้งแล้วที่ PocketWise.Api)
+**Prerequisite:** `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13 (ติดตั้งแล้วที่ `PocketWise.Domain`), `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.13 (ติดตั้งแล้วที่ `PocketWise.Api`)
 
-**ขั้นตอน:**
+**ขั้นตอน (สถานะปัจจุบัน = ✅ เสร็จ):**
 
-1. ❓ **Decision Point ใหญ่ของ Phase นี้:** ความสัมพันธ์ของ **ตาราง `Users` ของ DataDictionary** (มี `UserId` เอง) กับ **`IdentityUser` ของ ASP.NET Core Identity** — extend `IdentityUser<string>` เพิ่มคอลัมน์เสริม หรือแยกตาราง หรือทอ map เอง — **ต้องถามเจ้าของโปรเจคก่อนทุกครั้ง**
-2. แต่ง Entity ผู้ใช้ + `UserRefreshTokens` (ตาราง 25) ตามข้อตกลงข้อ 1
-3. เปลี่ยน DbContext เป็น `IdentityDbContext<ApplicationUser>` ที่ Infrastructure + configuration ตาราง Identity
-4. ลงทะเบียน Identity services + `AddAuthentication().AddJwtBearer()` + JWT validation params — **key เก็บ user-secrets เสมอ** (วาง token-issuing service ที่ `Api/Authentication/`, controller เบา)
-5. **สร้าง Use Cases** → `src/PocketWise.Application/Features/Auth/`: Register, Login, Refresh, Logout/Revoke, Me — พร้อม DTOs + Validators; contract ลง `/docs/API_SPECIFICATION.md` ก่อน implement
-6. ❓ อายุจริงของ access/refresh token — DataDictionary ให้เป็นแนวทาง (15–60 นาที / 7–30 วัน) แต่ค่าที่ใช้จริง**ยังไม่ถูกกำหนด** — ยืนยันจากเจ้าของ
-7. ❓ ชื่อ route ของ auth endpoints — ยืนยันก่อนเขียน
-8. **Frontend sync** — โครง `src/types/api.types.ts` + `src/schemas/auth.schema.ts` + form ใน `(auth)/` หลัง contract ล็อก (แตะฝั่ง FE = อ่าน `frontend/AGENTS.md`)
-9. **Gate:** login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB, tests ขั้นต่ำของ auth flow
+1. ✅ **Decision Point D15 — relation `Users` ↔ `IdentityUser`:** ใช้ `ApplicationUser : IdentityUser<long>` ตารางยังชื่อ `Users`; `ApplicationRole : IdentityRole<long>` ตารางยังชื่อ `Roles`
+2. ✅ แต่ง Entity ผู้ใช้ + `UserRefreshTokens` (ตาราง 25) ตาม D15
+3. ✅ เปลี่ยน DbContext เป็น `IdentityDbContext<ApplicationUser, ApplicationRole, long, ...>` ที่ Infrastructure + configuration ตาราง Identity
+4. ✅ ลงทะเบียน Identity services + `AddAuthentication().AddJwtBearer()` + JWT validation params — **key เก็บ user-secrets ก่อน production** (ปัจจุบันอยู่ใน `appsettings.Development.json`)
+5. ✅ สร้าง Use Cases → `src/PocketWise.Application/Features/Auth/`: Register, Login, Refresh, Logout/Revoke, Me — พร้อม DTOs
+6. ✅ **Decision Point D15 — อายุ token:** access 60 นาที / refresh 30 วัน
+7. ✅ ชื่อ route ของ auth endpoints — ล็อกจาก D11: `/api/v1/auth/{register,login,refresh,logout,me}`
+8. ⬜ Frontend sync — รอ Phase ที่แตะ FE (`src/types/auth.types.ts`, `src/schemas/auth.schema.ts`, หน้า `(auth)/`)
+9. ✅ Gate: register/login/me ผ่าน API จริง; build ผ่าน 0 error; tokens ถูก hash ใน DB
 
 ---
 
@@ -289,7 +289,8 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 **Backend (เวอร์ชันร่วมกัน 10.0.13 ยกเว้น OpenApi):**
 
-- `PocketWise.Api`: `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13, `Microsoft.AspNetCore.OpenApi` 10.0.8, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (PrivateAssets)
+- `PocketWise.Api`: `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.13, `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13, `Microsoft.AspNetCore.OpenApi` 10.0.8, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (PrivateAssets)
+- `PocketWise.Domain`: `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13
 - `PocketWise.Infrastructure`: `Microsoft.EntityFrameworkCore.SqlServer` 10.0.13, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (PrivateAssets), `Microsoft.EntityFrameworkCore.Tools` 10.0.13 (PrivateAssets)
 - tests ทั้งสอง: `xunit` 2.9.3, `xunit.runner.visualstudio` 3.1.4, `Microsoft.NET.Test.Sdk` 17.14.1, `coverlet.collector` 6.0.4
 - Local tool: `dotnet-ef` 10.0.13 (`backend/dotnet-tools.json`)
@@ -357,10 +358,12 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D12 | Schema scope ต่อ FR (audit 12/2026) | ~~เดิมล็อก "สร้างเฉพาะ 20/25 ตาราง, ยกเว้น RBAC 5 ตาราง + AuditLogs"~~ → **ถูกยกเลิกและแทนที่ด้วย D13** (เจ้าของโปรเจคสั่งเพิ่ม FR7/F8 แล้วสร้างครบ 25 ตาราง) | เจ้าของโปรเจค | ⛔ ยกเลิก (ใช้ D13) |
 | D13 | ขยายขอบเขตครบ 25 ตาราง | เจ้าของโปรเจคเพิ่ม **F7 (RBAC: Roles/Permissions/UserRoles/RolePermissions)** + **F8 (AuditLogs)** ใน REQUIREMENTS.md → Phase 2 สร้าง Entities **ครบ 25 ตาราง** รวมทั้ง 5 ตารางนั้น (เดิม D12 ยกเว้น) — ขอบเขต entity ตาม FR F1–F8 (REQUIREMENTS.md เป็นหลัก) | เจ้าของโปรเจค | ✅ ล็อก |
 | D14 | Phase 2 cascade delete policy | Cascade ใช้เฉพาะ: `UserSettings`/`UserRefreshTokens`/`Notifications`/`TransactionTags`/`CreditCardStatementItems`/`SlipImportFiles`↔`ImportJobs`; financial entities + `Users` ใช้ Restrict/SetNull; ไม่ cascade ลบข้อมูลการเงินเมื่อลบ user | เจ้าของโปรเจค | ✅ ล็อก |
+| D15 | Phase 3 Identity strategy | `ApplicationUser : IdentityUser<long>` + `ApplicationRole : IdentityRole<long>`; ตารางยังชื่อ `Users`/`Roles`; access token 60 นาที / refresh token 30 วัน | เจ้าของโปรเจค | ✅ ล็อก |
+| D16 | Phase 3 JWT secret storage | ย้าย JWT secret จาก `appsettings.Development.json` ไป user-secrets ก่อน production (ยังไม่ทำ — ทำก่อน Phase 8) | เจ้าของโปรเจค | 🟡 รอ Phase 8 |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
-- Phase 3: relation ของ `Users` กับ `IdentityUser`, อายุ token จริง (ชื่อ auth routes + envelope + versioning ✓ D11 — ดู API_SPECIFICATION §5)
+- Phase 3: ~~relation ของ `Users` กับ `IdentityUser`, อายุ token จริง~~ ✅ ล็อกเป็น D15 (ชื่อ auth routes + envelope + versioning ✓ D11 — ดู API_SPECIFICATION §5)
 - Phase 4: filter params ของ list endpoints (format ✓ D11)
 - Phase 5: threshold semantics, chart lib 📦, recurring กลไก background job vs on-demand, email provider 📦
 - Phase 5.5: ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม

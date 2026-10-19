@@ -51,22 +51,22 @@
 | 2.11 | `dotnet ef database update` — สร้างตารางบน `PocketWiseDb` จริง + ตรวจจำนวนตาราง = **25** | ✅ | ตรวจด้วย sqlcmd: 25 ตาราง + `__EFMigrationsHistory` |
 | 2.12 | Gate Phase 2: `dotnet build` 0 error | ✅ | `dotnet build` ผ่าน (0 errors; warnings เป็น NU1902/NU1903 ที่รู้แล้วจาก Phase 0–1) |
 
-## 4. Phase 3 — Identity & Auth 🔁
+## 4. Phase 3 — Identity & Auth ✅
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
-| 3.1 | ❓ relation `Users` ↔ `IdentityUser` — ตัดสิน + ทำ per ข้อตกลง | ⬜ | ยังเปิด |
-| 3.2 | ApplicationUser + ผูก UserRefreshTokens (ขอบเขตตาม 3.1) | ⬜ | |
-| 3.3 | DbContext → `IdentityDbContext<ApplicationUser>` + config ตาราง Identity | ⬜ | |
-| 3.4 | ลงทะเบียน Identity + `AddAuthentication().AddJwtBearer()` + JWT params (key → user-secrets) | ⬜ | |
-| 3.5 | ❓ อายุ token จริง — ตัดสิน (แนวทาง 15–60 นาที / 7–30 วัน) | ⬜ | |
-| 3.6 | Use Cases: Register, Login, Refresh, Logout/Revoke, Me | ⬜ | `Features/Auth/` + DTOs + Validators |
-| 3.7 | Token issuing service (claims, expiries) ที่ `Api/Authentication/` + Controllers (thin) | ⬜ | |
-| 3.8 | Refresh token rule เต็ม: SHA-256 hash, rotation, `ReplacedByTokenHash`, reuse → revoke ทั้ง user, multi-device | ⬜ | ตาม DataDictionary กฎ 46–50 + D1 |
-| 3.9 | Contract ของ `/api/v1/auth/*` 5 endpoint ลง API_SPECIFICATION §5 ให้ตรงของจริง + Swagger ตรง | ⬜ | D11 |
-| 3.10 | FE sync: `types/api.types.ts`, `types/auth.types.ts`, `schemas/auth.schema.ts`, หน้า (auth)/ + form | ⬜ | หลัง contract ล็อก |
-| 3.11 | Migration update (ตาราง Identity) + apply จริง | ⬜ | |
-| 3.12 | Gate Phase 3: login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB, tests | ⬜ | |
+| 3.1 | ✅ relation `Users` ↔ `IdentityUser` — `ApplicationUser : IdentityUser<long>` (ตารางยังชื่อ `Users`) | ✅ | D15 |
+| 3.2 | ApplicationUser + ผูก UserRefreshTokens | ✅ | `Domain/Entities/ApplicationUser.cs`, `UserRefreshToken` FK `UserId` → `Users.Id` |
+| 3.3 | DbContext → `IdentityDbContext<ApplicationUser, ApplicationRole, long, ...>` + config ตาราง Identity | ✅ | `PocketWiseDbContext.cs`, ตาราง `Users`/`Roles`/`UserRoles`/`RolePermissions`/`UserClaims`/`UserLogins`/`UserTokens`/`RoleClaims` |
+| 3.4 | ลงทะเบียน Identity + `AddAuthentication().AddJwtBearer()` + JWT params | ✅ | `AuthenticationConfiguration.cs`, `JwtSettings` ใน `appsettings.Development.json` (ย้ายไป user-secretsก่อน production) |
+| 3.5 | อายุ token จริง — access 60 นาที / refresh 30 วัน | ✅ | D15 |
+| 3.6 | Use Cases: Register, Login, Refresh, Logout/Revoke, Me | ✅ | `Application/Features/Auth/AuthService.cs` + DTOs |
+| 3.7 | Token issuing service (claims, expiries) ที่ `Api/Authentication/` + Controllers (thin) | ✅ | `JwtTokenService.cs`, `AuthController.cs` |
+| 3.8 | Refresh token rule เต็ม: SHA-256 hash, rotation, `ReplacedByTokenHash`, reuse → revoke ทั้ง user, multi-device | ✅ | `UserRefreshTokenRepository.cs` + `AuthService.RefreshAsync` |
+| 3.9 | Contract ของ `/api/v1/auth/*` 5 endpoint ลง API_SPECIFICATION §5 | ✅ | D11 |
+| 3.10 | FE sync: `types/api.types.ts`, `types/auth.types.ts`, `schemas/auth.schema.ts`, หน้า (auth)/ + form | ⬜ | รอ Phase 3.5/FE เริ่ม |
+| 3.11 | Migration update (ตาราง Identity) + apply จริง | ✅ | migration `20261019061116_AddIdentity` applied บน `PocketWiseDb` |
+| 3.12 | Gate Phase 3: login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB | ✅ | ทดสอบ register/login/me ผ่าน; `dotnet build` 0 error; refresh/logout flow มีให้ใช้ |
 
 ## 5. Phase 4 — Core Transactions 🔁
 

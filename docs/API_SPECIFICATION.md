@@ -1,7 +1,7 @@
 # PocketWise — API_SPECIFICATION.md (สัญญา Frontend ↔ Backend)
 
 > **สำคัญสำหรับ AI Assistant:** เอกสารนี้คือ **สัญญาก่อนพัฒนาจริง (Contract of Record)** ระหว่าง Frontend และ Backend — **เขียน/แก้ endpoint ใด ๆ ต้องอัปเดตที่นี่ก่อน implement เสมอ** (กติกา §10 ของ playbook) — OpenAPI/Swagger ใน dev ต้องตรงกับเอกสารนี้
-> **Swagger เป็น Specification หลักของ REST:** เอกสารนี้ (md) ให้หลักการ + conventions + ตัวอย่างที่ OpenAPI ไม่อธิบาย (error codes, มาตรฐาน pagination, SignalR) — จุดบริการจริงใช้ OpenAPI doc ที่ Api สร้างให้อัตโนมัติ (`/openapi/v1.json` ตอน dev)
+> **Swagger เป็น Specification หลักของ REST:** เอกสารนี้ (md) ให้หลักการ + conventions + ตัวอย่างที่ OpenAPI ไม่อธิบาย (error codes, มาตรฐาน pagination, SignalR) — ใช้ Swagger UI ที่ `/swagger` หรือ OpenAPI doc ที่ Api สร้างให้อัตโนมัติ (`/openapi/v1.json`) ใน Development เท่านั้น
 > อ่านคู่กับ: `/docs/ARCHITECTURE.md` (สถาปัตยกรรม), `/docs/DataDictionary.md` (schema), `/docs/REQUIREMENTS.md` (FR), playbook (Decision Ledger)
 
 ---
@@ -10,7 +10,7 @@
 
 | หัวข้อ | กำหนด |
 |---|---|
-| Base URL (dev) | `https://localhost:7023` (ตาม launchSettings + `.env.example` — D7) |
+| Base URL (dev) | `http://localhost:5268` (ตาม run.cmd, launchSettings และ `.env.example` — D7) |
 | Versioning | **path segment vN**: `/api/v1/...` — endpoint ชุดแรกทั้งหมดเป็น `/api/v1` (D11) |
 | Content type | `application/json; charset=utf-8` (ทั้ง request และ response; upload file ยกเว้น multipart) |
 | Auth | `Authorization: Bearer <access-token>` ทุก endpoint ยกเว้น `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh` |
@@ -19,7 +19,7 @@
 | ค่าเวลา | ส่ง/รับเป็น ISO 8601 UTC (เช่น `2026-01-31T10:00:00Z`) — client สนใจ timezone เองตอน render |
 | ค่าเงิน | ส่งเป็น `decimal` (เช่น `1234.56`) + `currency` (ISO 4217, default `THB`) |
 | ชื่อ field | `camelCase` ทั้ง request/response (JSON) — .NET ปรับผ่าน `JsonSerializerOptions` |
-| Ids | `Guid`/`string` ตาม schema ใน DataDictionary (UserId เป็น string ของ Identity) |
+| Ids | `Guid`/`long`/`int` ตาม schema ใน DataDictionary (`UserId` เป็น `bigint` / Identity `long`) |
 | Pagination | `page`/`pageSize` — ดู §4 (D11) |
 | TraceId | ทุก error response ต้องมี `traceId` เชื่อม log ฝั่ง backend |
 
@@ -133,7 +133,7 @@ GET /api/v1/transactions?page=1&pageSize=20
 - **เมื่อ access token หมดอายุ:** ตอบ `401 + TOKEN_EXPIRED` — client เรียก `/auth/refresh` ด้วย refresh token, ได้ token คู่ใหม่, ทำ retry request เดิม (ฝั่ง `api-client.ts` จัดตามนี้)
 - **Rotation กัน reuse:** การเรียก refresh ทำ rotation — พบใช้ token เก่าซ้ำ → `401 + INVALID_REFRESH_TOKEN` และระบบ revoke ทุก session ของ user นั้น (ฝั่ง client ตอบสนองด้วยการ logout ไปหน้า login)
 
-### Endpoints ชุดแรก —/Auth (contract แรกที่จะ implement ใน Phase 3 — ชื่อ route ล็อกจาก D11)
+### Endpoints ชุดแรก — /Auth (contract แรกที่ implement ใน Phase 3 — ชื่อ route ล็อกจาก D11)
 
 | Method | Path | Auth | คำอธิบาย |
 |:-:|---|:-:|---|
@@ -141,9 +141,61 @@ GET /api/v1/transactions?page=1&pageSize=20
 | `POST` | `/api/v1/auth/login` | ไม่ต้อง | เข้าสู่ระบบ — ตอบ token pair (ดู §5.1) |
 | `POST` | `/api/v1/auth/refresh` | ไม่ต้อง (ใช้ refresh token แทน) | ต่ออายุ — rotation |
 | `POST` | `/api/v1/auth/logout` | ต้อง | revoke refresh token ของ session ที่เรียก (ดีไซน์จาก UserRefreshTokens) |
-| `GET` | `/api/v1/auth/me` | ต้อง | profile จาก claims (ไม่อิง DB จริงยกเว้นจำเป็น) |
+| `GET` | `/api/v1/auth/me` | ต้อง | profile จาก claims (อ่าน DB ถ้าจำเป็น) |
 
-#### 5.1 ตัวอย่าง contract (login) — ใช้เป็นแบบมาตรฐานเวลาเขียน endpoint อื่น
+#### 5.1 Request/Response DTO
+
+**`RegisterRequest`**
+```json
+{
+  "email": "user@example.com",
+  "password": "••••••••",
+  "displayName": "Display Name"
+}
+```
+
+**`LoginRequest`**
+```json
+{
+  "email": "user@example.com",
+  "password": "••••••••"
+}
+```
+
+**`RefreshRequest`**
+```json
+{
+  "refreshToken": "<opaque-token>"
+}
+```
+
+**`AuthResponse`**
+```json
+{
+  "accessToken": "<jwt>",
+  "accessTokenExpiresAt": "2026-01-31T10:15:00Z",
+  "refreshToken": "<opaque-token>",
+  "refreshTokenExpiresAt": "2026-02-07T10:00:00Z",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "displayName": "Display Name",
+    "isEmailVerified": false
+  }
+}
+```
+
+**`UserProfileResponse`**
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "displayName": "Display Name",
+  "isEmailVerified": false
+}
+```
+
+#### 5.2 ตัวอย่าง contract (login)
 
 ```http
 POST /api/v1/auth/login
@@ -161,7 +213,7 @@ Content-Type: application/json
     "accessTokenExpiresAt": "2026-01-31T10:15:00Z",
     "refreshToken": "<opaque-token>",
     "refreshTokenExpiresAt": "2026-02-07T10:00:00Z",
-    "user": { "id": "u_29f4...", "email": "user@example.com", "displayName": "..." }
+    "user": { "id": 1, "email": "user@example.com", "displayName": "...", "isEmailVerified": false }
   }
 }
 ```
@@ -171,10 +223,10 @@ Content-Type: application/json
 { "success": false, "error": { "code": "INVALID_CREDENTIALS", "message": "อีเมลหรือรหัสผ่านไม่ถูกต้อง", "traceId": "0HN7GK..." } }
 ```
 
-- ❓ **ยังเปิด:** อายุจริง access/refresh (แนวทาง 15–60 นาที / 7–30 วัน) + relation `Users` ↔ `IdentityUser` — ล็อกก่อน implement Phase 3 แล้วค่ายมาอัปเดตค่าจริงในหัวข้อนี้
+- ✅ **ล็อกแล้ว:** `ApplicationUser : IdentityUser<long>` (ตารางยังชื่อ `Users`), access token 60 นาที, refresh token 30 วัน
 - **FE types:** สร้าง `src/types/api.types.ts` จาก envelope + `src/types/auth.types.ts` จาก section นี้ **หลัง response จริงถูก implement** (ตรงตามกฎ Sync with Frontend)
 
-#### 5.2 วิธีขยาย endpoint อื่น (ตาม playbook §10) ทุกครั้ง:
+#### 5.3 วิธีขยาย endpoint อื่น (ตาม playbook §10) ทุกครั้ง:
 
 1. เพิ่มแถวตาราง endpoint + request/response DTO + code ที่อาจตอบ ลงเอกสารนี้ก่อน (ตาม section 5.1 เป็น template)
 2. Backend: implement + ตรวจ OpenAPI ว่าตรง
@@ -201,7 +253,7 @@ Content-Type: application/json
 
 1. **ก่อน implement:** เพิ่ม/แก้ contract ลงไฟล์นี้ก่อน (กติกา §10 ของ playbook)
 2. **ทุก endpoint ต้องสอดคล้อง:** conventions §1 + envelope §2 + status §3 + pagination §4 (ถ้า list) + auth §5 (ถ้ามี token)
-3. **เทียบกับ OpenAPI:** dev เรียก `GET /openapi/v1.json` หรือใช้ Swagger UI — ต้องตรงกับเอกสารนี้ (ผลต่าง = ต้องแก้)
+3. **เทียบกับ OpenAPI:** dev เรียก `GET /openapi/v1.json` หรือเปิด `http://localhost:5268/swagger` — ต้องตรงกับเอกสารนี้ (ผลต่าง = ต้องแก้)
 4. **แก้ contract ระหว่างทาง:** อัปเดตเอกสารนี้ + FE types + tests ในงานเดียวกัน — ห้ามมาครว่งเคอร์
 
 ---

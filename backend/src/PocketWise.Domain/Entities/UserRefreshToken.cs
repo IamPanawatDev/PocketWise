@@ -16,5 +16,5 @@ public class UserRefreshToken
     public string? ReplacedByTokenHash { get; set; }
     public RevokeReason? ReasonRevoked { get; set; }
 
-    public User User { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
 }

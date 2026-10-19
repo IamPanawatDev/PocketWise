@@ -37,6 +37,9 @@ backend/
    - ก่อนจะสร้างหรือเปลี่ยน DTOs/Endpoints ต้องตรวจสอบว่าฝั่ง `frontend/` คาดหวังข้อมูลแบบใด และส่งผลกระทบต่อ TypeScript Type/Schema ของ Frontend หรือไม่
 4. **ต้อง Build ผ่าน 100% เสมอ**:
    - ทุกครั้งที่เขียนหรือแก้ไขโค้ดเสร็จ ต้องรัน `dotnet build` ตรวจสอบว่าไม่มี Build Error ก่อนส่งงาน
+5. **Swagger/OpenAPI ใช้เฉพาะ Development**:
+   - ใช้ `Microsoft.AspNetCore.OpenApi` สร้างเอกสารที่ `/openapi/v1.json` และ NSwag Swagger UI ที่ `/swagger` โดยเปิดให้บริการเฉพาะ Development ตาม `Program.cs`
+   - เมื่อแก้ API contract ให้ตรวจทั้ง OpenAPI JSON และ Swagger UI ให้ตรงกับ [`/docs/API_SPECIFICATION.md`](../docs/API_SPECIFICATION.md)
 
 ---
 

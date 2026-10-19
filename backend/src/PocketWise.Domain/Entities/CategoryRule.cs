@@ -15,6 +15,6 @@ public class CategoryRule
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
-    public User? User { get; set; }
+    public ApplicationUser? User { get; set; }
     public Category Category { get; set; } = null!;
 }

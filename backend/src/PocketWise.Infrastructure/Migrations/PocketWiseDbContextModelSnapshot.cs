@@ -22,6 +22,281 @@ namespace PocketWise.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<long>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("RoleId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("RoleClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<long>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<long>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserLogins", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<long>", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("UserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationRole", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex")
+                        .HasFilter("[NormalizedName] IS NOT NULL");
+
+                    b.ToTable("Roles", (string)null);
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationRolePermission", b =>
+                {
+                    b.Property<long>("RoleId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("RolePermissions", (string)null);
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationUser", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsEmailVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("[Email] IS NOT NULL");
+
+                    b.HasIndex("NormalizedEmail")
+                        .IsUnique()
+                        .HasDatabaseName("EmailIndex")
+                        .HasFilter("[NormalizedEmail] IS NOT NULL");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex")
+                        .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationUserRole", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("RoleId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRoles", (string)null);
+                });
+
             modelBuilder.Entity("PocketWise.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("AuditLogId")
@@ -866,64 +1141,6 @@ namespace PocketWise.Infrastructure.Migrations
                     b.ToTable("RecurringTransactions", (string)null);
                 });
 
-            modelBuilder.Entity("PocketWise.Domain.Entities.Role", b =>
-                {
-                    b.Property<int>("RoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("RoleName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("RoleId");
-
-                    b.HasIndex("RoleName")
-                        .IsUnique();
-
-                    b.ToTable("Roles", (string)null);
-                });
-
-            modelBuilder.Entity("PocketWise.Domain.Entities.RolePermission", b =>
-                {
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PermissionId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.HasKey("RoleId", "PermissionId");
-
-                    b.HasIndex("PermissionId");
-
-                    b.ToTable("RolePermissions", (string)null);
-                });
-
             modelBuilder.Entity("PocketWise.Domain.Entities.SlipImportFile", b =>
                 {
                     b.Property<long>("SlipImportFileId")
@@ -1248,62 +1465,6 @@ namespace PocketWise.Infrastructure.Migrations
                     b.ToTable("TransferGroups", (string)null);
                 });
 
-            modelBuilder.Entity("PocketWise.Domain.Entities.User", b =>
-                {
-                    b.Property<long>("UserId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("UserId"));
-
-                    b.Property<DateOnly?>("BirthDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsEmailVerified")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("UserId");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.ToTable("Users", (string)null);
-                });
-
             modelBuilder.Entity("PocketWise.Domain.Entities.UserRefreshToken", b =>
                 {
                     b.Property<long>("RefreshTokenId")
@@ -1361,26 +1522,6 @@ namespace PocketWise.Infrastructure.Migrations
                     b.ToTable("UserRefreshTokens", (string)null);
                 });
 
-            modelBuilder.Entity("PocketWise.Domain.Entities.UserRole", b =>
-                {
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("AssignedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("UserRoles", (string)null);
-                });
-
             modelBuilder.Entity("PocketWise.Domain.Entities.UserSettings", b =>
                 {
                     b.Property<long>("UserId")
@@ -1422,9 +1563,79 @@ namespace PocketWise.Infrastructure.Migrations
                     b.ToTable("UserSettings", (string)null);
                 });
 
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<long>", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<long>", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<long>", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<long>", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationRolePermission", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationRole", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationUserRole", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PocketWise.Domain.Entities.AuditLog", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("AuditLogs")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1434,7 +1645,7 @@ namespace PocketWise.Infrastructure.Migrations
 
             modelBuilder.Entity("PocketWise.Domain.Entities.BankAccount", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("BankAccounts")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1455,7 +1666,7 @@ namespace PocketWise.Infrastructure.Migrations
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("Budgets")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1470,7 +1681,7 @@ namespace PocketWise.Infrastructure.Migrations
 
             modelBuilder.Entity("PocketWise.Domain.Entities.Category", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("Categories")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1486,7 +1697,7 @@ namespace PocketWise.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("CategoryRules")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1498,7 +1709,7 @@ namespace PocketWise.Infrastructure.Migrations
 
             modelBuilder.Entity("PocketWise.Domain.Entities.CreditCard", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("CreditCards")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1552,7 +1763,7 @@ namespace PocketWise.Infrastructure.Migrations
 
             modelBuilder.Entity("PocketWise.Domain.Entities.ImportJob", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("ImportJobs")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1574,7 +1785,7 @@ namespace PocketWise.Infrastructure.Migrations
                         .HasForeignKey("MerchantId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("InstallmentPlans")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1599,7 +1810,7 @@ namespace PocketWise.Infrastructure.Migrations
 
             modelBuilder.Entity("PocketWise.Domain.Entities.Notification", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("Notifications")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1615,7 +1826,7 @@ namespace PocketWise.Infrastructure.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("RecurringTransactions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1624,25 +1835,6 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("PocketWise.Domain.Entities.RolePermission", b =>
-                {
-                    b.HasOne("PocketWise.Domain.Entities.Permission", "Permission")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketWise.Domain.Entities.Role", "Role")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Permission");
-
-                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("PocketWise.Domain.Entities.SlipImportFile", b =>
@@ -1656,7 +1848,7 @@ namespace PocketWise.Infrastructure.Migrations
                         .WithMany("SlipImportFiles")
                         .HasForeignKey("MerchantId");
 
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("SlipImportFiles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1671,7 +1863,7 @@ namespace PocketWise.Infrastructure.Migrations
 
             modelBuilder.Entity("PocketWise.Domain.Entities.Tag", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("Tags")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1731,7 +1923,7 @@ namespace PocketWise.Infrastructure.Migrations
                         .HasForeignKey("TransferGroupId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("Transactions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1791,7 +1983,7 @@ namespace PocketWise.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("TransferGroups")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1806,7 +1998,7 @@ namespace PocketWise.Infrastructure.Migrations
 
             modelBuilder.Entity("PocketWise.Domain.Entities.UserRefreshToken", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1815,34 +2007,55 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("PocketWise.Domain.Entities.UserRole", b =>
-                {
-                    b.HasOne("PocketWise.Domain.Entities.Role", "Role")
-                        .WithMany("UserRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
-                        .WithMany("UserRoles")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Role");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("PocketWise.Domain.Entities.UserSettings", b =>
                 {
-                    b.HasOne("PocketWise.Domain.Entities.User", "User")
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
                         .WithOne("UserSettings")
                         .HasForeignKey("PocketWise.Domain.Entities.UserSettings", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationRole", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationUser", b =>
+                {
+                    b.Navigation("AuditLogs");
+
+                    b.Navigation("BankAccounts");
+
+                    b.Navigation("Budgets");
+
+                    b.Navigation("Categories");
+
+                    b.Navigation("CategoryRules");
+
+                    b.Navigation("CreditCards");
+
+                    b.Navigation("ImportJobs");
+
+                    b.Navigation("InstallmentPlans");
+
+                    b.Navigation("Notifications");
+
+                    b.Navigation("RecurringTransactions");
+
+                    b.Navigation("RefreshTokens");
+
+                    b.Navigation("SlipImportFiles");
+
+                    b.Navigation("Tags");
+
+                    b.Navigation("Transactions");
+
+                    b.Navigation("TransferGroups");
+
+                    b.Navigation("UserSettings");
                 });
 
             modelBuilder.Entity("PocketWise.Domain.Entities.BankAccount", b =>
@@ -1923,13 +2136,6 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Navigation("Transactions");
                 });
 
-            modelBuilder.Entity("PocketWise.Domain.Entities.Role", b =>
-                {
-                    b.Navigation("RolePermissions");
-
-                    b.Navigation("UserRoles");
-                });
-
             modelBuilder.Entity("PocketWise.Domain.Entities.SlipImportFile", b =>
                 {
                     b.Navigation("Transaction");
@@ -1950,43 +2156,6 @@ namespace PocketWise.Infrastructure.Migrations
             modelBuilder.Entity("PocketWise.Domain.Entities.TransferGroup", b =>
                 {
                     b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("PocketWise.Domain.Entities.User", b =>
-                {
-                    b.Navigation("AuditLogs");
-
-                    b.Navigation("BankAccounts");
-
-                    b.Navigation("Budgets");
-
-                    b.Navigation("Categories");
-
-                    b.Navigation("CategoryRules");
-
-                    b.Navigation("CreditCards");
-
-                    b.Navigation("ImportJobs");
-
-                    b.Navigation("InstallmentPlans");
-
-                    b.Navigation("Notifications");
-
-                    b.Navigation("RecurringTransactions");
-
-                    b.Navigation("RefreshTokens");
-
-                    b.Navigation("SlipImportFiles");
-
-                    b.Navigation("Tags");
-
-                    b.Navigation("Transactions");
-
-                    b.Navigation("TransferGroups");
-
-                    b.Navigation("UserRoles");
-
-                    b.Navigation("UserSettings");
                 });
 #pragma warning restore 612, 618
         }

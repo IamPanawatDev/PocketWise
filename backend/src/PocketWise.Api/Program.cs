@@ -1,10 +1,15 @@
+using PocketWise.Api.Configuration;
+using PocketWise.Api.Middleware;
 using PocketWise.Infrastructure.Configuration;
+using NSwag.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddPocketWiseAuthentication(builder.Configuration);
+builder.Services.AddApplicationServices();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -16,10 +21,18 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUi(settings =>
+    {
+        settings.Path = "/swagger";
+        settings.SwaggerRoutes.Add(new SwaggerUiRoute("PocketWise API", "/openapi/v1.json"));
+    });
 }
 
 app.UseHttpsRedirection();
 
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

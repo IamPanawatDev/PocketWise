@@ -1,12 +1,10 @@
+using Microsoft.AspNetCore.Identity;
+
 namespace PocketWise.Domain.Entities;
 
-public class User
+public class ApplicationUser : IdentityUser<long>
 {
-    public long UserId { get; set; }
-    public string Email { get; set; } = string.Empty;
-    public string PasswordHash { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
-    public string? PhoneNumber { get; set; }
     public DateOnly? BirthDate { get; set; }
     public bool IsEmailVerified { get; set; }
     public bool IsActive { get; set; } = true;
@@ -23,7 +21,6 @@ public class User
     public ICollection<Budget> Budgets { get; set; } = [];
     public ICollection<RecurringTransaction> RecurringTransactions { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];
-    public ICollection<UserRole> UserRoles { get; set; } = [];
     public ICollection<SlipImportFile> SlipImportFiles { get; set; } = [];
     public ICollection<ImportJob> ImportJobs { get; set; } = [];
     public ICollection<CategoryRule> CategoryRules { get; set; } = [];

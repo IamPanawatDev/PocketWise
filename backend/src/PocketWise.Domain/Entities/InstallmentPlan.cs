@@ -18,7 +18,7 @@ public class InstallmentPlan
     public bool IsDeleted { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public User User { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
     public CreditCard CreditCard { get; set; } = null!;
     public Merchant? Merchant { get; set; }
     public ICollection<Transaction> Transactions { get; set; } = [];

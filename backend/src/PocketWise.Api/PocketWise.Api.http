@@ -1,6 +1,10 @@
 @PocketWise.Api_HostAddress = http://localhost:5268
 
-GET {{PocketWise.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Swagger UI
+GET {{PocketWise.Api_HostAddress}}/swagger
 
 ###
+
+### OpenAPI document
+GET {{PocketWise.Api_HostAddress}}/openapi/v1.json
+Accept: application/json
