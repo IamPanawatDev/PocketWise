@@ -15,6 +15,11 @@ export const config = {
   matcher: [
     "/",
     "/transactions/:path*",
+    "/budgets/:path*",
+    "/credit-cards/:path*",
+    "/recurring-transactions/:path*",
+    "/categorization/:path*",
+    "/reports/:path*",
     "/categories/:path*",
     "/tags/:path*",
     "/bank-accounts/:path*",

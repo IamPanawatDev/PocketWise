@@ -16,6 +16,7 @@ public class TransactionResponse
     public long? CreditCardId { get; set; }
     public SourceType SourceType { get; set; }
     public long? TransferGroupId { get; set; }
+    public long? RecurringTransactionId { get; set; }
     public TransactionStatus Status { get; set; }
     public IReadOnlyList<TagRef> Tags { get; set; } = [];
     public DateTime CreatedAt { get; set; }

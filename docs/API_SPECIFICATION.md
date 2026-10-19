@@ -301,6 +301,344 @@ Content-Type: application/json
 
 ---
 
+## 5B. Phase 5 — Budgets (contract)
+
+> **สถานะ:** Backend budgets เริ่ม implement (D26–D30 ล็อกแล้ว) — ใช้ envelope/error/status/pagination conventions จาก §1–§4
+> เอนทิตี + enums มาจาก Phase 2; `BudgetTrackingResponse` เพิ่มใน phase นี้เพื่อ FR5.2.1
+
+### Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|:-:|---|:-:|---|
+| `GET` | `/api/v1/budgets` | ต้อง | งบประมาณทั้งหมดของผู้ใช้ |
+| `GET` | `/api/v1/budgets/tracking` | ต้อง | ติดตามยอดใช้เทียบงบ (FR5.2.1) — เฉพาะงบที่ active และอยู่ในรอบปัจจุบัน |
+| `GET` | `/api/v1/budgets/{id}` | ต้อง | งบประมาณเดี่ยว |
+| `POST` | `/api/v1/budgets` | ต้อง | สร้างงบ |
+| `PUT` | `/api/v1/budgets/{id}` | ต้อง | แก้ไขงบ |
+| `DELETE` | `/api/v1/budgets/{id}` | ต้อง | soft delete งบ |
+
+### Enums (ส่ง/รับเป็น string — `camelCase`)
+
+- `BudgetScopeType`: `total` / `category` / `tag`
+- `BudgetPeriodType`: `weekly` / `monthly` / `quarterly` / `yearly` / `custom`
+
+### Request/Response DTO
+
+**`CreateBudgetRequest`**
+```json
+{
+  "budgetName": "งบอาหารต่อเดือน",
+  "scopeType": "category",
+  "categoryId": 12,
+  "tagId": null,
+  "amountLimit": 5000.00,
+  "periodType": "monthly",
+  "startDate": "2026-10-01",
+  "endDate": null,
+  "alertThresholdPercent": 80
+}
+```
+
+**`UpdateBudgetRequest`** — เหมือน create + field `isActive` (boolean)
+
+**`BudgetResponse`**
+```json
+{
+  "budgetId": 30,
+  "budgetName": "งบอาหารต่อเดือน",
+  "currencyCode": "THB",
+  "scopeType": "category",
+  "categoryId": 12,
+  "categoryName": "อาหาร",
+  "tagId": null,
+  "tagName": null,
+  "amountLimit": 5000.00,
+  "periodType": "monthly",
+  "startDate": "2026-10-01",
+  "endDate": null,
+  "alertThresholdPercent": 80,
+  "isActive": true,
+  "createdAt": "2026-10-16T10:00:00Z"
+}
+```
+
+**`BudgetTrackingResponse`** — extends `BudgetResponse` + `spentAmount`, `remainingAmount`, `percentageUsed`, `isOverLimit`
+
+### Business rules ที่บังคับใช้
+
+- `scopeType=category` ต้องมี `categoryId`; `scopeType=tag` ต้องมี `tagId` (validation → `VALIDATION_ERROR`)
+- `categoryId`/`tagId` ต้องเป็นของ user นั้น (category อาจเป็น system category) — ไม่มี → `NOT_FOUND`
+- `currencyCode` ของงบมาจาก `UserSettings.CurrencyCode` (ถ้ายังไม่มี settings ใช้ค่าเริ่มต้น `THB`); ยอดใช้คิดเฉพาะ transaction ในสกุลเงินเดียวกัน
+- `amountLimit > 0`; `alertThresholdPercent` 1..100 (default 80)
+- ติดตามยอดใช้ (tracking) คำนวณจาก transaction `type=expense` + `status=confirmed` ภายในรอบงบปัจจุบัน
+- soft delete ตาม D5 (ไม่ลบถาวร)
+
+---
+
+## 5C. Phase 5 — Credit Cards (contract)
+
+> **สถานะ:** Backend credit cards เริ่ม implement (FR2.2 เต็ม) — ใช้ envelope/error/status conventions จาก §1–§4
+> entity `CreditCard` มาจาก Phase 2; transaction สร้าง/แก้ไขรับ `creditCardId` (nullable) ตั้งแต่ Phase 4 (D20) — statement import เป็น Phase 7
+
+### Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|:-:|---|:-:|---|
+| `GET` | `/api/v1/credit-cards` | ต้อง | บัตรเครดิตทั้งหมดของผู้ใช้ |
+| `GET` | `/api/v1/credit-cards/{id}` | ต้อง | บัตรเดี่ยว |
+| `POST` | `/api/v1/credit-cards` | ต้อง | ลงทะเบียนบัตร |
+| `PUT` | `/api/v1/credit-cards/{id}` | ต้อง | แก้ไขบัตร |
+| `DELETE` | `/api/v1/credit-cards/{id}` | ต้อง | soft delete บัตร |
+
+### Request/Response DTO
+
+**`CreateCreditCardRequest`**
+```json
+{
+  "bankName": "ธนาคารกสิกรไทย",
+  "cardName": "บัตรเครดิตหลัก",
+  "cardNumberMasked": "**** **** **** 1234",
+  "billingDay": 25,
+  "paymentDueDay": 10,
+  "creditLimit": 50000.00
+}
+```
+
+**`UpdateCreditCardRequest`** — เหมือน create + field `isActive` (boolean)
+
+**`CreditCardResponse`**
+```json
+{
+  "creditCardId": 3,
+  "bankName": "ธนาคารกสิกรไทย",
+  "cardName": "บัตรเครดิตหลัก",
+  "cardNumberMasked": "**** **** **** 1234",
+  "billingDay": 25,
+  "paymentDueDay": 10,
+  "creditLimit": 50000.00,
+  "isActive": true,
+  "createdAt": "2026-10-16T10:00:00Z"
+}
+```
+
+### Business rules ที่บังคับใช้
+
+- `bankName`/`cardName` บังคับ (≤100 ตัวอักษร)
+- `billingDay`/`paymentDueDay` 1..31 (optional)
+- `creditLimit >= 0` (optional)
+- soft delete ตาม D5 (ไม่ลบถาวร)
+- transaction `creditCardId` ชี้บัตรของผู้ใช้ (backend ไม่รับ userId จาก client ตาม §5)
+
+---
+
+## 5D. Phase 5 — Recurring Transactions (contract)
+
+> **สถานะ:** Backend recurring transactions เริ่ม implement (FR2.7, D26) — ใช้ envelope/error/status conventions จาก §1–§4
+> entity `RecurringTransaction` มาจาก Phase 2; กลไกสร้างรายการ = **BackgroundService (built-in, ไม่ติดตั้ง package)** ตาม D26 — วนตรวจทุก `RecurringJob:IntervalMinutes` (default 60) และสร้าง `Transaction` (sourceType=recurring) เมื่อถึงกำหนด
+
+### Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|:-:|---|:-:|---|
+| `GET` | `/api/v1/recurring-transactions` | ต้อง | รายการประจำทั้งหมดของผู้ใช้ |
+| `GET` | `/api/v1/recurring-transactions/{id}` | ต้อง | รายการเดี่ยว |
+| `POST` | `/api/v1/recurring-transactions` | ต้อง | ตั้งรายการประจำ |
+| `PUT` | `/api/v1/recurring-transactions/{id}` | ต้อง | แก้ไขรายการประจำ |
+| `DELETE` | `/api/v1/recurring-transactions/{id}` | ต้อง | soft delete รายการประจำ |
+
+### Enums (ส่ง/รับเป็น string — `camelCase`)
+
+- `TransactionType` (ของ recurring): `income` / `expense` (ไม่รวม transfer — ดู business rules)
+- `RecurringFrequency`: `daily` / `weekly` / `monthly` / `quarterly` / `yearly`
+
+### Request/Response DTO
+
+**`CreateRecurringTransactionRequest`**
+```json
+{
+  "transactionType": "expense",
+  "amount": 350.00,
+  "description": "ค่าสมาชิก",
+  "categoryId": 12,
+  "frequency": "monthly",
+  "intervalValue": 1,
+  "startDate": "2026-10-01",
+  "endDate": null
+}
+```
+
+**`UpdateRecurringTransactionRequest`** — เหมือน create + field `isActive` (boolean)
+
+**`RecurringTransactionResponse`**
+```json
+{
+  "recurringTransactionId": 15,
+  "transactionType": "expense",
+  "amount": 350.00,
+  "description": "ค่าสมาชิก",
+  "categoryId": 12,
+  "categoryName": "ค่าสมาชิก",
+  "frequency": "monthly",
+  "intervalValue": 1,
+  "startDate": "2026-10-01",
+  "endDate": null,
+  "nextRunAt": "2026-11-01T00:00:00Z",
+  "isActive": true,
+  "createdAt": "2026-10-16T10:00:00Z"
+}
+```
+
+### Business rules ที่บังคับใช้
+
+- `amount > 0`; `intervalValue > 0`; `endDate >= startDate` (ถ้ามี)
+- `categoryId` (ถ้าระบุ) ต้องเป็นของ user นั้น (หรือ system) — ไม่มี → `NOT_FOUND`
+- `transactionType` จำกัดที่ `income`/`expense` (ไม่รองรับ transfer สำหรับรายการประจำ)
+- `nextRunAt` คำนวณอัตโนมัติจาก `startDate` + `frequency` + `intervalValue`
+- BackgroundService สร้าง `Transaction` จริงเมื่อ `nextRunAt <= now` โดย `sourceType=recurring` + `recurringTransactionId` ผูกกลับ; จากนั้นเลื่อน `nextRunAt` ไปรอบถัดไป
+- หยุดสร้างเมื่อ `endDate` ถึง (ถ้ามี) หรือรายการถูก soft delete / `isActive=false`
+- soft delete ตาม D5 (ไม่ลบถาวร)
+
+---
+
+## 5E. Phase 5 — Merchants & Category Rules (contract)
+
+> **สถานะ:** Backend จัดหมวดอัตโนมัติเริ่ม implement (FR3.1.1 + FR3.1.3, D31–D33) — ใช้ envelope/error/status conventions จาก §1–§4
+> entity `Merchant`/`CategoryRule` มาจาก Phase 2 — Merchants เป็นตาราง global (ไม่มี userId) ไม่ seed ข้อมูล (D32); CategoryRules เป็น per-user (userId nullable = กฎกลาง)
+
+### Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|:-:|---|:-:|---|
+| `GET` | `/api/v1/merchants` | ต้อง | ร้านค้าทั้งหมด |
+| `GET` | `/api/v1/merchants/{id}` | ต้อง | ร้านค้าเดี่ยว |
+| `POST` | `/api/v1/merchants` | ต้อง | เพิ่มร้านค้า (D32 — เพิ่มเอง ไม่ seed) |
+| `PUT` | `/api/v1/merchants/{id}` | ต้อง | แก้ไขร้านค้า |
+| `DELETE` | `/api/v1/merchants/{id}` | ต้อง | ลบร้านค้า (hard delete) |
+| `GET` | `/api/v1/category-rules` | ต้อง | กฎจัดหมวดของผู้ใช้ + กฎกลาง |
+| `GET` | `/api/v1/category-rules/suggest?description=...` | ต้อง | แนะนำหมวดจาก description (D33) |
+| `GET` | `/api/v1/category-rules/{id}` | ต้อง | กฎเดี่ยว |
+| `POST` | `/api/v1/category-rules` | ต้อง | สร้างกฎเอง (D31) |
+| `PUT` | `/api/v1/category-rules/{id}` | ต้อง | แก้ไขกฎ |
+| `DELETE` | `/api/v1/category-rules/{id}` | ต้อง | ลบกฎ (hard delete) |
+
+### Enums (ส่ง/รับเป็น string — `camelCase`)
+
+- `CategoryMatchType`: `merchantName` / `description` / `bankReference`
+
+### Request/Response DTO
+
+**`CreateMerchantRequest`**
+```json
+{ "merchantName": "ร้านค้า ABC", "defaultCategoryId": 12, "bankOrProvider": null }
+```
+
+**`MerchantResponse`**
+```json
+{
+  "merchantId": 55, "merchantName": "ร้านค้า ABC",
+  "defaultCategoryId": 12, "defaultCategoryName": "อาหาร",
+  "bankOrProvider": null, "isVerified": false, "createdAt": "2026-10-16T10:00:00Z"
+}
+```
+
+**`CreateCategoryRuleRequest`**
+```json
+{ "ruleName": "ร้านอาหาร", "matchType": "description", "matchPattern": "ร้านอาหาร ABC", "categoryId": 12, "priority": 100 }
+```
+
+**`CategoryRuleResponse`**
+```json
+{
+  "categoryRuleId": 2, "ruleName": "ร้านอาหาร",
+  "matchType": "description", "matchPattern": "ร้านอาหาร ABC",
+  "categoryId": 12, "categoryName": "อาหาร",
+  "priority": 100, "isActive": true, "isGlobal": false,
+  "createdAt": "2026-10-16T10:00:00Z", "updatedAt": null
+}
+```
+
+**`CategorySuggestionResponse`**
+```json
+{ "categoryId": 12, "categoryName": "อาหาร", "source": "category-rule" }
+```
+`source` = `category-rule` (จาก CategoryRules) หรือ `merchant` (จากร้านค้า)
+
+### Business rules ที่บังคับใช้
+
+- **จัดหมวดอัตโนมัติ (D33):** ตอน `POST /transactions` ถ้า `categoryId` ว่างและมี `description` → auto-apply หมวดที่แนะนำ (CategoryRules ตาม priority → Merchants) ต่อจากนั้น
+- **Auto-learn (D31):** ตอน `POST`/`PUT /transactions` ที่ผู้ใช้**เลือกหมวดเอง** + มี `description` → ระบบบันทึกกฎ `Description→Category` (priority 100) ให้อัตโนมัติ (ไม่สร้างซ้ำ)
+- `GET /category-rules/suggest?description=` คืน `null` ใน `data` เมื่อไม่เจอหมวดที่แนะนำ
+- CategoryRules ของผู้ใช้ ใช้ได้เฉพาะของตัวเอง; กฎกลาง (`userId=null`) ใช้ได้ทุกคน
+- `merchantName` และ `description` rules จับข้อความ description ได้; `bankReference` rules ยังไม่ถูกใช้กับ transaction manual เพราะ transaction contract ยังไม่มี bank reference (นำเข้าใน Phase 7)
+- `Merchants` เป็นข้อมูล global จึงกำหนด `defaultCategoryId` ได้เฉพาะ system category เพื่อไม่ผูกข้อมูลร่วมกับหมวดหมู่ส่วนตัวของผู้ใช้
+- Merchants hard delete (ตารางไม่ใช่กลุ่มการเงินตาม D5)
+
+---
+
+## 5F. Phase 5 — Reports (contract)
+
+> Reports ใช้ข้อมูล transaction ของผู้ใช้ที่ล็อกอินเท่านั้น; date-time parameters เป็น UTC ISO 8601 และ API ใช้ขอบเขตแบบ inclusive
+
+### Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|:-:|---|:-:|---|
+| `GET` | `/api/v1/reports/summary` | ต้อง | ยอดรวมและ breakdown สำหรับ dashboard |
+| `GET` | `/api/v1/reports/trends` | ต้อง | สรุปยอดตามช่วงเวลา (สัปดาห์/เดือน/ไตรมาส/ปี) |
+
+### Query parameters
+
+| Param | กำหนด |
+|---|---|
+| `fromDate` / `toDate` | จำเป็นทั้งคู่; UTC ISO 8601; `fromDate` ต้องไม่เกิน `toDate` |
+| `categoryId` | optional; จำกัดผลลัพธ์เป็นหมวดที่ระบุ |
+| `tagId` | optional; จำกัดผลลัพธ์เป็นรายการที่ติดแท็กนั้น |
+| `period` | ใช้กับ trends เท่านั้น: `weekly` / `monthly` / `quarterly` / `yearly` |
+
+### Response
+
+**`ReportSummaryResponse`** มีช่วงเวลาที่ใช้และ `currencies` โดยแต่ละ currency แยกยอดเพื่อไม่รวมสกุลเงินต่างกันโดยไม่มีอัตราแลกเปลี่ยน:
+
+```json
+{
+  "fromDate": "2026-09-30T17:00:00Z",
+  "toDate": "2026-10-31T16:59:59.999Z",
+  "currencies": [{
+    "currencyCode": "THB",
+    "totalIncome": 45000.00,
+    "totalExpense": 12500.00,
+    "netAmount": 32500.00,
+    "categoryBreakdown": [{
+      "categoryId": 12, "categoryName": "อาหาร",
+      "amount": 5000.00, "percentage": 40.00
+    }],
+    "sourceBreakdown": [{
+      "sourceType": "manual", "amount": 12500.00, "percentage": 100.00
+    }],
+    "bankAccountBreakdown": [{
+      "bankAccountId": 4, "accountName": "บัญชีหลัก", "bankName": "ธนาคาร",
+      "amount": 3000.00, "percentage": 24.00
+    }],
+    "creditCardBreakdown": [{
+      "creditCardId": 3, "cardName": "บัตรหลัก", "bankName": "ธนาคาร",
+      "amount": 2000.00, "percentage": 16.00
+    }]
+  }]
+}
+```
+
+**`ReportTrendsResponse`** คืน `period`, `fromDate`, `toDate` และ `series[]`; แต่ละจุดมี `periodStart`, `periodEnd`, `currencyCode`, `income`, `expense`, `netAmount`. จุดที่ไม่มียอดใน currency ที่พบในช่วงนั้นคืนค่าเป็นศูนย์
+
+### Business rules
+
+- รวมเฉพาะ transaction สถานะ `confirmed` ประเภท `income`/`expense`; ไม่นับ transfer, draft หรือ void
+- category/source/bank-account/credit-card breakdown เป็นยอดรายจ่าย; รายการไม่มีหมวด/บัญชี/บัตรรวมในกลุ่ม "ไม่ระบุ"
+- `percentage` คิดจากยอดรายจ่ายของ currency เดียวกัน; ถ้ายอดรวมเป็นศูนย์ให้เป็น `0`
+- category/tag filters ใช้ร่วมกับทุก breakdown และ trend
+- จัดกลุ่มวันตาม `Asia/Bangkok`; weekly period เริ่มวันอาทิตย์และสิ้นสุดวันเสาร์ (D34)
+- ไม่แปลงสกุลเงิน; แต่ละ currency ต้องแสดง/เปรียบเทียบแยกกัน
+- Frontend ตั้งช่วงเริ่มต้นเป็นเดือนปัจจุบัน; ส่งขอบเขตวันในเวลาไทยแปลงเป็น UTC ก่อนเรียก API (D34)
+
 ## 6. SignalR Events (section เปิด — ล็อกตอน Phase 6 เริ่ม, ตาม D11 แต่ 5ข)
 
 **สถานะ:** ยัง**ไม่ล็อก** — กำหนด event contract ลง section นี้ **ก่อน implement Phase 6** โดยใช้ข้อมูลจาก playbook (ขั้นที่ 4 ของ Phase 6) + ผ้งการชี้ของ ARCHITECTURE §6

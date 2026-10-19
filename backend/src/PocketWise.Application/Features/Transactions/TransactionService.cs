@@ -13,15 +13,18 @@ public class TransactionService : ITransactionService
     private readonly ITransactionRepository _repository;
     private readonly IValidator<CreateTransactionRequest> _createValidator;
     private readonly IValidator<UpdateTransactionRequest> _updateValidator;
+    private readonly ICategoryRuleService _categoryRuleService;
 
     public TransactionService(
         ITransactionRepository repository,
         IValidator<CreateTransactionRequest> createValidator,
-        IValidator<UpdateTransactionRequest> updateValidator)
+        IValidator<UpdateTransactionRequest> updateValidator,
+        ICategoryRuleService categoryRuleService)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _categoryRuleService = categoryRuleService;
     }
 
     public async Task<TransactionResponse?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default)
@@ -51,6 +54,18 @@ public class TransactionService : ITransactionService
     {
         await _createValidator.ValidateAndThrowAsync(request, cancellationToken);
 
+        long? categoryId = request.CategoryId;
+
+        // จัดหมวดอัตโนมัติ (D33): ถ้า user ไม่ได้เลือกหมวด → auto-apply จากกฎ/ร้านค้า
+        if (!categoryId.HasValue && !string.IsNullOrWhiteSpace(request.Description))
+        {
+            var suggestion = await _categoryRuleService.SuggestCategoryAsync(userId, request.Description, cancellationToken);
+            if (suggestion is not null)
+            {
+                categoryId = suggestion.CategoryId;
+            }
+        }
+
         var entity = new Transaction
         {
             UserId = userId,
@@ -59,7 +74,7 @@ public class TransactionService : ITransactionService
             CurrencyCode = request.CurrencyCode,
             TransactionDate = request.TransactionDate,
             Description = request.Description,
-            CategoryId = request.CategoryId,
+            CategoryId = categoryId,
             BankAccountId = request.BankAccountId,
             CreditCardId = request.CreditCardId,
             SourceType = SourceType.Manual,
@@ -75,6 +90,13 @@ public class TransactionService : ITransactionService
         }
 
         await _repository.AddAsync(entity, cancellationToken);
+
+        // จัดหมวดอัตโนมัติ (D31): auto-learn เมื่อ user เลือกหมวดเองให้ description
+        if (categoryId.HasValue && request.CategoryId.HasValue && !string.IsNullOrWhiteSpace(request.Description))
+        {
+            await _categoryRuleService.LearnFromManualAsync(userId, request.Description, categoryId.Value, cancellationToken);
+        }
+
         await _repository.SaveChangesAsync(cancellationToken);
 
         var fresh = await _repository.GetByIdAsync(entity.TransactionId, userId, cancellationToken);
@@ -112,6 +134,13 @@ public class TransactionService : ITransactionService
         }
 
         await _repository.UpdateAsync(entity, cancellationToken);
+
+        // จัดหมวดอัตโนมัติ (D31): auto-learn เมื่อ user เลือกหมวดเองให้ description
+        if (request.CategoryId.HasValue && !string.IsNullOrWhiteSpace(request.Description))
+        {
+            await _categoryRuleService.LearnFromManualAsync(userId, request.Description, request.CategoryId.Value, cancellationToken);
+        }
+
         await _repository.SaveChangesAsync(cancellationToken);
 
         var fresh = await _repository.GetByIdAsync(id, userId, cancellationToken);
@@ -147,6 +176,7 @@ public class TransactionService : ITransactionService
             CreditCardId = entity.CreditCardId,
             SourceType = entity.SourceType,
             TransferGroupId = entity.TransferGroupId,
+            RecurringTransactionId = entity.RecurringTransactionId,
             Status = entity.Status,
             Tags = entity.TransactionTags
                 .Select(t => new TagRef { TagId = t.TagId, TagName = t.Tag?.TagName ?? string.Empty })

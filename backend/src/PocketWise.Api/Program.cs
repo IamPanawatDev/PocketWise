@@ -1,3 +1,4 @@
+using PocketWise.Api.BackgroundServices;
 using PocketWise.Api.Configuration;
 using PocketWise.Api.Middleware;
 using PocketWise.Infrastructure.Configuration;
@@ -13,6 +14,10 @@ builder.Services.AddApplicationServices();
 
 builder.Services.AddControllers()
     .AddJsonOptions(ControllerJsonOptionsConfiguration.Configure);
+
+builder.Services.Configure<RecurringJobOptions>(
+    builder.Configuration.GetSection("RecurringJob"));
+builder.Services.AddHostedService<RecurringTransactionBackgroundService>();
 
 const string CorsPolicyName = "PocketWiseWeb";
 builder.Services.AddCors(options =>

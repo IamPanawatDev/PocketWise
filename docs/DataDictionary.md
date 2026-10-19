@@ -255,6 +255,8 @@ erDiagram
 | `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
+> `AmountLimit` ใช้สกุลเงินหลักจาก `UserSettings.CurrencyCode` (ค่าเริ่มต้น THB); การติดตามงบรวมเฉพาะ transaction ที่ใช้ currency เดียวกัน โดยไม่มีการแปลงอัตราแลกเปลี่ยน
+
 ### <a id="recurringtransactions"></a>8. RecurringTransactions
 
 > **ชื่อไทย:** RecurringTransactions — แม่แบบรายการที่เกิดซ้ำตามกำหนด  
@@ -288,11 +290,11 @@ erDiagram
 |---|---|:---:|---|:---:|---|---|---|
 | `NotificationId` | `bigint` | ✓ |  | NO | IDENTITY(1,1) | รหัสแจ้งเตือน | 61 |
 | `UserId` | `bigint` |  | `Users.UserId` | NO |  | ผู้รับแจ้งเตือน | 1001 |
-| `NotificationType` | `varchar(50)` |  |  | NO |  | ประเภทการแจ้งเตือน | BUDGET_THRESHOLD |
+| `NotificationType` | `varchar(50)` |  |  | NO |  | ประเภทการแจ้งเตือนพร้อมชนิด threshold และวันเริ่มรอบ เช่น BUDGET_WARNING_20261001 หรือ BUDGET_EXCEEDED_20261001 | BUDGET_WARNING_20261001 |
 | `Title` | `nvarchar(200)` |  |  | NO |  | หัวข้อ | งบอาหารใกล้เต็ม |
 | `Message` | `nvarchar(1000)` |  |  | NO |  | ข้อความแจ้งเตือน | ใช้เงินไปแล้ว 80% ของงบ |
-| `Channel` | `varchar(20)` |  |  | NO | IN_APP/EMAIL | ช่องทาง | EMAIL |
-| `Status` | `varchar(20)` |  |  | NO | PENDING/SENT/FAILED/READ | สถานะส่ง/อ่าน | SENT |
+| `Channel` | `varchar(20)` |  |  | NO | IN_APP/EMAIL | ช่องทาง | IN_APP |
+| `Status` | `varchar(20)` |  |  | NO | PENDING/SENT/FAILED/READ | สถานะส่ง/อ่าน | PENDING |
 | `RelatedEntityType` | `varchar(50)` |  |  | YES |  | ชนิดข้อมูลอ้างอิง | Budget |
 | `RelatedEntityId` | `bigint` |  |  | YES |  | รหัสข้อมูลอ้างอิง | 30 |
 | `SentAt` | `datetime2` |  |  | YES |  | เวลาส่ง | 2026-10-16T10:00:00Z |

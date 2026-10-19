@@ -68,7 +68,7 @@
 | 3.11 | Migration update (ตาราง Identity) + apply จริง | ✅ | migration `20261019061116_AddIdentity` applied บน `PocketWiseDb` |
 | 3.12 | Gate Phase 3: login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB | ✅ | ทดสอบ register/login/me ผ่าน; `dotnet build` 0 error; refresh/logout flow มีให้ใช้ |
 
-## 5. Phase 4 — Core Transactions 🟡 (4.10 Gate ผ่าน; FR2.2 UI picker ติดตามต่อใน Phase 5 ตาม D20)
+## 5. Phase 4 — Core Transactions ✅ (4.10 Gate ผ่าน; FR2.2 UI picker เชื่อมกับ CreditCards CRUD ใน Phase 5 แล้ว)
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
@@ -81,23 +81,23 @@
 | 4.7 | ปุ่ม Transfers: TransferGroups + จับคู่โอนออก/โอนเข้า (FR1.5) | ✅ | สร้าง 2 transactions อัตโนมัติผูก transferGroupId |
 | 4.8 | ✅ FluentValidation ติดตั้งแล้ว (12.2.0) | ✅ | อนุมัติจากเจ้าของ |
 | 4.9 | FE: types/schemas/features (transactions, categories, tags, transfers) + หน้า (dashboard)/transactions | ✅ | types/schemas/lib/auth BFF + httpOnly cookie + 5 หน้า dashboard (transactions/categories/tags/bank-accounts/transfers) + login/register; `npm run lint` + `npm run build` ผ่าน |
-| 4.10 | Migration/โครงสร้างจริงที่ใหม่ + Gate: CRUD end-to-end, FE lint+build, tests, FR สถานะอัปเดต | ✅ | Browser E2E: create/update/delete category, tag, bank account, transaction; transaction search/filter (type/category/tag/account/date), amount sort, cash+income, transfer creates paired transactions. FE lint/build ผ่าน; backend build + 1 integration test ผ่าน; ไม่มี migration ใหม่ (enum เก็บ string). FR2.2 ระบุ 🟡 เพราะ UI เลือกบัตรรอ CreditCards CRUD ใน Phase 5 ตาม D20. |
+| 4.10 | Migration/โครงสร้างจริงที่ใหม่ + Gate: CRUD end-to-end, FE lint+build, tests, FR สถานะอัปเดต | ✅ | Browser E2E เดิมผ่าน; Phase 5 เพิ่ม credit-card picker ใน transaction form แล้ว ไม่มี migration ใหม่ (enum เก็บ string). |
 
-## 6. Phase 5 — Budgets, Credit Cards & Reports 🔁
+## 6. Phase 5 — Budgets, Credit Cards & Reports ✅
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
-| 5.1 | Budgets CRUD (scopeType TOTAL/CATEGORY/TAG + AlertThresholdPercent 80) | ⬜ | FR5.1.x |
-| 5.2 | Tracking ยอดใช้เทียบงบ (FR5.2.1) | ⬜ | |
-| 5.3 | ❓ threshold semantics แจ้งเตือน — ตัดสิน | ⬜ | |
-| 5.4 | Email แจ้งเตือนงบ (FR5.2.2) — (📦 email provider) | ⬜ | |
-| 5.5 | CreditCards CRUD + ผูก transaction (FR2.2 เต็ม) | ⬜ | statement import = Phase 7 |
-| 5.6 | RecurringTransactions CRUD + กลไกสร้างตามรอบ (❓ background job vs on-demand) (FR2.7) | ⬜ | |
-| 5.7 | จัดหมวดอัตโนมัติ — Merchants + CategoryRules (FR3.1.1, FR3.1.3) | ⬜ | |
-| 5.8 | Reports/Dashboard aggregate APIs (FR4.6, FR6.1.x, FR6.2.x) | ⬜ | |
-| 5.9 | (📦 optional) chart lib ฝั่ง FE | ⬜ | รอการตัดสิน |
-| 5.10 | FE: features (budgets, accounts, credit-cards, reports) + หน้า dashboard | ⬜ | |
-| 5.11 | Gate Phase 5: FR ครบ + สถานะอัปเดต + build/test ผ่าน | ⬜ | |
+| 5.1 | Budgets CRUD (scopeType TOTAL/CATEGORY/TAG + AlertThresholdPercent 80) | ✅ | FR5.1.x — CRUD + tracking, currency จาก UserSettings (fallback THB), time boundaries ตาม Asia/Bangkok, records ที่ soft-delete ถูกตัดออก — build ผ่าน |
+| 5.2 | Tracking ยอดใช้เทียบงบ (FR5.2.1) | ✅ | `GET /api/v1/budgets/tracking` → `BudgetTrackingResponse` (spentAmount/remainingAmount/percentageUsed/isOverLimit) คำนวณจาก expense+confirmed ในรอบงบปัจจุบัน |
+| 5.3 | Budget threshold notifications (D27) | ✅ | บันทึกหนึ่ง notification ต่อรอบเมื่อถึง threshold และอีกครั้งเมื่อเกิน 100% ลง `Notifications` (channel InApp); คัด duplicate ในการเรียกปกติ |
+| 5.4 | Email แจ้งเตือนงบ (FR5.2.2) — (📦 email provider) | ⏸️ | D28: delivery เลื่อนไปทีหลัง — Phase 5 persist notification; email provider ยังไม่ติดตั้ง และ in-app/SignalR delivery เป็น Phase 6 |
+| 5.5 | CreditCards CRUD + ผูก transaction (FR2.2 เต็ม) | ✅ | CRUD + picker ใน transaction form; records ที่ soft-delete ไม่แสดง/แก้ไข |
+| 5.6 | RecurringTransactions CRUD + กลไกสร้างตามรอบ (FR2.7) | ✅ | D26 HostedService interval `RecurringJob:IntervalMinutes`=60; soft-delete ถูกตัดออกและ schedule ที่หมดอายุถูกปิด |
+| 5.7 | จัดหมวดอัตโนมัติ — Merchants + CategoryRules (FR3.1.1, FR3.1.3) | ✅ | CRUD UI/API, suggestion endpoint, auto-apply ตอนสร้าง transaction และ auto-learn; API contract ตรง GET |
+| 5.8 | Reports/Dashboard aggregate APIs (FR4.6, FR6.1.x, FR6.2.x) | ✅ | Summary/trends แยก currency, category/source/bank/card, filters, timezone Asia/Bangkok และ weekly Sunday |
+| 5.9 | (📦 optional) chart lib ฝั่ง FE | ✅ | D29: `recharts@3.10.1` ติดตั้งแล้ว |
+| 5.10 | FE: features (budgets, credit-cards, recurring, categorization, reports) + dashboard | ✅ | หน้าและ hooks ครบ; Reports เริ่มเดือนปัจจุบัน (D34); transaction form ใช้ category suggestion และ credit-card selector |
+| 5.11 | Gate Phase 5: core implementation + สถานะอัปเดต + build/test ผ่าน | ✅ | Backend build 0 warnings/errors; backend tests 9/9; frontend lint/build ผ่าน. FR5.2.2 delivery เลื่อนไปตาม D28 และข้อมูลสลิปรอ Phase 7 ตาม S2. |
 
 ## 7. Phase 5.5 — Settings & Profile 🔁
 

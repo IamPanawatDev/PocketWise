@@ -1,13 +1,25 @@
 using FluentValidation;
 using PocketWise.Api.Authentication;
 using PocketWise.Application.DTOs.BankAccounts;
+using PocketWise.Application.DTOs.Budgets;
 using PocketWise.Application.DTOs.Categories;
+using PocketWise.Application.DTOs.CategoryRules;
+using PocketWise.Application.DTOs.CreditCards;
+using PocketWise.Application.DTOs.Merchants;
 using PocketWise.Application.DTOs.Tags;
+using PocketWise.Application.DTOs.RecurringTransactions;
+using PocketWise.Application.DTOs.Reports;
 using PocketWise.Application.DTOs.Transactions;
 using PocketWise.Application.DTOs.Transfers;
 using PocketWise.Application.Features.Auth;
 using PocketWise.Application.Features.BankAccounts;
+using PocketWise.Application.Features.Budgets;
 using PocketWise.Application.Features.Categories;
+using PocketWise.Application.Features.CategoryRules;
+using PocketWise.Application.Features.CreditCards;
+using PocketWise.Application.Features.Merchants;
+using PocketWise.Application.Features.RecurringTransactions;
+using PocketWise.Application.Features.Reports;
 using PocketWise.Application.Features.Tags;
 using PocketWise.Application.Features.Transactions;
 using PocketWise.Application.Features.Transfers;
@@ -31,6 +43,12 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IBankAccountRepository, BankAccountRepository>();
         services.AddScoped<ITransferRepository, TransferRepository>();
+        services.AddScoped<IBudgetRepository, BudgetRepository>();
+        services.AddScoped<ICreditCardRepository, CreditCardRepository>();
+        services.AddScoped<IRecurringTransactionRepository, RecurringTransactionRepository>();
+        services.AddScoped<IReportRepository, ReportRepository>();
+        services.AddScoped<IMerchantRepository, MerchantRepository>();
+        services.AddScoped<ICategoryRuleRepository, CategoryRuleRepository>();
 
         // Services
         services.AddScoped<ITransactionService, TransactionService>();
@@ -38,6 +56,12 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<ITagService, TagService>();
         services.AddScoped<IBankAccountService, BankAccountService>();
         services.AddScoped<ITransferService, TransferService>();
+        services.AddScoped<IBudgetService, BudgetService>();
+        services.AddScoped<ICreditCardService, CreditCardService>();
+        services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
+        services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IMerchantService, MerchantService>();
+        services.AddScoped<ICategoryRuleService, CategoryRuleService>();
 
         // Validators
         services.AddScoped<IValidator<CreateTransactionRequest>, CreateTransactionValidator>();
@@ -49,6 +73,16 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IValidator<CreateBankAccountRequest>, CreateBankAccountValidator>();
         services.AddScoped<IValidator<UpdateBankAccountRequest>, UpdateBankAccountValidator>();
         services.AddScoped<IValidator<CreateTransferRequest>, CreateTransferValidator>();
+        services.AddScoped<IValidator<CreateBudgetRequest>, CreateBudgetValidator>();
+        services.AddScoped<IValidator<UpdateBudgetRequest>, UpdateBudgetValidator>();
+        services.AddScoped<IValidator<CreateCreditCardRequest>, CreateCreditCardValidator>();
+        services.AddScoped<IValidator<UpdateCreditCardRequest>, UpdateCreditCardValidator>();
+        services.AddScoped<IValidator<CreateRecurringTransactionRequest>, CreateRecurringTransactionValidator>();
+        services.AddScoped<IValidator<UpdateRecurringTransactionRequest>, UpdateRecurringTransactionValidator>();
+        services.AddScoped<IValidator<CreateMerchantRequest>, CreateMerchantValidator>();
+        services.AddScoped<IValidator<UpdateMerchantRequest>, UpdateMerchantValidator>();
+        services.AddScoped<IValidator<CreateCategoryRuleRequest>, CreateCategoryRuleValidator>();
+        services.AddScoped<IValidator<UpdateCategoryRuleRequest>, UpdateCategoryRuleValidator>();
 
         return services;
     }

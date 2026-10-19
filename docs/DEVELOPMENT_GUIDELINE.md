@@ -70,8 +70,8 @@
 | 1 Foundation | ✅ | Solution 4 โปรเจค, Next.js app, ESLint, `.env.example` |
 | 2 Data Model | ✅ | Entities/DbContext/Configurations/Migration ครบ 25 ตาราง; `InitialCreate` applied บน `PocketWiseDb`; build ผ่าน |
 | 3 Identity | ✅ | `ApplicationUser : IdentityUser<long>`, JWT + Refresh Token, 5 `/api/v1/auth/*` endpoints ใช้งานได้, migration applied, build ผ่าน |
-| 4 Core Transactions | 🟡 | 4.10 Gate ผ่านและ E2E ตรวจแล้ว; FR2.2 UI picker ยังรอ CreditCards CRUD ใน Phase 5 ตาม D20 |
-| 5 Budgets, Credit Cards & Reports | ⬜ | รวมงบ, บัตรเครดิตพื้นฐาน, รายการประจำ, จัดหมวดอัตโนมัติ, reports |
+| 4 Core Transactions | ✅ | 4.10 Gate ผ่านและ E2E ตรวจแล้ว; FR2.2 credit-card picker เชื่อมกับ CRUD ใน Phase 5 แล้ว |
+| 5 Budgets, Credit Cards & Reports | ✅ | Core implementation, frontend, build และ tests ผ่าน; FR5.2.2 delivery เลื่อนไปตาม D28 และข้อมูลสลิปรอ Phase 7 |
 | 5.5 Settings & Profile | ⬜ | UserSettings + โปรไฟล์ + ล้างข้อมูล (FR6.3) |
 | 6 SignalR | ⬜ | ฝั่ง server ใช้ AddSignalR จาก shared framework |
 | 7 Imports | ⬜ | นำเข้าสลิป/ใบแจ้งยอดบัตร (S2) + CSV/OCR ย่อยท้าย phase |
@@ -207,18 +207,18 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 ### Phase 5 — Budgets, Credit Cards & Reports
 
-**requirements ที่รองรับ:** FR5.1.1–FR5.1.4, FR5.2.1–FR5.2.4 (รวม email แจ้งเตือน — มี email provider 📦), FR2.7 (รายการประจำ RecurringTransactions), FR3.1.1+FR3.1.3 (จัดหมวดอัตโนมัติ — Merchants+CategoryRules), FR4.6 (สรุปแยกหมวด), FR6.1.1–FR6.1.4, FR6.2.1–FR6.2.7 (dashboard + reports ครบ), FR2.2 เต็ม (บัตรเครดิตพื้นฐาน: ลงทะเบียนบัตร, รายจ่ายผูกบัตร — ส่วน statement import ไปที่ Phase 7 ตาม S2)
+**requirements ที่รองรับ:** FR5.1.1–FR5.1.4, FR5.2.1–FR5.2.4 (บันทึก budget notifications; email/in-app delivery ตาม D28/Phase 6), FR2.7 (รายการประจำ RecurringTransactions), FR3.1.1+FR3.1.3 (จัดหมวดอัตโนมัติ — Merchants+CategoryRules), FR4.6 (สรุปแยกหมวด), FR6.1.1–FR6.1.4, FR6.2.1–FR6.2.7 (dashboard + reports), FR2.2 เต็ม (บัตรเครดิตพื้นฐาน; statement import ไปที่ Phase 7 ตาม S2)
 
 **ขั้นตอน:**
 
-1. Budgets: scopeType TOTAL/CATEGORY/TAG + `AlertThresholdPercent` (default 80 ตาม DataDictionary) — ❓ semantics การแจ้งเตือนเพิ่มเติมถ้ามากกว่า 80%/100%
+1. Budgets: scopeType TOTAL/CATEGORY/TAG + `AlertThresholdPercent` (default 80 ตาม DataDictionary); แจ้งหนึ่งครั้งต่อรอบเมื่อถึง threshold และอีกครั้งเมื่อเกิน 100% (D27)
 2. **CreditCards พื้นฐาน** — entity มีแล้วจาก Phase 2; phase นี้เพิ่ม CRUD + ผูก transaction
-3. RecurringTransactions — CRUD + กลไกสร้างรายการตามรอบ (❓ กลไก: background job หรือ on-demand เมื่อเปิดแอป — ต้องตัดสิน)
+3. RecurringTransactions — CRUD + HostedService สร้างรายการตามรอบ (D26)
 4. จัดหมวดอัตโนมัติ: Merchants (DefaultCategoryId) + CategoryRules (MatchType/MatchPattern/Priority)
-5. Reports: aggregate query ใน Application (logic อยู่ฝั่งโค้ดตาม ARCHITECTURE §4 — DB เก็บข้อมูลเท่านั้น); ❓ chart lib ฝั่ง FE (📦 ขออนุมัติ)
+5. Reports: aggregate query ใน Application (logic อยู่ฝั่งโค้ดตาม ARCHITECTURE §4 — DB เก็บข้อมูลเท่านั้น); ใช้ Recharts ฝั่ง FE (D29)
 6. Export (CSV/XLSX/PDF) — ยังไม่อยู่ใน REQUIREMENTS (ผู้พัฒนาจะเพิ่ม FR เมื่อต้องการใช้)
-7. แจ้งเตือนงบ: บันทึกลงตาราง Notifications ก่อน — ช่องทาง in-app เริ่ม Phase 6, email (FR5.2.2) ต้องมี email provider 📦
-8. **Gate:** ครบ FR ทุกตัวที่หัวข้อระบุ + สถานะใน REQUIREMENTS อัปเดต
+7. แจ้งเตือนงบ: Phase 5 บันทึก notification ลง Notifications; email delivery เลื่อนไปตาม D28 และ in-app/SignalR เริ่ม Phase 6
+8. **Gate:** core implementation ใน Phase 5 ครบ + build/test ผ่าน + สถานะใน REQUIREMENTS อัปเดต; FR5.2.2 delivery คง 🟡 ตาม D28 และข้อมูลสลิปรอ Phase 7
 
 ---
 
@@ -303,6 +303,7 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 - `next` 16.4.2, `react`/`react-dom` 19.3.0, `typescript` ^5, `tailwindcss` ^4 + `@tailwindcss/postcss` 4.3.3 (configured in `postcss.config.mjs`), `eslint` ^9 (+ `eslint-config-next` 16.4.2)
 - เพิ่มแล้ว (Phase 4 FE, อนุมัติแล้ว): `zod`, `react-hook-form`, `@tanstack/react-query`, `lucide-react`, `sonner`, `@radix-ui/react-alert-dialog`
+- เพิ่มแล้ว (Phase 5, D29 อนุมัติ): `recharts` ^3.10.1 (runtime dependency สำหรับ responsive report charts; แสดงยอดแยกตาม currency)
 - เพิ่มแล้ว (UI components): `shadcn` CLI ^4.22.1 (devDependency), `radix-ui` ^1.8.1, `class-variance-authority` ^0.7.1, `tw-animate-css` ^1.4.0; ใช้ source components ที่ `src/components/ui/` และ config ที่ `components.json`
 - shadcn primitives ที่มี: Input, Select, Button, AlertDialog; ใช้ `npx shadcn add <component>` จาก `frontend/pocketwise-web/` เพื่อเพิ่ม source primitive แล้วปรับ theme ให้ตรง `DESIGN.md` ก่อนใช้
 - `cn` package ที่ shadcn preset เคยเพิ่มถูกถอดออก เพราะโปรเจกต์ใช้ local helper `cn` จาก `src/lib/utils.ts`; ยังไม่มี `@microsoft/signalr` และต้องขออนุมัติก่อนติดตั้ง
@@ -378,12 +379,21 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D23 | FE packages | ติดตั้ง `zod` + `react-hook-form` + `@tanstack/react-query` + `lucide-react` (ชุดเต็ม) | เจ้าของโปรเจค | ✅ ล็อก |
 | D24 | FE feedback pattern | Toast (`sonner`) = แจ้งผลเท่านั้น; AlertDialog (`@radix-ui/react-alert-dialog`) = ยืนยันการกระทำสำคัญ/กลับไม่ได้ — ห้าม `alert()`/`confirm()`/`window.location.reload()` | เจ้าของโปรเจค | ✅ ล็อก |
 | D25 | FE data table standard | ใช้ shadcn/ui ที่ยึด `DESIGN.md` + TanStack Table เป็น engine และ reusable table กลาง; รองรับ states/responsive/a11y, ใช้ server-side operations เมื่อ API จัดการ query หรือข้อมูลมีจำนวนมาก; TanStack Table ยังไม่ติดตั้งและต้องขออนุมัติก่อนเพิ่ม dependency | เจ้าของโปรเจค | ✅ ล็อก |
+| D26 | Phase 5 recurring กลไกสร้างรายการ | ใช้ **Background job แบบ HostedService (built-in ASP.NET Core `BackgroundService` — ไม่ติดตั้ง package)** วนตรวจและสร้างรายการที่ถึงกำหนด | เจ้าของโปรเจค | ✅ ล็อก |
+| D27 | Phase 5 budget threshold semantics | แจ้งเตือน**ครั้งเดียวต่อรอบ**ตอนข้าม `AlertThresholdPercent` (80%) และอีกครั้งตอนเกิน 100% — บันทึกลงตาราง `Notifications` (channel `InApp`) | เจ้าของโปรเจค | ✅ ล็อก |
+| D28 | Phase 5 email แจ้งเตือนงบ | **เลื่อน email ไปทีหลัง** — Phase 5 ทำแค่บันทึก notification (in-app เริ่ม Phase 6); email provider ยังไม่ติดตั้ง | เจ้าของโปรเจค | ✅ ล็อก |
+| D29 | Phase 5 chart lib ฝั่ง FE | ติดตั้ง `recharts` ฝั่ง frontend (อนุมัติแล้ว) — ใช้ทำกราฟ reports | เจ้าของโปรเจค | ✅ ล็อก |
+| D30 | Phase 5 วิธีการส่งมอบ | **แบ่งเป็นชุดย่อยตรวจเป็นระยะ** (Budgets → CreditCards → Recurring → จัดหมวดอัตโนมัติ → Reports) แทน backend ทั้งหมดแล้วค่อย FE | เจ้าของโปรเจค | ✅ ล็อก |
+| D31 | Phase 5 CategoryRules ที่มา | **ทั้งสองแบบ**: ผู้ใช้ตั้งกฎเอง (CategoryRules CRUD) + ระบบ auto-learn จากประวัติ (เมื่อผู้ใช้เลือกหมวดให้รายการที่มี description → บันทึกกฎ Description→Category ให้อัตโนมัติ) | เจ้าของโปรเจค | ✅ ล็อก |
+| D32 | Phase 5 Merchants ข้อมูล | **มี CRUD ให้เพิ่มเองได้ตอนนี้ แต่ไม่ seed ข้อมูล** — เหลือตารางว่าง รอ Phase 7 import/OCR มาเติม | เจ้าของโปรเจค | ✅ ล็อก |
+| D33 | Phase 5 จังหวะจัดหมวดอัตโนมัติ | **ทั้ง auto-apply ตอนสร้าง transaction (เฉพาะเมื่อ user ไม่ได้เลือก category) + endpoint แยก** สำหรับ query หมวดที่แนะนำ | เจ้าของโปรเจค | ✅ ล็อก |
+| D34 | Phase 5 Reports calendar | Weekly period เริ่มวันอาทิตย์; หน้า Reports เริ่มต้นแสดงเดือนปัจจุบัน; calendar dates ใช้ Asia/Bangkok และ API รับ UTC boundaries | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
 - Phase 3: ~~relation ของ `Users` กับ `IdentityUser`, อายุ token จริง~~ ✅ ล็อกเป็น D15 (ชื่อ auth routes + envelope + versioning ✓ D11 — ดู API_SPECIFICATION §5)
 - Phase 4: ~~filter params ของ list endpoints~~ ✅ ล็อกเป็น D17; FE query/filter/sort และ E2E ตรวจแล้ว
-- Phase 5: threshold semantics, chart lib 📦, recurring กลไก background job vs on-demand, email provider 📦
+- Phase 5: ~~threshold semantics~~ ✅ D27, ~~chart lib~~ ✅ D29 (recharts), ~~recurring กลไก~~ ✅ D26 (HostedService), ~~email provider~~ ✅ D28 (เลื่อนไปทีหลัง), ~~จัดหมวดอัตโนมัติ~~ ✅ D31–D33, ~~Reports calendar~~ ✅ D34
 - Phase 5.5: ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม
 - Phase 6: hub event contract (สัญญาตาม D11-⑤ — ล็อกตอนเริ่ม phase, ชื่อ candidate อยู่ที่ API_SPECIFICATION §6), scale-out (เลื่อน Phase 8)
 - Phase 7: file storage, ข้อจำกัดไฟล์, OCR provider

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { transactionSchema, type TransactionFormValues } from "@/schemas/transaction.schema";
@@ -9,6 +9,8 @@ import { useCreateTransaction, useUpdateTransaction } from "@/features/transacti
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTags } from "@/features/tags/hooks/useTags";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
+import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
+import { useCategorySuggestion } from "@/features/categorization/hooks/useCategorization";
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { DateTimeInput } from "@/components/ui/date-input";
@@ -28,7 +30,7 @@ import {
   thailandDateTimeInputToUtcIso,
   toThailandDateTimeInputValue,
 } from "@/lib/utils";
-import { LoaderCircle, Plus, Save, X } from "lucide-react";
+import { LoaderCircle, Plus, Save, Sparkles, X } from "lucide-react";
 
 export function TransactionForm({
   onClose,
@@ -53,6 +55,7 @@ export function TransactionForm({
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
   const { data: bankAccounts } = useBankAccounts();
+  const { data: creditCards } = useCreditCards();
 
   const defaultValues = useMemo<TransactionFormValues>(
     () => ({
@@ -98,6 +101,20 @@ export function TransactionForm({
   }, [bankAccounts, editing, getValues, setValue]);
 
   const selectedTagIds = useWatch({ control, name: "tagIds" });
+  const transactionType = useWatch({ control, name: "transactionType" });
+  const selectedCategoryId = useWatch({ control, name: "categoryId" });
+  const description = useWatch({ control, name: "description" });
+  const [debouncedDescription, setDebouncedDescription] = useState("");
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedDescription(description ?? ""), 300);
+    return () => window.clearTimeout(timeout);
+  }, [description]);
+
+  const { data: categorySuggestion } = useCategorySuggestion(
+    debouncedDescription,
+    !editing && selectedCategoryId == null,
+  );
 
   const onSubmit = (values: TransactionFormValues) => {
     const payload = {
@@ -136,7 +153,13 @@ export function TransactionForm({
               control={control}
               name="transactionType"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    if (value !== "expense") setValue("creditCardId", null);
+                  }}
+                >
                   <SelectTrigger id="transaction-type"><SelectValue placeholder="เลือกประเภท" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="expense">รายจ่าย</SelectItem>
@@ -168,28 +191,41 @@ export function TransactionForm({
           </FormField>
 
           <FormField label="หมวดหมู่" htmlFor="transaction-category">
-            <Controller
-              control={control}
-              name="categoryId"
-              render={({ field }) => (
-                <Select
-                  value={field.value == null ? "none" : String(field.value)}
-                  onValueChange={(value) =>
-                    field.onChange(value === "none" ? null : Number(value))
-                  }
+            <div className="space-y-2">
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value == null ? "none" : String(field.value)}
+                    onValueChange={(value) =>
+                      field.onChange(value === "none" ? null : Number(value))
+                    }
+                  >
+                    <SelectTrigger id="transaction-category"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.categoryId} value={String(category.categoryId)}>
+                          {category.categoryName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {categorySuggestion && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setValue("categoryId", categorySuggestion.categoryId)}
                 >
-                  <SelectTrigger id="transaction-category"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                    {categories?.map((category) => (
-                      <SelectItem key={category.categoryId} value={String(category.categoryId)}>
-                        {category.categoryName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Sparkles />
+                  ใช้คำแนะนำ: {categorySuggestion.categoryName ?? "หมวดหมู่"}
+                </Button>
               )}
-            />
+            </div>
           </FormField>
 
           <FormField label="บัญชี" htmlFor="transaction-account">
@@ -199,9 +235,10 @@ export function TransactionForm({
               render={({ field }) => (
                 <Select
                   value={field.value == null ? "none" : String(field.value)}
-                  onValueChange={(value) =>
-                    field.onChange(value === "none" ? null : Number(value))
-                  }
+                  onValueChange={(value) => {
+                    field.onChange(value === "none" ? null : Number(value));
+                    if (value !== "none") setValue("creditCardId", null);
+                  }}
                 >
                   <SelectTrigger id="transaction-account"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
                   <SelectContent>
@@ -216,6 +253,34 @@ export function TransactionForm({
               )}
             />
           </FormField>
+
+          {transactionType === "expense" && (
+            <FormField label="บัตรเครดิต" htmlFor="transaction-credit-card">
+              <Controller
+                control={control}
+                name="creditCardId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value == null ? "none" : String(field.value)}
+                    onValueChange={(value) => {
+                      field.onChange(value === "none" ? null : Number(value));
+                      if (value !== "none") setValue("bankAccountId", null);
+                    }}
+                  >
+                    <SelectTrigger id="transaction-credit-card"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                      {creditCards?.filter((card) => card.isActive).map((card) => (
+                        <SelectItem key={card.creditCardId} value={String(card.creditCardId)}>
+                          {card.cardName} · {card.bankName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
+          )}
 
           <FormField label="แท็ก" error={errors.tagIds?.message}>
             <div className="flex flex-wrap gap-2">

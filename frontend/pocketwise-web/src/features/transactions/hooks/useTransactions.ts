@@ -48,7 +48,11 @@ export function useCreateTransaction() {
   return useMutation({
     mutationFn: (body: CreateTransactionRequest) =>
       apiClient.post<TransactionResponse>("/api/v1/transactions", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ["transactions"] }),
+      qc.invalidateQueries({ queryKey: ["budgets"] }),
+      qc.invalidateQueries({ queryKey: ["reports"] }),
+    ]),
   });
 }
 
@@ -57,7 +61,11 @@ export function useUpdateTransaction() {
   return useMutation({
     mutationFn: ({ id, body }: { id: number; body: UpdateTransactionRequest }) =>
       apiClient.put<TransactionResponse>(`/api/v1/transactions/${id}`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ["transactions"] }),
+      qc.invalidateQueries({ queryKey: ["budgets"] }),
+      qc.invalidateQueries({ queryKey: ["reports"] }),
+    ]),
   });
 }
 
@@ -66,6 +74,10 @@ export function useDeleteTransaction() {
   return useMutation({
     mutationFn: (id: number) =>
       apiClient.delete<unknown>(`/api/v1/transactions/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ["transactions"] }),
+      qc.invalidateQueries({ queryKey: ["budgets"] }),
+      qc.invalidateQueries({ queryKey: ["reports"] }),
+    ]),
   });
 }

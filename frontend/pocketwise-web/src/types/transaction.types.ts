@@ -22,6 +22,7 @@ export interface TransactionResponse {
   creditCardId: number | null;
   sourceType: SourceType;
   transferGroupId: number | null;
+  recurringTransactionId: number | null;
   status: TransactionStatus;
   tags: TagRef[];
   createdAt: string;
