@@ -198,7 +198,10 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 6. **API response envelope (✅ ล็อกแล้ว D8):** ใช้ **แบบ Wrapped** ทุก endpoint — สเปกฉบับเต็ม (shape, error codes, ตัวอย่าง) อยู่ที่ [`/docs/API_SPECIFICATION.md`](file:///D:/Projects/PocketWise/docs/API_SPECIFICATION.md) — งาน phase นี้คือสร้างประเภท `ApiResponse<T>` ที่ Application + middleware/exception handler ครอบ error ให้ครบทุก route ตั้งแต่ controller แรก (ไม่เขียน spec ใหม่ที่นี่)
 7. **Business rule ที่ต้องเขียนร่วมใน phase นี้ (จาก REQUIREMENTS §3):** tag limit 20 (FR3.2.6 → `TAG_LIMIT_REACHED`), duplicate detection เตรียม field ตาม DataDictionary (FR4.x transfer + สลิปยังไม่มาใน phase นี้)
 8. **Frontend:** `src/types/transaction.types.ts`, `src/schemas/transaction.schema.ts`, `src/features/transactions/` (components, hooks), หน้า `src/app/(dashboard)/transactions/page.tsx` — สร้างหลัง contract ล็อก
-9. **Gate:** CRUD ทำงานจริง end-to-end, FE lint + build ผ่าน, tests ที่เกี่ยวข้อง — และ**ทุก FR ที่หัวข้อระบุ ต้องมีสถานะ 🟡/✅ ใน REQUIREMENTS.md**
+9. **มาตรฐาน Data Table ฝั่ง Frontend:** ใช้ shadcn/ui ที่ปรับ theme ตาม `frontend/pocketwise-web/DESIGN.md` และ TanStack Table เป็น engine; รวมรูปแบบไว้ใน reusable component กลางเมื่อใช้ซ้ำได้ แทนการสร้าง table implementation ต่อ feature โดยไม่จำเป็น. TanStack Table ยังไม่ติดตั้ง — ต้องขออนุมัติก่อนเพิ่ม dependency และบันทึกสถานะ/วิธีใช้ตาม Master Rule #4
+10. ตารางต้องแยก Loading, Empty และ Error state อย่างชัดเจน; รองรับ responsive ด้วย mobile card/list หรือ horizontal scroll ที่ควบคุมได้; จัดแนวจำนวนเงินสม่ำเสมอและใช้ `Intl.NumberFormat` ตาม currency code จาก data contract โดยไม่ hardcode สกุลเงินใน component; controls ต้องใช้ keyboard ได้และแสดง sort direction ให้ assistive technology เช่น `aria-sort`
+11. เมื่อ API เป็นเจ้าของ query หรือข้อมูลมีจำนวนมาก ให้ใช้ server-side pagination/filtering/sorting โดยอิง contract ใน `API_SPECIFICATION.md` และตั้ง TanStack Table เป็น manual mode ให้สอดคล้อง; ใช้ client-side operations เฉพาะเมื่อโหลดข้อมูลครบและมีปริมาณเหมาะสม. Transactions ใช้ `page`/`pageSize`, filters และ `sortBy`/`sortDesc` ตาม API Specification §4/§5A
+12. **Gate:** CRUD ทำงานจริง end-to-end, FE lint + build ผ่าน, tests ที่เกี่ยวข้อง — และ**ทุก FR ที่หัวข้อระบุ ต้องมีสถานะ 🟡/✅ ใน REQUIREMENTS.md**
 
 ---
 
@@ -374,6 +377,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D22 | FE token storage | ใช้ **httpOnly cookie** ผ่าน Next.js API route (BFF) — access/refresh เก็บ cookie ฝั่ง server, FE ไม่แตะ token โดยตรง | เจ้าของโปรเจค | ✅ ล็อก |
 | D23 | FE packages | ติดตั้ง `zod` + `react-hook-form` + `@tanstack/react-query` + `lucide-react` (ชุดเต็ม) | เจ้าของโปรเจค | ✅ ล็อก |
 | D24 | FE feedback pattern | Toast (`sonner`) = แจ้งผลเท่านั้น; AlertDialog (`@radix-ui/react-alert-dialog`) = ยืนยันการกระทำสำคัญ/กลับไม่ได้ — ห้าม `alert()`/`confirm()`/`window.location.reload()` | เจ้าของโปรเจค | ✅ ล็อก |
+| D25 | FE data table standard | ใช้ shadcn/ui ที่ยึด `DESIGN.md` + TanStack Table เป็น engine และ reusable table กลาง; รองรับ states/responsive/a11y, ใช้ server-side operations เมื่อ API จัดการ query หรือข้อมูลมีจำนวนมาก; TanStack Table ยังไม่ติดตั้งและต้องขออนุมัติก่อนเพิ่ม dependency | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 

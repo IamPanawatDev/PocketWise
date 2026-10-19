@@ -513,6 +513,15 @@ PocketWise form controls use a recessed input surface so fields remain distinct 
 - In transaction forms, display every selectable tag as a badge using that tag's API color; use a contrasting text color and a visible selection ring.
 - Install additional shadcn source primitives from `frontend/pocketwise-web/` with `npx shadcn add <component>`, then review and theme the generated source before using it.
 
+### Data tables
+
+- Use shadcn/ui components themed with the tokens in this file for table UI, and use TanStack Table as the table engine; do not create a separate table implementation for each feature when a shared reusable component can serve it. TanStack Table is not yet installed; request approval before adding it as a dependency.
+- Every data table must provide distinct loading, empty, and error states. Do not present a failed request as an empty result; keep the error visible and provide the repository-standard recovery/action where appropriate.
+- Make tables responsive: use a readable mobile card/list layout or a contained horizontal scroll when columns need to remain visible. Do not silently drop important data or actions at narrow widths.
+- When an API manages a large list or owns its query semantics, use server-side pagination, filtering, and sorting, and keep the table state synchronized with the API contract. Use client-side operations only for a suitably small, fully loaded dataset.
+- Format monetary values with `Intl.NumberFormat` and the currency code supplied by the data contract; do not hardcode or infer a currency in a table component. If the contract does not identify the currency, resolve that requirement before implementation. Align monetary values consistently (normally right) and use tabular numerals.
+- Keep all table controls keyboard-operable. Use semantic table markup, visible focus styles, and accessible sort controls; expose the active sort direction (for example, with `aria-sort` on the sorted column header) and do not rely on color or icon alone.
+
 ### Navigation
 
 **`nav-bar`** — dark top navigation
