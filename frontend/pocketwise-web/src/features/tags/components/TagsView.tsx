@@ -9,6 +9,7 @@ import {
   useTags,
   useCreateTag,
   useDeleteTag,
+  useReorderTags,
   useUpdateTag,
 } from "@/features/tags/hooks/useTags";
 import { ApiError } from "@/lib/api-client";
@@ -24,6 +25,7 @@ export function TagsView() {
   const create = useCreateTag();
   const update = useUpdateTag();
   const remove = useDeleteTag();
+  const reorder = useReorderTags();
 
   const [editing, setEditing] = useState<{ id: number; name: string } | null>(null);
 
@@ -32,7 +34,10 @@ export function TagsView() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<TagFormValues>({ resolver: zodResolver(tagSchema) });
+  } = useForm<TagFormValues>({
+    resolver: zodResolver(tagSchema),
+    defaultValues: { color: null },
+  });
 
   const onSubmit = (values: TagFormValues) => {
     if (editing) {
@@ -52,6 +57,19 @@ export function TagsView() {
         },
       );
     }
+  };
+
+  const moveTag = (tagId: number, offset: -1 | 1) => {
+    if (!data) return;
+    const next = [...data];
+    const index = next.findIndex((tag) => tag.tagId === tagId);
+    const target = index + offset;
+    if (index < 0 || target < 0 || target >= next.length) return;
+
+    [next[index], next[target]] = [next[target], next[index]];
+    reorder.mutate({
+      items: next.map((tag, sortOrder) => ({ tagId: tag.tagId, sortOrder })),
+    });
   };
 
   return (
@@ -97,6 +115,24 @@ export function TagsView() {
               #{t.tagName}
               <button className="text-[var(--pw-link)]" onClick={() => { setEditing({ id: t.tagId, name: t.tagName }); reset({ tagName: t.tagName, color: t.color }); }}>
                 แก้ไข
+              </button>
+              <button
+                type="button"
+                className="text-[var(--pw-ink)] disabled:opacity-40"
+                aria-label={`เลื่อน ${t.tagName} ขึ้น`}
+                disabled={reorder.isPending || data?.findIndex((item) => item.tagId === t.tagId) === 0}
+                onClick={() => moveTag(t.tagId, -1)}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="text-[var(--pw-ink)] disabled:opacity-40"
+                aria-label={`เลื่อน ${t.tagName} ลง`}
+                disabled={reorder.isPending || data?.findIndex((item) => item.tagId === t.tagId) === (data?.length ?? 0) - 1}
+                onClick={() => moveTag(t.tagId, 1)}
+              >
+                ↓
               </button>
               <ConfirmDialog
                 title="ลบแท็กนี้?"

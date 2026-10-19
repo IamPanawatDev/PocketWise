@@ -70,7 +70,7 @@
 | 1 Foundation | ✅ | Solution 4 โปรเจค, Next.js app, ESLint, `.env.example` |
 | 2 Data Model | ✅ | Entities/DbContext/Configurations/Migration ครบ 25 ตาราง; `InitialCreate` applied บน `PocketWiseDb`; build ผ่าน |
 | 3 Identity | ✅ | `ApplicationUser : IdentityUser<long>`, JWT + Refresh Token, 5 `/api/v1/auth/*` endpoints ใช้งานได้, migration applied, build ผ่าน |
-| 4 Core Transactions | 🟡 | backend + FE ครบ end-to-end (auth + 5 หน้า dashboard); รอทดสอบจริงใน browser + ติ๊ก FR status |
+| 4 Core Transactions | 🟡 | 4.10 Gate ผ่านและ E2E ตรวจแล้ว; FR2.2 UI picker ยังรอ CreditCards CRUD ใน Phase 5 ตาม D20 |
 | 5 Budgets, Credit Cards & Reports | ⬜ | รวมงบ, บัตรเครดิตพื้นฐาน, รายการประจำ, จัดหมวดอัตโนมัติ, reports |
 | 5.5 Settings & Profile | ⬜ | UserSettings + โปรไฟล์ + ล้างข้อมูล (FR6.3) |
 | 6 SignalR | ⬜ | ฝั่ง server ใช้ AddSignalR จาก shared framework |
@@ -373,7 +373,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
 - Phase 3: ~~relation ของ `Users` กับ `IdentityUser`, อายุ token จริง~~ ✅ ล็อกเป็น D15 (ชื่อ auth routes + envelope + versioning ✓ D11 — ดู API_SPECIFICATION §5)
-- Phase 4: ~~filter params ของ list endpoints~~ ✅ ล็อกเป็น D17; FE types/schemas ยังรอ (แตะ FE)
+- Phase 4: ~~filter params ของ list endpoints~~ ✅ ล็อกเป็น D17; FE query/filter/sort และ E2E ตรวจแล้ว
 - Phase 5: threshold semantics, chart lib 📦, recurring กลไก background job vs on-demand, email provider 📦
 - Phase 5.5: ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม
 - Phase 6: hub event contract (สัญญาตาม D11-⑤ — ล็อกตอนเริ่ม phase, ชื่อ candidate อยู่ที่ API_SPECIFICATION §6), scale-out (เลื่อน Phase 8)

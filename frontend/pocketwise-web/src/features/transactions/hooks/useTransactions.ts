@@ -10,25 +10,34 @@ import type {
 } from "@/types/transaction.types";
 import type { PagedResult } from "@/types/api.types";
 
-function buildQuery(filter: TransactionFilter): string {
+function buildQuery(
+  filter: TransactionFilter,
+  sortBy: "transactionDate" | "amount",
+  sortDesc: boolean,
+): string {
   const params = new URLSearchParams();
-  if (filter.categoryId) params.set("categoryId", String(filter.categoryId));
-  if (filter.tagId) params.set("tagId", String(filter.tagId));
-  if (filter.bankAccountId) params.set("bankAccountId", String(filter.bankAccountId));
+  if (filter.categoryId !== undefined) params.set("categoryId", String(filter.categoryId));
+  if (filter.tagId !== undefined) params.set("tagId", String(filter.tagId));
+  if (filter.bankAccountId !== undefined) params.set("bankAccountId", String(filter.bankAccountId));
   if (filter.type) params.set("type", filter.type);
   if (filter.fromDate) params.set("fromDate", filter.fromDate);
   if (filter.toDate) params.set("toDate", filter.toDate);
   if (filter.q) params.set("q", filter.q);
-  params.set("sortBy", "transactionDate");
-  params.set("sortDesc", "true");
+  params.set("sortBy", sortBy);
+  params.set("sortDesc", String(sortDesc));
   const qs = params.toString();
   return `/api/v1/transactions${qs ? `?${qs}` : ""}`;
 }
 
-export function useTransactions(filter: TransactionFilter, page = 1) {
-  const query = buildQuery(filter);
+export function useTransactions(
+  filter: TransactionFilter,
+  page = 1,
+  sortBy: "transactionDate" | "amount" = "transactionDate",
+  sortDesc = true,
+) {
+  const query = buildQuery(filter, sortBy, sortDesc);
   return useQuery({
-    queryKey: ["transactions", filter, page],
+    queryKey: ["transactions", filter, page, sortBy, sortDesc],
     queryFn: () =>
       apiClient.get<PagedResult<TransactionResponse>>(`${query}&page=${page}&pageSize=20`),
   });

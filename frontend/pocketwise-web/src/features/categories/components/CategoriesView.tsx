@@ -9,6 +9,7 @@ import {
   useCategories,
   useCreateCategory,
   useDeleteCategory,
+  useReorderCategories,
   useUpdateCategory,
 } from "@/features/categories/hooks/useCategories";
 import { ApiError } from "@/lib/api-client";
@@ -25,6 +26,7 @@ export function CategoriesView() {
   const create = useCreateCategory();
   const update = useUpdateCategory();
   const remove = useDeleteCategory();
+  const reorder = useReorderCategories();
 
   const [editing, setEditing] = useState<{ id: number; name: string; type: string } | null>(null);
 
@@ -35,6 +37,7 @@ export function CategoriesView() {
     formState: { errors },
   } = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
+    defaultValues: { icon: null, color: null },
   });
 
   const onSubmit = (values: CategoryFormValues) => {
@@ -69,6 +72,24 @@ export function CategoriesView() {
       color: null,
     });
   };
+
+  const moveCategory = (categoryId: number, offset: -1 | 1) => {
+    if (!data) return;
+    const reorderable = data.filter((category) => !category.isSystem);
+    const index = reorderable.findIndex((category) => category.categoryId === categoryId);
+    const target = index + offset;
+    if (index < 0 || target < 0 || target >= reorderable.length) return;
+
+    [reorderable[index], reorderable[target]] = [reorderable[target], reorderable[index]];
+    reorder.mutate({
+      items: reorderable.map((category, sortOrder) => ({
+        categoryId: category.categoryId,
+        sortOrder,
+      })),
+    });
+  };
+
+  const reorderableCategories = data?.filter((category) => !category.isSystem) ?? [];
 
   return (
     <div>
@@ -111,36 +132,60 @@ export function CategoriesView() {
       ) : (
         <Card className="p-0">
           <ul>
-            {data?.map((c) => (
-              <li key={c.categoryId} className="flex items-center justify-between border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0">
-                <span>
-                  {c.categoryName}
-                  {c.isSystem && <span className="ml-2 text-xs text-[var(--pw-ink)]/50">(ระบบ)</span>}
-                </span>
-                <div>
-                  {!c.isSystem && (
-                    <>
-                      <button className="mr-3 text-[var(--pw-link)]" onClick={() => startEdit(c)}>
-                        แก้ไข
-                      </button>
-                      <ConfirmDialog
-                        title="ลบหมวดหมู่นี้?"
-                        description="ไม่สามารถลบหมวดหมู่ที่มีรายการใช้งานอยู่ได้"
-                        confirmLabel="ลบ"
-                        pending={remove.isPending}
-                        onConfirm={() => {
-                          remove.mutate(c.categoryId, {
-                            onSuccess: () => toast.success("ลบหมวดหมู่แล้ว"),
-                            onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
-                          });
-                        }}
-                        trigger={<button className="text-[var(--pw-magenta)]">ลบ</button>}
-                      />
-                    </>
-                  )}
-                </div>
-              </li>
-            ))}
+            {data?.map((c) => {
+              const reorderableIndex = reorderableCategories.findIndex(
+                (category) => category.categoryId === c.categoryId,
+              );
+
+              return (
+                <li key={c.categoryId} className="flex items-center justify-between border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0">
+                  <span>
+                    {c.categoryName}
+                    {c.isSystem && <span className="ml-2 text-xs text-[var(--pw-ink)]/50">(ระบบ)</span>}
+                  </span>
+                  <div>
+                    {!c.isSystem && (
+                      <>
+                        <button
+                          type="button"
+                          className="mr-2 text-[var(--pw-link)] disabled:opacity-40"
+                          aria-label={`เลื่อน ${c.categoryName} ขึ้น`}
+                          disabled={reorder.isPending || reorderableIndex === 0}
+                          onClick={() => moveCategory(c.categoryId, -1)}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="mr-3 text-[var(--pw-link)] disabled:opacity-40"
+                          aria-label={`เลื่อน ${c.categoryName} ลง`}
+                          disabled={reorder.isPending || reorderableIndex === reorderableCategories.length - 1}
+                          onClick={() => moveCategory(c.categoryId, 1)}
+                        >
+                          ↓
+                        </button>
+                        <button className="mr-3 text-[var(--pw-link)]" onClick={() => startEdit(c)}>
+                          แก้ไข
+                        </button>
+                        <ConfirmDialog
+                          title="ลบหมวดหมู่นี้?"
+                          description="ไม่สามารถลบหมวดหมู่ที่มีรายการใช้งานอยู่ได้"
+                          confirmLabel="ลบ"
+                          pending={remove.isPending}
+                          onConfirm={() => {
+                            remove.mutate(c.categoryId, {
+                              onSuccess: () => toast.success("ลบหมวดหมู่แล้ว"),
+                              onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
+                            });
+                          }}
+                          trigger={<button className="text-[var(--pw-magenta)]">ลบ</button>}
+                        />
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </Card>
       )}

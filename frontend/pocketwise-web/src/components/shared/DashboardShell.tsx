@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { href: "/dashboard/transactions", label: "รายการ" },
-  { href: "/dashboard/categories", label: "หมวดหมู่" },
-  { href: "/dashboard/tags", label: "แท็ก" },
-  { href: "/dashboard/bank-accounts", label: "บัญชี" },
-  { href: "/dashboard/transfers", label: "โอนเงิน" },
+  { href: "/transactions", label: "รายการ" },
+  { href: "/categories", label: "หมวดหมู่" },
+  { href: "/tags", label: "แท็ก" },
+  { href: "/bank-accounts", label: "บัญชี" },
+  { href: "/transfers", label: "โอนเงิน" },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {

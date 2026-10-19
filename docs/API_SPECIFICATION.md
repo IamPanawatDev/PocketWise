@@ -119,9 +119,9 @@ GET /api/v1/transactions?page=1&pageSize=20
 | การตอบ | `data` เป็น `{ items, page, pageSize, totalItems, totalPages }` — เสมอ |
 | หน้าเกิน | page เกิน totalPages → `items: []` พร้อม meta ตามจริง (200, ไม่ใช่ error) |
 
-**Filter params (ประกาศต่อ endpoint บน OpenAPI):** ใช้เฉพาะชื่อที่ endpoint นั้นกำหนด — กลุ่ม Transactions (FR4.x) คาดว่าจะใช้: `categoryId`, `tagId`, `bankAccountId`, `type` (`income|expense`), `fromDate`/`toDate` (UTC ISO), `q` (คำค้นใน note/ผู้รับ) — **ก่อน implement ต้องยืนยันทุกชื่อผู้กรองลงเอกสารนี้ก่อน**
+**Filter params (ประกาศต่อ endpoint บน OpenAPI):** ใช้เฉพาะชื่อที่ endpoint นั้นกำหนด — Transactions ใช้ `categoryId`, `tagId`, `bankAccountId`, `type` (`income|expense|transfer`), `fromDate`/`toDate` (UTC ISO), `q` (คำค้นใน description/category) ตาม §5A
 
-**Sorting:** `sortBy=<field>&sortDesc=true` — default ต่อ endpoint ประกาศใน spec ของ endpoint นั้น (เช่น transactions default `sortBy=occurredAt&sortDesc=true`); sortBy จำกัดเฉพาะ field ที่ endpoint ประกาศ
+**Sorting:** `sortBy=<field>&sortDesc=true` — default ต่อ endpoint ประกาศใน spec ของ endpoint นั้น (transactions: `sortBy=transactionDate&sortDesc=true`); `sortBy` จำกัดเฉพาะ field ที่ endpoint ประกาศ (`transactionDate` หรือ `amount` สำหรับ transactions)
 
 ---
 
@@ -237,7 +237,7 @@ Content-Type: application/json
 
 ## 5A. Phase 4 — Core Transactions (contract ล็อกแล้ว)
 
-> **สถานะ:** implement แล้วใน Phase 4 (FR2.1–FR2.6, FR3.1.2–FR3.1.4, FR3.2.1–FR3.2.6, FR4.1–FR4.5, FR4.7, FR4.9, FR1.4–FR1.5)
+> **สถานะ:** Phase 4 core implement และทดสอบ end-to-end แล้ว; FR2.2 ยังรอ UI เลือกบัตรเมื่อ CreditCards CRUD เข้า Phase 5 ตาม D20
 > ใช้ envelope `{ success, data }` / error codes จาก §2 กับ §3; pagination ตาม §4; auth ตาม §5
 
 ### Endpoints

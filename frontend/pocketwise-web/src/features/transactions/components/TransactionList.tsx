@@ -6,6 +6,9 @@ import { useTransactions, useDeleteTransaction } from "@/features/transactions/h
 import type { TransactionFilter, TransactionResponse } from "@/types/transaction.types";
 import { ApiError } from "@/lib/api-client";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { useCategories } from "@/features/categories/hooks/useCategories";
+import { useTags } from "@/features/tags/hooks/useTags";
+import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,10 +19,15 @@ import { TransactionForm } from "./TransactionForm";
 export function TransactionList() {
   const [filter, setFilter] = useState<TransactionFilter>({});
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<"transactionDate" | "amount">("transactionDate");
+  const [sortDesc, setSortDesc] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<TransactionResponse | null>(null);
 
-  const { data, isLoading } = useTransactions(filter, page);
+  const { data, isLoading } = useTransactions(filter, page, sortBy, sortDesc);
+  const { data: categories } = useCategories();
+  const { data: tags } = useTags();
+  const { data: bankAccounts } = useBankAccounts();
   const remove = useDeleteTransaction();
 
   const handleFilterChange = (patch: Partial<TransactionFilter>) => {
@@ -45,8 +53,9 @@ export function TransactionList() {
 
       <Card className="mb-4 flex flex-wrap items-end gap-3">
         <div>
-          <label className="block text-sm text-[var(--pw-ink)]/70 mb-1">ค้นหา</label>
+          <label htmlFor="transaction-search" className="mb-1 block text-sm text-[var(--pw-ink)]/70">ค้นหา</label>
           <Input
+            id="transaction-search"
             className="w-56 px-3 py-2 text-sm"
             placeholder="คำค้น..."
             value={filter.q ?? ""}
@@ -54,8 +63,9 @@ export function TransactionList() {
           />
         </div>
         <div>
-          <label className="block text-sm text-[var(--pw-ink)]/70 mb-1">ประเภท</label>
+          <label htmlFor="transaction-type-filter" className="mb-1 block text-sm text-[var(--pw-ink)]/70">ประเภท</label>
           <Select
+            id="transaction-type-filter"
             className="w-40 px-3 py-2 text-sm"
             value={filter.type ?? ""}
             onChange={(e) => handleFilterChange({ type: e.target.value || undefined })}
@@ -64,6 +74,96 @@ export function TransactionList() {
             <option value="income">รายรับ</option>
             <option value="expense">รายจ่าย</option>
             <option value="transfer">โอน</option>
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="transaction-category-filter" className="mb-1 block text-sm text-[var(--pw-ink)]/70">หมวดหมู่</label>
+          <Select
+            id="transaction-category-filter"
+            className="w-44 px-3 py-2 text-sm"
+            value={filter.categoryId ?? ""}
+            onChange={(e) => handleFilterChange({ categoryId: e.target.value ? Number(e.target.value) : undefined })}
+          >
+            <option value="">ทุกหมวดหมู่</option>
+            {categories?.map((category) => (
+              <option key={category.categoryId} value={category.categoryId}>{category.categoryName}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="transaction-tag-filter" className="mb-1 block text-sm text-[var(--pw-ink)]/70">แท็ก</label>
+          <Select
+            id="transaction-tag-filter"
+            className="w-40 px-3 py-2 text-sm"
+            value={filter.tagId ?? ""}
+            onChange={(e) => handleFilterChange({ tagId: e.target.value ? Number(e.target.value) : undefined })}
+          >
+            <option value="">ทุกแท็ก</option>
+            {tags?.map((tag) => (
+              <option key={tag.tagId} value={tag.tagId}>{tag.tagName}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="transaction-account-filter" className="mb-1 block text-sm text-[var(--pw-ink)]/70">บัญชี</label>
+          <Select
+            id="transaction-account-filter"
+            className="w-44 px-3 py-2 text-sm"
+            value={filter.bankAccountId ?? ""}
+            onChange={(e) => handleFilterChange({ bankAccountId: e.target.value ? Number(e.target.value) : undefined })}
+          >
+            <option value="">ทุกบัญชี</option>
+            {bankAccounts?.map((account) => (
+              <option key={account.bankAccountId} value={account.bankAccountId}>{account.accountName}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="transaction-from-date" className="mb-1 block text-sm text-[var(--pw-ink)]/70">ตั้งแต่วันที่</label>
+          <Input
+            id="transaction-from-date"
+            type="date"
+            className="w-44 px-3 py-2 text-sm"
+            value={filter.fromDate?.slice(0, 10) ?? ""}
+            onChange={(e) => handleFilterChange({
+              fromDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
+            })}
+          />
+        </div>
+        <div>
+          <label htmlFor="transaction-to-date" className="mb-1 block text-sm text-[var(--pw-ink)]/70">ถึงวันที่</label>
+          <Input
+            id="transaction-to-date"
+            type="date"
+            className="w-44 px-3 py-2 text-sm"
+            value={filter.toDate?.slice(0, 10) ?? ""}
+            onChange={(e) => handleFilterChange({
+              toDate: e.target.value ? `${e.target.value}T23:59:59.999Z` : undefined,
+            })}
+          />
+        </div>
+        <div>
+          <label htmlFor="transaction-sort-by" className="mb-1 block text-sm text-[var(--pw-ink)]/70">เรียงตาม</label>
+          <Select
+            id="transaction-sort-by"
+            className="w-40 px-3 py-2 text-sm"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "transactionDate" | "amount")}
+          >
+            <option value="transactionDate">วันที่</option>
+            <option value="amount">จำนวนเงิน</option>
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="transaction-sort-order" className="mb-1 block text-sm text-[var(--pw-ink)]/70">ลำดับ</label>
+          <Select
+            id="transaction-sort-order"
+            className="w-40 px-3 py-2 text-sm"
+            value={sortDesc ? "desc" : "asc"}
+            onChange={(e) => setSortDesc(e.target.value === "desc")}
+          >
+            <option value="desc">มากไปน้อย / ใหม่ไปเก่า</option>
+            <option value="asc">น้อยไปมาก / เก่าไปใหม่</option>
           </Select>
         </div>
       </Card>

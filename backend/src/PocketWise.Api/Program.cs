@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using PocketWise.Api.Configuration;
 using PocketWise.Api.Middleware;
 using PocketWise.Infrastructure.Configuration;
@@ -13,11 +12,7 @@ builder.Services.AddPocketWiseAuthentication(builder.Configuration);
 builder.Services.AddApplicationServices();
 
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    });
+    .AddJsonOptions(ControllerJsonOptionsConfiguration.Configure);
 
 const string CorsPolicyName = "PocketWiseWeb";
 builder.Services.AddCors(options =>

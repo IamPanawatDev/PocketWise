@@ -10,7 +10,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (body: LoginRequest) =>
       apiClient.post<{ user: UserProfileResponse }>("/api/auth/login", body),
-    onSuccess: () => router.push("/dashboard"),
+    onSuccess: () => router.push("/transactions"),
   });
 }
 
@@ -19,7 +19,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: (body: RegisterRequest) =>
       apiClient.post<{ user: UserProfileResponse }>("/api/auth/register", body),
-    onSuccess: () => router.push("/dashboard"),
+    onSuccess: () => router.push("/transactions"),
   });
 }
 

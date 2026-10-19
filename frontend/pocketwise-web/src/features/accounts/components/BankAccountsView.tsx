@@ -33,7 +33,10 @@ export function BankAccountsView() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<BankAccountFormValues>({ resolver: zodResolver(bankAccountSchema) });
+  } = useForm<BankAccountFormValues>({
+    resolver: zodResolver(bankAccountSchema),
+    defaultValues: { bankCode: null, accountNumberMasked: null },
+  });
 
   const onSubmit = (values: BankAccountFormValues) => {
     const payload = {

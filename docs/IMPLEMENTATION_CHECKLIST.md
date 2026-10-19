@@ -68,7 +68,7 @@
 | 3.11 | Migration update (ตาราง Identity) + apply จริง | ✅ | migration `20261019061116_AddIdentity` applied บน `PocketWiseDb` |
 | 3.12 | Gate Phase 3: login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB | ✅ | ทดสอบ register/login/me ผ่าน; `dotnet build` 0 error; refresh/logout flow มีให้ใช้ |
 
-## 5. Phase 4 — Core Transactions 🟡 (backend ✅ + FE ✅ — รอ end-to-end ทดสอบจริง + FR status)
+## 5. Phase 4 — Core Transactions 🟡 (4.10 Gate ผ่าน; FR2.2 UI picker ติดตามต่อใน Phase 5 ตาม D20)
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
@@ -81,7 +81,7 @@
 | 4.7 | ปุ่ม Transfers: TransferGroups + จับคู่โอนออก/โอนเข้า (FR1.5) | ✅ | สร้าง 2 transactions อัตโนมัติผูก transferGroupId |
 | 4.8 | ✅ FluentValidation ติดตั้งแล้ว (12.2.0) | ✅ | อนุมัติจากเจ้าของ |
 | 4.9 | FE: types/schemas/features (transactions, categories, tags, transfers) + หน้า (dashboard)/transactions | ✅ | types/schemas/lib/auth BFF + httpOnly cookie + 5 หน้า dashboard (transactions/categories/tags/bank-accounts/transfers) + login/register; `npm run lint` + `npm run build` ผ่าน |
-| 4.10 | Migration/โครงสร้างจริงที่ใหม่ + Gate: CRUD end-to-end, FE lint+build, tests, FR สถานะอัปเดต | 🟡 | backend build+test ผ่าน, FE lint+build ผ่าน; migration ไม่ต้อง (enum เก็บ string); **รอทดสอบ end-to-end จริง (browser) + ติ๊ก FR** |
+| 4.10 | Migration/โครงสร้างจริงที่ใหม่ + Gate: CRUD end-to-end, FE lint+build, tests, FR สถานะอัปเดต | ✅ | Browser E2E: create/update/delete category, tag, bank account, transaction; transaction search/filter (type/category/tag/account/date), amount sort, cash+income, transfer creates paired transactions. FE lint/build ผ่าน; backend build + 1 integration test ผ่าน; ไม่มี migration ใหม่ (enum เก็บ string). FR2.2 ระบุ 🟡 เพราะ UI เลือกบัตรรอ CreditCards CRUD ใน Phase 5 ตาม D20. |
 
 ## 6. Phase 5 — Budgets, Credit Cards & Reports 🔁
 
