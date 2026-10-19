@@ -70,7 +70,7 @@
 | 1 Foundation | ✅ | Solution 4 โปรเจค, Next.js app, ESLint, `.env.example` |
 | 2 Data Model | ✅ | Entities/DbContext/Configurations/Migration ครบ 25 ตาราง; `InitialCreate` applied บน `PocketWiseDb`; build ผ่าน |
 | 3 Identity | ✅ | `ApplicationUser : IdentityUser<long>`, JWT + Refresh Token, 5 `/api/v1/auth/*` endpoints ใช้งานได้, migration applied, build ผ่าน |
-| 4 Core Transactions | 🟡 | backend CRUD ครบ (transactions/categories/tags/bank-accounts/transfers); รอ FE + FR status |
+| 4 Core Transactions | 🟡 | backend + FE ครบ end-to-end (auth + 5 หน้า dashboard); รอทดสอบจริงใน browser + ติ๊ก FR status |
 | 5 Budgets, Credit Cards & Reports | ⬜ | รวมงบ, บัตรเครดิตพื้นฐาน, รายการประจำ, จัดหมวดอัตโนมัติ, reports |
 | 5.5 Settings & Profile | ⬜ | UserSettings + โปรไฟล์ + ล้างข้อมูล (FR6.3) |
 | 6 SignalR | ⬜ | ฝั่ง server ใช้ AddSignalR จาก shared framework |
@@ -299,7 +299,8 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 **Frontend (`frontend/pocketwise-web/package.json`):**
 
 - `next` 16.4.2, `react`/`react-dom` 19.3.0, `typescript` ^5, `tailwindcss` ^4 (+ `@tailwindcss/turbopack`), `eslint` ^9 (+ `eslint-config-next` 16.4.2)
-- ยังไม่มี: shadcn/ui, Radix, lucide-react, React Hook Form, Zod, TanStack Query, `@microsoft/signalr` — ทั้งหมดต้องผ่าน 📦
+- เพิ่มแล้ว (Phase 4 FE, อนุมัติแล้ว): `zod`, `react-hook-form`, `@tanstack/react-query`, `lucide-react`, `sonner`, `@radix-ui/react-alert-dialog`
+- ยังไม่มี: shadcn/ui, Radix (อื่น), `@microsoft/signalr` — ทั้งหมดต้องผ่าน 📦
 
 ---
 
@@ -364,6 +365,10 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D18 | Phase 4 CategoryType | เพิ่ม enum `CategoryType` (Income/Expense/Both) ตาม DataDictionary แทน `TransactionType` | เจ้าของโปรเจค | ✅ ล็อก |
 | D19 | Phase 4 transfer flow | สร้าง TransferGroup → auto สร้าง 2 transactions (โอนออก/โอนเข้า) ผูก `transferGroupId` | เจ้าของโปรเจค | ✅ ล็อก |
 | D20 | Phase 4 credit card scope | Transaction create/update รับ `creditCardId` (nullable) ได้เลย (CreditCard CRUD ยังเป็น Phase 5) | เจ้าของโปรเจค | ✅ ล็อก |
+| D21 | FE CORS | backend เพิ่ม `AddCors` (AllowCredentials + origin `http://localhost:3000`) | เจ้าของโปรเจค | ✅ ล็อก |
+| D22 | FE token storage | ใช้ **httpOnly cookie** ผ่าน Next.js API route (BFF) — access/refresh เก็บ cookie ฝั่ง server, FE ไม่แตะ token โดยตรง | เจ้าของโปรเจค | ✅ ล็อก |
+| D23 | FE packages | ติดตั้ง `zod` + `react-hook-form` + `@tanstack/react-query` + `lucide-react` (ชุดเต็ม) | เจ้าของโปรเจค | ✅ ล็อก |
+| D24 | FE feedback pattern | Toast (`sonner`) = แจ้งผลเท่านั้น; AlertDialog (`@radix-ui/react-alert-dialog`) = ยืนยันการกระทำสำคัญ/กลับไม่ได้ — ห้าม `alert()`/`confirm()`/`window.location.reload()` | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
