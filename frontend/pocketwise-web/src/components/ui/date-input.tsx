@@ -21,9 +21,17 @@ type DatePickerProps = {
   disabled?: boolean;
   className?: string;
   "aria-label"?: string;
+  "aria-invalid"?: boolean;
   clearable?: boolean;
   onBlur?: React.FocusEventHandler<HTMLButtonElement>;
 };
+
+const calendarMonths = Array.from({ length: 12 }, (_, index) =>
+  new Intl.DateTimeFormat("th-TH", { calendar: "gregory", month: "long" }).format(
+    new Date(2020, index, 1),
+  ),
+);
+const calendarYears = Array.from({ length: 201 }, (_, index) => 1900 + index);
 
 function parseCalendarDate(value?: string): Date | undefined {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? "");
@@ -65,14 +73,28 @@ function CalendarField({
   disabled,
   className,
   "aria-label": ariaLabel,
+  "aria-invalid": ariaInvalid,
   clearable = false,
   onBlur,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const selected = parseCalendarDate(value);
+  const [month, setMonth] = useState(() => {
+    const initial = selected ?? new Date(2020, 0, 1, 12);
+    return new Date(initial.getFullYear(), initial.getMonth(), 1, 12);
+  });
 
   return (
-    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
+    <PopoverPrimitive.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          const initial = selected ?? new Date();
+          setMonth(new Date(initial.getFullYear(), initial.getMonth(), 1, 12));
+        }
+        setOpen(nextOpen);
+      }}
+    >
       <PopoverPrimitive.Trigger asChild>
         <Button
           id={id}
@@ -80,11 +102,12 @@ function CalendarField({
           variant="outline"
           disabled={disabled}
           aria-label={ariaLabel}
+          aria-invalid={ariaInvalid}
           aria-haspopup="dialog"
           aria-expanded={open}
           onBlur={onBlur}
           className={cn(
-            "h-11 w-full justify-between border-2 !border-[var(--pw-input-border)] bg-[var(--pw-input-surface)] px-4 text-left font-normal text-[var(--pw-ink)] hover:bg-[var(--pw-input-surface)]",
+            "h-11 w-full justify-between border-2 !border-[var(--pw-input-border)] bg-[var(--pw-input-surface)] px-4 text-left font-normal text-[var(--pw-ink)] hover:bg-[var(--pw-input-surface)] aria-invalid:!border-[var(--pw-magenta)] aria-invalid:ring-2 aria-invalid:ring-[var(--pw-magenta)]/30",
             !selected && "text-[var(--pw-ink)]/55",
             className,
           )}
@@ -102,10 +125,49 @@ function CalendarField({
           sideOffset={4}
           className="z-50 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] p-2 text-[var(--pw-ink)] shadow-lg outline-none"
         >
+          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
+            <Select
+              value={String(month.getMonth())}
+              onValueChange={(value) =>
+                setMonth(new Date(month.getFullYear(), Number(value), 1, 12))
+              }
+            >
+              <SelectTrigger aria-label="เลือกเดือน" className="h-9 px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {calendarMonths.map((monthName, index) => (
+                  <SelectItem key={monthName} value={String(index)}>
+                    {monthName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={String(month.getFullYear())}
+              onValueChange={(value) =>
+                setMonth(new Date(Number(value), month.getMonth(), 1, 12))
+              }
+            >
+              <SelectTrigger aria-label="เลือกปี" className="h-9 px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {calendarYears.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Calendar
             mode="single"
+            month={month}
+            onMonthChange={setMonth}
+            startMonth={new Date(1900, 0)}
+            endMonth={new Date(2100, 11)}
             selected={selected}
-            defaultMonth={selected}
             onSelect={(date) => {
               if (date) {
                 onChange(toCalendarDateValue(date));

@@ -15,6 +15,7 @@ export function useBudgetTracking() {
   return useQuery({
     queryKey: ["budgets", "tracking"],
     queryFn: () => apiClient.get<BudgetTrackingResponse[]>("/api/v1/budgets/tracking"),
+    refetchOnMount: "always",
   });
 }
 

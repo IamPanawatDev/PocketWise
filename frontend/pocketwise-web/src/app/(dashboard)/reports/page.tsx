@@ -24,8 +24,8 @@ async function ReportsContent() {
   const today = toThailandDateInputValue(new Date());
   return (
     <ReportsView
-      initialFromDate={`${today.slice(0, 7)}-01`}
-      initialToDate={today}
+      initialFromDate={`${today.slice(0, 4)}-01-01`}
+      initialToDate={`${today.slice(0, 4)}-12-31`}
     />
   );
 }

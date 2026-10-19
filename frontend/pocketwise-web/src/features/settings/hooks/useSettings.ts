@@ -24,7 +24,6 @@ export function useUpdateUserSettings() {
     onSuccess: (settings) => {
       queryClient.setQueryData(["settings"], settings);
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
-      queryClient.invalidateQueries({ queryKey: ["budget-tracking"] });
     },
   });
 }

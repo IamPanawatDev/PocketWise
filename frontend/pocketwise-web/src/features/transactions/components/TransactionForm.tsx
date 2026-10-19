@@ -10,6 +10,7 @@ import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTags } from "@/features/tags/hooks/useTags";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
+import { useUserSettings } from "@/features/settings/hooks/useSettings";
 import { useCategorySuggestion } from "@/features/categorization/hooks/useCategorization";
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -56,12 +57,13 @@ export function TransactionForm({
   const { data: tags } = useTags();
   const { data: bankAccounts } = useBankAccounts();
   const { data: creditCards } = useCreditCards();
+  const { data: settings } = useUserSettings();
 
   const defaultValues = useMemo<TransactionFormValues>(
     () => ({
       transactionType: (editing?.transactionType as TransactionFormValues["transactionType"]) ?? "expense",
       amount: editing?.amount ?? 0,
-      currencyCode: editing?.currencyCode ?? "THB",
+      currencyCode: editing?.currencyCode ?? settings?.currencyCode ?? "THB",
       transactionDate: editing ? toThailandDateTimeInputValue(editing.transactionDate) : "",
       description: editing?.description ?? "",
       categoryId: editing?.categoryId ?? null,
@@ -69,7 +71,7 @@ export function TransactionForm({
       creditCardId: editing?.creditCardId ?? null,
       tagIds: editing?.tags.map((t) => t.tagId) ?? [],
     }),
-    [editing],
+    [editing, settings?.currencyCode],
   );
 
   const {
@@ -77,12 +79,19 @@ export function TransactionForm({
     handleSubmit,
     control,
     setValue,
+    reset,
     getValues,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
     defaultValues,
   });
+
+  useEffect(() => {
+    if (!isDirty) {
+      reset(defaultValues);
+    }
+  }, [defaultValues, isDirty, reset]);
 
   useEffect(() => {
     if (!editing) {

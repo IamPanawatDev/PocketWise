@@ -387,14 +387,15 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D31 | Phase 5 CategoryRules ที่มา | **ทั้งสองแบบ**: ผู้ใช้ตั้งกฎเอง (CategoryRules CRUD) + ระบบ auto-learn จากประวัติ (เมื่อผู้ใช้เลือกหมวดให้รายการที่มี description → บันทึกกฎ Description→Category ให้อัตโนมัติ) | เจ้าของโปรเจค | ✅ ล็อก |
 | D32 | Phase 5 Merchants ข้อมูล | **มี CRUD ให้เพิ่มเองได้ตอนนี้ แต่ไม่ seed ข้อมูล** — เหลือตารางว่าง รอ Phase 7 import/OCR มาเติม | เจ้าของโปรเจค | ✅ ล็อก |
 | D33 | Phase 5 จังหวะจัดหมวดอัตโนมัติ | **ทั้ง auto-apply ตอนสร้าง transaction (เฉพาะเมื่อ user ไม่ได้เลือก category) + endpoint แยก** สำหรับ query หมวดที่แนะนำ | เจ้าของโปรเจค | ✅ ล็อก |
-| D34 | Phase 5 Reports calendar | Weekly period เริ่มวันอาทิตย์; หน้า Reports เริ่มต้นแสดงเดือนปัจจุบัน; calendar dates ใช้ Asia/Bangkok และ API รับ UTC boundaries | เจ้าของโปรเจค | ✅ ล็อก |
+| D34 | Phase 5 Reports calendar | Weekly period เริ่มวันอาทิตย์; calendar dates ใช้ Asia/Bangkok และ API รับ UTC boundaries | เจ้าของโปรเจค | ✅ ล็อก |
 | D35 | Phase 5.5 profile, settings และ reset | Settings API จัดการ Theme/CurrencyCode/Locale/EmailBudgetAlertsEnabled; เปลี่ยนอีเมลตั้ง `IsEmailVerified=false` โดยยังไม่มี verification flow; reset soft-delete เฉพาะ 9 finance tables ตาม D5, คง identity/settings/categories/tags/rules/notifications/import history/audit logs และ revoke refresh tokens ทุก session | เจ้าของโปรเจค | ✅ ล็อก |
+| D36 | Reports default date range | หน้า Reports ตั้งค่าเริ่มต้นตั้งแต่วันที่ 1 มกราคมถึง 31 ธันวาคมของปีปัจจุบัน (Asia/Bangkok) | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
 - Phase 3: ~~relation ของ `Users` กับ `IdentityUser`, อายุ token จริง~~ ✅ ล็อกเป็น D15 (ชื่อ auth routes + envelope + versioning ✓ D11 — ดู API_SPECIFICATION §5)
 - Phase 4: ~~filter params ของ list endpoints~~ ✅ ล็อกเป็น D17; FE query/filter/sort และ E2E ตรวจแล้ว
-- Phase 5: ~~threshold semantics~~ ✅ D27, ~~chart lib~~ ✅ D29 (recharts), ~~recurring กลไก~~ ✅ D26 (HostedService), ~~email provider~~ ✅ D28 (เลื่อนไปทีหลัง), ~~จัดหมวดอัตโนมัติ~~ ✅ D31–D33, ~~Reports calendar~~ ✅ D34
+- Phase 5: ~~threshold semantics~~ ✅ D27, ~~chart lib~~ ✅ D29 (recharts), ~~recurring กลไก~~ ✅ D26 (HostedService), ~~email provider~~ ✅ D28 (เลื่อนไปทีหลัง), ~~จัดหมวดอัตโนมัติ~~ ✅ D31–D33, ~~Reports calendar~~ ✅ D34, ~~default date range~~ ✅ D36
 - Phase 5.5: ~~ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม~~ ✅ D35
 - Phase 6: hub event contract (สัญญาตาม D11-⑤ — ล็อกตอนเริ่ม phase, ชื่อ candidate อยู่ที่ API_SPECIFICATION §6), scale-out (เลื่อน Phase 8)
 - Phase 7: file storage, ข้อจำกัดไฟล์, OCR provider

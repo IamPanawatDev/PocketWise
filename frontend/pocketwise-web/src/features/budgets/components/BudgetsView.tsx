@@ -67,6 +67,7 @@ export function BudgetsView() {
     control,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetSchema),
@@ -83,6 +84,32 @@ export function BudgetsView() {
     reset(initialValues(toThailandDateInputValue(new Date())));
   };
 
+  const handleMutationError = (reason: unknown, fallbackMessage: string) => {
+    if (reason instanceof ApiError && reason.code === "VALIDATION_ERROR" && reason.details?.length) {
+      const fieldNames: Record<string, keyof BudgetFormValues> = {
+        budgetname: "budgetName",
+        scopetype: "scopeType",
+        categoryid: "categoryId",
+        tagid: "tagId",
+        amountlimit: "amountLimit",
+        periodtype: "periodType",
+        startdate: "startDate",
+        enddate: "endDate",
+        alertthresholdpercent: "alertThresholdPercent",
+      };
+      let mapped = false;
+      for (const detail of reason.details) {
+        const fieldName = fieldNames[detail.field.replace(/[^a-z]/gi, "").toLowerCase()];
+        if (!fieldName) continue;
+        setError(fieldName, { type: "server", message: detail.message });
+        mapped = true;
+      }
+      if (mapped) return;
+    }
+
+    toast.error(reason instanceof ApiError ? reason.message : fallbackMessage);
+  };
+
   const onSubmit = (values: BudgetFormValues) => {
     const payload = {
       ...values,
@@ -95,13 +122,13 @@ export function BudgetsView() {
         { id: editing.budgetId, body: { ...payload, isActive: editing.isActive } },
         {
           onSuccess: () => { resetForm(); toast.success("บันทึกงบแล้ว"); },
-          onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "บันทึกไม่สำเร็จ"),
+          onError: (reason) => handleMutationError(reason, "บันทึกไม่สำเร็จ"),
         },
       );
     } else {
       create.mutate(payload, {
         onSuccess: () => { resetForm(); toast.success("เพิ่มงบแล้ว"); },
-        onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "เพิ่มไม่สำเร็จ"),
+        onError: (reason) => handleMutationError(reason, "เพิ่มไม่สำเร็จ"),
       });
     }
   };
@@ -134,7 +161,7 @@ export function BudgetsView() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="ชื่องบ" htmlFor="budget-name" error={errors.budgetName?.message}>
-              <Input id="budget-name" {...register("budgetName")} />
+              <Input id="budget-name" aria-invalid={!!errors.budgetName} {...register("budgetName")} />
             </FormField>
             <FormField label="ขอบเขต" htmlFor="budget-scope" error={errors.scopeType?.message}>
               <Controller
@@ -142,7 +169,7 @@ export function BudgetsView() {
                 name="scopeType"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="budget-scope"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="budget-scope" aria-invalid={!!errors.scopeType}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="total">รวมทั้งหมด</SelectItem>
                       <SelectItem value="category">ตามหมวดหมู่</SelectItem>
@@ -163,7 +190,7 @@ export function BudgetsView() {
                       value={field.value == null ? "none" : String(field.value)}
                       onValueChange={(value) => field.onChange(value === "none" ? null : Number(value))}
                     >
-                      <SelectTrigger id="budget-category"><SelectValue placeholder="เลือกหมวดหมู่" /></SelectTrigger>
+                      <SelectTrigger id="budget-category" aria-invalid={!!errors.categoryId}><SelectValue placeholder="เลือกหมวดหมู่" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">เลือกหมวดหมู่</SelectItem>
                         {categories?.map((category) => (
@@ -185,7 +212,7 @@ export function BudgetsView() {
                       value={field.value == null ? "none" : String(field.value)}
                       onValueChange={(value) => field.onChange(value === "none" ? null : Number(value))}
                     >
-                      <SelectTrigger id="budget-tag"><SelectValue placeholder="เลือกแท็ก" /></SelectTrigger>
+                      <SelectTrigger id="budget-tag" aria-invalid={!!errors.tagId}><SelectValue placeholder="เลือกแท็ก" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">เลือกแท็ก</SelectItem>
                         {tags?.map((tag) => (
@@ -199,7 +226,7 @@ export function BudgetsView() {
             )}
 
             <FormField label="วงเงิน (สกุลเงินหลัก)" htmlFor="budget-amount" error={errors.amountLimit?.message}>
-              <Input id="budget-amount" type="number" min="0.01" step="0.01" {...register("amountLimit")} />
+              <Input id="budget-amount" type="number" min="0.01" step="0.01" aria-invalid={!!errors.amountLimit} {...register("amountLimit")} />
             </FormField>
             <FormField label="รอบงบ" htmlFor="budget-period" error={errors.periodType?.message}>
               <Controller
@@ -207,7 +234,7 @@ export function BudgetsView() {
                 name="periodType"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="budget-period"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="budget-period" aria-invalid={!!errors.periodType}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="weekly">รายสัปดาห์</SelectItem>
                       <SelectItem value="monthly">รายเดือน</SelectItem>
@@ -223,18 +250,18 @@ export function BudgetsView() {
               <Controller
                 control={control}
                 name="startDate"
-                render={({ field }) => <DateInput id="budget-start-date" value={field.value} onChange={field.onChange} />}
+                render={({ field }) => <DateInput id="budget-start-date" value={field.value} onChange={field.onChange} aria-invalid={!!errors.startDate} />}
               />
             </FormField>
             <FormField label="วันสิ้นสุด (ไม่บังคับ)" htmlFor="budget-end-date" error={errors.endDate?.message}>
               <Controller
                 control={control}
                 name="endDate"
-                render={({ field }) => <DateInput id="budget-end-date" value={field.value ?? ""} onChange={(value) => field.onChange(value || null)} />}
+                render={({ field }) => <DateInput id="budget-end-date" value={field.value ?? ""} onChange={(value) => field.onChange(value || null)} aria-invalid={!!errors.endDate} />}
               />
             </FormField>
             <FormField label="แจ้งเตือนเมื่อใช้ถึง (%)" htmlFor="budget-threshold" error={errors.alertThresholdPercent?.message}>
-              <Input id="budget-threshold" type="number" min="1" max="100" {...register("alertThresholdPercent")} />
+              <Input id="budget-threshold" type="number" min="1" max="100" aria-invalid={!!errors.alertThresholdPercent} {...register("alertThresholdPercent")} />
             </FormField>
           </div>
 

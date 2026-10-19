@@ -71,6 +71,7 @@ export function TransactionList({
 
       {(showForm || editing) && (
         <TransactionForm
+          key={editing?.transactionId ?? "new"}
           onClose={() => { setShowForm(false); setEditing(null); }}
           editing={editing ?? undefined}
         />

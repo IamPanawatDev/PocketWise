@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLogout } from "@/features/auth/hooks/useAuthMutations";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useUserSettings } from "@/features/settings/hooks/useSettings";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeftFromLine,
@@ -34,11 +40,11 @@ const nav = [
   { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat },
   { href: "/categorization", label: "จัดหมวดอัตโนมัติ", icon: Settings2 },
   { href: "/reports", label: "รายงาน", icon: PieChart },
-  { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog },
   { href: "/categories", label: "หมวดหมู่", icon: Tags },
   { href: "/tags", label: "แท็ก", icon: Tags },
   { href: "/bank-accounts", label: "บัญชี", icon: WalletCards },
   { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
+  { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -134,32 +140,41 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
 
-        <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
-          {nav.map((item) => {
-            const Icon = item.icon;
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-label={item.label}
-                title={iconOnly ? item.label : undefined}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-11 items-center gap-3 rounded-[var(--pw-rounded-sm)] px-3 py-2 text-sm transition",
-                  iconOnly && "md:justify-center md:px-0",
-                  active
-                    ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)]"
-                    : "text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)] hover:text-[var(--pw-ink)]",
-                )}
-                onClick={closeNavigation}
-              >
-                <Icon className="size-5 shrink-0" />
-                <span className={cn("truncate", iconOnly && "md:hidden")}>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <TooltipProvider>
+          <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
+            {nav.map((item) => {
+              const Icon = item.icon;
+              const active = pathname.startsWith(item.href);
+              const link = (
+                <Link
+                  href={item.href}
+                  aria-label={item.label}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-[var(--pw-rounded-sm)] px-3 py-2 text-sm transition",
+                    iconOnly && "md:justify-center md:px-0",
+                    active
+                      ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)]"
+                      : "text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)] hover:text-[var(--pw-ink)]",
+                  )}
+                  onClick={closeNavigation}
+                >
+                  <Icon className="size-5 shrink-0" />
+                  <span className={cn("truncate", iconOnly && "md:hidden")}>{item.label}</span>
+                </Link>
+              );
+
+              return iconOnly ? (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              ) : (
+                <Fragment key={item.href}>{link}</Fragment>
+              );
+            })}
+          </nav>
+        </TooltipProvider>
 
         <a
           href="https://www.flaticon.com/free-icon/money_10384161?term=money&related_id=10384161"
