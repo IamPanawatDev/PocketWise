@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using FluentValidation;
 using PocketWise.Application.DTOs.Auth;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
@@ -12,15 +13,18 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserRefreshTokenRepository _refreshTokenRepository;
     private readonly ITokenService _tokenService;
+    private readonly IValidator<UpdateUserProfileRequest> _profileValidator;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         IUserRefreshTokenRepository refreshTokenRepository,
-        ITokenService tokenService)
+        ITokenService tokenService,
+        IValidator<UpdateUserProfileRequest> profileValidator)
     {
         _userManager = userManager;
         _refreshTokenRepository = refreshTokenRepository;
         _tokenService = tokenService;
+        _profileValidator = profileValidator;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default)
@@ -36,6 +40,7 @@ public class AuthService : IAuthService
             UserName = request.Email,
             Email = request.Email,
             DisplayName = request.DisplayName,
+            UserSettings = new UserSettings(),
             CreatedAt = DateTime.UtcNow,
             LockoutEnabled = false
         };
@@ -46,10 +51,6 @@ public class AuthService : IAuthService
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             throw new AuthException("VALIDATION_ERROR", errors);
         }
-
-        var settings = new UserSettings { UserId = user.Id };
-        // UserSettings จะถูกสร้างอัตโนมัติผ่าน cascade หรือ handler แยกใน phase 5.5
-        // สำหรับตอนนี้ข้ามไปเพราะยังไม่มี repository interface
 
         return await GenerateTokenPairAndSaveAsync(user, ipAddress, userAgent, cancellationToken);
     }
@@ -131,6 +132,60 @@ public class AuthService : IAuthService
         return MapToProfile(applicationUser);
     }
 
+    public async Task<UserProfileResponse?> UpdateProfileAsync(
+        ClaimsPrincipal principal,
+        UpdateUserProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await _profileValidator.ValidateAndThrowAsync(request, cancellationToken);
+        var userIdValue = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userIdValue is null || !long.TryParse(userIdValue, out _))
+        {
+            return null;
+        }
+
+        var applicationUser = await _userManager.FindByIdAsync(userIdValue);
+        if (applicationUser is null || !applicationUser.IsActive)
+        {
+            return null;
+        }
+
+        var nextEmail = request.Email.Trim();
+        var emailChanged = !string.Equals(applicationUser.Email, nextEmail, StringComparison.OrdinalIgnoreCase);
+        if (emailChanged)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(nextEmail);
+            if (existingUser is not null && existingUser.Id != applicationUser.Id)
+            {
+                throw new AuthException("CONFLICT", "อีเมลนี้ถูกใช้งานแล้ว");
+            }
+        }
+
+        applicationUser.Email = nextEmail;
+        applicationUser.UserName = nextEmail;
+        applicationUser.DisplayName = request.DisplayName.Trim();
+        applicationUser.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber)
+            ? null
+            : request.PhoneNumber.Trim();
+        applicationUser.BirthDate = request.BirthDate;
+        if (emailChanged)
+        {
+            applicationUser.IsEmailVerified = false;
+        }
+
+        applicationUser.UpdatedAt = DateTime.UtcNow;
+        var result = await _userManager.UpdateAsync(applicationUser);
+        if (!result.Succeeded)
+        {
+            var isDuplicate = result.Errors.Any(error =>
+                error.Code.Contains("Duplicate", StringComparison.OrdinalIgnoreCase));
+            var code = isDuplicate ? "CONFLICT" : "VALIDATION_ERROR";
+            throw new AuthException(code, string.Join("; ", result.Errors.Select(error => error.Description)));
+        }
+
+        return MapToProfile(applicationUser);
+    }
+
     private async Task<AuthResponse> GenerateTokenPairAndSaveAsync(ApplicationUser user, string? ipAddress, string? userAgent, CancellationToken cancellationToken)
     {
         var response = _tokenService.GenerateTokenPair(user);
@@ -159,6 +214,8 @@ public class AuthService : IAuthService
             Id = user.Id,
             Email = user.Email ?? string.Empty,
             DisplayName = user.DisplayName,
+            PhoneNumber = user.PhoneNumber,
+            BirthDate = user.BirthDate,
             IsEmailVerified = user.IsEmailVerified
         };
     }

@@ -73,6 +73,21 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<UserProfileResponse>.Ok(result));
     }
 
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<UserProfileResponse>>> UpdateMeAsync(
+        [FromBody] UpdateUserProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.UpdateProfileAsync(User, request, cancellationToken);
+        if (result is null)
+        {
+            return Unauthorized(ApiResponse<UserProfileResponse>.Fail("UNAUTHORIZED", "ไม่พบข้อมูลผู้ใช้"));
+        }
+
+        return Ok(ApiResponse<UserProfileResponse>.Ok(result));
+    }
+
     private string? GetIpAddress()
     {
         if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))

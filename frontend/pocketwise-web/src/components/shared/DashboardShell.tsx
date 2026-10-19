@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLogout } from "@/features/auth/hooks/useAuthMutations";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { useUserSettings } from "@/features/settings/hooks/useSettings";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +20,7 @@ import {
   PieChart,
   Repeat,
   Settings2,
+  UserRoundCog,
   Wallet,
   Tags,
   WalletCards,
@@ -32,6 +34,7 @@ const nav = [
   { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat },
   { href: "/categorization", label: "จัดหมวดอัตโนมัติ", icon: Settings2 },
   { href: "/reports", label: "รายงาน", icon: PieChart },
+  { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog },
   { href: "/categories", label: "หมวดหมู่", icon: Tags },
   { href: "/tags", label: "แท็ก", icon: Tags },
   { href: "/bank-accounts", label: "บัญชี", icon: WalletCards },
@@ -42,6 +45,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const logout = useLogout();
   const { data: user } = useCurrentUser();
+  const { data: settings } = useUserSettings();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -53,6 +57,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [isMobileOpen]);
+
+  useEffect(() => {
+    if (!settings) return;
+    document.documentElement.dataset.theme = settings.theme;
+    document.documentElement.lang = settings.locale;
+  }, [settings]);
 
   const toggleNavigation = () => {
     if (window.matchMedia("(min-width: 768px)").matches) {

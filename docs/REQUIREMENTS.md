@@ -125,12 +125,12 @@
 
 | FR | รายการ | สถานะ |
 |:-:|---|:-:|
-| FR6.3.1 | ปรับธีมของแอป (Dark, Light) | ⬜ Phase 5.5 (UserSettings) |
-| FR6.3.2 | ตั้งค่าข้อมูลส่วนตัว | ⬜ Phase 5.5 (UserSettings) |
-| FR6.3.3 | เปลี่ยนเบอร์มือถือ | ⬜ Phase 5.5 (UserSettings) |
-| FR6.3.4 | เปลี่ยนอีเมล | ⬜ Phase 5.5 (UserSettings) |
-| FR6.3.5 | แก้ไขวันเกิด | ⬜ Phase 5.5 (UserSettings) |
-| FR6.3.6 | ล้างข้อมูลเพื่อเริ่มต้นใหม่ (data reset) | ⬜ Phase 5.5 (UserSettings) |
+| FR6.3.1 | ปรับธีมของแอป (Dark, Light) | ✅ Phase 5.5 — settings persisted and verified end-to-end |
+| FR6.3.2 | ตั้งค่าข้อมูลส่วนตัว | ✅ Phase 5.5 — profile persisted and verified end-to-end |
+| FR6.3.3 | เปลี่ยนเบอร์มือถือ | ✅ Phase 5.5 — persisted and verified end-to-end |
+| FR6.3.4 | เปลี่ยนอีเมล | ✅ Phase 5.5 — persisted; IsEmailVerified reset per D35 and verified end-to-end |
+| FR6.3.5 | แก้ไขวันเกิด | ✅ Phase 5.5 — persisted and verified end-to-end |
+| FR6.3.6 | ล้างข้อมูลเพื่อเริ่มต้นใหม่ (data reset) | ✅ Phase 5.5 — soft-delete, preserved identity/settings, and refresh-token revocation verified end-to-end |
 
 ### F7 — ระบบบทบาทและสิทธิ์ (Role-Based Access Control) — เพิ่มจากเจ้าของโปรเจค (D13)
 

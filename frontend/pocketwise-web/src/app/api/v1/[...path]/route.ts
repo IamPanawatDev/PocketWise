@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getAccessToken, getRefreshToken, setAuthCookies } from "@/lib/server/auth";
+import { clearAuthCookies, getAccessToken, getRefreshToken, setAuthCookies } from "@/lib/server/auth";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5268";
@@ -85,6 +85,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   if (res.status === 401) {
     const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "POST", body);
     if (retried) res = retried;
+  }
+  if (res.ok && path.join("/") === "users/me/data-reset") {
+    await clearAuthCookies();
   }
   return passthrough(res);
 }

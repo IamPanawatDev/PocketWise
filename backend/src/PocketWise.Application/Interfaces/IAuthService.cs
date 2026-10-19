@@ -10,4 +10,5 @@ public interface IAuthService
     Task<AuthResponse?> RefreshAsync(RefreshRequest request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default);
     Task LogoutAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
     Task<UserProfileResponse?> MeAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+    Task<UserProfileResponse?> UpdateProfileAsync(ClaimsPrincipal user, UpdateUserProfileRequest request, CancellationToken cancellationToken = default);
 }

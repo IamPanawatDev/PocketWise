@@ -639,6 +639,54 @@ Content-Type: application/json
 - ไม่แปลงสกุลเงิน; แต่ละ currency ต้องแสดง/เปรียบเทียบแยกกัน
 - Frontend ตั้งช่วงเริ่มต้นเป็นเดือนปัจจุบัน; ส่งขอบเขตวันในเวลาไทยแปลงเป็น UTC ก่อนเรียก API (D34)
 
+---
+
+## 5G. Phase 5.5 — Settings & Profile (contract)
+
+> ข้อมูล settings/profile เป็นของผู้ใช้ที่ยืนยันตัวตน; `birthDate` ใช้วันที่ ค.ศ. แบบ `YYYY-MM-DD`; settings ที่ยังไม่มีจะถูกสร้างด้วยค่าเริ่มต้นจาก DataDictionary
+
+### Endpoints
+
+| Method | Path | Auth | Description |
+|---|---|:-:|---|
+| `GET` | `/api/v1/settings` | required | อ่านค่าตั้งค่าส่วนบุคคล |
+| `PUT` | `/api/v1/settings` | required | บันทึกธีม สกุลเงิน ภาษา และการตั้งค่า budget email |
+| `PUT` | `/api/v1/auth/me` | required | แก้ชื่อที่แสดง เบอร์โทร วันเกิด และอีเมลของผู้ใช้ปัจจุบัน |
+| `POST` | `/api/v1/users/me/data-reset` | required | ล้างข้อมูลการเงินและ revoke refresh tokens ทุก session |
+
+### `UserSettingsResponse`
+
+```json
+{
+  "theme": "light",
+  "currencyCode": "THB",
+  "locale": "th-TH",
+  "emailBudgetAlertsEnabled": true,
+  "updatedAt": "2026-10-20T00:00:00Z"
+}
+```
+
+`PUT /settings` ใช้ fields เดียวกัน ยกเว้น `updatedAt` ซึ่ง backend กำหนดเอง; `theme` รับ `light`/`dark`, `currencyCode` เป็นรหัส ISO 4217 ตัวพิมพ์ใหญ่ 3 ตัว และ `locale` เป็น BCP 47 locale (2–10 ตัวอักษร/ขีด). `emailBudgetAlertsEnabled` เป็น preference เท่านั้น; email delivery ยังถูกเลื่อนไว้ตาม D28.
+
+### `UserProfileResponse` และ `PUT /auth/me`
+
+```json
+{
+  "id": 1001,
+  "email": "user@example.com",
+  "displayName": "ผู้ใช้",
+  "phoneNumber": null,
+  "birthDate": null,
+  "isEmailVerified": false
+}
+```
+
+Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (nullable `YYYY-MM-DD`). Email ใหม่ต้องไม่ซ้ำ; เมื่อเปลี่ยนอีเมล backend จะตั้ง `isEmailVerified=false`. การส่ง verification mail และการยืนยันอีเมลใหม่อยู่นอก Phase 5.5.
+
+### Financial data reset
+
+`POST /users/me/data-reset` รับ body ว่าง และ soft-delete เฉพาะข้อมูลของผู้ใช้ใน 9 ตารางที่กำหนด D5: Transactions, BankAccounts, CreditCards, Budgets, RecurringTransactions, InstallmentPlans, TransferGroups, CreditCardStatements, CreditCardStatementItems. User identity, UserSettings, หมวดหมู่/แท็ก/กฎ, Notifications, import history และ AuditLogs จะคงอยู่. การล้างทำงานเป็น transaction เดียว, คืน `{ "resetAt": "2026-10-20T00:00:00Z" }`, และ revoke refresh tokens ทุก session; access tokens ที่ออกไปแล้วจะหมดอายุตามปกติ (ไม่เกิน 60 นาที).
+
 ## 6. SignalR Events (section เปิด — ล็อกตอน Phase 6 เริ่ม, ตาม D11 แต่ 5ข)
 
 **สถานะ:** ยัง**ไม่ล็อก** — กำหนด event contract ลง section นี้ **ก่อน implement Phase 6** โดยใช้ข้อมูลจาก playbook (ขั้นที่ 4 ของ Phase 6) + ผ้งการชี้ของ ARCHITECTURE §6

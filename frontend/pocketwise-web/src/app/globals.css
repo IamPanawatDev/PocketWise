@@ -64,6 +64,26 @@
   --sidebar-ring: var(--pw-primary);
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+  --pw-canvas: #f4f5fa;
+  --pw-green: #16833b;
+  --pw-magenta: #b4238a;
+  --pw-expense: #c62828;
+  --pw-link: #0077a8;
+  --pw-surface-indigo: #ffffff;
+  --pw-surface-onyx: #e9ebf2;
+  --pw-surface-black: #ffffff;
+  --pw-input-surface: #ffffff;
+  --pw-input-border: #747b8d;
+  --pw-ink: #202333;
+  --pw-ink-dark: #111827;
+  --pw-muted: #e9ebf2;
+  --pw-hairline: #d7dae4;
+
+  --muted-foreground: rgb(32 35 51 / 70%);
+}
+
 @theme inline {
   --font-sans: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-heading: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;

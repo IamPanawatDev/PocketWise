@@ -72,7 +72,7 @@
 | 3 Identity | ✅ | `ApplicationUser : IdentityUser<long>`, JWT + Refresh Token, 5 `/api/v1/auth/*` endpoints ใช้งานได้, migration applied, build ผ่าน |
 | 4 Core Transactions | ✅ | 4.10 Gate ผ่านและ E2E ตรวจแล้ว; FR2.2 credit-card picker เชื่อมกับ CRUD ใน Phase 5 แล้ว |
 | 5 Budgets, Credit Cards & Reports | ✅ | Core implementation, frontend, build และ tests ผ่าน; FR5.2.2 delivery เลื่อนไปตาม D28 และข้อมูลสลิปรอ Phase 7 |
-| 5.5 Settings & Profile | ⬜ | UserSettings + โปรไฟล์ + ล้างข้อมูล (FR6.3) |
+| 5.5 Settings & Profile | ✅ | Gate ผ่าน: settings/profile/data-reset E2E กับ SQL Server จริง; ตรวจ persistence, soft-delete, คง user/settings และ revoke refresh token; Backend Release build 0 warnings/errors, 13 unit tests + 1 integration test ผ่าน; frontend lint/build ผ่าน |
 | 6 SignalR | ⬜ | ฝั่ง server ใช้ AddSignalR จาก shared framework |
 | 7 Imports | ⬜ | นำเข้าสลิป/ใบแจ้งยอดบัตร (S2) + CSV/OCR ย่อยท้าย phase |
 | 8 Hardening | ⬜ | Integration tests, security review, hosting, CI |
@@ -241,9 +241,9 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 **requirements ที่รองรับ:** FR6.3.1–FR6.3.6 (ตั้งค่าแอป + โปรไฟล์ + ล้างข้อมูล) — วางไว้หลัง Phase 5 เพราะ UserSettings พึ่งงบ/แท็ก/สกุลเงินที่ตั้งค่าได้
 
 1. UserSettings CRUD (Theme, CurrencyCode, Locale, EmailBudgetAlertsEnabled) — ผูก FR5.2.2 (email toggle)
-2. โปรไฟล์: เปลี่ยนเบอร์/อีเมล/วันเกิด (แตะ Users table — **เปลี่ยนอีเมลต้องรีเซ็ต `IsEmailVerified`** + อาจต้องยืนยันอีเมลใหม่ ❓)
-3. **ล้างข้อมูลเริ่มใหม่ (FR6.3.6):** soft delete ทุกตารางการเงินของ user นั้น + revoke refresh tokens ทุก session — ❓ ขอบเขตจริงของ "ล้าง" (ตารางไหนรวม/ไม่รวม) — ถามก่อนเขียน
-4. **Gate:** ตั้งค่า/แก้โปรไฟล์/ล้างข้อมูล ทำงานจริง end-to-end + สถานะ FR อัปเดต
+2. โปรไฟล์: เปลี่ยนเบอร์/อีเมล/วันเกิด (เปลี่ยนอีเมลต้องตั้ง `IsEmailVerified=false`; ยังไม่มี verification flow — D35)
+3. **ล้างข้อมูลเริ่มใหม่ (FR6.3.6):** soft-delete เฉพาะ 9 finance tables ตาม D5, คง identity/settings และข้อมูลตาม D35, revoke refresh tokens ทุก session
+4. **Gate:** settings/profile/reset ผ่าน E2E กับ SQL Server; ตรวจ persistence, soft-delete, การคง identity/settings และการ revoke refresh token — ผ่านแล้ว
 
 ---
 
@@ -388,13 +388,14 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D32 | Phase 5 Merchants ข้อมูล | **มี CRUD ให้เพิ่มเองได้ตอนนี้ แต่ไม่ seed ข้อมูล** — เหลือตารางว่าง รอ Phase 7 import/OCR มาเติม | เจ้าของโปรเจค | ✅ ล็อก |
 | D33 | Phase 5 จังหวะจัดหมวดอัตโนมัติ | **ทั้ง auto-apply ตอนสร้าง transaction (เฉพาะเมื่อ user ไม่ได้เลือก category) + endpoint แยก** สำหรับ query หมวดที่แนะนำ | เจ้าของโปรเจค | ✅ ล็อก |
 | D34 | Phase 5 Reports calendar | Weekly period เริ่มวันอาทิตย์; หน้า Reports เริ่มต้นแสดงเดือนปัจจุบัน; calendar dates ใช้ Asia/Bangkok และ API รับ UTC boundaries | เจ้าของโปรเจค | ✅ ล็อก |
+| D35 | Phase 5.5 profile, settings และ reset | Settings API จัดการ Theme/CurrencyCode/Locale/EmailBudgetAlertsEnabled; เปลี่ยนอีเมลตั้ง `IsEmailVerified=false` โดยยังไม่มี verification flow; reset soft-delete เฉพาะ 9 finance tables ตาม D5, คง identity/settings/categories/tags/rules/notifications/import history/audit logs และ revoke refresh tokens ทุก session | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
 - Phase 3: ~~relation ของ `Users` กับ `IdentityUser`, อายุ token จริง~~ ✅ ล็อกเป็น D15 (ชื่อ auth routes + envelope + versioning ✓ D11 — ดู API_SPECIFICATION §5)
 - Phase 4: ~~filter params ของ list endpoints~~ ✅ ล็อกเป็น D17; FE query/filter/sort และ E2E ตรวจแล้ว
 - Phase 5: ~~threshold semantics~~ ✅ D27, ~~chart lib~~ ✅ D29 (recharts), ~~recurring กลไก~~ ✅ D26 (HostedService), ~~email provider~~ ✅ D28 (เลื่อนไปทีหลัง), ~~จัดหมวดอัตโนมัติ~~ ✅ D31–D33, ~~Reports calendar~~ ✅ D34
-- Phase 5.5: ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม
+- Phase 5.5: ~~ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม~~ ✅ D35
 - Phase 6: hub event contract (สัญญาตาม D11-⑤ — ล็อกตอนเริ่ม phase, ชื่อ candidate อยู่ที่ API_SPECIFICATION §6), scale-out (เลื่อน Phase 8)
 - Phase 7: file storage, ข้อจำกัดไฟล์, OCR provider
 - Phase 8: hosting, backup policy, CI แบบไหน, monitoring

@@ -1,5 +1,6 @@
 using FluentValidation;
 using PocketWise.Api.Authentication;
+using PocketWise.Application.DTOs.Auth;
 using PocketWise.Application.DTOs.BankAccounts;
 using PocketWise.Application.DTOs.Budgets;
 using PocketWise.Application.DTOs.Categories;
@@ -9,6 +10,7 @@ using PocketWise.Application.DTOs.Merchants;
 using PocketWise.Application.DTOs.Tags;
 using PocketWise.Application.DTOs.RecurringTransactions;
 using PocketWise.Application.DTOs.Reports;
+using PocketWise.Application.DTOs.Settings;
 using PocketWise.Application.DTOs.Transactions;
 using PocketWise.Application.DTOs.Transfers;
 using PocketWise.Application.Features.Auth;
@@ -20,6 +22,7 @@ using PocketWise.Application.Features.CreditCards;
 using PocketWise.Application.Features.Merchants;
 using PocketWise.Application.Features.RecurringTransactions;
 using PocketWise.Application.Features.Reports;
+using PocketWise.Application.Features.Settings;
 using PocketWise.Application.Features.Tags;
 using PocketWise.Application.Features.Transactions;
 using PocketWise.Application.Features.Transfers;
@@ -36,6 +39,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
+        services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
 
         // Repositories
         services.AddScoped<ITransactionRepository, TransactionRepository>();
@@ -62,6 +66,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IMerchantService, MerchantService>();
         services.AddScoped<ICategoryRuleService, CategoryRuleService>();
+        services.AddScoped<IUserSettingsService, UserSettingsService>();
 
         // Validators
         services.AddScoped<IValidator<CreateTransactionRequest>, CreateTransactionValidator>();
@@ -83,6 +88,8 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IValidator<UpdateMerchantRequest>, UpdateMerchantValidator>();
         services.AddScoped<IValidator<CreateCategoryRuleRequest>, CreateCategoryRuleValidator>();
         services.AddScoped<IValidator<UpdateCategoryRuleRequest>, UpdateCategoryRuleValidator>();
+        services.AddScoped<IValidator<UpdateUserProfileRequest>, UpdateUserProfileValidator>();
+        services.AddScoped<IValidator<UpdateUserSettingsRequest>, UpdateUserSettingsValidator>();
 
         return services;
     }

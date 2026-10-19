@@ -103,10 +103,10 @@
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
-| 5.5.1 | UserSettings CRUD (Theme, CurrencyCode, Locale, EmailBudgetAlertsEnabled) | ⬜ | FR6.3.1–3, FR5.2.2 toggle |
-| 5.5.2 | โปรไฟล์: เปลี่ยนเบอร์/วันเกิด + อีเมล (รีเซ็ต IsEmailVerified — ❓ ยืนยันใหม่ไหม) | ⬜ | FR6.3.4 |
-| 5.5.3 | ล้างข้อมูลเริ่มใหม่ (soft delete ตารางการเงินของ user + revoke tokens — ❓ ขอบเขต) | ⬜ | FR6.3.6 |
-| 5.5.4 | Gate: ทำงานจริง end-to-end + FR สถานะอัปเดต | ⬜ | |
+| 5.5.1 | UserSettings CRUD (Theme, CurrencyCode, Locale, EmailBudgetAlertsEnabled) | ✅ | FR6.3.1–3 และ FR5.2.2 toggle implement ครบ; backend/frontend build ผ่าน |
+| 5.5.2 | โปรไฟล์: เปลี่ยนเบอร์/วันเกิด + อีเมล (รีเซ็ต IsEmailVerified) | ✅ | FR6.3.2–5; email เปลี่ยนแล้ว IsEmailVerified=false ตาม D35 |
+| 5.5.3 | ล้างข้อมูลเริ่มใหม่ (soft delete ตารางการเงินของ user + revoke tokens) | ✅ | FR6.3.6; scope 9 ตารางและ exclusions ตาม D35 |
+| 5.5.4 | Gate: ทำงานจริง end-to-end + FR สถานะอัปเดต | ✅ | E2E กับ SQL Server ผ่าน: settings/profile persistence, email verification reset, reset soft-delete และ revoke refresh token; identity/settings คงอยู่. Backend Release build 0 warnings/errors, 13 unit tests + 1 integration test ผ่าน; frontend lint/build ผ่าน |
 
 ## 8. Phase 6 — SignalR & Notifications 🔁
 

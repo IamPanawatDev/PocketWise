@@ -8,3 +8,38 @@ GET {{PocketWise.Api_HostAddress}}/swagger
 ### OpenAPI document
 GET {{PocketWise.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
+
+### Get current user settings
+GET {{PocketWise.Api_HostAddress}}/api/v1/settings
+Authorization: Bearer {{accessToken}}
+
+### Update current user settings
+PUT {{PocketWise.Api_HostAddress}}/api/v1/settings
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "theme": "dark",
+  "currencyCode": "THB",
+  "locale": "th-TH",
+  "emailBudgetAlertsEnabled": true
+}
+
+### Update current user profile
+PUT {{PocketWise.Api_HostAddress}}/api/v1/auth/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "displayName": "PocketWise User",
+  "phoneNumber": null,
+  "birthDate": null
+}
+
+### Reset current user's financial data (irreversible)
+POST {{PocketWise.Api_HostAddress}}/api/v1/users/me/data-reset
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{}

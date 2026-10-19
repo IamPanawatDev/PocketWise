@@ -19,7 +19,16 @@ export interface UserProfileResponse {
   id: number;
   email: string;
   displayName: string;
+  phoneNumber: string | null;
+  birthDate: string | null;
   isEmailVerified: boolean;
+}
+
+export interface UpdateUserProfileRequest {
+  email: string;
+  displayName: string;
+  phoneNumber: string | null;
+  birthDate: string | null;
 }
 
 export interface AuthResponse {
