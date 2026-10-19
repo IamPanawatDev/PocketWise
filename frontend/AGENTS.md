@@ -16,6 +16,10 @@
 
 3. **ห้ามติดตั้ง Library หรือ Package อื่นเพิ่มเติมจนกว่าจะได้รับคำสั่ง (Strict Dependency Policy)**
    - ห้ามรันคำสั่ง `npm install`, `yarn add`, `pnpm add` เพื่อเพิ่ม library อื่นๆ นอกเหนือจากที่มีอยู่เดิมโดยเด็ดขาด จนกว่าจะได้รับคำสั่งหรือการอนุญาตที่ชัดเจนจากผู้ใช้
+4. **เพิ่ม Frontend Tool/Package แล้วต้องอัปเดตกฎและคู่มือในงานเดียวกัน**
+   - หลังได้รับอนุมัติให้เพิ่ม npm dependency, CLI, build/lint/test/code-generation tool, framework integration หรือ SDK ให้แก้ `package.json` และ lock file ใน `frontend/pocketwise-web/` พร้อมอัปเดต Root `AGENTS.md`/`GEMINI.md` ตาม Master Rule #4
+   - บันทึกในกฎ frontend หรือเอกสาร Tech Stack/Playbook ว่าใช้ทำอะไร ควรติดตั้งเป็น dependency ประเภทใด/ตำแหน่งใด เวอร์ชันที่เลือก คำสั่งมาตรฐาน การตั้งค่าที่จำเป็น และแนวทางเรียกใช้จาก feature/page เพื่อไม่ให้เกิดวิธีใช้หลายแบบ
+   - หาก tool มี config หรือ code-generation convention ให้บันทึกวิธีตั้งค่า/รูปแบบ generated code และเอกสาร Design/API/schema ที่เกี่ยวข้อง; เมื่อถอดถอนหรือเลิกใช้ ให้อัปเดตรายการและลบคำแนะนำเก่าด้วย
 
 ---
 

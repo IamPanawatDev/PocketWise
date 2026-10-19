@@ -13,6 +13,8 @@ colors:
   surface-indigo: "#1e2353"
   surface-onyx: "#23272a"
   surface-black: "#000000"
+  input-surface: "#0a0d3a"
+  input-border: "#7d829a"
   ink: "#ffffff"
   ink-dark: "#000000"
   muted: "#333333"
@@ -136,6 +138,13 @@ components:
     typography: "{typography.link-sm}"
     rounded: "{rounded.xs}"
     padding: "{spacing.sm} {spacing.xxl}"
+  input:
+    backgroundColor: "{colors.input-surface}"
+    textColor: "{colors.ink}"
+    borderColor: "{colors.input-border}"
+    focusBorderColor: "{colors.primary}"
+    rounded: "{rounded.sm}"
+    padding: "{spacing.md}"
   hero:
     backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
@@ -468,7 +477,13 @@ Media is presented at soft-cornered rectangles (`{rounded.lg}`–`{rounded.xl}`)
 
 ### Inputs & Forms
 
-> Discord's marketing pages surface no standalone text inputs; forms route to the app. The kit-mirror `ex-*` form surfaces below model inputs against the brand's `{rounded.lg}` surfaces and `{colors.surface-indigo}` fills.
+> Discord's marketing pages surface no standalone text inputs; forms route to the app. PocketWise form controls follow the explicit input tokens and states below.
+
+PocketWise form controls use a recessed input surface so fields remain distinct inside raised-indigo cards:
+- Use `{colors.input-surface}` for text inputs, selects, and textareas; do not reuse the surrounding card's `{colors.surface-indigo}` fill.
+- Use `{colors.input-border}` for the default control outline and `{colors.primary}` for focus, with a visible focus ring. Keep entered text `{colors.ink}` and placeholders visibly muted.
+- Use `{rounded.sm}` (12px) corners and preserve the shared control sizing, padding, and state styles through the shared UI components. Do not add one-off field colors on individual pages.
+- Keep checkbox/radio controls semantically distinct; use `{colors.primary}` for their checked and focus states.
 
 ### Navigation
 

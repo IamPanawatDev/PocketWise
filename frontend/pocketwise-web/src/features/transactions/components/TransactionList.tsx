@@ -8,6 +8,8 @@ import { ApiError } from "@/lib/api-client";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { TransactionForm } from "./TransactionForm";
 
@@ -44,8 +46,8 @@ export function TransactionList() {
       <Card className="mb-4 flex flex-wrap items-end gap-3">
         <div>
           <label className="block text-sm text-[var(--pw-ink)]/70 mb-1">ค้นหา</label>
-          <input
-            className="rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] px-3 py-2 text-sm"
+          <Input
+            className="w-56 px-3 py-2 text-sm"
             placeholder="คำค้น..."
             value={filter.q ?? ""}
             onChange={(e) => handleFilterChange({ q: e.target.value || undefined })}
@@ -53,8 +55,8 @@ export function TransactionList() {
         </div>
         <div>
           <label className="block text-sm text-[var(--pw-ink)]/70 mb-1">ประเภท</label>
-          <select
-            className="rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] px-3 py-2 text-sm"
+          <Select
+            className="w-40 px-3 py-2 text-sm"
             value={filter.type ?? ""}
             onChange={(e) => handleFilterChange({ type: e.target.value || undefined })}
           >
@@ -62,7 +64,7 @@ export function TransactionList() {
             <option value="income">รายรับ</option>
             <option value="expense">รายจ่าย</option>
             <option value="transfer">โอน</option>
-          </select>
+          </Select>
         </div>
       </Card>
 

@@ -40,6 +40,10 @@ backend/
 5. **Swagger/OpenAPI ใช้เฉพาะ Development**:
    - ใช้ `Microsoft.AspNetCore.OpenApi` สร้างเอกสารที่ `/openapi/v1.json` และ NSwag Swagger UI ที่ `/swagger` โดยเปิดให้บริการเฉพาะ Development ตาม `Program.cs`
    - เมื่อแก้ API contract ให้ตรวจทั้ง OpenAPI JSON และ Swagger UI ให้ตรงกับ [`/docs/API_SPECIFICATION.md`](../docs/API_SPECIFICATION.md)
+6. **เพิ่ม Backend Tool/Package แล้วต้องอัปเดตกฎและคู่มือในงานเดียวกัน**
+   - หลังได้รับอนุมัติให้เพิ่ม NuGet dependency, .NET local/global tool, build/test/code-generation tool หรือ SDK ให้แก้ project/solution/tool manifest และ lock file ที่เกี่ยวข้อง พร้อมอัปเดต Root `AGENTS.md`/`GEMINI.md` ตาม Master Rule #4
+   - บันทึกในกฎ backend หรือเอกสาร Tech Stack/Playbook ว่าใช้ทำอะไร ติดตั้งหรือประกาศไว้ที่ใด เวอร์ชันที่เลือก คำสั่ง restore/run มาตรฐาน และข้อกำหนดการใช้ใน layer หรือ workflow ใด
+   - หาก tool สร้างหรือเปลี่ยน source code, migration, API/schema หรือขั้นตอน deploy ให้ปรับเอกสาร Source of Truth และคำสั่งที่เกี่ยวข้องพร้อมกัน; ถอดถอนแล้วให้เอาคำแนะนำที่เลิกใช้และรายการ package ออกจากเอกสารด้วย
 
 ---
 

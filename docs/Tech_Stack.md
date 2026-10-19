@@ -103,6 +103,11 @@ starts the backend with the `http` launch profile so these URLs stay consistent.
 Current package versions are `Microsoft.AspNetCore.OpenApi` 10.0.13 and
 `NSwag.AspNetCore` 14.7.1.
 
+For the frontend CSS pipeline, Tailwind CSS v4 is compiled with
+`@tailwindcss/postcss`; its plugin is configured in
+`frontend/pocketwise-web/postcss.config.mjs`. Keep CSS processing and Tailwind
+configuration changes aligned with this PostCSS integration.
+
 Official resources:
 - OpenAPI Specification: https://spec.openapis.org/oas/latest.html
 - ASP.NET Core Web API documentation: https://learn.microsoft.com/aspnet/core/web-api/

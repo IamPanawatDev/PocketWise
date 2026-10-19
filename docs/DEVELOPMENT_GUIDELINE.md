@@ -298,7 +298,7 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 **Frontend (`frontend/pocketwise-web/package.json`):**
 
-- `next` 16.4.2, `react`/`react-dom` 19.3.0, `typescript` ^5, `tailwindcss` ^4 (+ `@tailwindcss/turbopack`), `eslint` ^9 (+ `eslint-config-next` 16.4.2)
+- `next` 16.4.2, `react`/`react-dom` 19.3.0, `typescript` ^5, `tailwindcss` ^4 + `@tailwindcss/postcss` 4.3.3 (configured in `postcss.config.mjs`), `eslint` ^9 (+ `eslint-config-next` 16.4.2)
 - เพิ่มแล้ว (Phase 4 FE, อนุมัติแล้ว): `zod`, `react-hook-form`, `@tanstack/react-query`, `lucide-react`, `sonner`, `@radix-ui/react-alert-dialog`
 - ยังไม่มี: shadcn/ui, Radix (อื่น), `@microsoft/signalr` — ทั้งหมดต้องผ่าน 📦
 
