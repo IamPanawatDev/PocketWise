@@ -300,7 +300,9 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 - `next` 16.4.2, `react`/`react-dom` 19.3.0, `typescript` ^5, `tailwindcss` ^4 + `@tailwindcss/postcss` 4.3.3 (configured in `postcss.config.mjs`), `eslint` ^9 (+ `eslint-config-next` 16.4.2)
 - เพิ่มแล้ว (Phase 4 FE, อนุมัติแล้ว): `zod`, `react-hook-form`, `@tanstack/react-query`, `lucide-react`, `sonner`, `@radix-ui/react-alert-dialog`
-- ยังไม่มี: shadcn/ui, Radix (อื่น), `@microsoft/signalr` — ทั้งหมดต้องผ่าน 📦
+- เพิ่มแล้ว (UI components): `shadcn` CLI ^4.22.1 (devDependency), `radix-ui` ^1.8.1, `class-variance-authority` ^0.7.1, `tw-animate-css` ^1.4.0; ใช้ source components ที่ `src/components/ui/` และ config ที่ `components.json`
+- shadcn primitives ที่มี: Input, Select, Button, AlertDialog; ใช้ `npx shadcn add <component>` จาก `frontend/pocketwise-web/` เพื่อเพิ่ม source primitive แล้วปรับ theme ให้ตรง `DESIGN.md` ก่อนใช้
+- `cn` package ที่ shadcn preset เคยเพิ่มถูกถอดออก เพราะโปรเจกต์ใช้ local helper `cn` จาก `src/lib/utils.ts`; ยังไม่มี `@microsoft/signalr` และต้องขออนุมัติก่อนติดตั้ง
 
 ---
 
@@ -321,6 +323,9 @@ dotnet ef migrations script --project src/PocketWise.Infrastructure --startup-pr
 npm run dev          # dev server
 npm run lint         # ESLint
 npm run build        # Next build (มี type-check ด้วย)
+
+# shadcn/ui (จาก frontend/pocketwise-web/)
+npx shadcn add <component>  # เพิ่ม source primitive; ตรวจ theme/aliases ก่อน commit
 
 # Secrets (จาก backend/ — แนะนำเก็บ connection string ที่มี password ที่นี่)
 dotnet user-secrets init --project src/PocketWise.Api

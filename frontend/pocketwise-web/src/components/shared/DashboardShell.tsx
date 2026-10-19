@@ -1,62 +1,206 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLogout } from "@/features/auth/hooks/useAuthMutations";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  ArrowLeftFromLine,
+  ArrowRightFromLine,
+  ArrowRightLeft,
+  ChartNoAxesCombined,
+  LoaderCircle,
+  LogOut,
+  Menu,
+  Tags,
+  WalletCards,
+  X,
+} from "lucide-react";
 
 const nav = [
-  { href: "/transactions", label: "รายการ" },
-  { href: "/categories", label: "หมวดหมู่" },
-  { href: "/tags", label: "แท็ก" },
-  { href: "/bank-accounts", label: "บัญชี" },
-  { href: "/transfers", label: "โอนเงิน" },
+  { href: "/transactions", label: "รายการ", icon: ChartNoAxesCombined },
+  { href: "/categories", label: "หมวดหมู่", icon: Tags },
+  { href: "/tags", label: "แท็ก", icon: Tags },
+  { href: "/bank-accounts", label: "บัญชี", icon: WalletCards },
+  { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const logout = useLogout();
   const { data: user } = useCurrentUser();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMobileOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isMobileOpen]);
+
+  const toggleNavigation = () => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      setIsCollapsed((collapsed) => !collapsed);
+      return;
+    }
+    setIsMobileOpen((open) => !open);
+  };
+
+  const closeNavigation = () => setIsMobileOpen(false);
+  const iconOnly = isCollapsed;
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-60 shrink-0 border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-4">
-        <div className="mb-6 px-2 text-lg font-bold">PocketWise</div>
-        <nav className="space-y-1">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "block rounded-[var(--pw-rounded-sm)] px-3 py-2 text-sm transition",
-                pathname.startsWith(item.href)
-                  ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)]"
-                  : "text-[var(--pw-ink)]/80 hover:bg-[var(--pw-surface-indigo)]",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
+    <div className="min-h-dvh">
+      {isMobileOpen && (
+        <button
+          type="button"
+          aria-label="ปิดเมนู"
+          className="fixed inset-0 z-40 cursor-pointer bg-black/60 md:hidden"
+          onClick={closeNavigation}
+        />
+      )}
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col overflow-y-auto border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-3 transition-[width,transform] duration-200 md:p-4",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          isCollapsed ? "md:w-20" : "md:w-60",
+        )}
+      >
+        <div className="mb-5 flex items-start gap-2">
+          <div className={cn("min-w-0 flex-1", iconOnly && "md:hidden")}>
+            <div className="flex min-w-0 items-center gap-2 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)] px-3 py-2 text-base font-bold text-[var(--pw-on-primary)]">
+              <span
+                role="img"
+                aria-label="PocketWise money icon"
+                className="size-8 shrink-0 rounded-lg bg-white bg-contain bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: "url(https://cdn-icons-png.flaticon.com/512/10384/10384161.png)",
+                }}
+              />
+              <span className="truncate">PocketWise</span>
+            </div>
+            <p className="mt-2 break-words rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] px-3 py-2 text-sm text-[var(--pw-link)]">
+              {user?.displayName
+                ? /[\u0E00-\u0E7F]/u.test(user.displayName)
+                  ? `สวัสดี คุณ ${user.displayName}`
+                  : `Welcome ${user.displayName}`
+                : "..."}
+            </p>
+          </div>
+          <div
+            role="img"
+            aria-label="PocketWise money icon"
+            className={cn("hidden size-10 shrink-0 rounded-xl bg-white bg-contain bg-center bg-no-repeat", iconOnly && "md:block")}
+            style={{
+              backgroundImage: "url(https://cdn-icons-png.flaticon.com/512/10384/10384161.png)",
+            }}
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="shrink-0 md:hidden"
+            aria-label="ปิดเมนู"
+            onClick={closeNavigation}
+          >
+            <X />
+          </Button>
+        </div>
+
+        <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
+          {nav.map((item) => {
+            const Icon = item.icon;
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                title={iconOnly ? item.label : undefined}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-11 items-center gap-3 rounded-[var(--pw-rounded-sm)] px-3 py-2 text-sm transition",
+                  iconOnly && "md:justify-center md:px-0",
+                  active
+                    ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)]"
+                    : "text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)] hover:text-[var(--pw-ink)]",
+                )}
+                onClick={closeNavigation}
+              >
+                <Icon className="size-5 shrink-0" />
+                <span className={cn("truncate", iconOnly && "md:hidden")}>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="mt-8 border-t border-[var(--pw-hairline)] pt-4">
-          <p className="mb-2 px-2 text-sm text-[var(--pw-ink)]/70">
-            {user?.displayName ?? "..."}
-          </p>
+        <a
+          href="https://www.flaticon.com/free-icon/money_10384161?term=money&related_id=10384161"
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            "mt-2 px-3 text-xs text-[var(--pw-ink)]/50 underline-offset-2 hover:underline",
+            iconOnly && "md:hidden",
+          )}
+        >
+          Icon by Flaticon
+        </a>
+
+        <div className="mt-auto border-t border-[var(--pw-hairline)] pt-3">
+          <div className="hidden md:block">
+            <Button
+              type="button"
+              size={iconOnly ? "icon" : "default"}
+              variant="ghost"
+              className="w-full"
+              aria-label="ย่อ/ขยายเมนู"
+              title={iconOnly ? "ขยายเมนู" : "ย่อเมนู"}
+              onClick={toggleNavigation}
+            >
+              {iconOnly
+                ? <ArrowRightFromLine />
+                : <ArrowLeftFromLine />}
+              <span className={cn(iconOnly && "md:hidden")}>ย่อเมนู</span>
+            </Button>
+          </div>
           <Button
-            variant="ghost"
-            className="w-full"
+            variant="destructive"
+            className={cn("mt-2 w-full", iconOnly && "md:px-0")}
+            size={iconOnly ? "icon" : "default"}
+            aria-label="ออกจากระบบ"
+            title={iconOnly ? "ออกจากระบบ" : undefined}
             onClick={() => logout.mutate()}
             disabled={logout.isPending}
           >
-            ออกจากระบบ
+            {logout.isPending
+              ? <LoaderCircle className="animate-spin" />
+              : <LogOut />}
+            <span className={cn(iconOnly && "md:hidden")}>
+              {logout.isPending ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}
+            </span>
           </Button>
         </div>
       </aside>
 
-      <main className="flex-1 p-6">{children}</main>
+      <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-200", isCollapsed ? "md:ml-20" : "md:ml-60")}>
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/95 px-3 backdrop-blur md:hidden">
+          <Button type="button" size="icon" variant="ghost" aria-label="เปิดเมนู" onClick={toggleNavigation}>
+            <Menu />
+          </Button>
+          <span className="truncate text-base font-bold text-[var(--pw-on-primary)]">PocketWise</span>
+        </header>
+        <div className="flex-1 p-3 pb-8 sm:p-6">{children}</div>
+        <footer className="border-t border-[var(--pw-hairline)] px-3 py-4 text-center text-xs text-[var(--pw-ink)]/55 sm:px-6">
+          © 2026 PocketWise. All rights reserved.
+        </footer>
+      </main>
     </div>
   );
 }

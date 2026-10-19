@@ -8,9 +8,9 @@ import { ApiError } from "@/lib/api-client";
 import { zodResolver } from "@/lib/zod-resolver";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { FieldError } from "@/components/ui/field-error";
+import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
+import { LoaderCircle, UserRoundPlus } from "lucide-react";
 
 export function RegisterForm() {
   const registerMutation = useRegister();
@@ -23,7 +23,11 @@ export function RegisterForm() {
   });
 
   const onSubmit = (values: RegisterFormValues) =>
-    registerMutation.mutate(values);
+    registerMutation.mutate({
+      email: values.email,
+      password: values.password,
+      displayName: values.displayName,
+    });
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
@@ -33,24 +37,22 @@ export function RegisterForm() {
           เริ่มบันทึกรายรับรายจ่ายกับ PocketWise
         </p>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="displayName">ชื่อที่แสดง</Label>
+        <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField label="ชื่อที่แสดง" htmlFor="displayName" error={errors.displayName?.message}>
             <Input id="displayName" {...register("displayName")} />
-            <FieldError message={errors.displayName?.message} />
-          </div>
+          </FormField>
 
-          <div>
-            <Label htmlFor="email">อีเมล</Label>
+          <FormField label="อีเมล" htmlFor="email" error={errors.email?.message}>
             <Input id="email" type="email" {...register("email")} />
-            <FieldError message={errors.email?.message} />
-          </div>
+          </FormField>
 
-          <div>
-            <Label htmlFor="password">รหัสผ่าน</Label>
+          <FormField label="รหัสผ่าน" htmlFor="password" error={errors.password?.message}>
             <Input id="password" type="password" {...register("password")} />
-            <FieldError message={errors.password?.message} />
-          </div>
+          </FormField>
+
+          <FormField label="ยืนยันรหัสผ่าน" htmlFor="confirmPassword" error={errors.confirmPassword?.message}>
+            <Input id="confirmPassword" type="password" {...register("confirmPassword")} />
+          </FormField>
 
           {registerMutation.isError && (
             <p className="text-sm text-[var(--pw-magenta)]">
@@ -65,6 +67,9 @@ export function RegisterForm() {
             className="w-full"
             disabled={registerMutation.isPending}
           >
+            {registerMutation.isPending
+              ? <LoaderCircle className="animate-spin" />
+              : <UserRoundPlus />}
             {registerMutation.isPending ? "กำลังสมัคร..." : "สมัครสมาชิก"}
           </Button>
         </form>

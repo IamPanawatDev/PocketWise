@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { LoaderCircle, ShieldCheck, X } from "lucide-react";
 
 export interface ConfirmDialogProps {
   trigger: React.ReactNode;
@@ -44,8 +45,12 @@ export function ConfirmDialog({
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel>
+            <X />
+            {cancelLabel}
+          </AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} disabled={pending}>
+            {pending ? <LoaderCircle className="animate-spin" /> : <ShieldCheck />}
             {pending ? "กำลังดำเนินการ..." : confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

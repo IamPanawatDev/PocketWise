@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { transactionSchema, type TransactionFormValues } from "@/schemas/transaction.schema";
 import { zodResolver } from "@/lib/zod-resolver";
@@ -11,12 +11,24 @@ import { useTags } from "@/features/tags/hooks/useTags";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { DateTimeInput } from "@/components/ui/date-input";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { FieldError } from "@/components/ui/field-error";
 import { Card } from "@/components/ui/card";
-import { toLocalDateTimeInputValue } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  cn,
+  getReadableTextColor,
+  thailandDateTimeInputToUtcIso,
+  toThailandDateTimeInputValue,
+} from "@/lib/utils";
+import { LoaderCircle, Plus, Save, X } from "lucide-react";
 
 export function TransactionForm({
   onClose,
@@ -47,7 +59,7 @@ export function TransactionForm({
       transactionType: (editing?.transactionType as TransactionFormValues["transactionType"]) ?? "expense",
       amount: editing?.amount ?? 0,
       currencyCode: editing?.currencyCode ?? "THB",
-      transactionDate: editing ? toLocalDateTimeInputValue(editing.transactionDate) : "",
+      transactionDate: editing ? toThailandDateTimeInputValue(editing.transactionDate) : "",
       description: editing?.description ?? "",
       categoryId: editing?.categoryId ?? null,
       bankAccountId: editing?.bankAccountId ?? null,
@@ -62,6 +74,7 @@ export function TransactionForm({
     handleSubmit,
     control,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -70,9 +83,19 @@ export function TransactionForm({
 
   useEffect(() => {
     if (!editing) {
-      setValue("transactionDate", toLocalDateTimeInputValue(new Date().toISOString()));
+      setValue("transactionDate", toThailandDateTimeInputValue(new Date()));
     }
   }, [editing, setValue]);
+
+  useEffect(() => {
+    if (
+      !editing &&
+      bankAccounts?.length === 1 &&
+      getValues("bankAccountId") == null
+    ) {
+      setValue("bankAccountId", bankAccounts[0].bankAccountId);
+    }
+  }, [bankAccounts, editing, getValues, setValue]);
 
   const selectedTagIds = useWatch({ control, name: "tagIds" });
 
@@ -82,7 +105,7 @@ export function TransactionForm({
       categoryId: values.categoryId ?? null,
       bankAccountId: values.bankAccountId ?? null,
       creditCardId: values.creditCardId ?? null,
-      transactionDate: new Date(values.transactionDate).toISOString(),
+      transactionDate: thailandDateTimeInputToUtcIso(values.transactionDate),
     };
 
     if (editing) {
@@ -102,68 +125,120 @@ export function TransactionForm({
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 p-4 sm:p-6">
       <h2 className="mb-4 text-lg font-bold">
         {editing ? "แก้ไขรายการ" : "เพิ่มรายการ"}
       </h2>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label>ประเภท</Label>
-            <Select {...register("transactionType")}>
-              <option value="expense">รายจ่าย</option>
-              <option value="income">รายรับ</option>
-              <option value="transfer">โอน</option>
-            </Select>
-            <FieldError message={errors.transactionType?.message} />
-          </div>
+          <FormField label="ประเภท" htmlFor="transaction-type" error={errors.transactionType?.message}>
+            <Controller
+              control={control}
+              name="transactionType"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="transaction-type"><SelectValue placeholder="เลือกประเภท" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="expense">รายจ่าย</SelectItem>
+                    <SelectItem value="income">รายรับ</SelectItem>
+                    <SelectItem value="transfer">โอน</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </FormField>
 
-          <div>
-            <Label>จำนวนเงิน</Label>
-            <Input type="number" step="0.01" {...register("amount")} />
-            <FieldError message={errors.amount?.message} />
-          </div>
+          <FormField label="จำนวนเงิน" htmlFor="transaction-amount" error={errors.amount?.message}>
+            <Input id="transaction-amount" type="number" step="0.01" {...register("amount")} />
+          </FormField>
 
-          <div>
-            <Label>วันที่</Label>
-            <Input type="datetime-local" {...register("transactionDate")} />
-            <FieldError message={errors.transactionDate?.message} />
-          </div>
+          <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)" htmlFor="transaction-date" error={errors.transactionDate?.message}>
+            <Controller
+              control={control}
+              name="transactionDate"
+              render={({ field }) => (
+                <DateTimeInput
+                  id="transaction-date"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+          </FormField>
 
-          <div>
-            <Label>หมวดหมู่</Label>
-            <Select {...register("categoryId", { setValueAs: (v) => (v ? Number(v) : null) })}>
-              <option value="">— ไม่ระบุ —</option>
-              {categories?.map((c) => (
-                <option key={c.categoryId} value={c.categoryId}>
-                  {c.categoryName}
-                </option>
-              ))}
-            </Select>
-          </div>
+          <FormField label="หมวดหมู่" htmlFor="transaction-category">
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field }) => (
+                <Select
+                  value={field.value == null ? "none" : String(field.value)}
+                  onValueChange={(value) =>
+                    field.onChange(value === "none" ? null : Number(value))
+                  }
+                >
+                  <SelectTrigger id="transaction-category"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                    {categories?.map((category) => (
+                      <SelectItem key={category.categoryId} value={String(category.categoryId)}>
+                        {category.categoryName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </FormField>
 
-          <div>
-            <Label>บัญชี</Label>
-            <Select {...register("bankAccountId", { setValueAs: (v) => (v ? Number(v) : null) })}>
-              <option value="">— ไม่ระบุ —</option>
-              {bankAccounts?.map((a) => (
-                <option key={a.bankAccountId} value={a.bankAccountId}>
-                  {a.accountName}
-                </option>
-              ))}
-            </Select>
-          </div>
+          <FormField label="บัญชี" htmlFor="transaction-account">
+            <Controller
+              control={control}
+              name="bankAccountId"
+              render={({ field }) => (
+                <Select
+                  value={field.value == null ? "none" : String(field.value)}
+                  onValueChange={(value) =>
+                    field.onChange(value === "none" ? null : Number(value))
+                  }
+                >
+                  <SelectTrigger id="transaction-account"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                    {bankAccounts?.map((account) => (
+                      <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
+                        {account.accountName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </FormField>
 
-          <div>
-            <Label>แท็ก</Label>
+          <FormField label="แท็ก" error={errors.tagIds?.message}>
             <div className="flex flex-wrap gap-2">
               {tags?.map((t) => {
                 const checked = selectedTagIds?.includes(t.tagId) ?? false;
+                const color = t.color ?? "#ec48bd";
                 return (
-                  <label key={t.tagId} className="flex items-center gap-1 text-sm">
+                  <label
+                    key={t.tagId}
+                    className={cn(
+                      "inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-[var(--pw-rounded-pill)] border border-[var(--pw-ink)]/20 px-3 py-1.5 text-sm transition-opacity hover:opacity-90",
+                      checked &&
+                        "ring-2 ring-[var(--pw-link)] ring-offset-2 ring-offset-[var(--pw-surface-indigo)]",
+                    )}
+                    style={{
+                      backgroundColor: color,
+                      color: getReadableTextColor(color),
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={checked}
+                      aria-label={`เลือกแท็ก ${t.tagName}`}
                       onChange={(e) => {
                         const current = selectedTagIds ?? [];
                         const next = e.target.checked
@@ -172,26 +247,27 @@ export function TransactionForm({
                         setValue("tagIds", next);
                       }}
                     />
-                    {t.tagName}
+                    <span>#{t.tagName}</span>
                   </label>
                 );
               })}
             </div>
-            <FieldError message={errors.tagIds?.message} />
-          </div>
+          </FormField>
         </div>
 
-        <div>
-          <Label>รายละเอียด</Label>
-          <Input {...register("description")} />
-          <FieldError message={errors.description?.message} />
-        </div>
+        <FormField label="รายละเอียด" htmlFor="transaction-description" error={errors.description?.message}>
+          <Input id="transaction-description" {...register("description")} />
+        </FormField>
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={create.isPending || update.isPending}>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending || update.isPending}>
+            {create.isPending || update.isPending
+              ? <LoaderCircle className="animate-spin" />
+              : editing ? <Save /> : <Plus />}
             {editing ? "บันทึก" : "เพิ่มรายการ"}
           </Button>
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={onClose}>
+            <X />
             ยกเลิก
           </Button>
         </div>

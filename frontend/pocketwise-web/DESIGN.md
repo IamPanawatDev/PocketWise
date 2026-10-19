@@ -8,6 +8,7 @@ colors:
   on-primary: "#ffffff"
   green: "#35ed7e"
   magenta: "#ec48bd"
+  expense: "#ff4d4f"
   link: "#00b0f4"
   canvas: "#0a0d3a"
   surface-indigo: "#1e2353"
@@ -313,6 +314,7 @@ Geometry is soft and generous. Everyday controls round at `{rounded.sm}` (12px) 
 - **Electric Green** (`{colors.green}` — #35ed7e): Reserved for the highest-intent CTA ("get started" / "download"), always paired with `{colors.ink-dark}` text.
 - **Vibrant Magenta** (`{colors.magenta}` — #ec48bd): The saturated pink that fills gradient feature panels, step cards, and badges — the playful counterweight to the cool indigo.
 - **Link Cyan** (`{colors.link}` — #00b0f4): Inline text-link colour on dark surfaces.
+- **Expense Red** (`{colors.expense}` — #ff4d4f): Semantic transaction amount colour for expenses; income uses green and transfers use link cyan. This financial-status exception does not add a brand accent.
 
 ### Surface
 - **Indigo Canvas** (`{colors.canvas}` — #0a0d3a): The deep-indigo page base, washed by the animated brand-gradient mesh.
@@ -389,6 +391,15 @@ Sections breathe through large vertical gaps of indigo, then collide with satura
 
 #### Collapsing Strategy
 The dark top nav (logo · links · Login · Download CTA) collapses to logo + hamburger below 768px. Two-column feature rows stack media-over-text; gradient and dark cards span full width. The nitro pricing table becomes horizontally scrollable; the trending-games ranked list keeps its row layout but drops secondary columns.
+
+#### PocketWise App Layout
+- Design the authenticated app mobile-first. Keep the sidebar fixed to the viewport (`100dvh`); use a hamburger-triggered drawer with a visible close control on mobile, and a collapsible fixed sidebar on desktop.
+- Put long-form content in the page/main scroll area rather than letting the sidebar grow with the document. Keep logout anchored at the bottom of the sidebar and accessible while the page scrolls.
+- Keep the authenticated app footer in `src/components/shared/DashboardShell.tsx`, after the page content; display `© 2026 PocketWise. All rights reserved.` and do not show it on Login/Register.
+- Use full-width single-column form controls and touch-friendly actions on phones. Prefer card/list rows instead of wide data tables below 768px; use a horizontally scrollable table only where a table is essential.
+- Keep content containers `min-width: 0` and allow long labels/values to wrap or truncate so they do not create horizontal page overflow.
+- Set the site icon through Next.js metadata. For the PocketWise money icon sourced from Flaticon, retain an attribution link to the source page.
+- Protect authenticated app routes in `src/proxy.ts` using the httpOnly access/refresh cookies; redirect requests without either session cookie to `/login` before rendering. API authorization remains authoritative.
 
 #### Image Behavior
 Product mockups and 3D character art sit inside rounded media frames (`{rounded.lg}`–`{rounded.xl}`) or bleed past card edges as decorative props. Media scales fluidly within its container and keeps its corner radius at every width.
@@ -485,6 +496,23 @@ PocketWise form controls use a recessed input surface so fields remain distinct 
 - Use `{rounded.sm}` (12px) corners and preserve the shared control sizing, padding, and state styles through the shared UI components. Do not add one-off field colors on individual pages.
 - Keep checkbox/radio controls semantically distinct; use `{colors.primary}` for their checked and focus states.
 
+### PocketWise UI implementation rules
+
+- Use the installed shadcn primitives in `src/components/ui/`: `Select` for dropdowns, `Input` for text/color, and `Calendar` from `src/components/ui/calendar.tsx` for date selection. Do not use native `<select>` controls or native browser date pickers in feature pages.
+- For date and date-time fields, use `DateInput` or `DateTimeInput` from `src/components/ui/date-input.tsx`; these use the themed shadcn Calendar/Popover UI and standardize Gregorian year display. Date-time controls use the shared shadcn `Select`-based time picker in `DateTimeInput`; do not use native `input[type=time]`.
+- Keep time-picker controls legible on the dark input surface with the shared high-contrast clock icon and `--pw-*` theme tokens.
+- The calendar is powered by the installed `react-day-picker` runtime dependency; keep its styles mapped to PocketWise tokens and use `Intl` Gregorian formatters rather than adding a date library.
+- Give Select triggers an explicit fixed width from the component or its layout container; dropdown content must match the trigger width and truncate long labels rather than resize based on option text.
+- Use `src/components/ui/form-field.tsx` (`FormField`) for labeled controls and validation feedback across auth pages, feature forms, and filters; it composes the shared `Label` and `FieldError`.
+- Keep shadcn component styles mapped to PocketWise `--pw-*` tokens in `src/app/globals.css` and the shared primitives. Do not leave generated preset colors, typography, radius, or surfaces in the UI.
+- Radix Select items cannot use an empty value; provide explicit options such as “ทั้งหมด” (`all`) or “ไม่ระบุ” (`none`) when a user needs to clear a selection.
+- Interpret user-entered dates and times as Gregorian year values in `Asia/Bangkok`. Validate the calendar date and wall-clock time before submission, rejecting values matching a modern Thai Buddhist year; convert valid values (including Thai day boundaries for filters) to UTC ISO before sending them to the API, and format UTC API values in `th-TH` with `calendar: "gregory"` and `timeZone: "Asia/Bangkok"` for display (Gregorian year, Thai local time UTC+7). Keep backend/API storage contracts in UTC.
+- Default `/transactions` date filters to the first day of the current Thai-local month through today; convert both calendar boundaries to UTC for the API while presenting Gregorian calendar dates.
+- Use the shared `Button` and a relevant `lucide-react` icon on action buttons; choose a colored variant by intent, preserve pointer/disabled states, and provide accessible labels for icon-only buttons.
+- Use a color picker for tag colors; never require users to know or type a HEX code. Maintain readable text contrast on the selected tag color.
+- In transaction forms, display every selectable tag as a badge using that tag's API color; use a contrasting text color and a visible selection ring.
+- Install additional shadcn source primitives from `frontend/pocketwise-web/` with `npx shadcn add <component>`, then review and theme the generated source before using it.
+
 ### Navigation
 
 **`nav-bar`** — dark top navigation
@@ -571,3 +599,4 @@ PocketWise form controls use a recessed input surface so fields remain distinct 
 - Don't square off media or cards; the soft `{rounded.xl}`+ geometry is core to the playful tone.
 - Don't lean on drop shadows for depth; depth comes from colour, gradient, and overlapping art.
 - Don't introduce a fourth loud accent — Blurple, green, and magenta are the full chord.
+- Don't use brand accents in place of financial meaning: expense amounts are red, income amounts green, and transfer amounts cyan.

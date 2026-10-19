@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "sonner";
 import { tagSchema, type TagFormValues } from "@/schemas/tag.schema";
@@ -13,12 +13,13 @@ import {
   useUpdateTag,
 } from "@/features/tags/hooks/useTags";
 import { ApiError } from "@/lib/api-client";
+import { getReadableTextColor } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { FieldError } from "@/components/ui/field-error";
+import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 
 export function TagsView() {
   const { data, isLoading } = useTags();
@@ -31,12 +32,13 @@ export function TagsView() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm<TagFormValues>({
     resolver: zodResolver(tagSchema),
-    defaultValues: { color: null },
+    defaultValues: { color: "#5865f2" },
   });
 
   const onSubmit = (values: TagFormValues) => {
@@ -76,25 +78,47 @@ export function TagsView() {
     <div>
       <h1 className="mb-6 text-2xl font-bold">แท็ก</h1>
 
-      <Card className="mb-6">
+      <Card className="mb-6 p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-bold">{editing ? "แก้ไขแท็ก" : "เพิ่มแท็ก"}</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label>ชื่อแท็ก</Label>
-            <Input {...register("tagName")} />
-            <FieldError message={errors.tagName?.message} />
-          </div>
-          <div>
-            <Label>สี (hex)</Label>
-            <Input placeholder="#C7DCA7" {...register("color")} />
-          </div>
+          <FormField label="ชื่อแท็ก" htmlFor="tag-name" error={errors.tagName?.message}>
+            <Input id="tag-name" {...register("tagName")} />
+          </FormField>
+          <FormField label="สีของแท็ก" htmlFor="tag-color">
+            <div className="flex items-center gap-3">
+              <Controller
+                control={control}
+                name="color"
+                render={({ field }) => (
+                  <Input
+                    id="tag-color"
+                    type="color"
+                    className="h-12 w-20 cursor-pointer p-1"
+                    aria-label="เลือกสีแท็ก"
+                    value={field.value ?? "#5865f2"}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                )}
+              />
+              <span className="text-sm text-[var(--pw-ink)]/70">
+                เลือกสีจากตัวเลือกสี
+              </span>
+            </div>
+          </FormField>
 
-          <div className="flex gap-3">
-            <Button type="submit" disabled={create.isPending || update.isPending}>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending || update.isPending}>
+              {create.isPending || update.isPending
+                ? <LoaderCircle className="animate-spin" />
+                : editing ? <Save /> : <Plus />}
               {editing ? "บันทึก" : "เพิ่ม"}
             </Button>
             {editing && (
-              <Button type="button" variant="ghost" onClick={() => { setEditing(null); reset(); }}>
+              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => { setEditing(null); reset(); }}>
+                <X />
                 ยกเลิก
               </Button>
             )}
@@ -105,35 +129,49 @@ export function TagsView() {
       {isLoading ? (
         <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {data?.map((t) => (
             <span
               key={t.tagId}
-              className="inline-flex items-center gap-2 rounded-[var(--pw-rounded-pill)] px-4 py-2 text-sm"
-              style={{ backgroundColor: t.color ?? "var(--pw-magenta)" }}
+              className="flex min-w-0 flex-wrap items-center gap-2 rounded-[var(--pw-rounded-lg)] p-3 text-sm"
+              style={{
+                backgroundColor: t.color ?? "var(--pw-magenta)",
+                color: getReadableTextColor(t.color ?? "#ec48bd"),
+              }}
             >
-              #{t.tagName}
-              <button className="text-[var(--pw-link)]" onClick={() => { setEditing({ id: t.tagId, name: t.tagName }); reset({ tagName: t.tagName, color: t.color }); }}>
-                แก้ไข
-              </button>
-              <button
+              <span className="min-w-0 flex-1 break-words">#{t.tagName}</span>
+              <Button
                 type="button"
-                className="text-[var(--pw-ink)] disabled:opacity-40"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setEditing({ id: t.tagId, name: t.tagName });
+                  reset({ tagName: t.tagName, color: t.color ?? "#5865f2" });
+                }}
+              >
+                <Pencil />
+                แก้ไข
+              </Button>
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
                 aria-label={`เลื่อน ${t.tagName} ขึ้น`}
                 disabled={reorder.isPending || data?.findIndex((item) => item.tagId === t.tagId) === 0}
                 onClick={() => moveTag(t.tagId, -1)}
               >
-                ↑
-              </button>
-              <button
+                <ArrowUp />
+              </Button>
+              <Button
                 type="button"
-                className="text-[var(--pw-ink)] disabled:opacity-40"
+                size="icon-sm"
+                variant="ghost"
                 aria-label={`เลื่อน ${t.tagName} ลง`}
                 disabled={reorder.isPending || data?.findIndex((item) => item.tagId === t.tagId) === (data?.length ?? 0) - 1}
                 onClick={() => moveTag(t.tagId, 1)}
               >
-                ↓
-              </button>
+                <ArrowDown />
+              </Button>
               <ConfirmDialog
                 title="ลบแท็กนี้?"
                 confirmLabel="ลบ"
@@ -144,7 +182,7 @@ export function TagsView() {
                     onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
                   });
                 }}
-                trigger={<button className="text-[var(--pw-magenta)]">ลบ</button>}
+                trigger={<Button size="sm" variant="destructive"><Trash2 />ลบ</Button>}
               />
             </span>
           ))}

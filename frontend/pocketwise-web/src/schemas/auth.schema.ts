@@ -3,7 +3,11 @@ import { z } from "zod";
 export const registerSchema = z.object({
   email: z.string().email("อีเมลไม่ถูกต้อง"),
   password: z.string().min(8, "รหัสผ่านต้องอย่างน้อย 8 ตัวอักษร"),
+  confirmPassword: z.string().min(1, "กรุณายืนยันรหัสผ่าน"),
   displayName: z.string().min(1, "ต้องระบุชื่อที่แสดง").max(150),
+}).refine((values) => values.password === values.confirmPassword, {
+  message: "รหัสผ่านไม่ตรงกัน",
+  path: ["confirmPassword"],
 });
 
 export const loginSchema = z.object({

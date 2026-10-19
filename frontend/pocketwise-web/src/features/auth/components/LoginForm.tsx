@@ -8,9 +8,9 @@ import { useLogin } from "@/features/auth/hooks/useAuthMutations";
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { FieldError } from "@/components/ui/field-error";
+import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
+import { LoaderCircle, LogIn } from "lucide-react";
 
 export function LoginForm() {
   const login = useLogin();
@@ -32,18 +32,14 @@ export function LoginForm() {
           ยินดีต้อนรับกลับมาที่ PocketWise
         </p>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="email">อีเมล</Label>
+        <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField label="อีเมล" htmlFor="email" error={errors.email?.message}>
             <Input id="email" type="email" {...register("email")} />
-            <FieldError message={errors.email?.message} />
-          </div>
+          </FormField>
 
-          <div>
-            <Label htmlFor="password">รหัสผ่าน</Label>
+          <FormField label="รหัสผ่าน" htmlFor="password" error={errors.password?.message}>
             <Input id="password" type="password" {...register("password")} />
-            <FieldError message={errors.password?.message} />
-          </div>
+          </FormField>
 
           {login.isError && (
             <p className="text-sm text-[var(--pw-magenta)]">
@@ -54,6 +50,7 @@ export function LoginForm() {
           )}
 
           <Button type="submit" className="w-full" disabled={login.isPending}>
+            {login.isPending ? <LoaderCircle className="animate-spin" /> : <LogIn />}
             {login.isPending ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
           </Button>
         </form>

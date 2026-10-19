@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "sonner";
 import { categorySchema, type CategoryFormValues } from "@/schemas/category.schema";
@@ -15,11 +15,17 @@ import {
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { FieldError } from "@/components/ui/field-error";
+import { FormField } from "@/components/ui/form-field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 
 export function CategoriesView() {
   const { data, isLoading } = useCategories();
@@ -32,6 +38,7 @@ export function CategoriesView() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -95,31 +102,41 @@ export function CategoriesView() {
     <div>
       <h1 className="mb-6 text-2xl font-bold">หมวดหมู่</h1>
 
-      <Card className="mb-6">
+      <Card className="mb-6 p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-bold">{editing ? "แก้ไขหมวดหมู่" : "เพิ่มหมวดหมู่"}</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label>ชื่อหมวดหมู่</Label>
-              <Input {...register("categoryName")} />
-              <FieldError message={errors.categoryName?.message} />
-            </div>
-            <div>
-              <Label>ประเภท</Label>
-              <Select {...register("categoryType")}>
-                <option value="expense">รายจ่าย</option>
-                <option value="income">รายรับ</option>
-                <option value="both">ทั้งคู่</option>
-              </Select>
-            </div>
+            <FormField label="ชื่อหมวดหมู่" htmlFor="category-name" error={errors.categoryName?.message}>
+              <Input id="category-name" {...register("categoryName")} />
+            </FormField>
+            <FormField label="ประเภท" htmlFor="category-type" error={errors.categoryType?.message}>
+              <Controller
+                control={control}
+                name="categoryType"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="category-type"><SelectValue placeholder="เลือกประเภท" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="expense">รายจ่าย</SelectItem>
+                      <SelectItem value="income">รายรับ</SelectItem>
+                      <SelectItem value="both">ทั้งคู่</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
           </div>
 
-          <div className="flex gap-3">
-            <Button type="submit" disabled={create.isPending || update.isPending}>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending || update.isPending}>
+              {create.isPending || update.isPending
+                ? <LoaderCircle className="animate-spin" />
+                : editing ? <Save /> : <Plus />}
               {editing ? "บันทึก" : "เพิ่ม"}
             </Button>
             {editing && (
-              <Button type="button" variant="ghost" onClick={() => { setEditing(null); reset(); }}>
+              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => { setEditing(null); reset(); }}>
+                <X />
                 ยกเลิก
               </Button>
             )}
@@ -138,35 +155,38 @@ export function CategoriesView() {
               );
 
               return (
-                <li key={c.categoryId} className="flex items-center justify-between border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0">
-                  <span>
+                <li key={c.categoryId} className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="min-w-0 break-words">
                     {c.categoryName}
                     {c.isSystem && <span className="ml-2 text-xs text-[var(--pw-ink)]/50">(ระบบ)</span>}
                   </span>
-                  <div>
+                  <div className="flex flex-wrap items-center gap-1">
                     {!c.isSystem && (
                       <>
-                        <button
+                        <Button
                           type="button"
-                          className="mr-2 text-[var(--pw-link)] disabled:opacity-40"
+                          size="icon-sm"
+                          variant="ghost"
                           aria-label={`เลื่อน ${c.categoryName} ขึ้น`}
                           disabled={reorder.isPending || reorderableIndex === 0}
                           onClick={() => moveCategory(c.categoryId, -1)}
                         >
-                          ↑
-                        </button>
-                        <button
+                          <ArrowUp />
+                        </Button>
+                        <Button
                           type="button"
-                          className="mr-3 text-[var(--pw-link)] disabled:opacity-40"
+                          size="icon-sm"
+                          variant="ghost"
                           aria-label={`เลื่อน ${c.categoryName} ลง`}
                           disabled={reorder.isPending || reorderableIndex === reorderableCategories.length - 1}
                           onClick={() => moveCategory(c.categoryId, 1)}
                         >
-                          ↓
-                        </button>
-                        <button className="mr-3 text-[var(--pw-link)]" onClick={() => startEdit(c)}>
+                          <ArrowDown />
+                        </Button>
+                        <Button type="button" size="sm" variant="secondary" className="min-h-10" onClick={() => startEdit(c)}>
+                          <Pencil />
                           แก้ไข
-                        </button>
+                        </Button>
                         <ConfirmDialog
                           title="ลบหมวดหมู่นี้?"
                           description="ไม่สามารถลบหมวดหมู่ที่มีรายการใช้งานอยู่ได้"
@@ -178,7 +198,7 @@ export function CategoriesView() {
                               onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
                             });
                           }}
-                          trigger={<button className="text-[var(--pw-magenta)]">ลบ</button>}
+                          trigger={<Button size="sm" variant="destructive" className="min-h-10"><Trash2 />ลบ</Button>}
                         />
                       </>
                     )}

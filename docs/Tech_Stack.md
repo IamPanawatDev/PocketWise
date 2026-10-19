@@ -41,7 +41,7 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 | Frontend framework | Next.js (App Router) | Routing, layouts, server/client rendering, and application shell. |
 | Language | TypeScript with strict mode | Type safety across UI and API contracts. |
 | Styling | Tailwind CSS | Utility-first styling and responsive layouts. |
-| UI components | shadcn/ui + Radix UI | Accessible, customizable components; components are added to the codebase rather than consumed as a single opaque UI library. |
+| UI components | shadcn/ui CLI + Radix UI + react-day-picker | Components are added as source in `frontend/pocketwise-web/src/components/ui/`; installed components are themed with PocketWise `--pw-*` tokens. The app uses Input, Select, Button, AlertDialog, a Calendar/Popover date picker backed by `react-day-picker`, and a shared Select-based time picker. |
 | Icons | lucide-react | Consistent UI icons. |
 | Forms | React Hook Form + Zod | Form state and schema-based validation. Validate on both client and server. |
 | API client | Native fetch or a small typed API wrapper | Centralize base URL, headers, error handling, and credentials. Add TanStack Query if server-state caching/invalidation becomes useful. |
@@ -65,6 +65,7 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 - Prefer supported LTS releases for a new project, subject to deployment-host compatibility.
 - Do not mix incompatible major versions of Next.js, React, Tailwind CSS, shadcn/ui, or EF Core.
 - Re-check official release notes and support dates at project kickoff.
+- Frontend shadcn setup is present in `frontend/pocketwise-web/components.json` (Radix Nova, Tailwind CSS v4, `@/components` and `@/lib/utils` aliases). The `shadcn` CLI is a devDependency; runtime primitives use `radix-ui`, `@radix-ui/react-alert-dialog`, `class-variance-authority`, `tw-animate-css`, and `react-day-picker` (`^10.0.2`) for the shared Calendar UI. Date and date-time fields use `DateInput`/`DateTimeInput` in `src/components/ui/date-input.tsx`, backed by `Calendar` in `src/components/ui/calendar.tsx`; time selection uses shared shadcn `Select` components, not native browser date/time pickers. Use `npx shadcn add <component>` from the frontend app, then theme generated source against `DESIGN.md` without overwriting existing customized primitives.
 
 ## 3. Backend Project Structure
 

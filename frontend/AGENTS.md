@@ -20,6 +20,21 @@
    - หลังได้รับอนุมัติให้เพิ่ม npm dependency, CLI, build/lint/test/code-generation tool, framework integration หรือ SDK ให้แก้ `package.json` และ lock file ใน `frontend/pocketwise-web/` พร้อมอัปเดต Root `AGENTS.md`/`GEMINI.md` ตาม Master Rule #4
    - บันทึกในกฎ frontend หรือเอกสาร Tech Stack/Playbook ว่าใช้ทำอะไร ควรติดตั้งเป็น dependency ประเภทใด/ตำแหน่งใด เวอร์ชันที่เลือก คำสั่งมาตรฐาน การตั้งค่าที่จำเป็น และแนวทางเรียกใช้จาก feature/page เพื่อไม่ให้เกิดวิธีใช้หลายแบบ
    - หาก tool มี config หรือ code-generation convention ให้บันทึกวิธีตั้งค่า/รูปแบบ generated code และเอกสาร Design/API/schema ที่เกี่ยวข้อง; เมื่อถอดถอนหรือเลิกใช้ ให้อัปเดตรายการและลบคำแนะนำเก่าด้วย
+5. **มาตรฐาน UI สำหรับทุกหน้า**
+   - Dropdown ใช้ shadcn `Select` จาก `src/components/ui/select.tsx`; อย่าใช้ native `<select>` ในหน้า feature, กำหนดความกว้างที่ trigger/container ไม่อิงข้อความหรือรายการที่เลือก และให้เมนู dropdown กว้างเท่ากับ trigger พร้อม truncate ข้อความยาว; ใช้รายการค่า non-empty เช่น `all`/`none` สำหรับตัวเลือก reset
+   - ช่องกรอกทั่วไปและสีใช้ shadcn `Input` จาก `src/components/ui/input.tsx`; เวลาใช้ shared shadcn `Select`-based picker ใน `DateTimeInput` จาก `src/components/ui/date-input.tsx` ห้ามใช้ native `input[type=time]`; วันที่ใช้ shared shadcn `Calendar`/Popover ใน `src/components/ui/calendar.tsx` และ `DateInput`/`DateTimeInput` (ใช้ `react-day-picker`, format ปี Gregorian); ห้ามกลับไปใช้ native browser date picker; validate วันจริงและปฏิเสธปีที่เข้าลักษณะ พ.ศ. สมัยใหม่ก่อนส่ง, UI เป็น `Asia/Bangkok`, output ใช้ปี ค.ศ. และเวลา UTC+7, แปลงวันเริ่ม/สิ้นสุดและวันเวลาที่ส่งเป็น UTC ISO ก่อนเรียก API และแปลง UTC จาก API กลับเป็นเวลาไทยเมื่อแสดง; ตัวกรองวันที่ของ `/transactions` เริ่มต้นตั้งแต่วันที่ 1 ถึงวันนี้ในเดือนปัจจุบัน
+   - ฟิลด์ที่มี label และ validation error ใช้ `FormField` จาก `src/components/ui/form-field.tsx` ซึ่งรวม `Label` กับ `FieldError`; ใช้ซ้ำใน auth, feature forms และ filters แทนการเขียน wrapper ซ้ำ
+   - Footer สำหรับหน้าที่ล็อกอินแล้วอยู่ใน `src/components/shared/DashboardShell.tsx`; ให้คง copyright `© 2026 PocketWise. All rights reserved.` ใน footer นี้ และอย่าแสดง footer ดังกล่าวในหน้า Login/Register
+   - ใช้ shared `Button` และ icon จาก `lucide-react` กับปุ่ม action ทุกปุ่ม พร้อม variant สีตาม intent; icon-only ต้องมี `aria-label`; hover ต้องเป็น pointer และ disabled ต้องไม่แสดง pointer
+   - สีแท็กให้ใช้ `<Input type="color">` ไม่ให้ผู้ใช้กรอก HEX; ทำให้ข้อความบนสีที่เลือกยังอ่านชัดเจน
+   - ตัวเลือกแท็กในฟอร์มธุรกรรมให้แสดงเป็น badge โดยใช้สีจริงจาก `TagResponse.color`, เลือกสีข้อความให้อ่านชัด และแสดงสถานะเลือกด้วย ring; อย่าแสดง checkbox/tag name แบบไม่มีสี
+   - หน้า register ต้องมีช่องยืนยันรหัสผ่านและตรวจว่าตรงกับรหัสผ่าน; อย่าเพิ่ม `confirmPassword` ลงใน API request เพราะไม่มีใน backend `RegisterRequest`
+   - Components จาก shadcn เป็น source code ใน `src/components/ui/`; รักษา theme ด้วย `--pw-*` tokens ตาม `DESIGN.md` ห้ามปล่อยสี preset เริ่มต้นหรือเพิ่มสี one-off ในแต่ละหน้า
+   - ป้องกัน dashboard paths (`/`, `/transactions`, `/categories`, `/tags`, `/bank-accounts`, `/transfers`) ใน `src/proxy.ts` ด้วย httpOnly cookies `pw_access`/`pw_refresh`; หากไม่มีทั้งคู่ให้ redirect `/login` ก่อน render; ห้ามใช้การซ่อน UI ฝั่ง client เป็น access control และ backend API ยังต้องตรวจสิทธิ์เสมอ
+   - เพิ่ม primitive ใหม่ใช้คำสั่ง `npx shadcn add <component>` จาก `frontend/pocketwise-web/`; ตรวจ/ปรับ generated source ให้ตรง Design System ก่อนใช้งาน และอย่าติดตั้ง component/library ซ้ำที่มีอยู่แล้ว
+   - ปฏิทินใช้ `react-day-picker` (`^10.0.2`, runtime dependency ของ `frontend/pocketwise-web/`) ผ่าน shared `Calendar`; ปรับ shadcn-generated classes ให้ใช้ `--pw-*` tokens และอย่า overwrite shared primitives ที่ถูกปรับ theme แล้วเมื่อนำ component ใหม่เข้า
+   - ออกแบบหน้าแบบ mobile-first: sidebar ของแอปต้อง fixed เต็ม viewport (`h-dvh`) และใช้ hamburger/drawer บนจอเล็ก; จัดฟอร์มและ action ให้ใช้งานได้ในจอแคบ, ใช้ card/list แทนตารางบนมือถือ และคงตารางไว้สำหรับจอใหญ่
+   - เมื่อเพิ่มภาพลักษณ์แบรนด์/ไอคอน ให้ตั้งค่า site icon ใน Next metadata และระบุ attribution ที่มาของ asset ใน UI/เอกสารเมื่อแหล่งที่มาให้ข้อกำหนด
 
 ---
 
@@ -39,7 +54,7 @@ frontend/pocketwise-web/
 │   │   └── page.tsx            # Entry landing page
 │   │
 │   ├── components/             # Reusable UI Components
-│   │   ├── ui/                 # Base/Primitive UI components (ปุ่ม, ช่องกรอก, Dialog, Dropdown)
+│   │   ├── ui/                 # Base/Primitive UI components (ปุ่ม, ช่องกรอก, Select, FormField, Dialog)
 │   │   └── shared/             # Components ที่ใช้ร่วมกันหลายหน้า (Navbar, Sidebar, Header, ModalWrapper)
 │   │
 │   ├── features/               # โดเมนและฟีเจอร์ทางธุรกิจ (Domain-Driven Architecture)
