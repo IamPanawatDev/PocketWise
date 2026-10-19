@@ -70,7 +70,7 @@
 | 1 Foundation | ✅ | Solution 4 โปรเจค, Next.js app, ESLint, `.env.example` |
 | 2 Data Model | ✅ | Entities/DbContext/Configurations/Migration ครบ 25 ตาราง; `InitialCreate` applied บน `PocketWiseDb`; build ผ่าน |
 | 3 Identity | ✅ | `ApplicationUser : IdentityUser<long>`, JWT + Refresh Token, 5 `/api/v1/auth/*` endpoints ใช้งานได้, migration applied, build ผ่าน |
-| 4 Core Transactions | ⬜ | รวม transfers, หมวดหมู่, แท็ก (FR mapping ใน section) |
+| 4 Core Transactions | 🟡 | backend CRUD ครบ (transactions/categories/tags/bank-accounts/transfers); รอ FE + FR status |
 | 5 Budgets, Credit Cards & Reports | ⬜ | รวมงบ, บัตรเครดิตพื้นฐาน, รายการประจำ, จัดหมวดอัตโนมัติ, reports |
 | 5.5 Settings & Profile | ⬜ | UserSettings + โปรไฟล์ + ล้างข้อมูล (FR6.3) |
 | 6 SignalR | ⬜ | ฝั่ง server ใช้ AddSignalR จาก shared framework |
@@ -360,11 +360,15 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D14 | Phase 2 cascade delete policy | Cascade ใช้เฉพาะ: `UserSettings`/`UserRefreshTokens`/`Notifications`/`TransactionTags`/`CreditCardStatementItems`/`SlipImportFiles`↔`ImportJobs`; financial entities + `Users` ใช้ Restrict/SetNull; ไม่ cascade ลบข้อมูลการเงินเมื่อลบ user | เจ้าของโปรเจค | ✅ ล็อก |
 | D15 | Phase 3 Identity strategy | `ApplicationUser : IdentityUser<long>` + `ApplicationRole : IdentityRole<long>`; ตารางยังชื่อ `Users`/`Roles`; access token 60 นาที / refresh token 30 วัน | เจ้าของโปรเจค | ✅ ล็อก |
 | D16 | Phase 3 JWT secret storage | ย้าย JWT secret จาก `appsettings.Development.json` ไป user-secrets ก่อน production (ยังไม่ทำ — ทำก่อน Phase 8) | เจ้าของโปรเจค | 🟡 รอ Phase 8 |
+| D17 | Phase 4 filter params | list transactions ใช้ `categoryId`/`tagId`/`bankAccountId`/`type`/`fromDate`/`toDate`/`q` | เจ้าของโปรเจค | ✅ ล็อก |
+| D18 | Phase 4 CategoryType | เพิ่ม enum `CategoryType` (Income/Expense/Both) ตาม DataDictionary แทน `TransactionType` | เจ้าของโปรเจค | ✅ ล็อก |
+| D19 | Phase 4 transfer flow | สร้าง TransferGroup → auto สร้าง 2 transactions (โอนออก/โอนเข้า) ผูก `transferGroupId` | เจ้าของโปรเจค | ✅ ล็อก |
+| D20 | Phase 4 credit card scope | Transaction create/update รับ `creditCardId` (nullable) ได้เลย (CreditCard CRUD ยังเป็น Phase 5) | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
 - Phase 3: ~~relation ของ `Users` กับ `IdentityUser`, อายุ token จริง~~ ✅ ล็อกเป็น D15 (ชื่อ auth routes + envelope + versioning ✓ D11 — ดู API_SPECIFICATION §5)
-- Phase 4: filter params ของ list endpoints (format ✓ D11)
+- Phase 4: ~~filter params ของ list endpoints~~ ✅ ล็อกเป็น D17; FE types/schemas ยังรอ (แตะ FE)
 - Phase 5: threshold semantics, chart lib 📦, recurring กลไก background job vs on-demand, email provider 📦
 - Phase 5.5: ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม
 - Phase 6: hub event contract (สัญญาตาม D11-⑤ — ล็อกตอนเริ่ม phase, ชื่อ candidate อยู่ที่ API_SPECIFICATION §6), scale-out (เลื่อน Phase 8)

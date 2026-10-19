@@ -68,20 +68,20 @@
 | 3.11 | Migration update (ตาราง Identity) + apply จริง | ✅ | migration `20261019061116_AddIdentity` applied บน `PocketWiseDb` |
 | 3.12 | Gate Phase 3: login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB | ✅ | ทดสอบ register/login/me ผ่าน; `dotnet build` 0 error; refresh/logout flow มีให้ใช้ |
 
-## 5. Phase 4 — Core Transactions 🔁
+## 5. Phase 4 — Core Transactions 🟡
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
-| 4.1 | ❓ filter params ของ list endpoints — ตัดสิน + ลง API_SPECIFICATION | ⬜ | format ล็อกแล้ว (D11) |
-| 4.2 | Entities เพิมเติมถ้ามี + features แยกกลุ่ม: Transactions, Categories, Tags, Transfers | ⬜ | |
-| 4.3 | Repository interfaces + implementations (ITransactionRepository ฯลฯ) | ⬜ | |
-| 4.4 | DTOs + Validators + Controllers (thin) | ⬜ | |
-| 4.5 | `ApiResponse<T>` + error middleware (envelope D8 ทุก route) | ⬜ | เริ่มจาก controller แรก |
-| 4.6 | Tag limit 20 → `TAG_LIMIT_REACHED` (FR3.2.6) | ⬜ | |
-| 4.7 | ปุ่ม Transfers: TransferGroups + จับคู่โอนออก/โอนเข้า (FR1.5) | ⬜ | |
-| 4.8 | (📦 optional) FluentValidation — หรือ manual validators | ⬜ | รอการตัดสิน |
-| 4.9 | FE: types/schemas/features (transactions, categories, tags, transfers) + หน้า (dashboard)/transactions | ⬜ | หลัง contract ล็อก |
-| 4.10 | Migration/โครงสร้างจริงที่ใหม่ + Gate: CRUD end-to-end, FE lint+build, tests, FR สถานะอัปเดต | ⬜ | |
+| 4.1 | ✅ filter params ของ list endpoints — ตัดสิน + ลง API_SPECIFICATION | ✅ | `categoryId/tagId/bankAccountId/type/fromDate/toDate/q` (D17) |
+| 4.2 | Entities เพิมเติมถ้ามี + features แยกกลุ่ม: Transactions, Categories, Tags, Transfers | ✅ | + enum `CategoryType` (Income/Expense/Both) + BankAccounts |
+| 4.3 | Repository interfaces + implementations (ITransactionRepository ฯลฯ) | ✅ | 5 repos (Transaction/Category/Tag/BankAccount/Transfer) |
+| 4.4 | DTOs + Validators + Controllers (thin) | ✅ | FluentValidation 12.2.0 + 5 controllers |
+| 4.5 | `ApiResponse<T>` + error middleware (envelope D8 ทุก route) | ✅ | middleware จัดการ ValidationException + BusinessException แล้ว |
+| 4.6 | Tag limit 20 → `TAG_LIMIT_REACHED` (FR3.2.6) | ✅ | ตรวจใน TagService (409) |
+| 4.7 | ปุ่ม Transfers: TransferGroups + จับคู่โอนออก/โอนเข้า (FR1.5) | ✅ | สร้าง 2 transactions อัตโนมัติผูก transferGroupId |
+| 4.8 | ✅ FluentValidation ติดตั้งแล้ว (12.2.0) | ✅ | อนุมัติจากเจ้าของ |
+| 4.9 | FE: types/schemas/features (transactions, categories, tags, transfers) + หน้า (dashboard)/transactions | ⬜ | รอ Phase ที่แตะ FE |
+| 4.10 | Migration/โครงสร้างจริงที่ใหม่ + Gate: CRUD end-to-end, FE lint+build, tests, FR สถานะอัปเดต | 🟡 | backend build+test ผ่าน; migration ไม่ต้อง (enum เก็บ string); รอ FE + FR status |
 
 ## 6. Phase 5 — Budgets, Credit Cards & Reports 🔁
 

@@ -1,6 +1,8 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using PocketWise.Application.DTOs;
 using PocketWise.Application.Features.Auth;
+using PocketWise.Domain.Rules;
 using System.Net;
 using System.Text.Json;
 
@@ -32,6 +34,14 @@ public class GlobalExceptionHandlerMiddleware
         {
             await HandleAuthExceptionAsync(context, ex);
         }
+        catch (ValidationException ex)
+        {
+            await HandleValidationExceptionAsync(context, ex);
+        }
+        catch (BusinessException ex)
+        {
+            await HandleBusinessExceptionAsync(context, ex);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception occurred while processing request {TraceId}", context.TraceIdentifier);
@@ -49,6 +59,31 @@ public class GlobalExceptionHandlerMiddleware
         };
 
         var response = ApiResponse<object?>.Fail(exception.Code, exception.Message);
+        await WriteResponseAsync(context, statusCode, response);
+    }
+
+    private async Task HandleValidationExceptionAsync(HttpContext context, ValidationException exception)
+    {
+        var details = exception.Errors
+            .Select(e => new ValidationError(e.PropertyName, e.ErrorMessage))
+            .ToList();
+
+        var response = ApiResponse<object?>.Fail("VALIDATION_ERROR", "ข้อมูลไม่ถูกต้อง", context.TraceIdentifier, details);
+        await WriteResponseAsync(context, (int)HttpStatusCode.UnprocessableEntity, response);
+    }
+
+    private async Task HandleBusinessExceptionAsync(HttpContext context, BusinessException exception)
+    {
+        var statusCode = exception.Code switch
+        {
+            "NOT_FOUND" => (int)HttpStatusCode.NotFound,
+            "CONFLICT" => (int)HttpStatusCode.Conflict,
+            "TAG_LIMIT_REACHED" => (int)HttpStatusCode.Conflict,
+            "FORBIDDEN" => (int)HttpStatusCode.Forbidden,
+            _ => (int)HttpStatusCode.BadRequest
+        };
+
+        var response = ApiResponse<object?>.Fail(exception.Code, exception.Message, context.TraceIdentifier);
         await WriteResponseAsync(context, statusCode, response);
     }
 
