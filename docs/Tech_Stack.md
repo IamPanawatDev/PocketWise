@@ -90,12 +90,18 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 
 Recommended setup:
 
-- Generate an OpenAPI document from ASP.NET Core endpoints/controllers.
-- Enable Swagger UI or an equivalent viewer in Development.
+- Generate the OpenAPI document with `Microsoft.AspNetCore.OpenApi` and expose it at `/openapi/v1.json`.
+- Serve the interactive Swagger UI with `NSwag.AspNetCore` at `/swagger` in Development only.
 - Document authentication requirements, request/response DTOs, validation errors, pagination, and common status codes.
 - Use the OpenAPI document to review contract changes; optionally generate TypeScript types/client code with a compatible generator.
 - Secure or disable interactive API documentation in production unless there is an explicit operational need.
 - OpenAPI documents the REST API; it does not fully describe SignalR hub events. Document hub names, event names, payloads, and authorization separately.
+
+PocketWise local development uses `http://localhost:5268` for the API and
+`http://localhost:5268/swagger` for Swagger UI. The `run.cmd` script explicitly
+starts the backend with the `http` launch profile so these URLs stay consistent.
+Current package versions are `Microsoft.AspNetCore.OpenApi` 10.0.13 and
+`NSwag.AspNetCore` 14.7.1.
 
 Official resources:
 - OpenAPI Specification: https://spec.openapis.org/oas/latest.html

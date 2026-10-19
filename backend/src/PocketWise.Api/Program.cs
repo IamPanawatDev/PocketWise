@@ -1,6 +1,7 @@
 using PocketWise.Api.Configuration;
 using PocketWise.Api.Middleware;
 using PocketWise.Infrastructure.Configuration;
+using NSwag.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUi(settings =>
+    {
+        settings.Path = "/swagger";
+        settings.SwaggerRoutes.Add(new SwaggerUiRoute("PocketWise API", "/openapi/v1.json"));
+    });
 }
 
 app.UseHttpsRedirection();

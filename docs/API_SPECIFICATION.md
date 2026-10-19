@@ -1,7 +1,7 @@
 # PocketWise — API_SPECIFICATION.md (สัญญา Frontend ↔ Backend)
 
 > **สำคัญสำหรับ AI Assistant:** เอกสารนี้คือ **สัญญาก่อนพัฒนาจริง (Contract of Record)** ระหว่าง Frontend และ Backend — **เขียน/แก้ endpoint ใด ๆ ต้องอัปเดตที่นี่ก่อน implement เสมอ** (กติกา §10 ของ playbook) — OpenAPI/Swagger ใน dev ต้องตรงกับเอกสารนี้
-> **Swagger เป็น Specification หลักของ REST:** เอกสารนี้ (md) ให้หลักการ + conventions + ตัวอย่างที่ OpenAPI ไม่อธิบาย (error codes, มาตรฐาน pagination, SignalR) — จุดบริการจริงใช้ OpenAPI doc ที่ Api สร้างให้อัตโนมัติ (`/openapi/v1.json` ตอน dev)
+> **Swagger เป็น Specification หลักของ REST:** เอกสารนี้ (md) ให้หลักการ + conventions + ตัวอย่างที่ OpenAPI ไม่อธิบาย (error codes, มาตรฐาน pagination, SignalR) — ใช้ Swagger UI ที่ `/swagger` หรือ OpenAPI doc ที่ Api สร้างให้อัตโนมัติ (`/openapi/v1.json`) ใน Development เท่านั้น
 > อ่านคู่กับ: `/docs/ARCHITECTURE.md` (สถาปัตยกรรม), `/docs/DataDictionary.md` (schema), `/docs/REQUIREMENTS.md` (FR), playbook (Decision Ledger)
 
 ---
@@ -10,7 +10,7 @@
 
 | หัวข้อ | กำหนด |
 |---|---|
-| Base URL (dev) | `https://localhost:7023` (ตาม launchSettings + `.env.example` — D7) |
+| Base URL (dev) | `http://localhost:5268` (ตาม run.cmd, launchSettings และ `.env.example` — D7) |
 | Versioning | **path segment vN**: `/api/v1/...` — endpoint ชุดแรกทั้งหมดเป็น `/api/v1` (D11) |
 | Content type | `application/json; charset=utf-8` (ทั้ง request และ response; upload file ยกเว้น multipart) |
 | Auth | `Authorization: Bearer <access-token>` ทุก endpoint ยกเว้น `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh` |
@@ -253,7 +253,7 @@ Content-Type: application/json
 
 1. **ก่อน implement:** เพิ่ม/แก้ contract ลงไฟล์นี้ก่อน (กติกา §10 ของ playbook)
 2. **ทุก endpoint ต้องสอดคล้อง:** conventions §1 + envelope §2 + status §3 + pagination §4 (ถ้า list) + auth §5 (ถ้ามี token)
-3. **เทียบกับ OpenAPI:** dev เรียก `GET /openapi/v1.json` หรือใช้ Swagger UI — ต้องตรงกับเอกสารนี้ (ผลต่าง = ต้องแก้)
+3. **เทียบกับ OpenAPI:** dev เรียก `GET /openapi/v1.json` หรือเปิด `http://localhost:5268/swagger` — ต้องตรงกับเอกสารนี้ (ผลต่าง = ต้องแก้)
 4. **แก้ contract ระหว่างทาง:** อัปเดตเอกสารนี้ + FE types + tests ในงานเดียวกัน — ห้ามมาครว่งเคอร์
 
 ---

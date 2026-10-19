@@ -45,12 +45,15 @@ cd ../frontend/pocketwise-web
 npm install
 
 # 3) ตั้ง env ฝั่ง frontend
-copy .env.example .env.local     # Windows (Linux: cp)
+if not exist .env.local copy .env.example .env.local     # Windows (Linux: cp เฉพาะเมื่อยังไม่มีไฟล์)
 
 # 4) รันทั้งสองฝั่งพร้อมกัน (จาก repo root — Windows Terminal เป็นทางเลือก)
 ..\..\run.cmd
+#    Swagger UI : http://localhost:5268/swagger
+#    OpenAPI JSON: http://localhost:5268/openapi/v1.json
+#    Frontend    : http://localhost:3000
 # หรือรันแยก:
-#   Backend : cd backend/src/PocketWise.Api && dotnet watch run   → http://localhost:5268
+#   Backend : cd backend/src/PocketWise.Api && dotnet watch run --launch-profile http
 #   Frontend: cd frontend/pocketwise-web && npm run dev          → http://localhost:3000
 ```
 
