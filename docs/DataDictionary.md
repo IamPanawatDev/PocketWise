@@ -51,7 +51,7 @@
   - **Token Rotation:** ทุกครั้งที่มีการขอ Access Token ใหม่ด้วย Refresh Token เดิม ให้ทำการยกเลิก Token เก่า (`RevokedAt`) และออก Token คู่ใหม่ทันที พร้อมบันทึก `ReplacedByTokenHash` เพื่อตรวจจับการนำ Token เก่ามาใช้ซ้ำ (Token Reuse / Theft Detection) หากพบการใช้ซ้ำ ให้สั่งเพิกถอน Token ทั้งหมดของผู้ใช้ทันที
   - **Multi-device Sessions:** ตาราง `UserRefreshTokens` รองรับการเข้าสู่ระบบพร้อมกันหลายเครื่อง (Mobile, Desktop) และสามารถเลือก Logout เฉพาะอุปกรณ์ได้
 - **Timezone:** เก็บเวลาเป็น UTC ทั้งหมด (`datetime2`) และแสดงผลตาม timezone ของผู้ใช้
-- **Soft Delete (ยึด D5 ล็อกแล้ว):** ใช้ soft delete (`IsDeleted`) **เฉพาะตารางกลุ่มการเงิน 9 ตาราง** = Transactions, BankAccounts, CreditCards, Budgets, RecurringTransactions, InstallmentPlans, TransferGroups, CreditCardStatements, CreditCardStatementItems — ตารางกลุ่มนี้ที่ยังไม่มีคอลัมน์ `IsDeleted` ในเอกสารนี้ (Budgets, RecurringTransactions, CreditCards, TransferGroups, InstallmentPlans, CreditCardStatements, CreditCardStatementItems — มีแค่ Transactions, BankAccounts ตอนนี้) ต้อง**เพิ่มคอลัมน์ตอนสร้าง Entity + ยื่นแก้เอกสารนี้ในงานเดียวกัน**; ตารางอื่นใช้ hard delete ปกติ (ลบจริง)
+- **Soft Delete (ยึด D5 ล็อกแล้ว):** ใช้ soft delete (`IsDeleted`) **เฉพาะตารางกลุ่มการเงิน 9 ตาราง** = `Transactions`, `BankAccounts`, `CreditCards`, `Budgets`, `RecurringTransactions`, `InstallmentPlans`, `TransferGroups`, `CreditCardStatements`, `CreditCardStatementItems` — ทั้ง 9 ตารางนี้มีคอลัมน์ `IsDeleted` ครบแล้ว (เติมใน 7 ตารางที่ขาดใน Phase 2) + global query filter / ตารางอื่นใช้ hard delete ปกติ (ลบจริง)
 - **ตรวจรายการซ้ำ (Duplicate Detection):** ตรวจสอบด้วย FileHash, TransactionReference, จำนวนเงิน และวันเวลา
 - **Tag Limit:** กำหนดให้ไม่เกิน 20 tags ต่อผู้ใช้งาน
 
@@ -252,6 +252,7 @@ erDiagram
 | `EndDate` | `date` |  |  | YES | Must be >= StartDate | วันที่สิ้นสุดรอบงบ; NULL สำหรับรอบซ้ำ | 2026-10-31 |
 | `AlertThresholdPercent` | `tinyint` |  |  | NO | DEFAULT 80; 1..100 | เปอร์เซ็นต์ที่เริ่มแจ้งเตือน | 80 |
 | `IsActive` | `bit` |  |  | NO | DEFAULT 1 | สถานะงบ | 1 |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
 ### <a id="recurringtransactions"></a>8. RecurringTransactions
@@ -274,6 +275,7 @@ erDiagram
 | `EndDate` | `date` |  |  | YES |  | วันที่สิ้นสุด | 2027-09-30 |
 | `NextRunAt` | `datetime2` |  |  | NO |  | เวลาที่ต้องสร้างรายการครั้งถัดไป | 2026-11-01T00:00:00 |
 | `IsActive` | `bit` |  |  | NO | DEFAULT 1 | สถานะการทำงาน | 1 |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
 ### <a id="notifications"></a>9. Notifications
@@ -404,6 +406,7 @@ erDiagram
 | `PaymentDueDay` | `tinyint` |  |  | YES | 1..31 | วันครบกำหนดชำระ | 10 |
 | `CreditLimit` | `decimal(18,2)` |  |  | YES | CHECK >= 0 | วงเงินบัตร | 50000.00 |
 | `IsActive` | `bit` |  |  | NO | DEFAULT 1 | สถานะบัตร | 1 |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
 ### <a id="creditcardstatements"></a>17. CreditCardStatements
@@ -429,6 +432,7 @@ erDiagram
 | `PaymentAmount` | `decimal(18,2)` |  |  | NO | DEFAULT 0 | ยอดชำระ | 2000.00 |
 | `TotalDue` | `decimal(18,2)` |  |  | NO |  | ยอดที่ต้องชำระตามใบแจ้งยอด | 3150.00 |
 | `Status` | `varchar(20)` |  |  | NO | IMPORTED/REVIEWED/PAID | สถานะใบแจ้งยอด | REVIEWED |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลานำเข้า | 2026-10-26T10:00:00Z |
 
 ### <a id="creditcardstatementitems"></a>18. CreditCardStatementItems
@@ -450,6 +454,7 @@ erDiagram
 | `TransactionId` | `bigint` |  | `Transactions.TransactionId` | YES | UNIQUE when linked | รายการที่สร้างในระบบหลังยืนยัน | 50002 |
 | `ExternalReference` | `nvarchar(150)` |  |  | YES |  | เลขอ้างอิงจากไฟล์ต้นทาง | REF-ABC123 |
 | `IsDuplicate` | `bit` |  |  | NO | DEFAULT 0 | ตรวจพบว่าซ้ำหรือไม่ | 0 |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | เวลานำเข้า | 2026-10-26T10:00:00Z |
 
 ### <a id="slipimportfiles"></a>19. SlipImportFiles
@@ -531,6 +536,7 @@ erDiagram
 | `InterestRatePercent` | `decimal(7,4)` |  |  | NO | DEFAULT 0; CHECK >= 0 | อัตราดอกเบี้ยเป็นเปอร์เซ็นต์ต่อปีหรือตามสัญญา ต้องกำหนดนิยามให้ชัด | 0.0000 |
 | `StartDate` | `date` |  |  | NO |  | วันที่เริ่มผ่อน | 2026-10-01 |
 | `Status` | `varchar(20)` |  |  | NO | ACTIVE/COMPLETED/CANCELLED | สถานะแผนผ่อน | ACTIVE |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-16T10:00:00Z |
 
 ### <a id="transfergroups"></a>23. TransferGroups
@@ -549,6 +555,7 @@ erDiagram
 | `TransferDate` | `datetime2` |  |  | NO |  | วันเวลาโอน | 2026-10-15T12:00:00 |
 | `Reference` | `nvarchar(150)` |  |  | YES |  | เลขอ้างอิงการโอน | TXN-123 |
 | `Status` | `varchar(20)` |  |  | NO | PENDING/MATCHED/CONFIRMED/VOID | สถานะจับคู่รายการโอน | CONFIRMED |
+| `IsDeleted` | `bit` |  |  | NO | DEFAULT 0 | ลบแบบ soft delete | 0 |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้าง | 2026-10-15T12:01:00 |
 
 ### <a id="auditlogs"></a>24. AuditLogs

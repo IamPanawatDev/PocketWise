@@ -34,22 +34,22 @@
 | 1.7 | GitHub repo พร้อม push (`IamPanawatDev/PocketWise`) | ✅ | master, commit f525113 |
 | 1.8 | NuGet ฝั่ง backend ครบตาม phase ที่ใช้ (EF Core pack, Identity, OpenApi) | ✅ | รายระเอียด playbook Appendix A |
 
-## 3. Phase 2 — Data Model 🔁 (พร้อมเริ่ม)
+## 3. Phase 2 — Data Model ✅
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
-| 2.1 | Domain Enums ตาม DataDictionary (TransactionType, SourceType, Status ฯลฯ) | ⬜ | ผูกกับ D13 ที่ Entities |
-| 2.2 | Domain ValueObjects (เช่น Money) | ⬜ | ตามที่ DataDictionary ระบุ |
-| 2.3 | **Entities 25 ตาราง** — Users, UserRefreshTokens, Transactions, Categories, Tags, TransactionTags, BankAccounts, Budgets, RecurringTransactions, Notifications, UserSettings, ImportJobs, **Roles, Permissions, UserRoles, RolePermissions**, CreditCards, CreditCardStatements, CreditCardStatementItems, SlipImportFiles, Merchants, CategoryRules, InstallmentPlans, TransferGroups, **AuditLogs** | ⬜ | ขอบเขตตาม FR F1–F8 (REQUIREMENTS + D13) |
-| 2.4 | **คอลัมน์ `IsDeleted` เติมใน 7 ตาราง** (Budgets, RecurringTransactions, CreditCards, TransferGroups, InstallmentPlans, CreditCardStatements, CreditCardStatementItems) + sync DataDictionary | ⬜ | ตาม D5 + D13 (Transactions/BankAccounts มีอยู่แล้ว) |
-| 2.5 | `PocketWiseDbContext` — DbSet ต่อตาราง + global query filter (soft delete) | ⬜ | `Infrastructure/Persistence/` |
-| 2.6 | EF Configurations ต่อ Entity (Fluent API — precision decimal, UTC, constraints) | ⬜ | `Infrastructure/Configurations/` |
-| 2.7 | ❓ cascade delete policy — ตัดสินแล้ว + implement ใน configurations | ⬜ | Decision ยังเปิด (playbook Phase 2) |
-| 2.8 | Connection string ลง `appsettings.Development.json` (ไม่มี credential → ไม่ต้อง user-secrets) | ⬜ | D4 — ใช้ Trusted_Connection |
-| 2.9 | DI registration (`AddInfrastructure` ที่ Infrastructure, เรียกใน Program.cs) | ⬜ | |
-| 2.10 | `dotnet ef migrations add InitialCreate` (+ทบทวนไฟล์ก่อน apply) | ⬜ | รวม UserRefreshTokens (D6) |
-| 2.11 | `dotnet ef database update` — สร้างตารางบน `PocketWiseDb` จริง + ตรวจจำนวนตาราง = **25** | ⬜ | ตรวจด้วย sqlcmd ได้ |
-| 2.12 | Gate Phase 2: `dotnet build` 0 error | ⬜ | |
+| 2.1 | Domain Enums ตาม DataDictionary (TransactionType, SourceType, Status ฯลฯ) | ✅ | สร้าง 19 enums ใน `Domain/Enums/` |
+| 2.2 | Domain ValueObjects (เช่น Money) | ✅ | `Domain/ValueObjects/Money.cs` |
+| 2.3 | **Entities 25 ตาราง** — Users, UserRefreshTokens, Transactions, Categories, Tags, TransactionTags, BankAccounts, Budgets, RecurringTransactions, Notifications, UserSettings, ImportJobs, **Roles, Permissions, UserRoles, RolePermissions**, CreditCards, CreditCardStatements, CreditCardStatementItems, SlipImportFiles, Merchants, CategoryRules, InstallmentPlans, TransferGroups, **AuditLogs** | ✅ | ขอบเขตตาม FR F1–F8 (REQUIREMENTS + D13) |
+| 2.4 | **คอลัมน์ `IsDeleted` เติมใน 7 ตาราง** (Budgets, RecurringTransactions, CreditCards, TransferGroups, InstallmentPlans, CreditCardStatements, CreditCardStatementItems) + sync DataDictionary | ✅ | ตาม D5 + D13 (Transactions/BankAccounts มีอยู่แล้ว) |
+| 2.5 | `PocketWiseDbContext` — DbSet ต่อตาราง + global query filter (soft delete) | ✅ | `Infrastructure/Persistence/PocketWiseDbContext.cs` |
+| 2.6 | EF Configurations ต่อ Entity (Fluent API — precision decimal, UTC, constraints) | ✅ | `Infrastructure/Configurations/` 25 ไฟล์ |
+| 2.7 | ❓ cascade delete policy — ตัดสินแล้ว + implement ใน configurations | ✅ | Decision ปิดแล้ว: cascade เฉพาะ UserSettings/UserRefreshTokens/TransactionTags/CreditCardStatementItems/SlipImportFiles↔ImportJobs; ที่เหลือ Restrict/SetNull |
+| 2.8 | Connection string ลง `appsettings.Development.json` (ไม่มี credential → ไม่ต้อง user-secrets) | ✅ | D4 — ใช้ Trusted_Connection |
+| 2.9 | DI registration (`AddInfrastructure` ที่ Infrastructure, เรียกใน Program.cs) | ✅ | `Infrastructure/Configuration/DependencyInjection.cs` |
+| 2.10 | `dotnet ef migrations add InitialCreate` (+ทบทวนไฟล์ก่อน apply) | ✅ | รวม UserRefreshTokens (D6), migration `20261019050656_InitialCreate` |
+| 2.11 | `dotnet ef database update` — สร้างตารางบน `PocketWiseDb` จริง + ตรวจจำนวนตาราง = **25** | ✅ | ตรวจด้วย sqlcmd: 25 ตาราง + `__EFMigrationsHistory` |
+| 2.12 | Gate Phase 2: `dotnet build` 0 error | ✅ | `dotnet build` ผ่าน (0 errors; warnings เป็น NU1902/NU1903 ที่รู้แล้วจาก Phase 0–1) |
 
 ## 4. Phase 3 — Identity & Auth 🔁
 

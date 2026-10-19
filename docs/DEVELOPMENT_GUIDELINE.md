@@ -68,7 +68,7 @@
 |:---:|:---:|---|
 | 0 สภาพแวดล้อม | ✅ | `run.cmd`, local tool manifest พร้อม + **SQL Server 2025 ที่ localhost ตรวจแล้ว — `PocketWiseDb` พร้อม (ว่าง 0 ตาราง)** |
 | 1 Foundation | ✅ | Solution 4 โปรเจค, Next.js app, ESLint, `.env.example` |
-| 2 Data Model | 🟡 | ติดตั้ง EF Core pack แล้ว — **ยังไม่มีโค้ด Entity/DbContext** (สร้างครบ 25 ตารางตาม FR — ดู Phase 2 ข้อ 1) |
+| 2 Data Model | ✅ | Entities/DbContext/Configurations/Migration ครบ 25 ตาราง; `InitialCreate` applied บน `PocketWiseDb`; build ผ่าน |
 | 3 Identity | 🟡 | ติดตั้ง Identity package แล้ว — auth strategy ล็อกแล้ว (JWT + Refresh, ดู Phase 3) |
 | 4 Core Transactions | ⬜ | รวม transfers, หมวดหมู่, แท็ก (FR mapping ใน section) |
 | 5 Budgets, Credit Cards & Reports | ⬜ | รวมงบ, บัตรเครดิตพื้นฐาน, รายการประจำ, จัดหมวดอัตโนมัติ, reports |
@@ -289,7 +289,7 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 **Backend (เวอร์ชันร่วมกัน 10.0.13 ยกเว้น OpenApi):**
 
-- `PocketWise.Api`: `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13, `Microsoft.AspNetCore.OpenApi` 10.0.8
+- `PocketWise.Api`: `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.13, `Microsoft.AspNetCore.OpenApi` 10.0.8, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (PrivateAssets)
 - `PocketWise.Infrastructure`: `Microsoft.EntityFrameworkCore.SqlServer` 10.0.13, `Microsoft.EntityFrameworkCore.Design` 10.0.13 (PrivateAssets), `Microsoft.EntityFrameworkCore.Tools` 10.0.13 (PrivateAssets)
 - tests ทั้งสอง: `xunit` 2.9.3, `xunit.runner.visualstudio` 3.1.4, `Microsoft.NET.Test.Sdk` 17.14.1, `coverlet.collector` 6.0.4
 - Local tool: `dotnet-ef` 10.0.13 (`backend/dotnet-tools.json`)
@@ -356,10 +356,10 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D11 | API spec decisions (5 ข้อ) | ① versioning = **path segment** `/api/v1/...` ② pagination = **`page/pageSize`** + data `{ items, page, pageSize, totalItems, totalPages }` ③ error codes = **ชุด 12 UPPER_SNAKE** (VALIDATION_ERROR, UNAUTHORIZED, TOKEN_EXPIRED, INVALID_REFRESH_TOKEN, INVALID_CREDENTIALS, FORBIDDEN, NOT_FOUND, CONFLICT, DUPLICATE_TRANSACTION, TAG_LIMIT_REACHED, RATE_LIMITED, INTERNAL_ERROR) ④ status = **เข้ม REST-style** (200/201/204/401/403/404/409/422/429/500) + envelope ประกอบ ⑤ SignalR = **section เปิด ล็อกตอน Phase 6 เริ่ม** | เจ้าของโปรเจค | ✅ ล็อก |
 | D12 | Schema scope ต่อ FR (audit 12/2026) | ~~เดิมล็อก "สร้างเฉพาะ 20/25 ตาราง, ยกเว้น RBAC 5 ตาราง + AuditLogs"~~ → **ถูกยกเลิกและแทนที่ด้วย D13** (เจ้าของโปรเจคสั่งเพิ่ม FR7/F8 แล้วสร้างครบ 25 ตาราง) | เจ้าของโปรเจค | ⛔ ยกเลิก (ใช้ D13) |
 | D13 | ขยายขอบเขตครบ 25 ตาราง | เจ้าของโปรเจคเพิ่ม **F7 (RBAC: Roles/Permissions/UserRoles/RolePermissions)** + **F8 (AuditLogs)** ใน REQUIREMENTS.md → Phase 2 สร้าง Entities **ครบ 25 ตาราง** รวมทั้ง 5 ตารางนั้น (เดิม D12 ยกเว้น) — ขอบเขต entity ตาม FR F1–F8 (REQUIREMENTS.md เป็นหลัก) | เจ้าของโปรเจค | ✅ ล็อก |
+| D14 | Phase 2 cascade delete policy | Cascade ใช้เฉพาะ: `UserSettings`/`UserRefreshTokens`/`Notifications`/`TransactionTags`/`CreditCardStatementItems`/`SlipImportFiles`↔`ImportJobs`; financial entities + `Users` ใช้ Restrict/SetNull; ไม่ cascade ลบข้อมูลการเงินเมื่อลบ user | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
-- Phase 2: cascade delete policy (ข้อเดียวที่เหลือ)
 - Phase 3: relation ของ `Users` กับ `IdentityUser`, อายุ token จริง (ชื่อ auth routes + envelope + versioning ✓ D11 — ดู API_SPECIFICATION §5)
 - Phase 4: filter params ของ list endpoints (format ✓ D11)
 - Phase 5: threshold semantics, chart lib 📦, recurring กลไก background job vs on-demand, email provider 📦
