@@ -179,7 +179,7 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 5. ✅ สร้าง Use Cases → `src/PocketWise.Application/Features/Auth/`: Register, Login, Refresh, Logout/Revoke, Me — พร้อม DTOs
 6. ✅ **Decision Point D15 — อายุ token:** access 60 นาที / refresh 30 วัน
 7. ✅ ชื่อ route ของ auth endpoints — ล็อกจาก D11: `/api/v1/auth/{register,login,refresh,logout,me}`
-8. ⬜ Frontend sync — รอ Phase ที่แตะ FE (`src/types/auth.types.ts`, `src/schemas/auth.schema.ts`, หน้า `(auth)/`)
+8. ✅ **Frontend sync:** `src/types/api.types.ts`, `src/types/auth.types.ts`, `src/schemas/auth.schema.ts`, หน้า `(auth)/login` + `(auth)/register`, BFF auth routes, และ proxy route guard ครบถ้วน
 9. ✅ Gate: register/login/me ผ่าน API จริง; build ผ่าน 0 error; tokens ถูก hash ใน DB
 
 ---

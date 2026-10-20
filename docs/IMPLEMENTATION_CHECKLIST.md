@@ -64,7 +64,7 @@
 | 3.7 | Token issuing service (claims, expiries) ที่ `Api/Authentication/` + Controllers (thin) | ✅ | `JwtTokenService.cs`, `AuthController.cs` |
 | 3.8 | Refresh token rule เต็ม: SHA-256 hash, rotation, `ReplacedByTokenHash`, reuse → revoke ทั้ง user, multi-device | ✅ | `UserRefreshTokenRepository.cs` + `AuthService.RefreshAsync` |
 | 3.9 | Contract ของ `/api/v1/auth/*` 5 endpoint ลง API_SPECIFICATION §5 | ✅ | D11 |
-| 3.10 | FE sync: `types/api.types.ts`, `types/auth.types.ts`, `schemas/auth.schema.ts`, หน้า (auth)/ + form | ⬜ | รอ Phase 3.5/FE เริ่ม |
+| 3.10 | FE sync: `types/api.types.ts`, `types/auth.types.ts`, `schemas/auth.schema.ts`, หน้า (auth)/ + form | ✅ | types/schemas/hooks/BFF routes + หน้า (auth)/login + register + proxy route protection ครบ |
 | 3.11 | Migration update (ตาราง Identity) + apply จริง | ✅ | migration `20261019061116_AddIdentity` applied บน `PocketWiseDb` |
 | 3.12 | Gate Phase 3: login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB | ✅ | ทดสอบ register/login/me ผ่าน; `dotnet build` 0 error; refresh/logout flow มีให้ใช้ |
 
