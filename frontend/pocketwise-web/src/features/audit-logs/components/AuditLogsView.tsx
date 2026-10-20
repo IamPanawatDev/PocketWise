@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import {
   useAuditEntityTypes,
+  useAuditLogSettings,
   useAuditLogs,
 } from "@/features/audit-logs/hooks/useAuditLogs";
 import type { AuditLogFilter, AuditLogResponse } from "@/types/audit-log.types";
-import { History, RefreshCw } from "lucide-react";
+import { AlertTriangle, History, RefreshCw, Settings } from "lucide-react";
 import { AuditLogDetailDialog } from "./AuditLogDetailDialog";
 import { AuditLogFilterBar } from "./AuditLogFilterBar";
+import { AuditLogSettingsModal } from "./AuditLogSettingsModal";
 import { AuditLogTable } from "./AuditLogTable";
 
 export function AuditLogsView() {
@@ -17,9 +20,14 @@ export function AuditLogsView() {
   const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLogResponse | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const { data: user } = useCurrentUser();
+  const isAdmin = user?.roles?.includes("Admin") ?? false;
 
   const { data, isLoading, refetch, isFetching } = useAuditLogs(filter, page, 20);
   const { data: entityTypes = [] } = useAuditEntityTypes();
+  const { data: settings } = useAuditLogSettings(isAdmin);
 
   const handleFilterChange = (patch: Partial<AuditLogFilter>) => {
     setFilter((prev) => ({ ...prev, ...patch }));
@@ -61,18 +69,58 @@ export function AuditLogsView() {
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="self-start sm:self-auto"
-        >
-          <RefreshCw className={`mr-1.5 size-4 ${isFetching ? "animate-spin" : ""}`} />
-          รีเฟรชข้อมูล
-        </Button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {isAdmin && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSettingsOpen(true)}
+              className="border-[var(--pw-primary)]/40 hover:bg-[var(--pw-primary)]/10"
+            >
+              <Settings className="mr-1.5 size-4 text-[var(--pw-primary)]" />
+              ตั้งค่าการบันทึก (Admin Setup)
+            </Button>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`mr-1.5 size-4 ${isFetching ? "animate-spin" : ""}`} />
+            รีเฟรชข้อมูล
+          </Button>
+        </div>
       </div>
+
+      {/* Warning banner when Audit Log is disabled */}
+      {settings && !settings.isEnabled && (
+        <div className="flex items-center justify-between rounded-[var(--pw-rounded-sm)] border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 sm:text-sm">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="size-5 shrink-0 text-amber-400" />
+            <div>
+              <span className="font-bold">ระบบปิดการบันทึก Audit Log ชั่วคราว:</span>{" "}
+              <span>
+                ข้อมูลการเปลี่ยนแปลงใหม่จะไม่ถูกบันทึกลงฐานข้อมูลเพื่อประหยัดพื้นที่จัดเก็บ
+              </span>
+            </div>
+          </div>
+          {isAdmin && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSettingsOpen(true)}
+              className="text-xs text-amber-300 underline hover:text-amber-200"
+            >
+              เปิดการบันทึก
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Filter Bar */}
       <AuditLogFilterBar
@@ -99,6 +147,14 @@ export function AuditLogsView() {
         open={isDetailOpen}
         onClose={handleCloseDetail}
       />
+
+      {/* Admin Settings Modal */}
+      {isAdmin && (
+        <AuditLogSettingsModal
+          open={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }

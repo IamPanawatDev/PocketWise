@@ -38,7 +38,7 @@ public class MerchantService : IMerchantService
         return entity is null ? null : Map(entity);
     }
 
-    public async Task<MerchantResponse> CreateAsync(CreateMerchantRequest request, CancellationToken cancellationToken = default)
+    public async Task<MerchantResponse> CreateAsync(long actorUserId, CreateMerchantRequest request, CancellationToken cancellationToken = default)
     {
         await _createValidator.ValidateAndThrowAsync(request, cancellationToken);
         await ValidateCategoryAsync(request.DefaultCategoryId, cancellationToken);
@@ -66,7 +66,7 @@ public class MerchantService : IMerchantService
         if (_auditLogService != null)
         {
             await _auditLogService.LogAsync(
-                null,
+                actorUserId > 0 ? actorUserId : null,
                 AuditAction.Create,
                 "Merchants",
                 entity.MerchantId.ToString(),
@@ -83,7 +83,7 @@ public class MerchantService : IMerchantService
         return Map(entity);
     }
 
-    public async Task<MerchantResponse?> UpdateAsync(long id, UpdateMerchantRequest request, CancellationToken cancellationToken = default)
+    public async Task<MerchantResponse?> UpdateAsync(long id, long actorUserId, UpdateMerchantRequest request, CancellationToken cancellationToken = default)
     {
         await _updateValidator.ValidateAndThrowAsync(request, cancellationToken);
 
@@ -125,7 +125,7 @@ public class MerchantService : IMerchantService
         if (_auditLogService != null)
         {
             await _auditLogService.LogAsync(
-                null,
+                actorUserId > 0 ? actorUserId : null,
                 AuditAction.Update,
                 "Merchants",
                 id.ToString(),
@@ -146,7 +146,7 @@ public class MerchantService : IMerchantService
         return Map(entity);
     }
 
-    public async Task<bool> DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(long id, long actorUserId, CancellationToken cancellationToken = default)
     {
         var entity = await _repository.GetByIdAsync(id, cancellationToken);
         if (entity is null)
@@ -160,7 +160,7 @@ public class MerchantService : IMerchantService
         if (_auditLogService != null)
         {
             await _auditLogService.LogAsync(
-                null,
+                actorUserId > 0 ? actorUserId : null,
                 AuditAction.Delete,
                 "Merchants",
                 id.ToString(),

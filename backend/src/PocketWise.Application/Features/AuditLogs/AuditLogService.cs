@@ -12,7 +12,12 @@ namespace PocketWise.Application.Features.AuditLogs;
 public class AuditLogService : IAuditLogService
 {
     private readonly IAuditLogRepository _repository;
+    private readonly ICurrentUserContext? _currentUserContext;
     private readonly ILogger<AuditLogService> _logger;
+
+    private static volatile bool _cachedIsEnabled = true;
+    private static volatile bool _hasLoadedSetting = false;
+    private static readonly SemaphoreSlim SettingLock = new(1, 1);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -34,10 +39,14 @@ public class AuditLogService : IAuditLogService
         "accesstoken"
     };
 
-    public AuditLogService(IAuditLogRepository repository, ILogger<AuditLogService> logger)
+    public AuditLogService(
+        IAuditLogRepository repository,
+        ILogger<AuditLogService> logger,
+        ICurrentUserContext? currentUserContext = null)
     {
         _repository = repository;
         _logger = logger;
+        _currentUserContext = currentUserContext;
     }
 
     public async Task LogAsync(
@@ -50,6 +59,18 @@ public class AuditLogService : IAuditLogService
     {
         try
         {
+            // Check if Audit Log recording is enabled
+            if (!await IsEnabledAsync(cancellationToken))
+            {
+                return; // Disabled by Admin -> skip writing to avoid database bloat
+            }
+
+            // Fallback for userId: if not provided or 0, auto-resolve from CurrentUserContext
+            if ((userId == null || userId <= 0) && _currentUserContext?.UserId.HasValue == true)
+            {
+                userId = _currentUserContext.UserId.Value;
+            }
+
             string? detailsJson = null;
             if (details != null)
             {
@@ -157,17 +178,129 @@ public class AuditLogService : IAuditLogService
         return await _repository.GetEntityTypesAsync(targetUserId, cancellationToken);
     }
 
+    public async Task<AuditLogSettingsResponse> GetSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        var isEnabled = await _repository.IsAuditLogEnabledAsync(cancellationToken);
+        _cachedIsEnabled = isEnabled;
+        _hasLoadedSetting = true;
+
+        var totalLogs = await _repository.GetTotalCountAsync(cancellationToken);
+        var (oldest, latest) = await _repository.GetDateRangeAsync(cancellationToken);
+
+        return new AuditLogSettingsResponse
+        {
+            IsEnabled = isEnabled,
+            TotalLogs = totalLogs,
+            OldestLogDate = oldest,
+            LatestLogDate = latest,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    public async Task SetSettingsAsync(bool enabled, long actorUserId, CancellationToken cancellationToken = default)
+    {
+        _cachedIsEnabled = enabled;
+        _hasLoadedSetting = true;
+
+        await _repository.SetAuditLogEnabledAsync(enabled, actorUserId, cancellationToken);
+
+        // Always log this critical administrative action directly
+        try
+        {
+            var log = new AuditLog
+            {
+                UserId = actorUserId,
+                Action = AuditAction.Update,
+                EntityType = "SystemSettings",
+                EntityId = "AuditLog:Enabled",
+                OccurredAt = DateTime.UtcNow,
+                DetailsJson = JsonSerializer.Serialize(new
+                {
+                    Setting = "AuditLog:Enabled",
+                    IsEnabled = enabled,
+                    ActionDescription = enabled ? "เปิดการบันทึกประวัติการเปลี่ยนแปลง" : "ปิดการบันทึกประวัติการเปลี่ยนแปลง (ป้องกันฐานข้อมูลบวม)"
+                }, JsonOptions)
+            };
+            await _repository.AddAsync(log, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to record audit log setting change");
+        }
+    }
+
+    public async Task<PurgeAuditLogsResponse> PurgeLogsAsync(int olderThanDays, long actorUserId, CancellationToken cancellationToken = default)
+    {
+        DateTime? cutoffDate = olderThanDays > 0 ? DateTime.UtcNow.AddDays(-olderThanDays) : null;
+        var deletedCount = await _repository.PurgeOlderThanAsync(cutoffDate, cancellationToken);
+
+        // Log the purge event
+        try
+        {
+            var log = new AuditLog
+            {
+                UserId = actorUserId,
+                Action = AuditAction.Delete,
+                EntityType = "AuditLogs",
+                EntityId = "purge",
+                OccurredAt = DateTime.UtcNow,
+                DetailsJson = JsonSerializer.Serialize(new
+                {
+                    OlderThanDays = olderThanDays,
+                    CutoffDate = cutoffDate,
+                    DeletedCount = deletedCount
+                }, JsonOptions)
+            };
+            await _repository.AddAsync(log, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to record audit log purge event");
+        }
+
+        var message = olderThanDays > 0
+            ? $"ล้างประวัติที่เก่ากว่า {olderThanDays} วัน สำเร็จทั้งหมด {deletedCount:N0} รายการ"
+            : $"ล้างประวัติทั้งหมดสำเร็จ {deletedCount:N0} รายการ";
+
+        return new PurgeAuditLogsResponse
+        {
+            DeletedCount = deletedCount,
+            Message = message
+        };
+    }
+
+    private async Task<bool> IsEnabledAsync(CancellationToken cancellationToken)
+    {
+        if (_hasLoadedSetting)
+        {
+            return _cachedIsEnabled;
+        }
+
+        await SettingLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_hasLoadedSetting)
+            {
+                _cachedIsEnabled = await _repository.IsAuditLogEnabledAsync(cancellationToken);
+                _hasLoadedSetting = true;
+            }
+            return _cachedIsEnabled;
+        }
+        finally
+        {
+            SettingLock.Release();
+        }
+    }
+
     private static string SanitizeJson(string json)
     {
         try
         {
             var node = JsonNode.Parse(json);
-            if (node is JsonObject obj)
-            {
-                SanitizeObject(obj);
-                return obj.ToJsonString(JsonOptions);
-            }
-            return json;
+            if (node is null) return json;
+
+            SanitizeNode(node);
+            return node.ToJsonString(JsonOptions);
         }
         catch
         {
@@ -175,34 +308,32 @@ public class AuditLogService : IAuditLogService
         }
     }
 
-    private static void SanitizeObject(JsonObject obj)
+    private static void SanitizeNode(JsonNode node)
     {
-        var keysToMask = new List<string>();
-        foreach (var kvp in obj)
+        if (node is JsonObject obj)
         {
-            if (SensitiveKeys.Contains(kvp.Key))
+            var keys = obj.Select(kv => kv.Key).ToList();
+            foreach (var key in keys)
             {
-                keysToMask.Add(kvp.Key);
-            }
-            else if (kvp.Value is JsonObject childObj)
-            {
-                SanitizeObject(childObj);
-            }
-            else if (kvp.Value is JsonArray arr)
-            {
-                foreach (var item in arr)
+                if (SensitiveKeys.Contains(key))
                 {
-                    if (item is JsonObject arrObj)
-                    {
-                        SanitizeObject(arrObj);
-                    }
+                    obj[key] = "***MASKED***";
+                }
+                else if (obj[key] is not null)
+                {
+                    SanitizeNode(obj[key]!);
                 }
             }
         }
-
-        foreach (var key in keysToMask)
+        else if (node is JsonArray arr)
         {
-            obj[key] = "***MASKED***";
+            foreach (var item in arr)
+            {
+                if (item is not null)
+                {
+                    SanitizeNode(item);
+                }
+            }
         }
     }
 }

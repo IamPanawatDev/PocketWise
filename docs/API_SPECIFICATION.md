@@ -963,6 +963,9 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 | `GET` | `/api/v1/audit-logs` | ดึงรายการประวัติการเปลี่ยนแปลงแบบแบ่งหน้า (กรองตาม action, entityType, entityId, ช่วงเวลา, คำค้นหา, userId สำหรับ Admin) | `Member` / `Admin` |
 | `GET` | `/api/v1/audit-logs/entity-types` | ดึงรายการ EntityType ทั้งหมดที่มีการบันทึกประวัติ (สำหรับ dropdown filter) | `Member` / `Admin` |
 | `GET` | `/api/v1/audit-logs/{id}` | ดึงรายละเอียดประวัติการเปลี่ยนแปลงตาม Id พร้อม DetailsJson (before/after/payload) | `Member` / `Admin` |
+| `GET` | `/api/v1/audit-logs/settings` | ดึงสถานะการตั้งค่าการบันทึกและสถิติพื้นที่จัดเก็บของ Audit Log (จำนวนประวัติ, วันที่เก่าสุด/ล่าสุด) | `Admin` |
+| `PUT` | `/api/v1/audit-logs/settings` | เปิด/ปิดการบันทึกประวัติการเปลี่ยนแปลง Audit Log เพื่อป้องกันฐานข้อมูลบวม | `Admin` |
+| `POST` | `/api/v1/audit-logs/purge` | ล้างประวัติการเปลี่ยนแปลงเก่าตามจำนวนวัน (หรือลบทั้งหมด) เพื่อคืนพื้นที่ฐานข้อมูล | `Admin` |
 
 ### Query Parameters สำหรับ `GET /api/v1/audit-logs`
 
@@ -1047,6 +1050,59 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
     "User",
     "UserSettings"
   ]
+}
+```
+
+#### 4. `GET /api/v1/audit-logs/settings` Response
+```json
+{
+  "success": true,
+  "data": {
+    "isEnabled": true,
+    "totalLogs": 2450,
+    "oldestLogDate": "2026-08-01T12:00:00Z",
+    "latestLogDate": "2026-10-21T01:00:00Z",
+    "updatedAt": "2026-10-21T00:30:00Z",
+    "updatedByUserId": 1
+  }
+}
+```
+
+#### 5. `PUT /api/v1/audit-logs/settings` Request & Response
+```json
+// Request
+{
+  "isEnabled": false
+}
+
+// Response
+{
+  "success": true,
+  "data": {
+    "isEnabled": false,
+    "totalLogs": 2450,
+    "oldestLogDate": "2026-08-01T12:00:00Z",
+    "latestLogDate": "2026-10-21T01:00:00Z",
+    "updatedAt": "2026-10-21T01:15:00Z",
+    "updatedByUserId": 1
+  }
+}
+```
+
+#### 6. `POST /api/v1/audit-logs/purge` Request & Response
+```json
+// Request (olderThanDays = 0 หมายถึงลบทั้งหมด)
+{
+  "olderThanDays": 90
+}
+
+// Response
+{
+  "success": true,
+  "data": {
+    "deletedCount": 420,
+    "message": "ลบประวัติการเปลี่ยนแปลงที่เก่ากว่า 90 วันเรียบร้อยแล้ว (420 รายการ)"
+  }
 }
 ```
 

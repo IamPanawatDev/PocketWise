@@ -1,8 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import type { AuditLogFilter, AuditLogResponse } from "@/types/audit-log.types";
+import type {
+  AuditLogFilter,
+  AuditLogResponse,
+  AuditLogSettingsResponse,
+  PurgeAuditLogsRequest,
+  PurgeAuditLogsResponse,
+  UpdateAuditLogSettingsRequest,
+} from "@/types/audit-log.types";
 import type { PagedResult } from "@/types/api.types";
 
 function buildAuditLogQuery(filter: AuditLogFilter, page = 1, pageSize = 20): string {
@@ -39,5 +46,37 @@ export function useAuditEntityTypes() {
   return useQuery({
     queryKey: ["audit-logs", "entity-types"],
     queryFn: () => apiClient.get<string[]>("/api/v1/audit-logs/entity-types"),
+  });
+}
+
+export function useAuditLogSettings(enabled = true) {
+  return useQuery({
+    queryKey: ["audit-logs", "settings"],
+    queryFn: () => apiClient.get<AuditLogSettingsResponse>("/api/v1/audit-logs/settings"),
+    enabled,
+  });
+}
+
+export function useUpdateAuditLogSettingsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateAuditLogSettingsRequest) =>
+      apiClient.put<AuditLogSettingsResponse>("/api/v1/audit-logs/settings", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-logs", "settings"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
+    },
+  });
+}
+
+export function usePurgeAuditLogsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: PurgeAuditLogsRequest) =>
+      apiClient.post<PurgeAuditLogsResponse>("/api/v1/audit-logs/purge", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-logs", "settings"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
+    },
   });
 }

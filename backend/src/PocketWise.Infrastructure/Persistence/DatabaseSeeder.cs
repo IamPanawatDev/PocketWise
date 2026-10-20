@@ -10,8 +10,46 @@ public static class DatabaseSeeder
 {
     public static async Task SeedAsync(PocketWiseDbContext context, ILogger logger, CancellationToken cancellationToken = default)
     {
+        await SeedSystemSettingsAsync(context, logger, cancellationToken);
         await SeedSystemCategoriesAsync(context, logger, cancellationToken);
         await SeedPermissionsAndRolesAsync(context, logger, cancellationToken);
+    }
+
+    private static async Task SeedSystemSettingsAsync(PocketWiseDbContext context, ILogger logger, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SystemSettings')
+BEGIN
+    CREATE TABLE [SystemSettings] (
+        [SettingKey] NVARCHAR(100) NOT NULL PRIMARY KEY,
+        [SettingValue] NVARCHAR(500) NOT NULL,
+        [Description] NVARCHAR(500) NULL,
+        [UpdatedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedByUserId] BIGINT NULL
+    );
+END
+", cancellationToken);
+
+            var setting = await context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);
+            if (setting == null)
+            {
+                context.SystemSettings.Add(new SystemSetting
+                {
+                    SettingKey = "AuditLog:Enabled",
+                    SettingValue = "true",
+                    Description = "เปิด/ปิด การบันทึกประวัติการเปลี่ยนแปลง (Audit Logs) ทั้งระบบ",
+                    UpdatedAt = DateTime.UtcNow
+                });
+                await context.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("[DatabaseSeeder] SystemSetting 'AuditLog:Enabled' seeded.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[DatabaseSeeder] Failed to seed system settings table.");
+        }
     }
 
     private static async Task SeedSystemCategoriesAsync(PocketWiseDbContext context, ILogger logger, CancellationToken cancellationToken)

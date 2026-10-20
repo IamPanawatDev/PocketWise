@@ -22,3 +22,25 @@ export interface AuditLogFilter {
   page?: number;
   pageSize?: number;
 }
+
+export interface AuditLogSettingsResponse {
+  isEnabled: boolean;
+  totalLogs: number;
+  oldestLogDate: string | null;
+  latestLogDate: string | null;
+  updatedAt: string | null;
+  updatedByUserId: number | null;
+}
+
+export interface UpdateAuditLogSettingsRequest {
+  isEnabled: boolean;
+}
+
+export interface PurgeAuditLogsRequest {
+  olderThanDays: number;
+}
+
+export interface PurgeAuditLogsResponse {
+  deletedCount: number;
+  message: string;
+}

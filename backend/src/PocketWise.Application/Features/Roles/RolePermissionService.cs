@@ -63,7 +63,7 @@ public class RolePermissionService : IRolePermissionService
         );
     }
 
-    public async Task<RoleDetailResponse> CreateRoleAsync(CreateRoleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RoleDetailResponse> CreateRoleAsync(long actorUserId, CreateRoleRequest request, CancellationToken cancellationToken = default)
     {
         var roleName = request.Name.Trim();
         if (string.IsNullOrWhiteSpace(roleName))
@@ -97,7 +97,7 @@ public class RolePermissionService : IRolePermissionService
         if (_auditLogService != null)
         {
             await _auditLogService.LogAsync(
-                null,
+                actorUserId,
                 AuditAction.Create,
                 "Roles",
                 role.Id.ToString(),
@@ -113,7 +113,7 @@ public class RolePermissionService : IRolePermissionService
         return (await GetRoleByIdAsync(role.Id, cancellationToken))!;
     }
 
-    public async Task<RoleDetailResponse?> UpdateRoleAsync(long roleId, UpdateRoleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RoleDetailResponse?> UpdateRoleAsync(long roleId, long actorUserId, UpdateRoleRequest request, CancellationToken cancellationToken = default)
     {
         var role = await _repository.GetRoleByIdAsync(roleId, cancellationToken);
         if (role == null) return null;
@@ -147,7 +147,7 @@ public class RolePermissionService : IRolePermissionService
         if (_auditLogService != null)
         {
             await _auditLogService.LogAsync(
-                null,
+                actorUserId,
                 AuditAction.Update,
                 "Roles",
                 roleId.ToString(),
@@ -167,7 +167,7 @@ public class RolePermissionService : IRolePermissionService
         return await GetRoleByIdAsync(roleId, cancellationToken);
     }
 
-    public async Task<bool> DeleteRoleAsync(long roleId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteRoleAsync(long roleId, long actorUserId, CancellationToken cancellationToken = default)
     {
         var role = await _repository.GetRoleByIdAsync(roleId, cancellationToken);
         if (role == null) return false;
@@ -184,7 +184,7 @@ public class RolePermissionService : IRolePermissionService
         if (_auditLogService != null)
         {
             await _auditLogService.LogAsync(
-                null,
+                actorUserId,
                 AuditAction.Delete,
                 "Roles",
                 roleId.ToString(),
@@ -207,7 +207,7 @@ public class RolePermissionService : IRolePermissionService
         )).ToList();
     }
 
-    public async Task<RoleDetailResponse?> UpdateRolePermissionsAsync(long roleId, UpdateRolePermissionsRequest request, CancellationToken cancellationToken = default)
+    public async Task<RoleDetailResponse?> UpdateRolePermissionsAsync(long roleId, long actorUserId, UpdateRolePermissionsRequest request, CancellationToken cancellationToken = default)
     {
         var role = await _repository.GetRoleByIdAsync(roleId, cancellationToken);
         if (role == null) return null;
@@ -218,7 +218,7 @@ public class RolePermissionService : IRolePermissionService
         if (_auditLogService != null)
         {
             await _auditLogService.LogAsync(
-                null,
+                actorUserId,
                 AuditAction.Update,
                 "RolePermissions",
                 roleId.ToString(),
@@ -244,7 +244,7 @@ public class RolePermissionService : IRolePermissionService
         )).ToList();
     }
 
-    public async Task<UserWithRolesResponse?> AssignUserRolesAsync(long userId, AssignUserRolesRequest request, CancellationToken cancellationToken = default)
+    public async Task<UserWithRolesResponse?> AssignUserRolesAsync(long userId, long actorUserId, AssignUserRolesRequest request, CancellationToken cancellationToken = default)
     {
         var users = await _repository.GetUsersAsync(cancellationToken);
         var targetUser = users.FirstOrDefault(u => u.Id == userId);
@@ -256,7 +256,7 @@ public class RolePermissionService : IRolePermissionService
         if (_auditLogService != null)
         {
             await _auditLogService.LogAsync(
-                userId,
+                actorUserId,
                 AuditAction.Update,
                 "UserRoles",
                 userId.ToString(),

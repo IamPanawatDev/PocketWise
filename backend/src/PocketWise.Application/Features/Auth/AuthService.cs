@@ -65,6 +65,17 @@ public class AuthService : IAuthService
         // Assign default 'Member' role
         await _userManager.AddToRoleAsync(user, "Member");
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                user.Id,
+                AuditAction.Create,
+                "Users",
+                user.Id.ToString(),
+                new { user.Email, user.DisplayName, Role = "Member" },
+                cancellationToken);
+        }
+
         return await GenerateTokenPairAndSaveAsync(user, ipAddress, userAgent, cancellationToken);
     }
 
@@ -80,6 +91,17 @@ public class AuthService : IAuthService
         if (!passwordValid)
         {
             return null;
+        }
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                user.Id,
+                AuditAction.Update,
+                "Auth",
+                user.Id.ToString(),
+                new { Action = "Login", user.Email, IpAddress = ipAddress },
+                cancellationToken);
         }
 
         return await GenerateTokenPairAndSaveAsync(user, ipAddress, userAgent, cancellationToken);
@@ -124,6 +146,17 @@ public class AuthService : IAuthService
 
         await _refreshTokenRepository.RevokeAllForUserAsync(userId, null, RevokeReason.Logout.ToString(), cancellationToken);
         await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "Auth",
+                userId.ToString(),
+                new { Action = "Logout" },
+                cancellationToken);
+        }
     }
 
     public async Task<UserProfileResponse?> MeAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
@@ -353,6 +386,17 @@ public class AuthService : IAuthService
         user.EmailConfirmed = true;
         user.UpdatedAt = DateTime.UtcNow;
         await _userManager.UpdateAsync(user);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                user.Id,
+                AuditAction.Update,
+                "Users",
+                user.Id.ToString(),
+                new { Action = "VerifyEmail", user.Email },
+                cancellationToken);
+        }
 
         return new VerifyEmailResponse(true, user.Email ?? string.Empty, "ยืนยันที่อยู่อีเมลสำเร็จเรียบร้อยแล้ว");
     }

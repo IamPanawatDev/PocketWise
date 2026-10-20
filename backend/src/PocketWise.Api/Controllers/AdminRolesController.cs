@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PocketWise.Application.DTOs;
@@ -41,7 +42,8 @@ public class AdminRolesController : ControllerBase
     {
         try
         {
-            var created = await _roleService.CreateRoleAsync(request, cancellationToken);
+            var actorUserId = GetUserId();
+            var created = await _roleService.CreateRoleAsync(actorUserId, request, cancellationToken);
             return CreatedAtAction(nameof(GetRoleByIdAsync), new { id = created.Id }, ApiResponse<RoleDetailResponse>.Ok(created));
         }
         catch (ArgumentException ex)
@@ -59,7 +61,8 @@ public class AdminRolesController : ControllerBase
     {
         try
         {
-            var updated = await _roleService.UpdateRoleAsync(id, request, cancellationToken);
+            var actorUserId = GetUserId();
+            var updated = await _roleService.UpdateRoleAsync(id, actorUserId, request, cancellationToken);
             if (updated == null)
             {
                 return NotFound(ApiResponse<RoleDetailResponse>.Fail("NOT_FOUND", "ไม่พบบทบาทที่ระบุ"));
@@ -81,7 +84,8 @@ public class AdminRolesController : ControllerBase
     {
         try
         {
-            var deleted = await _roleService.DeleteRoleAsync(id, cancellationToken);
+            var actorUserId = GetUserId();
+            var deleted = await _roleService.DeleteRoleAsync(id, actorUserId, cancellationToken);
             if (!deleted)
             {
                 return NotFound(ApiResponse<object?>.Fail("NOT_FOUND", "ไม่พบบทบาทที่ระบุ"));
@@ -104,7 +108,8 @@ public class AdminRolesController : ControllerBase
     [HttpPut("roles/{id:long}/permissions")]
     public async Task<ActionResult<ApiResponse<RoleDetailResponse>>> UpdateRolePermissionsAsync(long id, [FromBody] UpdateRolePermissionsRequest request, CancellationToken cancellationToken)
     {
-        var updated = await _roleService.UpdateRolePermissionsAsync(id, request, cancellationToken);
+        var actorUserId = GetUserId();
+        var updated = await _roleService.UpdateRolePermissionsAsync(id, actorUserId, request, cancellationToken);
         if (updated == null)
         {
             return NotFound(ApiResponse<RoleDetailResponse>.Fail("NOT_FOUND", "ไม่พบบทบาทที่ระบุ"));
@@ -122,11 +127,18 @@ public class AdminRolesController : ControllerBase
     [HttpPut("users/{userId:long}/roles")]
     public async Task<ActionResult<ApiResponse<UserWithRolesResponse>>> AssignUserRolesAsync(long userId, [FromBody] AssignUserRolesRequest request, CancellationToken cancellationToken)
     {
-        var updated = await _roleService.AssignUserRolesAsync(userId, request, cancellationToken);
+        var actorUserId = GetUserId();
+        var updated = await _roleService.AssignUserRolesAsync(userId, actorUserId, request, cancellationToken);
         if (updated == null)
         {
             return NotFound(ApiResponse<UserWithRolesResponse>.Fail("NOT_FOUND", "ไม่พบผู้ใช้ที่ระบุ"));
         }
         return Ok(ApiResponse<UserWithRolesResponse>.Ok(updated));
+    }
+
+    private long GetUserId()
+    {
+        var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return long.TryParse(value, out var id) ? id : 0;
     }
 }

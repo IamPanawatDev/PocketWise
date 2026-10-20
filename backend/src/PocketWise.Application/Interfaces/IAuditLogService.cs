@@ -32,4 +32,10 @@ public interface IAuditLogService
         long currentUserId,
         bool isAdmin,
         CancellationToken cancellationToken = default);
+
+    Task<AuditLogSettingsResponse> GetSettingsAsync(CancellationToken cancellationToken = default);
+
+    Task SetSettingsAsync(bool enabled, long actorUserId, CancellationToken cancellationToken = default);
+
+    Task<PurgeAuditLogsResponse> PurgeLogsAsync(int olderThanDays, long actorUserId, CancellationToken cancellationToken = default);
 }

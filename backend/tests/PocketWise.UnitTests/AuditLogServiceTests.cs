@@ -104,6 +104,45 @@ public class AuditLogServiceTests
             IReadOnlyList<string> result = query.Select(l => l.EntityType).Distinct().OrderBy(e => e).ToList();
             return Task.FromResult(result);
         }
+
+        public bool IsEnabled { get; set; } = true;
+
+        public Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Logs.Count);
+        }
+
+        public Task<(DateTime? Oldest, DateTime? Latest)> GetDateRangeAsync(CancellationToken cancellationToken = default)
+        {
+            if (Logs.Count == 0) return Task.FromResult(((DateTime?)null, (DateTime?)null));
+            return Task.FromResult(((DateTime?)Logs.Min(l => l.OccurredAt), (DateTime?)Logs.Max(l => l.OccurredAt)));
+        }
+
+        public Task<int> PurgeOlderThanAsync(DateTime? cutoffDate, CancellationToken cancellationToken = default)
+        {
+            int removed;
+            if (cutoffDate.HasValue)
+            {
+                removed = Logs.RemoveAll(l => l.OccurredAt < cutoffDate.Value);
+            }
+            else
+            {
+                removed = Logs.Count;
+                Logs.Clear();
+            }
+            return Task.FromResult(removed);
+        }
+
+        public Task<bool> IsAuditLogEnabledAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(IsEnabled);
+        }
+
+        public Task SetAuditLogEnabledAsync(bool enabled, long? updatedByUserId, CancellationToken cancellationToken = default)
+        {
+            IsEnabled = enabled;
+            return Task.CompletedTask;
+        }
     }
 
     private readonly FakeAuditLogRepository _fakeRepo = new();
@@ -259,5 +298,94 @@ public class AuditLogServiceTests
 
         Assert.Equal(3, adminTypes.Count);
         Assert.Contains("CreditCards", adminTypes);
+    }
+
+    [Fact]
+    public async Task GetSettingsAsync_ReturnsRepositorySettings()
+    {
+        // Arrange
+        _fakeRepo.IsEnabled = true;
+        _fakeRepo.Logs.Add(new AuditLog { AuditLogId = 1, OccurredAt = DateTime.UtcNow.AddDays(-5) });
+        _fakeRepo.Logs.Add(new AuditLog { AuditLogId = 2, OccurredAt = DateTime.UtcNow });
+
+        // Act
+        var settings = await _service.GetSettingsAsync();
+
+        // Assert
+        Assert.True(settings.IsEnabled);
+        Assert.Equal(2, settings.TotalLogs);
+        Assert.NotNull(settings.OldestLogDate);
+        Assert.NotNull(settings.LatestLogDate);
+    }
+
+    [Fact]
+    public async Task SetSettingsAsync_UpdatesStatus_AndInvalidatesCache()
+    {
+        // Act
+        await _service.SetSettingsAsync(false, actorUserId: 99);
+
+        // Assert
+        Assert.False(_fakeRepo.IsEnabled);
+    }
+
+    [Fact]
+    public async Task LogAsync_SkipsRecording_WhenAuditLogIsDisabled()
+    {
+        // Arrange: disable audit log
+        await _service.SetSettingsAsync(false, actorUserId: 99);
+        _fakeRepo.Logs.Clear();
+
+        // Act
+        await _service.LogAsync(1, AuditAction.Create, "Transactions", "123", new { Amount = 100 });
+
+        // Assert
+        Assert.Empty(_fakeRepo.Logs);
+    }
+
+    [Fact]
+    public async Task LogAsync_UsesCurrentUserContext_WhenUserIdIsNull()
+    {
+        // Arrange
+        var fakeContext = new FakeCurrentUserContext(userId: 777, email: "context@user.com");
+        var serviceWithContext = new AuditLogService(_fakeRepo, NullLogger<AuditLogService>.Instance, fakeContext);
+
+        // Act
+        await serviceWithContext.LogAsync(null, AuditAction.Create, "TestEntity", "1");
+
+        // Assert
+        Assert.Single(_fakeRepo.Logs);
+        Assert.Equal(777, _fakeRepo.Logs[0].UserId);
+    }
+
+    [Fact]
+    public async Task PurgeLogsAsync_PurgesOldLogs_Successfully()
+    {
+        // Arrange
+        _fakeRepo.Logs.Add(new AuditLog { AuditLogId = 1, OccurredAt = DateTime.UtcNow.AddDays(-100) });
+        _fakeRepo.Logs.Add(new AuditLog { AuditLogId = 2, OccurredAt = DateTime.UtcNow.AddDays(-10) });
+
+        // Act - purge older than 30 days
+        var purgeResult = await _service.PurgeLogsAsync(30, actorUserId: 99);
+
+        // Assert
+        Assert.Equal(1, purgeResult.DeletedCount);
+        // Remains: un-purged log #2, plus the new audit log recording the purge action itself
+        Assert.Equal(2, _fakeRepo.Logs.Count);
+        Assert.Contains(_fakeRepo.Logs, l => l.AuditLogId == 2);
+        Assert.Contains(_fakeRepo.Logs, l => l.EntityType == "AuditLogs" && l.EntityId == "purge");
+    }
+
+    private class FakeCurrentUserContext : ICurrentUserContext
+    {
+        public FakeCurrentUserContext(long? userId, string? email)
+        {
+            UserId = userId;
+            UserEmail = email;
+            IsAuthenticated = userId.HasValue;
+        }
+
+        public long? UserId { get; }
+        public string? UserEmail { get; }
+        public bool IsAuthenticated { get; }
     }
 }

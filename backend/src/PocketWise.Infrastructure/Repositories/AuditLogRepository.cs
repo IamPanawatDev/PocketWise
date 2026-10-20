@@ -123,4 +123,67 @@ public class AuditLogRepository : IAuditLogRepository
             .OrderBy(e => e)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.AuditLogs.CountAsync(cancellationToken);
+    }
+
+    public async Task<(DateTime? Oldest, DateTime? Latest)> GetDateRangeAsync(CancellationToken cancellationToken = default)
+    {
+        var hasAny = await _dbContext.AuditLogs.AnyAsync(cancellationToken);
+        if (!hasAny) return (null, null);
+
+        var oldest = await _dbContext.AuditLogs.MinAsync(a => (DateTime?)a.OccurredAt, cancellationToken);
+        var latest = await _dbContext.AuditLogs.MaxAsync(a => (DateTime?)a.OccurredAt, cancellationToken);
+        return (oldest, latest);
+    }
+
+    public async Task<int> PurgeOlderThanAsync(DateTime? cutoffDate, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.AuditLogs.AsQueryable();
+        if (cutoffDate.HasValue)
+        {
+            query = query.Where(a => a.OccurredAt < cutoffDate.Value);
+        }
+
+        return await query.ExecuteDeleteAsync(cancellationToken);
+    }
+
+    public async Task<bool> IsAuditLogEnabledAsync(CancellationToken cancellationToken = default)
+    {
+        var setting = await _dbContext.SystemSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);
+
+        if (setting == null) return true; // Default is enabled
+        return !bool.TryParse(setting.SettingValue, out var val) || val;
+    }
+
+    public async Task SetAuditLogEnabledAsync(bool enabled, long? actorUserId, CancellationToken cancellationToken = default)
+    {
+        var setting = await _dbContext.SystemSettings
+            .FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);
+
+        if (setting == null)
+        {
+            setting = new SystemSetting
+            {
+                SettingKey = "AuditLog:Enabled",
+                SettingValue = enabled.ToString().ToLowerInvariant(),
+                Description = "เปิด/ปิด การบันทึกประวัติการเปลี่ยนแปลง (Audit Logs) ทั้งระบบ",
+                UpdatedAt = DateTime.UtcNow,
+                UpdatedByUserId = actorUserId
+            };
+            _dbContext.SystemSettings.Add(setting);
+        }
+        else
+        {
+            setting.SettingValue = enabled.ToString().ToLowerInvariant();
+            setting.UpdatedAt = DateTime.UtcNow;
+            setting.UpdatedByUserId = actorUserId;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

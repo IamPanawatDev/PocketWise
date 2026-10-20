@@ -157,7 +157,7 @@ public class RolePermissionServiceTests
         var request = new CreateRoleRequest("Admin", "Duplicate role", null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateRoleAsync(request));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateRoleAsync(1, request));
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public class RolePermissionServiceTests
         var request = new CreateRoleRequest("   ", "Empty", null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateRoleAsync(request));
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateRoleAsync(1, request));
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class RolePermissionServiceTests
         _fakeRepo.Roles.Add(new ApplicationRole { Id = 1, Name = "Admin", NormalizedName = "ADMIN" });
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.DeleteRoleAsync(1));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.DeleteRoleAsync(1, 1));
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class RolePermissionServiceTests
         var request = new UpdateRolePermissionsRequest(new List<int> { 1, 2 });
 
         // Act
-        var result = await _service.UpdateRolePermissionsAsync(2, request);
+        var result = await _service.UpdateRolePermissionsAsync(2, 1, request);
 
         // Assert
         Assert.NotNull(result);
@@ -208,7 +208,7 @@ public class RolePermissionServiceTests
         var request = new AssignUserRolesRequest(new List<string> { "Member" });
 
         // Act
-        var result = await _service.AssignUserRolesAsync(10, request);
+        var result = await _service.AssignUserRolesAsync(10, 1, request);
 
         // Assert
         Assert.NotNull(result);
