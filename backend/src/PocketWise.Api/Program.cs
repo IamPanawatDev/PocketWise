@@ -7,6 +7,11 @@ using NSwag.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure logging (prevent Windows EventLog disposal/permission crashes on development)
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 // Add services to the container.
 
 builder.Services.AddInfrastructure(builder.Configuration);

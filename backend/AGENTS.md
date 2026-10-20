@@ -47,6 +47,11 @@ backend/
 
 ---
 
+### 📦 รายการ NuGet Packages ที่ได้รับอนุมัติแล้ว:
+- `Tesseract` (5.2.0) ใน `PocketWise.Infrastructure` — สำหรับ Local Offline OCR อ่านสลิปโอนเงินภาษาไทย/อังกฤษ ผ่าน `ISlipOcrService` ร่วมกับไฟล์โมเดล `tessdata/{tha,eng,osd}.traineddata`
+
+---
+
 ## 📁 3. คู่มือตำแหน่งไฟล์ (Code Placement Guide) — ต้องเขียนไว้ที่โฟลเดอร์ไหน?
 
 เมื่อต้องการเพิ่มหรือแก้ไขโค้ดฝั่ง Backend ให้วางไฟล์ลงในโฟลเดอร์ตามความรับผิดชอบอย่างเคร่งครัด:

@@ -2,6 +2,8 @@ using FluentValidation;
 using PocketWise.Api.Authentication;
 using PocketWise.Api.Services;
 using PocketWise.Application.Features.Notifications;
+using PocketWise.Application.Features.Imports;
+using PocketWise.Infrastructure.Services;
 using PocketWise.Application.DTOs.Auth;
 using PocketWise.Application.DTOs.BankAccounts;
 using PocketWise.Application.DTOs.Budgets;
@@ -56,6 +58,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IMerchantRepository, MerchantRepository>();
         services.AddScoped<ICategoryRuleRepository, CategoryRuleRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IImportRepository, ImportRepository>();
 
         // Services
         services.AddScoped<ITransactionService, TransactionService>();
@@ -72,6 +75,14 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IUserSettingsService, UserSettingsService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<INotificationSender, SignalRNotificationSender>();
+
+        // Import Services
+        services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<ISlipOcrService, TesseractSlipOcrService>();
+        services.AddScoped<IStatementParserService, StatementParserService>();
+        services.AddScoped<ISlipImportService, SlipImportService>();
+        services.AddScoped<IStatementImportService, StatementImportService>();
+        services.AddScoped<IImportJobService, ImportJobService>();
 
         // Validators
         services.AddScoped<IValidator<CreateTransactionRequest>, CreateTransactionValidator>();

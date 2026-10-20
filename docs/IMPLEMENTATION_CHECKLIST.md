@@ -124,14 +124,14 @@
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
-| 7.1 | ImportJobs + SlipImportFiles flow จริง (upload → process → review) | ⬜ | |
-| 7.2 | Statement import บัตรเครดิต (CreditCardStatements + Items) | ⬜ | S2 |
-| 7.3 | Duplicate detection ครบ (FileHash / TransactionReference / จำนวน+เวลา) → `DUPLICATE_TRANSACTION` | ⬜ | |
-| 7.4 | ❓ ที่เก็บไฟล์ — ตัดสิน (📦 ถ้า Blob) | ⬜ | |
-| 7.5 | ❓ ข้อจำกัดไฟล์ + quota — ตัดสิน | ⬜ | |
-| 7.6 | Progress ผ่าน SignalR (6.x) | ⬜ | |
-| 7.7 | OCR (option ท้าย phase) — (📦 provider) — ผู้ใช้ review ก่อน save | ⬜ | FR1.1–1.3 |
-| 7.8 | Gate: import ใช้งานจริง + สถานะ FR อัปเดต | ⬜ | |
+| 7.1 | ImportJobs + SlipImportFiles flow จริง (upload → process → review) | ✅ | Upload → OCR extraction → review form → create transaction (sourceType=Slip) |
+| 7.2 | Statement import บัตรเครดิต (CreditCardStatements + Items) | ✅ | S2: Parser CSV & JSON, statements CRUD, statement items, batch confirm (sourceType=CardStatement) |
+| 7.3 | Duplicate detection ครบ (FileHash / TransactionReference / จำนวน+เวลา) → `DUPLICATE_TRANSACTION` | ✅ | SHA-256 FileHash detection สำหรับสลิป, duplicate item detection (date+amount+ref/card) สำหรับบัตรเครดิต |
+| 7.4 | ❓ ที่เก็บไฟล์ — ตัดสิน (📦 ถ้า Blob) | ✅ | D38: Local Disk Storage ผ่าน `IFileStorageService` ใต้ `App_Data/uploads/` นอก public web root |
+| 7.5 | ❓ ข้อจำกัดไฟล์ + quota — ตัดสิน | ✅ | D38: สลิปจำกัด 10 MB (.jpg, .jpeg, .png, .webp, .pdf), ใบแจ้งยอด (.csv, .json) |
+| 7.6 | Progress ผ่าน SignalR (6.x) | ✅ | Real-time notification ผ่าน SignalR NotificationSender (`SLIP_IMPORT_REVIEW`, `SLIP_IMPORT_DUPLICATE`, `STATEMENT_IMPORT_COMPLETED`) |
+| 7.7 | OCR (option ท้าย phase) — (📦 provider) — ผู้ใช้ review ก่อน save | ✅ | FR1.1–1.3: ติดตั้ง `Tesseract` 5.2.0 (`TesseractSlipOcrService`) พร้อม `tha`+`eng` trained data อ่านสลิปจริงภาษาไทยและ review & confirm form ก่อนบันทึก |
+| 7.8 | Gate: import ใช้งานจริง + สถานะ FR อัปเดต | ✅ | 28/28 unit tests backend ผ่าน 100%, FE lint & build ผ่าน 0 error, อัปเดต FR1.1–FR1.3, FR4.8, S2 |
 
 ## 10. Phase 8 — Hardening & Deployment 🔁
 

@@ -216,6 +216,7 @@ function TimePicker({
   const [selectedHour, selectedMinute] = value.split(":");
   const hour = selectedHour || "00";
   const minute = selectedMinute || "00";
+  const displayTime = value ? `${hour}:${minute}` : "เลือกเวลา";
   const hours = Array.from({ length: 24 }, (_, index) =>
     index.toString().padStart(2, "0"),
   );
@@ -240,7 +241,7 @@ function TimePicker({
           className="h-11 w-full justify-between border-2 !border-[var(--pw-input-border)] bg-[var(--pw-input-surface)] px-3 text-left font-normal text-[var(--pw-ink)] hover:bg-[var(--pw-input-surface)]"
         >
           <span className={cn(!value && "text-[var(--pw-ink)]/55")}>
-            {value || "เลือกเวลา"}
+            {displayTime}
           </span>
           <Clock3 className="size-4 shrink-0 text-[var(--pw-link)]" aria-hidden="true" />
         </Button>
@@ -318,7 +319,8 @@ export function DateTimeInput({
   className,
   onBlur,
 }: DatePickerProps) {
-  const [dateValue, timeValue = ""] = value.split("T");
+  const [dateValue, rawTimeValue = ""] = value.split("T");
+  const timeValue = rawTimeValue ? rawTimeValue.slice(0, 5) : "";
 
   return (
     <div className={cn("flex min-w-0 gap-2", className)}>

@@ -4,14 +4,22 @@ import { clearAuthCookies, getAccessToken, getRefreshToken, setAuthCookies } fro
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5268";
 
+interface BodyPayload {
+  body: BodyInit | null;
+  contentType: string | null;
+}
+
 async function forward(
   path: string[],
   search: URLSearchParams,
   method: string,
-  body: unknown,
+  payload: BodyPayload,
   token: string | null,
 ): Promise<Response> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
+  if (payload.contentType) {
+    headers["Content-Type"] = payload.contentType;
+  }
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const qs = search.toString();
@@ -20,7 +28,7 @@ async function forward(
   return fetch(url, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: payload.body ?? undefined,
     cache: "no-store",
   });
 }
@@ -29,7 +37,7 @@ async function refreshAndRetry(
   path: string[],
   search: URLSearchParams,
   method: string,
-  body: unknown,
+  payload: BodyPayload,
 ): Promise<Response | null> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
@@ -63,15 +71,33 @@ async function refreshAndRetry(
   });
 
   const newToken = await getAccessToken();
-  return forward(path, search, method, body, newToken);
+  return forward(path, search, method, payload, newToken);
+}
+
+async function readBody(req: NextRequest): Promise<BodyPayload> {
+  const contentType = req.headers.get("content-type");
+  if (!contentType) {
+    return { body: null, contentType: null };
+  }
+  if (contentType.includes("multipart/form-data")) {
+    const arrayBuffer = await req.arrayBuffer();
+    return { body: arrayBuffer, contentType };
+  }
+  try {
+    const json = await req.json();
+    return { body: JSON.stringify(json), contentType: "application/json" };
+  } catch {
+    return { body: null, contentType: null };
+  }
 }
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
   const token = await getAccessToken();
-  let res = await forward(path, req.nextUrl.searchParams, "GET", undefined, token);
+  const emptyPayload: BodyPayload = { body: null, contentType: null };
+  let res = await forward(path, req.nextUrl.searchParams, "GET", emptyPayload, token);
   if (res.status === 401) {
-    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "GET", undefined);
+    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "GET", emptyPayload);
     if (retried) res = retried;
   }
   return passthrough(res);
@@ -79,11 +105,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
-  const body = await readBody(req);
+  const payload = await readBody(req);
   const token = await getAccessToken();
-  let res = await forward(path, req.nextUrl.searchParams, "POST", body, token);
+  let res = await forward(path, req.nextUrl.searchParams, "POST", payload, token);
   if (res.status === 401) {
-    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "POST", body);
+    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "POST", payload);
     if (retried) res = retried;
   }
   if (res.ok && path.join("/") === "users/me/data-reset") {
@@ -94,11 +120,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
-  const body = await readBody(req);
+  const payload = await readBody(req);
   const token = await getAccessToken();
-  let res = await forward(path, req.nextUrl.searchParams, "PUT", body, token);
+  let res = await forward(path, req.nextUrl.searchParams, "PUT", payload, token);
   if (res.status === 401) {
-    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "PUT", body);
+    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "PUT", payload);
     if (retried) res = retried;
   }
   return passthrough(res);
@@ -107,20 +133,13 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: strin
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
   const token = await getAccessToken();
-  let res = await forward(path, req.nextUrl.searchParams, "DELETE", undefined, token);
+  const emptyPayload: BodyPayload = { body: null, contentType: null };
+  let res = await forward(path, req.nextUrl.searchParams, "DELETE", emptyPayload, token);
   if (res.status === 401) {
-    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "DELETE", undefined);
+    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "DELETE", emptyPayload);
     if (retried) res = retried;
   }
   return passthrough(res);
-}
-
-async function readBody(req: NextRequest): Promise<unknown> {
-  try {
-    return await req.json();
-  } catch {
-    return undefined;
-  }
 }
 
 function passthrough(res: Response): Response {

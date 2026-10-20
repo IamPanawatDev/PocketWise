@@ -21,6 +21,7 @@ import {
   ArrowRightFromLine,
   ArrowRightLeft,
   CreditCard,
+  FileUp,
   ChartNoAxesCombined,
   LoaderCircle,
   LogOut,
@@ -37,6 +38,7 @@ import {
 
 const nav = [
   { href: "/transactions", label: "รายการ", icon: ChartNoAxesCombined },
+  { href: "/imports", label: "นำเข้าข้อมูล", icon: FileUp },
   { href: "/budgets", label: "งบประมาณ", icon: Wallet },
   { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard },
   { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat },

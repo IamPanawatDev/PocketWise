@@ -36,9 +36,16 @@ public class RecurringTransactionBackgroundService : BackgroundService
             {
                 break;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogError(ex, "Error while processing due recurring transactions.");
+                try
+                {
+                    _logger.LogError(ex, "Error while processing due recurring transactions.");
+                }
+                catch
+                {
+                    // Ignore logger disposal errors during host shutdown
+                }
             }
 
             await Task.Delay(TimeSpan.FromMinutes(_options.IntervalMinutes), stoppingToken);

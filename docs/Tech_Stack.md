@@ -128,7 +128,7 @@ The core app does **not** need third-party APIs to record income and expenses. K
 
 | Capability | Possible provider / approach | Required? | Considerations |
 |---|---|---|---|
-| Receipt or transfer-slip OCR | Azure AI Document Intelligence or another vetted OCR service | Optional | May incur cost; compare Thai-language accuracy, supported layouts, privacy, retention, and quotas. Always let users review extracted data before saving. |
+| Receipt or transfer-slip OCR | Local `Tesseract` 5.2.0 (with `tha` + `eng` models) / Optional: Cloud Vision API | Installed (`Tesseract` 5.2.0 in Infrastructure) | Local offline OCR for Thai slips via `TesseractSlipOcrService` using `tessdata/{tha,eng}.traineddata`. Always lets users review extracted data before saving. |
 | Bank account aggregation | A licensed/open-banking provider available in the target country | Optional, only if supported | Availability and authorization vary by country and bank. Do not assume a universal public API exists. Never ask users to share online banking passwords. |
 | Exchange rates | A reputable exchange-rate API or official source | Optional | Needed only if supporting multi-currency transactions. Store rate, currency pair, source, and effective date used for conversion. |
 | Email delivery | SMTP provider or transactional email service | Optional | For verification, password reset, or reports; protect API keys and rate-limit sending. |

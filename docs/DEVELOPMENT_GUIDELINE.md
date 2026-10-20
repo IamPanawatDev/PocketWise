@@ -74,7 +74,7 @@
 | 5 Budgets, Credit Cards & Reports | ✅ | Core implementation, frontend, build และ tests ผ่าน; FR5.2.2 delivery เลื่อนไปตาม D28 และข้อมูลสลิปรอ Phase 7 |
 | 5.5 Settings & Profile | ✅ | Gate ผ่าน: settings/profile/data-reset E2E กับ SQL Server จริง; ตรวจ persistence, soft-delete, คง user/settings และ revoke refresh token; Backend Release build 0 warnings/errors, 13 unit tests + 1 integration test ผ่าน; frontend lint/build ผ่าน |
 | 6 SignalR | ✅ | NotificationHub (/hubs/notifications), per-user claims group, InApp SignalR delivery, Notification REST APIs, NotificationBell popover, @microsoft/signalr ^10.0.11 ติดตั้งแล้ว |
-| 7 Imports | ⬜ | นำเข้าสลิป/ใบแจ้งยอดบัตร (S2) + CSV/OCR ย่อยท้าย phase |
+| 7 Imports | ✅ | นำเข้าสลิปโอนเงิน (SHA-256 duplicate detection, local OCR parser, review & confirm), นำเข้าใบแจ้งยอดบัตรเครดิต CSV/JSON (duplicate detection, batch confirm), SignalR real-time notification, import jobs history; 27 unit tests + 3 integration tests ผ่าน, FE build & lint ผ่าน |
 | 8 Hardening | ⬜ | Integration tests, security review, hosting, CI |
 
 > กติกา: เมื่อแตะ Phase ไหน ให้ปรับสถานะในตารางนี้ (⬜ → 🟡 → ✅) ทันทีที่สถานะเปลี่ยนจริง
@@ -391,6 +391,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D35 | Phase 5.5 profile, settings และ reset | Settings API จัดการ Theme/CurrencyCode/Locale/EmailBudgetAlertsEnabled; เปลี่ยนอีเมลตั้ง `IsEmailVerified=false` โดยยังไม่มี verification flow; reset soft-delete เฉพาะ 9 finance tables ตาม D5, คง identity/settings/categories/tags/rules/notifications/import history/audit logs และ revoke refresh tokens ทุก session | เจ้าของโปรเจค | ✅ ล็อก |
 | D36 | Reports default date range | หน้า Reports ตั้งค่าเริ่มต้นตั้งแต่วันที่ 1 มกราคมถึง 31 ธันวาคมของปีปัจจุบัน (Asia/Bangkok) | เจ้าของโปรเจค | ✅ ล็อก |
 | D37 | Phase 6 SignalR & Notifications contract & package | ติดตั้ง `@microsoft/signalr` (^10.0.11) ฝั่ง FE (อนุมัติแล้ว); สัญญา Event กลาง `ReceiveNotification` (Payload `NotificationResponse`) + `ReceiveRefreshHint`; Auth query `?access_token=...` ผ่าน BFF `/api/auth/token`; จัดการ per-user group `$"user_{userId}"` ฝั่ง server; REST endpoints 4 endpoints + NotificationBell popover บน DashboardShell | เจ้าของโปรเจค | ✅ ล็อก |
+| D38 | Phase 7 File Storage, Limits, Formats & Slip OCR | ที่เก็บไฟล์: Local Disk Storage ผ่าน `IFileStorageService` (`App_Data/uploads/`) นอก public web root; ข้อจำกัด: สลิปไม่เกิน 10 MB (.jpg, .jpeg, .png, .webp, .pdf), ใบแจ้งยอดรองรับทั้ง CSV และ JSON; Slip OCR: Local Offline OCR ผ่าน `Tesseract` 5.2.0 (`TesseractSlipOcrService`) พร้อมโมเดลภาษา `tessdata/{tha,eng}.traineddata` อ่านยอดเงิน/วันที่ (แปลง พ.ศ.->ค.ศ.)/รหัสอ้างอิง/ผู้รับ/ผู้โอน/ธนาคาร และมี UI Review & Confirm ก่อนบันทึก | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
@@ -399,7 +400,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 - Phase 5: ~~threshold semantics~~ ✅ D27, ~~chart lib~~ ✅ D29 (recharts), ~~recurring กลไก~~ ✅ D26 (HostedService), ~~email provider~~ ✅ D28 (เลื่อนไปทีหลัง), ~~จัดหมวดอัตโนมัติ~~ ✅ D31–D33, ~~Reports calendar~~ ✅ D34, ~~default date range~~ ✅ D36
 - Phase 5.5: ~~ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม~~ ✅ D35
 - Phase 6: ~~hub event contract, package, rest endpoints~~ ✅ D37; scale-out (เลื่อน Phase 8)
-- Phase 7: file storage, ข้อจำกัดไฟล์, OCR provider
+- Phase 7: ~~file storage, ข้อจำกัดไฟล์, OCR provider~~ ✅ ล็อกเป็น D38
 - Phase 8: hosting, backup policy, CI แบบไหน, monitoring
 - Schema เพิ่มในอนาคต — เริ่มจาก **เพิ่ม FR ใน REQUIREMENTS.md** ก่อน แล้วขยาย DataDictionary + Entities ตาม (กระบวนการเดียวกับกติกา §8)
 

@@ -26,13 +26,18 @@ async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string> ?? {}),
+  };
+  if (!isFormData && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const res = await fetch(path, {
     ...options,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
+    headers,
     cache: "no-store",
   });
 
@@ -65,10 +70,18 @@ export const apiClient = {
     return request<T>(path, { method: "GET" });
   },
   post<T>(path: string, body?: unknown) {
-    return request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
+    const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+    return request<T>(path, {
+      method: "POST",
+      body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
+    });
   },
   put<T>(path: string, body?: unknown) {
-    return request<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined });
+    const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+    return request<T>(path, {
+      method: "PUT",
+      body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
+    });
   },
   delete<T>(path: string) {
     return request<T>(path, { method: "DELETE" });

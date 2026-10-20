@@ -27,6 +27,13 @@ import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 
+const initialCategoryValues: CategoryFormValues = {
+  categoryName: "",
+  categoryType: "expense",
+  icon: null,
+  color: null,
+};
+
 export function CategoriesView() {
   const { data, isLoading } = useCategories();
   const create = useCreateCategory();
@@ -44,8 +51,13 @@ export function CategoriesView() {
     formState: { errors },
   } = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { icon: null, color: null },
+    defaultValues: initialCategoryValues,
   });
+
+  const clearForm = () => {
+    setEditing(null);
+    reset(initialCategoryValues);
+  };
 
   const onSubmit = (values: CategoryFormValues) => {
     if (editing) {
@@ -55,7 +67,7 @@ export function CategoriesView() {
           body: { ...values, icon: values.icon ?? null, color: values.color ?? null, isActive: true },
         },
         {
-          onSuccess: () => { setEditing(null); reset(); toast.success("บันทึกหมวดหมู่แล้ว"); },
+          onSuccess: () => { clearForm(); toast.success("บันทึกหมวดหมู่แล้ว"); },
           onError: (e) => toast.error(e instanceof ApiError ? e.message : "บันทึกไม่สำเร็จ"),
         },
       );
@@ -63,7 +75,7 @@ export function CategoriesView() {
       create.mutate(
         { ...values, icon: values.icon ?? null, color: values.color ?? null },
         {
-          onSuccess: () => { reset(); toast.success("เพิ่มหมวดหมู่แล้ว"); },
+          onSuccess: () => { clearForm(); toast.success("เพิ่มหมวดหมู่แล้ว"); },
           onError: (e) => toast.error(e instanceof ApiError ? e.message : "เพิ่มไม่สำเร็จ"),
         },
       );
@@ -74,7 +86,7 @@ export function CategoriesView() {
     setEditing({ id: c.categoryId, name: c.categoryName, type: c.categoryType });
     reset({
       categoryName: c.categoryName,
-      categoryType: c.categoryType as CategoryFormValues["categoryType"],
+      categoryType: (c.categoryType?.toLowerCase() as CategoryFormValues["categoryType"]) ?? "expense",
       icon: null,
       color: null,
     });
@@ -114,7 +126,7 @@ export function CategoriesView() {
                 control={control}
                 name="categoryType"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value || "expense"} onValueChange={field.onChange}>
                     <SelectTrigger id="category-type"><SelectValue placeholder="เลือกประเภท" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="expense">รายจ่าย</SelectItem>
@@ -135,7 +147,7 @@ export function CategoriesView() {
               {editing ? "บันทึก" : "เพิ่ม"}
             </Button>
             {editing && (
-              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => { setEditing(null); reset(); }}>
+              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearForm}>
                 <X />
                 ยกเลิก
               </Button>

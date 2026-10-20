@@ -745,6 +745,135 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 
 ---
 
+## 5I. Phase 7 — Imports & Statements (contract)
+
+> **สถานะ:** ล็อกแล้ว (D38) — จัดการนำเข้าสลิปธนาคาร (FR1.1–FR1.3, FR4.8), ใบแจ้งยอดบัตรเครดิต (S2) ทั้งไฟล์ CSV และ JSON, และประวัติ ImportJobs
+
+### Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|:-:|---|:-:|---|
+| `POST` | `/api/v1/imports/slips` | ต้อง | อัปโหลดสลิปธนาคาร (multipart/form-data) ตรวจไฟล์ซ้ำ (SHA-256) และดึงข้อมูลเบื้องต้น |
+| `GET` | `/api/v1/imports/slips/{id}` | ต้อง | ดูรายละเอียดสลิปและข้อมูลที่ตรวจจับได้เพื่อรอการตรวจสอบ (Review) |
+| `GET` | `/api/v1/imports/slips/{id}/image` | ต้อง | ดาวน์โหลด/แสดงรูปภาพสลิป |
+| `POST` | `/api/v1/imports/slips/{id}/confirm` | ต้อง | ยืนยันการตรวจสอบสลิปและบันทึกเป็น Transaction จริง (พร้อม auto-categorize) |
+| `POST` | `/api/v1/imports/slips/{id}/reject` | ต้อง | ปฏิเสธสลิป (ไม่สร้าง Transaction) |
+| `POST` | `/api/v1/imports/credit-card-statements` | ต้อง | อัปโหลดใบแจ้งยอดบัตรเครดิต (CSV/JSON multipart/form-data) |
+| `GET` | `/api/v1/credit-cards/{cardId}/statements` | ต้อง | รายการใบแจ้งยอดของบัตรเครดิตที่ระบุ |
+| `GET` | `/api/v1/credit-cards/statements/{statementId}` | ต้อง | รายละเอียดใบแจ้งยอดและรายการย่อย (Statement Items) |
+| `POST` | `/api/v1/credit-cards/statements/{statementId}/confirm-items` | ต้อง | ยืนยันรายการในใบแจ้งยอดเพื่อสร้าง Transactions ในระบบ |
+| `GET` | `/api/v1/imports/jobs` | ต้อง | รายการประวัติงานนำเข้าทั้งหมด (รองรับ pagination + type filter) |
+| `GET` | `/api/v1/imports/jobs/{id}` | ต้อง | รายละเอียดสถานะงานนำเข้า |
+
+### Request/Response DTOs
+
+**`SlipImportResponse`**
+```json
+{
+  "slipImportFileId": 41,
+  "importJobId": 900,
+  "originalFileName": "slip_kbank.jpg",
+  "fileSizeBytes": 245000,
+  "fileHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "bankCode": "KBANK",
+  "payerName": "สมชาย",
+  "payeeName": "ร้านค้า ABC",
+  "detectedAmount": 850.00,
+  "detectedAt": "2026-10-15T18:30:00Z",
+  "transactionReference": "TXN123456",
+  "reviewStatus": "pending",
+  "isDuplicate": false,
+  "suggestedCategoryId": 12,
+  "suggestedCategoryName": "อาหาร",
+  "createdAt": "2026-10-15T18:31:00Z"
+}
+```
+
+**`ConfirmSlipRequest`**
+```json
+{
+  "amount": 850.00,
+  "transactionDate": "2026-10-15T18:30:00Z",
+  "description": "ร้านค้า ABC",
+  "categoryId": 12,
+  "bankAccountId": 4,
+  "payeeName": "ร้านค้า ABC",
+  "payerName": "สมชาย",
+  "transactionReference": "TXN123456"
+}
+```
+
+**`CreditCardStatementImportResponse`**
+```json
+{
+  "statementId": 70,
+  "importJobId": 901,
+  "creditCardId": 3,
+  "statementDate": "2026-10-25",
+  "statementPeriodStart": "2026-09-26",
+  "statementPeriodEnd": "2026-10-25",
+  "paymentDueDate": "2026-11-10",
+  "previousBalance": 1200.00,
+  "purchaseAmount": 3500.00,
+  "totalDue": 3150.00,
+  "status": "imported",
+  "totalItems": 5,
+  "duplicateItems": 0,
+  "items": [
+    {
+      "statementItemId": 71,
+      "transactionDate": "2026-10-02",
+      "description": "ร้านค้า ABC",
+      "itemType": "purchase",
+      "amount": 850.00,
+      "externalReference": "REF-ABC123",
+      "isDuplicate": false,
+      "isLinked": false,
+      "suggestedCategoryId": 12,
+      "suggestedCategoryName": "อาหาร"
+    }
+  ]
+}
+```
+
+**`ConfirmStatementItemsRequest`**
+```json
+{
+  "items": [
+    {
+      "statementItemId": 71,
+      "categoryId": 12,
+      "description": "ร้านค้า ABC"
+    }
+  ]
+}
+```
+
+**`ImportJobResponse`**
+```json
+{
+  "importJobId": 900,
+  "importType": "slip",
+  "fileName": "slip_kbank.jpg",
+  "status": "needsReview",
+  "totalRecords": 1,
+  "importedRecords": 0,
+  "duplicateRecords": 0,
+  "errorMessage": null,
+  "startedAt": "2026-10-15T18:30:00Z",
+  "completedAt": null,
+  "createdAt": "2026-10-15T18:30:00Z"
+}
+```
+
+### Business rules ที่บังคับใช้
+- **ขนาดและชนิดไฟล์:** ไฟล์สลิปจำกัดขนาดไม่เกิน 10 MB, รองรับ `.jpg`, `.jpeg`, `.png`, `.webp`, `.pdf`; ไฟล์ใบแจ้งยอดบัตรเครดิตรองรับ `.csv` และ `.json`
+- **Duplicate Detection:** สลิปตรวจสอบด้วย `FileHash` (SHA-256) หากตรวจพบว่าผู้ใช้อัปโหลดไฟล์เดิมซ้ำ ระบบจะติดแฟล็ก `isDuplicate=true` และตั้งสถานะ `reviewStatus="duplicate"`; รายการใน statement ตรวจจับซ้ำด้วย `ExternalReference` หรือการจับคู่ วันที่ + บัตร + จำนวนเงิน
+- **Auto-Categorization Integration:** ตอน Review สลิปและ Statement Items ระบบจะทำการจับคู่ Category แนะนำอัตโนมัติจาก CategoryRules และ Merchants ที่มีอยู่
+- **Storage:** จัดเก็บไฟล์บน Local Disk Storage ผ่านอินเทอร์เฟซ `IFileStorageService` นอกไดเรกทอรีเว็บสาธารณะ
+
+---
+
 ## 6. SignalR Events (contract — ล็อกแล้วตาม D37)
 
 **สถานะ:** ✅ ล็อกแล้ว (D37)

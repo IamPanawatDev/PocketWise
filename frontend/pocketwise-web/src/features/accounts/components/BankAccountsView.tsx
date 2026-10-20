@@ -26,6 +26,14 @@ import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 
+const initialBankValues: BankAccountFormValues = {
+  accountName: "",
+  bankName: "",
+  bankCode: null,
+  accountNumberMasked: null,
+  accountType: "bank",
+};
+
 export function BankAccountsView() {
   const { data, isLoading } = useBankAccounts();
   const create = useCreateBankAccount();
@@ -42,8 +50,13 @@ export function BankAccountsView() {
     formState: { errors },
   } = useForm<BankAccountFormValues>({
     resolver: zodResolver(bankAccountSchema),
-    defaultValues: { bankCode: null, accountNumberMasked: null },
+    defaultValues: initialBankValues,
   });
+
+  const clearForm = () => {
+    setEditing(null);
+    reset(initialBankValues);
+  };
 
   const onSubmit = (values: BankAccountFormValues) => {
     const payload = {
@@ -55,13 +68,13 @@ export function BankAccountsView() {
       update.mutate(
         { id: editing, body: { ...payload, isActive: true } },
         {
-          onSuccess: () => { setEditing(null); reset(); toast.success("บันทึกบัญชีแล้ว"); },
+          onSuccess: () => { clearForm(); toast.success("บันทึกบัญชีแล้ว"); },
           onError: (e) => toast.error(e instanceof ApiError ? e.message : "บันทึกไม่สำเร็จ"),
         },
       );
     } else {
       create.mutate(payload, {
-        onSuccess: () => { reset(); toast.success("เพิ่มบัญชีแล้ว"); },
+        onSuccess: () => { clearForm(); toast.success("เพิ่มบัญชีแล้ว"); },
         onError: (e) => toast.error(e instanceof ApiError ? e.message : "เพิ่มไม่สำเร็จ"),
       });
     }
@@ -89,7 +102,7 @@ export function BankAccountsView() {
                 control={control}
                 name="accountType"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value || "bank"} onValueChange={field.onChange}>
                     <SelectTrigger id="account-type"><SelectValue placeholder="เลือกประเภทบัญชี" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="bank">ธนาคาร</SelectItem>
@@ -111,7 +124,7 @@ export function BankAccountsView() {
               {editing !== null ? "บันทึก" : "เพิ่ม"}
             </Button>
             {editing !== null && (
-              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => { setEditing(null); reset(); }}>
+              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearForm}>
                 <X />
                 ยกเลิก
               </Button>
@@ -143,7 +156,7 @@ export function BankAccountsView() {
                         accountName: a.accountName,
                         bankCode: a.bankCode,
                         accountNumberMasked: a.accountNumberMasked,
-                        accountType: a.accountType,
+                        accountType: (a.accountType?.toLowerCase() as BankAccountFormValues["accountType"]) ?? "bank",
                       });
                     }}
                   >

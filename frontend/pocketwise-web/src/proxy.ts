@@ -24,5 +24,6 @@ export const config = {
     "/tags/:path*",
     "/bank-accounts/:path*",
     "/transfers/:path*",
+    "/imports/:path*",
   ],
 };
