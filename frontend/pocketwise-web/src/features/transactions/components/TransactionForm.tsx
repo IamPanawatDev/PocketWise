@@ -344,6 +344,7 @@ export function TransactionForm({
                   >
                     <input
                       type="checkbox"
+                      className="sr-only"
                       checked={checked}
                       aria-label={`เลือกแท็ก ${t.tagName}`}
                       onChange={(e) => {

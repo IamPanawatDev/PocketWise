@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
 import {
   Select,
@@ -462,12 +463,11 @@ date,description,amount,type,ref
                         }`}
                       >
                         <td className="py-2.5 px-3 text-center">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isSelected}
                             disabled={item.isLinked}
-                            onChange={() => toggleItemSelection(item.statementItemId)}
-                            className="rounded border-[var(--pw-hairline)] accent-[var(--pw-accent-primary)] cursor-pointer disabled:opacity-40"
+                            onCheckedChange={() => toggleItemSelection(item.statementItemId)}
+                            aria-label={`เลือกรายการวันที่ ${item.transactionDate}`}
                           />
                         </td>
                         <td className="py-2.5 px-3 font-medium text-[var(--pw-text-primary)] whitespace-nowrap">

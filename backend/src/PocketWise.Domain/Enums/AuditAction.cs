@@ -5,5 +5,6 @@ public enum AuditAction
     Create,
     Update,
     Delete,
-    Import
+    Import,
+    Export
 }

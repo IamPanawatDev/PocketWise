@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { ApiError } from "@/lib/api-client";
 import {
   useAdminPermissions,
   useAdminRoleDetail,
@@ -9,6 +11,7 @@ import {
 } from "../hooks/useAdminRoles";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -17,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Check,
   CheckSquare,
   FileUp,
   FolderTree,
@@ -53,7 +55,6 @@ export function RolePermissionsMatrix() {
   const updatePermissionsMutation = useUpdateRolePermissionsMutation();
 
   const [dirtyPermissionsMap, setDirtyPermissionsMap] = useState<Record<number, number[]>>({});
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Group permissions by module
   const groupedPermissions = useMemo(() => {
@@ -101,7 +102,6 @@ export function RolePermissionsMatrix() {
       ...prev,
       [activeRoleId]: next,
     }));
-    setSaveSuccess(false);
   };
 
   const toggleModule = (modulePerms: PermissionResponse[]) => {
@@ -120,22 +120,32 @@ export function RolePermissionsMatrix() {
       ...prev,
       [activeRoleId]: next,
     }));
-    setSaveSuccess(false);
   };
 
   const handleSave = async () => {
     if (!activeRoleId) return;
-    await updatePermissionsMutation.mutateAsync({
-      id: activeRoleId,
-      body: { permissionIds: activeSelectedIds },
-    });
-    setDirtyPermissionsMap((prev) => {
-      const copy = { ...prev };
-      delete copy[activeRoleId];
-      return copy;
-    });
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 4000);
+    try {
+      await updatePermissionsMutation.mutateAsync({
+        id: activeRoleId,
+        body: { permissionIds: activeSelectedIds },
+      });
+      setDirtyPermissionsMap((prev) => {
+        const copy = { ...prev };
+        delete copy[activeRoleId];
+        return copy;
+      });
+      toast.success(
+        `บันทึกชุดสิทธิ์ของบทบาท "${activeRole?.name ?? ""}" สำเร็จแล้ว (${activeSelectedIds.length} สิทธิ์)`
+      );
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : "ไม่สามารถบันทึกสิทธิ์ได้";
+      toast.error(msg);
+    }
   };
 
   if (isLoadingRoles || isLoadingPerms) {
@@ -161,7 +171,6 @@ export function RolePermissionsMatrix() {
               value={activeRoleId ? String(activeRoleId) : ""}
               onValueChange={(val) => {
                 setSelectedRoleIdState(Number(val));
-                setSaveSuccess(false);
               }}
             >
               <SelectTrigger>
@@ -184,11 +193,6 @@ export function RolePermissionsMatrix() {
         </div>
 
         <div className="flex items-center gap-2">
-          {saveSuccess && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded px-2.5 py-1">
-              <Check className="size-3.5" /> บันทึกสิทธิ์สำเร็จแล้ว
-            </span>
-          )}
           <Button
             type="button"
             variant="default"
@@ -277,15 +281,11 @@ export function RolePermissionsMatrix() {
                               : "bg-[var(--pw-canvas)] border-[var(--pw-hairline)] opacity-80 hover:opacity-100"
                           }`}
                         >
-                          <div className="mt-0.5">
-                            {checked ? (
-                              <div className="size-4 rounded bg-[var(--pw-primary)] flex items-center justify-center text-white">
-                                <Check className="size-3 stroke-[3]" />
-                              </div>
-                            ) : (
-                              <div className="size-4 rounded border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]" />
-                            )}
-                          </div>
+                          <Checkbox
+                            checked={checked}
+                            className="pointer-events-none mt-0.5 shrink-0"
+                            aria-hidden="true"
+                          />
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">

@@ -23,6 +23,7 @@ import {
   ArrowRightLeft,
   CreditCard,
   FileUp,
+  FolderTree,
   History,
   ChartNoAxesCombined,
   LoaderCircle,
@@ -54,6 +55,7 @@ const nav = [
   { href: "/audit-logs", label: "ประวัติการใช้งาน", icon: History },
   { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog },
   { href: "/admin/permissions", label: "สิทธิ์และบทบาท (Admin)", icon: ShieldCheck },
+  { href: "/admin/categories", label: "หมวดหมู่มาตรฐาน (Admin)", icon: FolderTree },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -90,7 +92,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const closeNavigation = () => setIsMobileOpen(false);
   const iconOnly = isCollapsed;
-  const visibleNav = nav.filter((item) => item.href !== "/admin/permissions" || !user?.roles || user.roles.includes("Admin"));
+  const visibleNav = nav.filter(
+    (item) => !item.href.startsWith("/admin") || !user?.roles || user.roles.includes("Admin")
+  );
 
   return (
     <div className="min-h-dvh">

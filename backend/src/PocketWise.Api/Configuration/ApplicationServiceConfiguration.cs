@@ -67,6 +67,7 @@ public static class ApplicationServiceConfiguration
         // Services
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<ISystemCategoryService, SystemCategoryService>();
         services.AddScoped<ITagService, TagService>();
         services.AddScoped<IBankAccountService, BankAccountService>();
         services.AddScoped<ITransferService, TransferService>();

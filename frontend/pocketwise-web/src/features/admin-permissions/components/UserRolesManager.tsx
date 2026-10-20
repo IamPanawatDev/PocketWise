@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { ApiError } from "@/lib/api-client";
 import {
   useAdminRoles,
   useAdminUsers,
@@ -8,6 +10,7 @@ import {
 } from "../hooks/useAdminRoles";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   AlertCircle,
@@ -68,10 +71,17 @@ export function UserRolesManager() {
         userId: selectedUser.userId,
         body: { roleNames: selectedRoles },
       });
+      toast.success(`อัปเดตบทบาทของ "${selectedUser.displayName}" สำเร็จ`);
       closeDialog();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "ไม่สามารถบันทึกบทบาทผู้ใช้ได้";
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : "ไม่สามารถบันทึกบทบาทผู้ใช้ได้";
       setDialogError(msg);
+      toast.error(msg);
     }
   };
 
@@ -201,8 +211,8 @@ export function UserRolesManager() {
             </div>
 
             {dialogError && (
-              <div className="flex items-center gap-2 p-3 text-xs text-rose-400 bg-rose-950/40 border border-rose-800 rounded">
-                <AlertCircle className="size-4 shrink-0" />
+              <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
+                <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
                 <span>{dialogError}</span>
               </div>
             )}
@@ -238,13 +248,11 @@ export function UserRolesManager() {
                       </p>
                     </div>
 
-                    <div className="size-5 rounded border flex items-center justify-center transition">
-                      {checked && (
-                        <div className="size-4 rounded bg-[var(--pw-primary)] flex items-center justify-center text-white">
-                          <Check className="size-3 stroke-[3]" />
-                        </div>
-                      )}
-                    </div>
+                    <Checkbox
+                      checked={checked}
+                      className="pointer-events-none size-5 rounded-[var(--pw-rounded-xs)]"
+                      aria-hidden="true"
+                    />
                   </div>
                 );
               })}

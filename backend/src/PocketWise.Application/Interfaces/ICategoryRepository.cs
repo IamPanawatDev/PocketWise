@@ -10,6 +10,9 @@ public interface ICategoryRepository
     Task AddAsync(Category category, CancellationToken cancellationToken = default);
     Task UpdateAsync(Category category, CancellationToken cancellationToken = default);
     Task<bool> HasTransactionsAsync(long id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Category>> GetSystemCategoriesAsync(CancellationToken cancellationToken = default);
+    Task<Category?> GetSystemCategoryByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<bool> SystemNameExistsAsync(string name, long? excludeId = null, CancellationToken cancellationToken = default);
     Task DeleteAsync(Category category, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

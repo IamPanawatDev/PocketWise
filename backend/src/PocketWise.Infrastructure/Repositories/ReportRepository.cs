@@ -44,15 +44,19 @@ public sealed class ReportRepository : IReportRepository
         }
 
         return await query
+            .OrderBy(transaction => transaction.TransactionDate)
             .Select(transaction => new ReportTransactionRecord
             {
+                TransactionId = transaction.TransactionId,
                 TransactionDate = transaction.TransactionDate,
                 TransactionType = transaction.TransactionType,
                 Amount = transaction.Amount,
                 CurrencyCode = transaction.CurrencyCode,
                 SourceType = transaction.SourceType,
+                Description = transaction.Description,
                 CategoryId = transaction.CategoryId,
                 CategoryName = transaction.Category == null ? null : transaction.Category.CategoryName,
+                MerchantName = transaction.Merchant == null ? null : transaction.Merchant.MerchantName,
                 BankAccountId = transaction.BankAccountId,
                 AccountName = transaction.BankAccount == null ? null : transaction.BankAccount.AccountName,
                 BankName = transaction.BankAccount == null ? null : transaction.BankAccount.BankName,

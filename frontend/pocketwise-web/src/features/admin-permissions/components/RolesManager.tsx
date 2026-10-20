@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
+import { ApiError } from "@/lib/api-client";
 import {
   useAdminRoles,
   useCreateRoleMutation,
@@ -9,6 +11,7 @@ import {
 } from "../hooks/useAdminRoles";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormField } from "@/components/ui/form-field";
@@ -82,24 +85,29 @@ export function RolesManager() {
             isActive: formIsActive,
           },
         });
+        toast.success(`บันทึกการแก้ไขบทบาท "${trimmedName}" สำเร็จ`);
       } else {
         await createMutation.mutateAsync({
           name: trimmedName,
           description: formDescription.trim() || undefined,
         });
+        toast.success(`สร้างบทบาท "${trimmedName}" สำเร็จ`);
       }
       closeDialog();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+      const msg = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
       setFormError(msg);
+      toast.error(msg);
     }
   };
 
-  const handleDelete = async (roleId: number) => {
+  const handleDelete = async (role: RoleResponse) => {
     try {
-      await deleteMutation.mutateAsync(roleId);
+      await deleteMutation.mutateAsync(role.id);
+      toast.success(`ลบบทบาท "${role.name}" เรียบร้อยแล้ว`);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "ไม่สามารถลบบทบาทได้");
+      const msg = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "ไม่สามารถลบบทบาทได้";
+      toast.error(msg);
     }
   };
 
@@ -200,7 +208,7 @@ export function RolesManager() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-8 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/30"
+                        className="h-8 text-xs text-[var(--pw-expense)] hover:text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10"
                       >
                         <Trash2 className="size-3.5" />
                         ลบ
@@ -209,7 +217,7 @@ export function RolesManager() {
                     title={`ยืนยันการลบบทบาท "${role.name}"`}
                     description="หากลบบทบาทนี้ ผู้ใช้ที่มีบทบาทนี้จะถูกนำออกจากบทบาทโดยอัตโนมัติ การดำเนินการนี้ไม่สามารถยกเลิกได้"
                     confirmLabel="ลบบทบาท"
-                    onConfirm={() => handleDelete(role.id)}
+                    onConfirm={() => handleDelete(role)}
                     pending={deleteMutation.isPending}
                   />
                 )}
@@ -233,8 +241,8 @@ export function RolesManager() {
             </div>
 
             {formError && (
-              <div className="flex items-center gap-2 p-3 text-xs text-rose-400 bg-rose-950/40 border border-rose-800 rounded">
-                <AlertCircle className="size-4 shrink-0" />
+              <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
+                <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
                 <span>{formError}</span>
               </div>
             )}
@@ -260,16 +268,17 @@ export function RolesManager() {
                 />
               </FormField>
 
-              <div className="flex items-center gap-3 pt-2">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2.5 pt-2">
+                <Checkbox
                   id="role-active"
                   checked={formIsActive}
-                  onChange={(e) => setFormIsActive(e.target.checked)}
+                  onCheckedChange={(checked) => setFormIsActive(Boolean(checked))}
                   disabled={editingRole?.name.toUpperCase() === "ADMIN"}
-                  className="size-4 rounded border-zinc-700 bg-zinc-900 text-[var(--pw-primary)] focus:ring-0"
                 />
-                <Label htmlFor="role-active" className="text-sm cursor-pointer">
+                <Label
+                  htmlFor="role-active"
+                  className="mb-0 cursor-pointer text-sm font-medium leading-none text-[var(--pw-ink)] select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
                   เปิดใช้งานบทบาทนี้
                 </Label>
               </div>

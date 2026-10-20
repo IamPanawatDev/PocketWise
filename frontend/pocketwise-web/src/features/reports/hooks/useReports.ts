@@ -40,3 +40,63 @@ export function useReportTrends(
     enabled: Boolean(fromDate && toDate),
   });
 }
+
+export async function exportReportFile({
+  fromDate,
+  toDate,
+  format = "csv",
+  type = "full",
+  categoryId,
+  tagId,
+}: {
+  fromDate: string;
+  toDate: string;
+  format?: "csv" | "json";
+  type?: "full" | "transactions";
+  categoryId?: number;
+  tagId?: number;
+}): Promise<void> {
+  const query = new URLSearchParams({
+    fromDate,
+    toDate,
+    format,
+    type,
+    ...(categoryId ? { categoryId: String(categoryId) } : {}),
+    ...(tagId ? { tagId: String(tagId) } : {}),
+  });
+
+  const response = await fetch(`/api/v1/reports/export?${query.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    let errorMsg = "ส่งออกรายงานไม่สำเร็จ";
+    try {
+      const err = await response.json();
+      if (err.error?.message) errorMsg = err.error.message;
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition");
+  let filename = `pocketwise-report-${fromDate.slice(0, 10)}.${format}`;
+  if (disposition && disposition.includes("filename=")) {
+    const match = disposition.match(/filename="?([^";]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}

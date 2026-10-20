@@ -57,6 +57,29 @@ public sealed class ReportsController : ControllerBase
         return Ok(ApiResponse<ReportTrendResponse>.Ok(result));
     }
 
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportAsync(
+        [FromQuery] DateTimeOffset fromDate,
+        [FromQuery] DateTimeOffset toDate,
+        [FromQuery] string format = "csv",
+        [FromQuery] string type = "full",
+        [FromQuery] long? categoryId = null,
+        [FromQuery] long? tagId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _reportService.ExportReportAsync(
+            GetUserId(),
+            fromDate,
+            toDate,
+            format,
+            type,
+            categoryId,
+            tagId,
+            cancellationToken);
+
+        return File(result.Content, result.ContentType, result.FileName);
+    }
+
     private long GetUserId()
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);

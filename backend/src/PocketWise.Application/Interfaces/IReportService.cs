@@ -20,4 +20,14 @@ public interface IReportService
         long? categoryId,
         long? tagId,
         CancellationToken cancellationToken = default);
+
+    Task<ReportExportResult> ExportReportAsync(
+        long userId,
+        DateTimeOffset fromDate,
+        DateTimeOffset toDate,
+        string format,
+        string? type,
+        long? categoryId,
+        long? tagId,
+        CancellationToken cancellationToken = default);
 }

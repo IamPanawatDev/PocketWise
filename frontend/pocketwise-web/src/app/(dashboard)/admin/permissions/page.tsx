@@ -5,9 +5,10 @@ import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { RolePermissionsMatrix } from "@/features/admin-permissions/components/RolePermissionsMatrix";
 import { RolesManager } from "@/features/admin-permissions/components/RolesManager";
 import { UserRolesManager } from "@/features/admin-permissions/components/UserRolesManager";
-import { KeyRound, ShieldAlert, ShieldCheck, Users } from "lucide-react";
+import { SystemCategoriesManager } from "@/features/admin-categories/components/SystemCategoriesManager";
+import { FolderTree, KeyRound, ShieldAlert, ShieldCheck, Users } from "lucide-react";
 
-type TabKey = "matrix" | "roles" | "users";
+type TabKey = "matrix" | "roles" | "users" | "categories";
 
 export default function AdminPermissionsPage() {
   const { data: user, isLoading } = useCurrentUser();
@@ -18,7 +19,7 @@ export default function AdminPermissionsPage() {
   if (!isLoading && !isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <ShieldAlert className="size-16 text-rose-500 mb-4" />
+        <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
           ปฏิเสธการเข้าถึง (Access Denied)
         </h1>
@@ -39,17 +40,17 @@ export default function AdminPermissionsPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-              ตั้งค่าสิทธิ์และบทบาท (Admin Permission Access)
+              ตั้งค่าสิทธิ์และบทบาท (Admin Management)
             </h1>
             <p className="text-xs text-[var(--pw-ink)]/70">
-              จัดการบทบาท กำหนดสิทธิ์การเข้าถึงตามโมดูล และมอบหมายสิทธิ์ให้กับผู้ใช้งานในระบบ
+              จัดการบทบาท กำหนดสิทธิ์การเข้าถึงตามโมดูล มอบหมายสิทธิ์ให้ผู้ใช้ และจัดการหมวดหมู่มาตรฐานของระบบ
             </p>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[var(--pw-hairline)] gap-2">
+      <div className="flex flex-wrap border-b border-[var(--pw-hairline)] gap-2">
         <button
           type="button"
           onClick={() => setActiveTab("matrix")}
@@ -88,6 +89,19 @@ export default function AdminPermissionsPage() {
           <Users className="size-4" />
           กำหนดบทบาทผู้ใช้งาน (User Roles)
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("categories")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${
+            activeTab === "categories"
+              ? "border-[var(--pw-primary)] text-[var(--pw-primary)]"
+              : "border-transparent text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
+          }`}
+        >
+          <FolderTree className="size-4" />
+          หมวดหมู่มาตรฐาน (System Categories)
+        </button>
       </div>
 
       {/* Tab Panels */}
@@ -95,6 +109,7 @@ export default function AdminPermissionsPage() {
         {activeTab === "matrix" && <RolePermissionsMatrix />}
         {activeTab === "roles" && <RolesManager />}
         {activeTab === "users" && <UserRolesManager />}
+        {activeTab === "categories" && <SystemCategoriesManager />}
       </div>
     </div>
   );

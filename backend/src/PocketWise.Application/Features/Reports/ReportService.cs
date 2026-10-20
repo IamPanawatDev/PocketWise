@@ -1,3 +1,6 @@
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using PocketWise.Application.DTOs.Reports;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Enums;
@@ -11,10 +14,14 @@ public sealed class ReportService : IReportService
         TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
 
     private readonly IReportRepository _repository;
+    private readonly IAuditLogService? _auditLogService;
 
-    public ReportService(IReportRepository repository)
+    public ReportService(
+        IReportRepository repository,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<ReportSummaryResponse> GetSummaryAsync(
@@ -116,6 +123,248 @@ public sealed class ReportService : IReportService
             ToDate = toDate.ToUniversalTime(),
             Series = points
         };
+    }
+
+    public async Task<ReportExportResult> ExportReportAsync(
+        long userId,
+        DateTimeOffset fromDate,
+        DateTimeOffset toDate,
+        string format,
+        string? type,
+        long? categoryId,
+        long? tagId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateRange(fromDate, toDate);
+        var normalizedFormat = (format ?? "csv").Trim().ToLowerInvariant();
+        if (normalizedFormat != "csv" && normalizedFormat != "json")
+        {
+            throw new BusinessException("VALIDATION_ERROR", "รูปแบบการส่งออกต้องเป็น csv หรือ json เท่านั้น");
+        }
+
+        var transactions = await _repository.GetTransactionsAsync(
+            userId,
+            fromDate.UtcDateTime,
+            toDate.UtcDateTime,
+            categoryId,
+            tagId,
+            cancellationToken);
+
+        var fromBangkok = ToBangkokDate(fromDate.UtcDateTime);
+        var toBangkok = ToBangkokDate(toDate.UtcDateTime);
+        var fileNameBase = $"pocketwise-report-{fromBangkok:yyyyMMdd}-{toBangkok:yyyyMMdd}";
+
+        ReportExportResult result;
+
+        if (normalizedFormat == "json")
+        {
+            var currencies = transactions
+                .GroupBy(transaction => transaction.CurrencyCode, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key)
+                .Select(CreateCurrencySummary)
+                .ToList();
+
+            var exportPayload = new
+            {
+                ExportedAt = DateTime.UtcNow,
+                Period = new
+                {
+                    From = fromDate.ToUniversalTime(),
+                    To = toDate.ToUniversalTime()
+                },
+                Currencies = currencies,
+                Transactions = transactions.Select(t => new
+                {
+                    t.TransactionId,
+                    Date = ToBangkokDate(t.TransactionDate).ToString("yyyy-MM-dd"),
+                    Time = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(t.TransactionDate, DateTimeKind.Utc), BangkokTimeZone).ToString("HH:mm:ss"),
+                    Type = t.TransactionType.ToString(),
+                    t.Amount,
+                    t.CurrencyCode,
+                    Source = t.SourceType.ToString(),
+                    t.CategoryName,
+                    t.MerchantName,
+                    t.Description,
+                    Account = t.BankAccountId.HasValue ? $"{t.BankName} - {t.AccountName}" : null,
+                    Card = t.CreditCardId.HasValue ? $"{t.CreditCardBankName} - {t.CardName}" : null
+                })
+            };
+
+            var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(exportPayload, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+
+            result = new ReportExportResult
+            {
+                Content = jsonBytes,
+                ContentType = "application/json; charset=utf-8",
+                FileName = $"{fileNameBase}.json"
+            };
+        }
+        else
+        {
+            // Build CSV with UTF-8 BOM
+            var csv = GenerateCsv(fromDate, toDate, transactions, type);
+            var utf8Bytes = Encoding.UTF8.GetBytes(csv);
+            var preamble = Encoding.UTF8.GetPreamble();
+            var contentWithBom = new byte[preamble.Length + utf8Bytes.Length];
+            Buffer.BlockCopy(preamble, 0, contentWithBom, 0, preamble.Length);
+            Buffer.BlockCopy(utf8Bytes, 0, contentWithBom, preamble.Length, utf8Bytes.Length);
+
+            result = new ReportExportResult
+            {
+                Content = contentWithBom,
+                ContentType = "text/csv; charset=utf-8",
+                FileName = $"{fileNameBase}.csv"
+            };
+        }
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Export,
+                "Reports",
+                $"{normalizedFormat}-{fromBangkok:yyyyMMdd}-{toBangkok:yyyyMMdd}",
+                new
+                {
+                    Format = normalizedFormat,
+                    Type = type ?? "full",
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    CategoryId = categoryId,
+                    TagId = tagId,
+                    TransactionCount = transactions.Count
+                },
+                cancellationToken);
+        }
+
+        return result;
+    }
+
+    private static string GenerateCsv(
+        DateTimeOffset fromDate,
+        DateTimeOffset toDate,
+        IReadOnlyList<ReportTransactionRecord> transactions,
+        string? type)
+    {
+        var sb = new StringBuilder();
+        var fromBkk = ToBangkokDate(fromDate.UtcDateTime);
+        var toBkk = ToBangkokDate(toDate.UtcDateTime);
+        var generatedAt = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BangkokTimeZone);
+
+        var isTransactionsOnly = string.Equals(type, "transactions", StringComparison.OrdinalIgnoreCase);
+
+        // Header info
+        sb.AppendLine("# PocketWise Financial Report (รายงานการเงิน PocketWise)");
+        sb.AppendLine($"# ช่วงวันที่รายงาน: {fromBkk:yyyy-MM-dd} ถึง {toBkk:yyyy-MM-dd}");
+        sb.AppendLine($"# วันเวลาที่สร้างรายงาน: {generatedAt:yyyy-MM-dd HH:mm:ss} (เวลาประเทศไทย)");
+        sb.AppendLine($"# จำนวนรายการทั้งหมด: {transactions.Count} รายการ");
+        sb.AppendLine();
+
+        if (!isTransactionsOnly)
+        {
+            var currencySummaries = transactions
+                .GroupBy(t => t.CurrencyCode, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g.Key)
+                .Select(CreateCurrencySummary)
+                .ToList();
+
+            // 1. Currency Summary
+            sb.AppendLine("=== 1. สรุปภาพรวมทางการเงิน (Financial Summary) ===");
+            sb.AppendLine("สกุลเงิน,รายรับรวม,รายจ่ายรวม,ยอดคงเหลือสุทธิ,รายจ่ายจากสลิปโอนเงิน (Slip),รายจ่ายจากบัตรเครดิต (Credit Card)");
+            foreach (var c in currencySummaries)
+            {
+                sb.AppendLine($"{EscapeCsv(c.CurrencyCode)},{c.TotalIncome:F2},{c.TotalExpense:F2},{c.NetAmount:F2},{c.TotalSlipExpense:F2},{c.TotalCreditCardExpense:F2}");
+            }
+            sb.AppendLine();
+
+            // 2. Category Breakdown
+            sb.AppendLine("=== 2. สัดส่วนรายจ่ายตามหมวดหมู่ (Expense Breakdown by Category) ===");
+            sb.AppendLine("สกุลเงิน,หมวดหมู่,ยอดเงิน,สัดส่วน (%),จำนวนรายการ");
+            foreach (var c in currencySummaries)
+            {
+                foreach (var cat in c.CategoryBreakdown)
+                {
+                    sb.AppendLine($"{EscapeCsv(c.CurrencyCode)},{EscapeCsv(cat.CategoryName)},{cat.Amount:F2},{cat.Percentage:F2}%,{cat.TransactionCount}");
+                }
+            }
+            sb.AppendLine();
+
+            // 3. Source Breakdown
+            sb.AppendLine("=== 3. สัดส่วนตามช่องทาง (Breakdown by Source) ===");
+            sb.AppendLine("สกุลเงิน,ช่องทาง,ยอดเงิน,สัดส่วน (%),จำนวนรายการ");
+            foreach (var c in currencySummaries)
+            {
+                foreach (var src in c.SourceBreakdown)
+                {
+                    var sourceDisplay = src.SourceType.ToLowerInvariant() switch
+                    {
+                        "slip" => "สลิปโอนเงิน (Slip)",
+                        "cardstatement" => "ใบแจ้งยอดบัตร (Card Statement)",
+                        "manual" => "บันทึกเอง (Manual)",
+                        "recurring" => "รายการประจำ (Recurring)",
+                        _ => src.SourceType
+                    };
+                    sb.AppendLine($"{EscapeCsv(c.CurrencyCode)},{EscapeCsv(sourceDisplay)},{src.Amount:F2},{src.Percentage:F2}%,{src.TransactionCount}");
+                }
+            }
+            sb.AppendLine();
+        }
+
+        // 4. Transaction Details
+        sb.AppendLine("=== 4. รายการธุรกรรมทั้งหมด (Transaction Records) ===");
+        sb.AppendLine("ลำดับ,วันที่,เวลา,ประเภท,หมวดหมู่,ร้านค้า/ผู้รับ,คำอธิบาย,จำนวนเงิน,สกุลเงิน,ช่องทาง,บัญชี/บัตร");
+
+        var index = 1;
+        foreach (var t in transactions)
+        {
+            var localDt = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(t.TransactionDate, DateTimeKind.Utc), BangkokTimeZone);
+            var typeName = t.TransactionType == TransactionType.Income ? "รายรับ" : "รายจ่าย";
+            var sourceName = t.SourceType switch
+            {
+                SourceType.Slip => "สลิปโอนเงิน",
+                SourceType.CardStatement => "ใบแจ้งยอดบัตร",
+                SourceType.Manual => "บันทึกเอง",
+                SourceType.Recurring => "รายการประจำ",
+                _ => t.SourceType.ToString()
+            };
+
+            var accountOrCard = t.BankAccountId.HasValue
+                ? $"{t.BankName} - {t.AccountName}"
+                : t.CreditCardId.HasValue
+                    ? $"{t.CreditCardBankName} - {t.CardName}"
+                    : "-";
+
+            sb.AppendLine(string.Join(",",
+                index++,
+                localDt.ToString("yyyy-MM-dd"),
+                localDt.ToString("HH:mm"),
+                EscapeCsv(typeName),
+                EscapeCsv(t.CategoryName ?? "ไม่ระบุหมวดหมู่"),
+                EscapeCsv(t.MerchantName ?? "-"),
+                EscapeCsv(t.Description ?? "-"),
+                t.Amount.ToString("F2"),
+                EscapeCsv(t.CurrencyCode),
+                EscapeCsv(sourceName),
+                EscapeCsv(accountOrCard)
+            ));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
     }
 
     private static ReportCurrencySummary CreateCurrencySummary(

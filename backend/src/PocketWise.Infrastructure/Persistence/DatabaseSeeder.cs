@@ -157,7 +157,7 @@ public static class DatabaseSeeder
             "TRANSACTIONS_VIEW", "TRANSACTIONS_CREATE", "TRANSACTIONS_EDIT", "TRANSACTIONS_DELETE",
             "BUDGETS_VIEW", "BUDGETS_MANAGE",
             "CATEGORIES_VIEW", "CATEGORIES_MANAGE",
-            "REPORTS_VIEW", "IMPORTS_MANAGE"
+            "REPORTS_VIEW", "REPORTS_EXPORT", "IMPORTS_MANAGE"
         };
 
         var missingMemberPerms = allPermissions

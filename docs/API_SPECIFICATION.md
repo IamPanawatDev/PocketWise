@@ -589,6 +589,7 @@ Content-Type: application/json
 |:-:|---|:-:|---|
 | `GET` | `/api/v1/reports/summary` | ต้อง | ยอดรวมและ breakdown สำหรับ dashboard |
 | `GET` | `/api/v1/reports/trends` | ต้อง | สรุปยอดตามช่วงเวลา (สัปดาห์/เดือน/ไตรมาส/ปี) |
+| `GET` | `/api/v1/reports/export` | ต้อง | ส่งออกข้อมูลรายงานการเงินเป็นไฟล์ (CSV พร้อม UTF-8 BOM หรือ JSON) |
 
 ### Query parameters
 
@@ -598,6 +599,8 @@ Content-Type: application/json
 | `categoryId` | optional; จำกัดผลลัพธ์เป็นหมวดที่ระบุ |
 | `tagId` | optional; จำกัดผลลัพธ์เป็นรายการที่ติดแท็กนั้น |
 | `period` | ใช้กับ trends เท่านั้น: `weekly` / `monthly` / `quarterly` / `yearly` |
+| `format` | ใช้กับ export เท่านั้น: `csv` (default) หรือ `json` (UTF-8 BOM สำหรับ CSV เพื่อเปิดใน Excel ภาษาไทยได้ทันที) |
+| `type` | ใช้กับ export เท่านั้น: `full` (default: สรุปภาพรวม + สัดส่วน + รายการ) หรือ `transactions` (เฉพาะรายการธุรกรรม) |
 
 ### Response
 
@@ -1046,6 +1049,29 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
   ]
 }
 ```
+
+---
+
+## 5L. Admin System Categories (contract — สิทธิ์ SYSTEM_CATEGORIES_MANAGE)
+
+**สถานะ:** ✅ ล็อกแล้ว (Phase 5 / Admin Expansion)
+
+จัดการหมวดหมู่มาตรฐานของระบบ (`IsSystem = true`, `UserId = null`) สำหรับผู้ดูแลระบบ (Admin)
+
+| Method | Endpoint | Description | Role / Permission |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/admin/categories` | ดึงรายการหมวดหมู่มาตรฐานของระบบทั้งหมด (เรียงตาม SortOrder) | `Admin` / `SYSTEM_CATEGORIES_MANAGE` |
+| `GET` | `/api/v1/admin/categories/{id}` | ดึงข้อมูลหมวดหมู่มาตรฐานตาม Id | `Admin` / `SYSTEM_CATEGORIES_MANAGE` |
+| `POST` | `/api/v1/admin/categories` | สร้างหมวดหมู่มาตรฐานใหม่ (ป้องกันชื่อซ้ำในระบบ) | `Admin` / `SYSTEM_CATEGORIES_MANAGE` |
+| `PUT` | `/api/v1/admin/categories/{id}` | แก้ไขหมวดหมู่มาตรฐาน (ชื่อ, ประเภท, ไอคอน, สี, สถานะเปิด/ปิดใช้งาน) | `Admin` / `SYSTEM_CATEGORIES_MANAGE` |
+| `DELETE` | `/api/v1/admin/categories/{id}` | ลบหมวดหมู่มาตรฐาน (ป้องกันการลบหากมีรายการธุรกรรมอ้างอิงอยู่) | `Admin` / `SYSTEM_CATEGORIES_MANAGE` |
+| `PUT` | `/api/v1/admin/categories/reorder` | ปรับลำดับการแสดงผลหมวดหมู่มาตรฐาน (`items: [{ categoryId, sortOrder }]`) | `Admin` / `SYSTEM_CATEGORIES_MANAGE` |
+| `POST` | `/api/v1/admin/categories/seed-defaults` | นำเข้า/คืนค่าเริ่มต้น 12 หมวดหมู่มาตรฐานของ PocketWise อัตโนมัติ (Idempotent) | `Admin` / `SYSTEM_CATEGORIES_MANAGE` |
+
+### Business Rules
+1. **ป้องกันชื่อซ้ำ:** ตรวจสอบ `SystemNameExistsAsync` เฉพาะในกลุ่ม `IsSystem = true`
+2. **ป้องกัน Data Integrity:** หากหมวดหมู่มีรายการธุรกรรม (`Transactions`) ผูกอยู่ จะปฏิเสธการลบด้วยข้อผิดพลาด `409 Conflict: ไม่สามารถลบหมวดหมู่ระบบนี้ได้เนื่องจากมีรายการธุรกรรมอ้างอิงอยู่ (แนะนำให้ปิดการใช้งานแทน)`
+3. **Audit Log:** บันทึกประวัติการเปลี่ยนแปลง (`AuditLogs`) ทุก Action (`Create`, `Update`, `Delete`, `system-reorder`, `seed-defaults`) พร้อม `actorUserId` และ Before/After state เสมอ
 
 ---
 

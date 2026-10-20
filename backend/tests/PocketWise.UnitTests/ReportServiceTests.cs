@@ -161,6 +161,85 @@ public class ReportServiceTests
             });
     }
 
+    [Fact]
+    public async Task ExportReportAsync_Csv_GeneratesUtf8BomAndCorrectContent()
+    {
+        var service = new ReportService(new InMemoryReportRepository(
+        [
+            new ReportTransactionRecord
+            {
+                TransactionId = 1,
+                TransactionDate = new DateTime(2026, 10, 4, 5, 30, 0, DateTimeKind.Utc),
+                TransactionType = TransactionType.Expense,
+                Amount = 80m,
+                CurrencyCode = "THB",
+                SourceType = SourceType.Slip,
+                CategoryName = "อาหารและเครื่องดื่ม",
+                MerchantName = "ร้านข้าวแกง",
+                Description = "อาหารเที่ยง"
+            }
+        ]));
+
+        var result = await service.ExportReportAsync(
+            1,
+            new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 10, 31, 23, 59, 59, TimeSpan.Zero),
+            "csv",
+            "full",
+            null,
+            null);
+
+        Assert.Equal("text/csv; charset=utf-8", result.ContentType);
+        Assert.EndsWith(".csv", result.FileName);
+        Assert.True(result.Content.Length > 3);
+
+        // Verify UTF-8 BOM: 0xEF, 0xBB, 0xBF
+        Assert.Equal(0xEF, result.Content[0]);
+        Assert.Equal(0xBB, result.Content[1]);
+        Assert.Equal(0xBF, result.Content[2]);
+
+        var text = System.Text.Encoding.UTF8.GetString(result.Content[3..]);
+        Assert.Contains("PocketWise Financial Report", text);
+        Assert.Contains("อาหารและเครื่องดื่ม", text);
+        Assert.Contains("ร้านข้าวแกง", text);
+        Assert.Contains("80.00", text);
+        Assert.Contains("สลิปโอนเงิน", text);
+    }
+
+    [Fact]
+    public async Task ExportReportAsync_Json_GeneratesValidJsonContent()
+    {
+        var service = new ReportService(new InMemoryReportRepository(
+        [
+            new ReportTransactionRecord
+            {
+                TransactionId = 2,
+                TransactionDate = new DateTime(2026, 10, 5, 1, 0, 0, DateTimeKind.Utc),
+                TransactionType = TransactionType.Income,
+                Amount = 30000m,
+                CurrencyCode = "THB",
+                SourceType = SourceType.Manual,
+                CategoryName = "เงินเดือน"
+            }
+        ]));
+
+        var result = await service.ExportReportAsync(
+            1,
+            new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 10, 31, 23, 59, 59, TimeSpan.Zero),
+            "json",
+            "full",
+            null,
+            null);
+
+        Assert.Equal("application/json; charset=utf-8", result.ContentType);
+        Assert.EndsWith(".json", result.FileName);
+
+        var json = System.Text.Encoding.UTF8.GetString(result.Content);
+        Assert.Contains("30000", json);
+        Assert.Contains("เงินเดือน", json);
+    }
+
     private sealed class InMemoryReportRepository(
         IReadOnlyList<ReportTransactionRecord> transactions) : IReportRepository
     {
