@@ -108,17 +108,17 @@
 | 5.5.3 | ล้างข้อมูลเริ่มใหม่ (soft delete ตารางการเงินของ user + revoke tokens) | ✅ | FR6.3.6; scope 9 ตารางและ exclusions ตาม D35 |
 | 5.5.4 | Gate: ทำงานจริง end-to-end + FR สถานะอัปเดต | ✅ | E2E กับ SQL Server ผ่าน: settings/profile persistence, email verification reset, reset soft-delete และ revoke refresh token; identity/settings คงอยู่. Backend Release build 0 warnings/errors, 13 unit tests + 1 integration test ผ่าน; frontend lint/build ผ่าน |
 
-## 8. Phase 6 — SignalR & Notifications 🔁
+## 8. Phase 6 — SignalR & Notifications ✅
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
-| 6.1 | `AddSignalR` + `MapHub<NotificationHub>("/hubs/notifications")` | ⬜ | ไม่ติดตั้ง NuGet ฝั่ง server |
-| 6.2 | NotificationHub (auth ผ่าน claims, per-user groups) | ⬜ | ARCHITECTURE §6 |
-| 6.3 | บันทึกลงตาราง Notifications ก่อน broadcast เสมอ | ⬜ | |
-| 6.4 | ❓ event contract — ล็อกลง API_SPECIFICATION §6 ก่อน implement | ⬜ | D11-⑤ |
-| 6.5 | 📦 `@microsoft/signalr` ฝั่ง FE (ขออนุมัติก่อน) | ⬜ | |
-| 6.6 | FE: `src/lib/signalr.ts` + `features/notifications/` | ⬜ | |
-| 6.7 | Gate: real-time ทำงานจริง (แจ้ง budget warning, import progress) + build ผ่าน | ⬜ | |
+| 6.1 | `AddSignalR` + `MapHub<NotificationHub>("/hubs/notifications")` | ✅ | ไม่ติดตั้ง NuGet ฝั่ง server (ใช้ shared framework) |
+| 6.2 | NotificationHub (auth ผ่าน claims, per-user groups) | ✅ | ARCHITECTURE §6, `user_{userId}` server-managed group |
+| 6.3 | บันทึกลงตาราง Notifications ก่อน broadcast เสมอ | ✅ | NotificationRepository + BudgetService/NotificationService บันทึกลง SQL Server ก่อนส่ง |
+| 6.4 | ✅ event contract — ล็อกลง API_SPECIFICATION §6 ก่อน implement | ✅ | D37 — `ReceiveNotification` และ `ReceiveRefreshHint` |
+| 6.5 | ✅ `@microsoft/signalr` ฝั่ง FE (ขออนุมัติแล้ว) | ✅ | D37 — ติดตั้ง `^10.0.11` ใน `frontend/pocketwise-web` |
+| 6.6 | FE: `src/lib/signalr.ts` + `features/notifications/` + UI Popover | ✅ | Hub client, `useSignalRNotifications`, `NotificationBell` Popover ใน `DashboardShell` |
+| 6.7 | Gate: real-time ทำงานจริง + REST API + build ผ่าน 0 error/warning | ✅ | 22/22 tests backend ผ่าน, FE lint/build ผ่าน 0 error |
 
 ## 9. Phase 7 — Imports 🔁
 

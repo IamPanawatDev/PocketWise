@@ -1,5 +1,6 @@
 using FluentValidation;
 using PocketWise.Application.DTOs.Budgets;
+using PocketWise.Application.Features.Notifications;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
 using PocketWise.Domain.Enums;
@@ -15,15 +16,18 @@ public class BudgetService : IBudgetService
     private readonly IBudgetRepository _repository;
     private readonly IValidator<CreateBudgetRequest> _createValidator;
     private readonly IValidator<UpdateBudgetRequest> _updateValidator;
+    private readonly INotificationSender? _notificationSender;
 
     public BudgetService(
         IBudgetRepository repository,
         IValidator<CreateBudgetRequest> createValidator,
-        IValidator<UpdateBudgetRequest> updateValidator)
+        IValidator<UpdateBudgetRequest> updateValidator,
+        INotificationSender? notificationSender = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _notificationSender = notificationSender;
     }
 
     public async Task<IReadOnlyList<BudgetResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
@@ -52,7 +56,7 @@ public class BudgetService : IBudgetService
         var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
 
         var result = new List<BudgetTrackingResponse>();
-        var hasPendingNotifications = false;
+        var newNotifications = new List<Notification>();
         foreach (var entity in entities.Where(e => e.IsActive))
         {
             var period = BudgetPeriodCalculator.GetCurrentPeriod(entity.PeriodType, entity.StartDate, entity.EndDate, today);
@@ -72,25 +76,38 @@ public class BudgetService : IBudgetService
                 cancellationToken);
 
             result.Add(MapTracking(entity, spent, currencyCode));
-            hasPendingNotifications |= await RecordThresholdNotificationAsync(
+            await RecordThresholdNotificationAsync(
                 userId,
                 entity,
                 period.Value.From,
                 spent,
                 currencyCode,
+                newNotifications,
                 cancellationToken);
-            hasPendingNotifications |= await RecordExceededNotificationAsync(
+            await RecordExceededNotificationAsync(
                 userId,
                 entity,
                 period.Value.From,
                 spent,
                 currencyCode,
+                newNotifications,
                 cancellationToken);
         }
 
-        if (hasPendingNotifications)
+        if (newNotifications.Count > 0)
         {
             await _repository.SaveChangesAsync(cancellationToken);
+
+            if (_notificationSender != null)
+            {
+                foreach (var notification in newNotifications)
+                {
+                    await _notificationSender.SendNotificationToUserAsync(
+                        userId,
+                        NotificationService.MapToResponse(notification),
+                        cancellationToken);
+                }
+            }
         }
 
         return result;
@@ -252,65 +269,71 @@ public class BudgetService : IBudgetService
         };
     }
 
-    private async Task<bool> RecordThresholdNotificationAsync(
+    private async Task RecordThresholdNotificationAsync(
         long userId,
         Budget budget,
         DateOnly periodStart,
         decimal spent,
         string currencyCode,
+        List<Notification> collectedNotifications,
         CancellationToken cancellationToken)
     {
         var notificationType = $"BUDGET_WARNING_{periodStart:yyyyMMdd}";
         if (spent / budget.AmountLimit * 100m < budget.AlertThresholdPercent
             || await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, notificationType, cancellationToken))
         {
-            return false;
+            return;
         }
 
-        await _repository.AddNotificationAsync(new Notification
+        var notification = new Notification
         {
             UserId = userId,
             NotificationType = notificationType,
             Title = $"งบ {budget.BudgetName} ใกล้ถึงขีดจำกัด",
             Message = $"ใช้ไปแล้ว {spent:N2} {currencyCode} จาก {budget.AmountLimit:N2} {currencyCode} ({Math.Round(spent / budget.AmountLimit * 100m, 2):N2}%)",
             Channel = NotificationChannel.InApp,
-            Status = NotificationStatus.Pending,
+            Status = NotificationStatus.Sent,
             RelatedEntityType = "Budget",
             RelatedEntityId = budget.BudgetId,
+            SentAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
-        }, cancellationToken);
+        };
 
-        return true;
+        await _repository.AddNotificationAsync(notification, cancellationToken);
+        collectedNotifications.Add(notification);
     }
 
-    private async Task<bool> RecordExceededNotificationAsync(
+    private async Task RecordExceededNotificationAsync(
         long userId,
         Budget budget,
         DateOnly periodStart,
         decimal spent,
         string currencyCode,
+        List<Notification> collectedNotifications,
         CancellationToken cancellationToken)
     {
         var notificationType = $"BUDGET_EXCEEDED_{periodStart:yyyyMMdd}";
         if (spent <= budget.AmountLimit
             || await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, notificationType, cancellationToken))
         {
-            return false;
+            return;
         }
 
-        await _repository.AddNotificationAsync(new Notification
+        var notification = new Notification
         {
             UserId = userId,
             NotificationType = notificationType,
             Title = $"เกินงบ {budget.BudgetName}",
             Message = $"ใช้ไปแล้ว {spent:N2} {currencyCode} จากงบ {budget.AmountLimit:N2} {currencyCode}",
             Channel = NotificationChannel.InApp,
-            Status = NotificationStatus.Pending,
+            Status = NotificationStatus.Sent,
             RelatedEntityType = "Budget",
             RelatedEntityId = budget.BudgetId,
+            SentAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
-        }, cancellationToken);
+        };
 
-        return true;
+        await _repository.AddNotificationAsync(notification, cancellationToken);
+        collectedNotifications.Add(notification);
     }
 }

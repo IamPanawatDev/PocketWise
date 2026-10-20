@@ -1,5 +1,6 @@
 using PocketWise.Api.BackgroundServices;
 using PocketWise.Api.Configuration;
+using PocketWise.Api.Hubs;
 using PocketWise.Api.Middleware;
 using PocketWise.Infrastructure.Configuration;
 using NSwag.AspNetCore;
@@ -11,6 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddPocketWiseAuthentication(builder.Configuration);
 builder.Services.AddApplicationServices();
+builder.Services.AddSignalR();
 
 builder.Services.AddControllers()
     .AddJsonOptions(ControllerJsonOptionsConfiguration.Configure);
@@ -56,5 +58,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();

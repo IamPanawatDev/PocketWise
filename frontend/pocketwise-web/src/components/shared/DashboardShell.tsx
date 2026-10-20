@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { useLogout } from "@/features/auth/hooks/useAuthMutations";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useUserSettings } from "@/features/settings/hooks/useSettings";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import { useSignalRNotifications } from "@/features/notifications/hooks/useSignalRNotifications";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -52,6 +54,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const { data: user } = useCurrentUser();
   const { data: settings } = useUserSettings();
+  useSignalRNotifications(Boolean(user));
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -112,13 +115,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               />
               <span className="truncate">PocketWise</span>
             </div>
-            <p className="mt-2 break-words rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] px-3 py-2 text-sm text-[var(--pw-link)]">
-              {user?.displayName
-                ? /[\u0E00-\u0E7F]/u.test(user.displayName)
-                  ? `สวัสดี คุณ ${user.displayName}`
-                  : `Welcome ${user.displayName}`
-                : "..."}
-            </p>
+            <div className="mt-2 flex items-center justify-between gap-1.5 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] p-1.5">
+              <p className="min-w-0 flex-1 truncate px-1 text-sm text-[var(--pw-link)]">
+                {user?.displayName
+                  ? /[\u0E00-\u0E7F]/u.test(user.displayName)
+                    ? `สวัสดี คุณ ${user.displayName}`
+                    : `Welcome ${user.displayName}`
+                  : "..."}
+              </p>
+              <NotificationBell className="shrink-0 size-8 text-[var(--pw-ink)] hover:text-white" />
+            </div>
           </div>
           <div
             role="img"
@@ -128,6 +134,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               backgroundImage: "url(https://cdn-icons-png.flaticon.com/512/10384/10384161.png)",
             }}
           />
+          {iconOnly && (
+            <div className="hidden md:flex justify-center mt-2">
+              <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-white" />
+            </div>
+          )}
           <Button
             type="button"
             size="icon"
@@ -225,11 +236,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-200", isCollapsed ? "md:ml-20" : "md:ml-60")}>
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/95 px-3 backdrop-blur md:hidden">
-          <Button type="button" size="icon" variant="ghost" aria-label="เปิดเมนู" onClick={toggleNavigation}>
-            <Menu />
-          </Button>
-          <span className="truncate text-base font-bold text-[var(--pw-on-primary)]">PocketWise</span>
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/95 px-3 backdrop-blur md:hidden">
+          <div className="flex items-center gap-3">
+            <Button type="button" size="icon" variant="ghost" aria-label="เปิดเมนู" onClick={toggleNavigation}>
+              <Menu />
+            </Button>
+            <span className="truncate text-base font-bold text-[var(--pw-on-primary)]">PocketWise</span>
+          </div>
+          <NotificationBell />
         </header>
         <div className="flex-1 p-3 pb-8 sm:p-6">{children}</div>
         <footer className="border-t border-[var(--pw-hairline)] px-3 py-4 text-center text-xs text-[var(--pw-ink)]/55 sm:px-6">

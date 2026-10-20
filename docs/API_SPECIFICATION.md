@@ -687,17 +687,116 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 
 `POST /users/me/data-reset` รับ body ว่าง และ soft-delete เฉพาะข้อมูลของผู้ใช้ใน 9 ตารางที่กำหนด D5: Transactions, BankAccounts, CreditCards, Budgets, RecurringTransactions, InstallmentPlans, TransferGroups, CreditCardStatements, CreditCardStatementItems. User identity, UserSettings, หมวดหมู่/แท็ก/กฎ, Notifications, import history และ AuditLogs จะคงอยู่. การล้างทำงานเป็น transaction เดียว, คืน `{ "resetAt": "2026-10-20T00:00:00Z" }`, และ revoke refresh tokens ทุก session; access tokens ที่ออกไปแล้วจะหมดอายุตามปกติ (ไม่เกิน 60 นาที).
 
-## 6. SignalR Events (section เปิด — ล็อกตอน Phase 6 เริ่ม, ตาม D11 แต่ 5ข)
+---
 
-**สถานะ:** ยัง**ไม่ล็อก** — กำหนด event contract ลง section นี้ **ก่อน implement Phase 6** โดยใช้ข้อมูลจาก playbook (ขั้นที่ 4 ของ Phase 6) + ผ้งการชี้ของ ARCHITECTURE §6
+## 5H. Phase 6 — Notifications (REST API contract)
 
-**แนวกรอบที่รอจัดจริง (ยังไม่ commit ทุกจุด):**
+> **สถานะ:** ล็อกแล้ว (D37) — จัดการประวัติการแจ้งเตือนของผู้ใช้ และเชื่อมต่อกับ SignalR Hub
 
-- Hub route เดียว: `/hubs/notifications` (`NEXT_PUBLIC_SIGNALR_HUB_URL` ใน `.env.example` ว่าไว้แล้ว)
-- Auth: ส่ง access token ของ JWT ชุดเดียวกับ REST ผ่าน `access_token` ของ query string ต่อการ negotiate (รายละเอียดยังไม่ล็อก)
-- Event candidates ที่อาจกำหนด (มาจาก playbook Phase 6 / FR5.2): `budget.warning`, `budget.exceeded`, `import.progress`, `import.completed`, `data.refresh-hint` — **ชื่อ+payload จริงต้องยืนยันตอน Phase 6**
-- Payload ทุก event: ระบุ `{ type, occurredAt, ... }` แบบเดียวข้าม event — พร้อมหลัก "ห้าม broadcast ข้อมูลการเงินละเอียด ให้ใช้ record id/ประเภทพอ"
-- ฝั่ง FE: โครงผ่าน `src/lib/signalr.ts` — ทำ reconnect + การ refresh query หลังได้ event
+### Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|:-:|---|:-:|---|
+| `GET` | `/api/v1/notifications` | ต้อง | รายการแจ้งเตือนของผู้ใช้ (รองรับ pagination + unreadOnly) |
+| `GET` | `/api/v1/notifications/unread-count` | ต้อง | จำนวนการแจ้งเตือนที่ยังไม่ได้อ่าน |
+| `PUT` | `/api/v1/notifications/{id}/read` | ต้อง | มาร์กการแจ้งเตือนรายการเดียวว่าอ่านแล้ว |
+| `PUT` | `/api/v1/notifications/read-all` | ต้อง | มาร์กการแจ้งเตือนทั้งหมดของผู้ใช้ว่าอ่านแล้ว |
+
+### Query Parameters สำหรับ `GET /api/v1/notifications`
+
+| Parameter | Type | Default | คำอธิบาย |
+|---|---|---|---|
+| `page` | integer | 1 | ลำดับหน้า (เริ่มจาก 1) |
+| `pageSize` | integer | 20 | จำนวนรายการต่อหน้า (1–100) |
+| `unreadOnly` | boolean | false | ถ้า true จะคืนเฉพาะรายการที่ยังไม่ได้อ่าน |
+
+### Response DTOs
+
+**`NotificationResponse`**
+```json
+{
+  "notificationId": 101,
+  "notificationType": "BUDGET_WARNING_20261001",
+  "title": "งบ อาหาร ใกล้ถึงขีดจำกัด",
+  "message": "ใช้ไปแล้ว 4,200.00 THB จาก 5,000.00 THB (84.00%)",
+  "channel": "inApp",
+  "status": "sent",
+  "relatedEntityType": "Budget",
+  "relatedEntityId": 12,
+  "sentAt": "2026-10-20T09:00:00Z",
+  "readAt": null,
+  "createdAt": "2026-10-20T09:00:00Z"
+}
+```
+
+**`NotificationUnreadCountResponse`**
+```json
+{
+  "unreadCount": 3
+}
+```
+
+**`BatchReadNotificationsResponse`**
+```json
+{
+  "count": 3
+}
+```
+
+---
+
+## 6. SignalR Events (contract — ล็อกแล้วตาม D37)
+
+**สถานะ:** ✅ ล็อกแล้ว (D37)
+
+### การเชื่อมต่อและ Authentication
+- **Hub Route:** `/hubs/notifications`
+- **Transport:** WebSockets (fallback: Server-Sent Events, Long Polling)
+- **Auth:** Client แนบ JWT Bearer Token ผ่าน query string `?access_token=<JWT_TOKEN>` ตอน negotiate/connect; Backend ตรวจสอบผ่าน `JwtBearerEvents.OnMessageReceived` สำหรับ path ที่ขึ้นต้นด้วย `/hubs/`
+- **User Groups:** Server จัดการ per-user group `$"user_{userId}"` อัตโนมัติใน `OnConnectedAsync` ผ่าน ClaimsPrincipal `sub` / `NameIdentifier` — **ไม่รับ userId จาก client**
+
+### Client-bound Events (Server -> Client)
+
+#### 1. `ReceiveNotification`
+ส่งเมื่อมี notification ใหม่เกิดขึ้น (เช่น แจ้งเตือนงบประมาณเกิน/ใกล้ถึงเกณฑ์, งานประมวลผลเสร็จสิ้น)
+- **Payload:** `NotificationResponse` (ตรงกับ DTO ฝั่ง REST)
+```json
+{
+  "notificationId": 101,
+  "notificationType": "BUDGET_WARNING_20261001",
+  "title": "งบ อาหาร ใกล้ถึงขีดจำกัด",
+  "message": "ใช้ไปแล้ว 4,200.00 THB จาก 5,000.00 THB (84.00%)",
+  "channel": "inApp",
+  "status": "sent",
+  "relatedEntityType": "Budget",
+  "relatedEntityId": 12,
+  "sentAt": "2026-10-20T09:00:00Z",
+  "readAt": null,
+  "createdAt": "2026-10-20T09:00:00Z"
+}
+```
+- **การตอบสนองฝั่ง Client:**
+  1. แสดง Toast แจ้งเตือน (Sonner)
+  2. Invalidate React Query keys: `["notifications"]`, `["notifications", "unread-count"]`
+  3. หาก `relatedEntityType === "Budget"` ให้ invalidate `["budgets"]` เพื่ออัปเดตยอดใช้
+
+#### 2. `ReceiveRefreshHint`
+ส่งเมื่อมีการเปลี่ยนแปลงข้อมูลที่ส่งผลให้หน้าจออื่นหรืออุปกรณ์อื่นของผู้ใช้ต้องโหลดข้อมูลใหม่ (Cache/Query Invalidation Hint)
+- **Payload:**
+```json
+{
+  "entityType": "budget",
+  "hint": "budget-updated",
+  "timestamp": "2026-10-20T09:00:00Z"
+}
+```
+- `entityType`: `budget` / `transaction` / `category` / `all`
+- **การตอบสนองฝั่ง Client:** Invalidate React Query cache ตาม `entityType` ที่ระบุ
+
+### Business Rules ของ SignalR
+1. **บันทึกลง SQL Server (ตาราง `Notifications`) ก่อน broadcast เสมอ** — SignalR ทำหน้าที่ส่งต่อแบบ real-time ไม่ทำหน้าที่เป็น data store
+2. ห้าม broadcast ข้อมูลละเอียดอ่อน (รหัสผ่าน, token, เลขบัตรเต็ม)
+3. หาก client ออฟไลน์ ข้อความจะอยู่ใน SQL Server และสามารถดึงผ่าน REST API `GET /api/v1/notifications` เมื่อออนไลน์
 
 ---
 

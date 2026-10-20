@@ -73,7 +73,7 @@
 | 4 Core Transactions | ✅ | 4.10 Gate ผ่านและ E2E ตรวจแล้ว; FR2.2 credit-card picker เชื่อมกับ CRUD ใน Phase 5 แล้ว |
 | 5 Budgets, Credit Cards & Reports | ✅ | Core implementation, frontend, build และ tests ผ่าน; FR5.2.2 delivery เลื่อนไปตาม D28 และข้อมูลสลิปรอ Phase 7 |
 | 5.5 Settings & Profile | ✅ | Gate ผ่าน: settings/profile/data-reset E2E กับ SQL Server จริง; ตรวจ persistence, soft-delete, คง user/settings และ revoke refresh token; Backend Release build 0 warnings/errors, 13 unit tests + 1 integration test ผ่าน; frontend lint/build ผ่าน |
-| 6 SignalR | ⬜ | ฝั่ง server ใช้ AddSignalR จาก shared framework |
+| 6 SignalR | ✅ | NotificationHub (/hubs/notifications), per-user claims group, InApp SignalR delivery, Notification REST APIs, NotificationBell popover, @microsoft/signalr ^10.0.11 ติดตั้งแล้ว |
 | 7 Imports | ⬜ | นำเข้าสลิป/ใบแจ้งยอดบัตร (S2) + CSV/OCR ย่อยท้าย phase |
 | 8 Hardening | ⬜ | Integration tests, security review, hosting, CI |
 
@@ -222,17 +222,17 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 ---
 
-### Phase 6 — SignalR & Notifications
+### Phase 6 — SignalR & Notifications (✅ เสร็จแล้ว)
 
-**ข้อตรวจก่อน: ฝั่ง server ใช้ `AddSignalR` จาก shared framework (ไม่ต้องติดตั้ง NuGet)** แต่ต้อง:
-
-1. `builder.Services.AddSignalR();` + `app.MapHub<NotificationHub>("/hubs/notifications");` ใน Program.cs
-2. Hub → `src/PocketWise.Api/Hubs/NotificationHub.cs`, **บันทึกลง SQL Server (ตาราง 9) ก่อน broadcast เสมอ**
-3. Auth ของ hub ต้องตรงกับ REST identity (กัน client ปลอม userId)
-4. ❓ **สัญญา event names + payload ของ hub** — SignalR ไม่อยู่ใน OpenAPI — กำหนดลง `/docs/API_SPECIFICATION.md` (section SignalR) **ก่อนเริ่ม implement** ตาม D11-⑤ (ผังหลักที่ `ARCHITECTURE.md` §6)
-5. 📦 ฝั่ง FE ต้องติดตั้ง `@microsoft/signalr` — **ขออนุมัติก่อน**
-6. FE: `src/lib/signalr.ts` (ตอนนี้ยังเป็น stub) + `src/features/notifications/`
-7. ❓ scale-out / backplane หรือไม่ (default: รอ Phase 8 ตัดสิน)
+**สิ่งที่ทำเสร็จแล้ว:**
+1. ✅ `builder.Services.AddSignalR();` + `app.MapHub<NotificationHub>("/hubs/notifications");` ใน Program.cs (ใช้ shared framework)
+2. ✅ Hub `src/PocketWise.Api/Hubs/NotificationHub.cs` พร้อม per-user group `$"user_{userId}"` และเชื่อมต่อ JWT query string `access_token`
+3. ✅ บันทึกข้อมูลลง SQL Server ตาราง `Notifications` ผ่าน `NotificationRepository` ก่อน broadcast เสมอ
+4. ✅ สัญญา Event `ReceiveNotification` และ `ReceiveRefreshHint` ล็อกใน `/docs/API_SPECIFICATION.md` §6 (D37)
+5. ✅ REST APIs: `GET /notifications`, `GET /notifications/unread-count`, `PUT /notifications/{id}/read`, `PUT /notifications/read-all`
+6. ✅ ติดตั้ง `@microsoft/signalr` (`^10.0.11`) ใน `frontend/pocketwise-web/` (ได้รับอนุมัติ D37)
+7. ✅ FE Client `src/lib/signalr.ts` + feature `src/features/notifications/` (`useNotifications`, `useSignalRNotifications`, `NotificationBell` Popover ใน `DashboardShell`)
+8. ✅ Gate: Unit tests 22/22 ผ่าน, frontend build & lint ผ่าน 0 errors/warnings
 
 ---
 
@@ -390,6 +390,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D34 | Phase 5 Reports calendar | Weekly period เริ่มวันอาทิตย์; calendar dates ใช้ Asia/Bangkok และ API รับ UTC boundaries | เจ้าของโปรเจค | ✅ ล็อก |
 | D35 | Phase 5.5 profile, settings และ reset | Settings API จัดการ Theme/CurrencyCode/Locale/EmailBudgetAlertsEnabled; เปลี่ยนอีเมลตั้ง `IsEmailVerified=false` โดยยังไม่มี verification flow; reset soft-delete เฉพาะ 9 finance tables ตาม D5, คง identity/settings/categories/tags/rules/notifications/import history/audit logs และ revoke refresh tokens ทุก session | เจ้าของโปรเจค | ✅ ล็อก |
 | D36 | Reports default date range | หน้า Reports ตั้งค่าเริ่มต้นตั้งแต่วันที่ 1 มกราคมถึง 31 ธันวาคมของปีปัจจุบัน (Asia/Bangkok) | เจ้าของโปรเจค | ✅ ล็อก |
+| D37 | Phase 6 SignalR & Notifications contract & package | ติดตั้ง `@microsoft/signalr` (^10.0.11) ฝั่ง FE (อนุมัติแล้ว); สัญญา Event กลาง `ReceiveNotification` (Payload `NotificationResponse`) + `ReceiveRefreshHint`; Auth query `?access_token=...` ผ่าน BFF `/api/auth/token`; จัดการ per-user group `$"user_{userId}"` ฝั่ง server; REST endpoints 4 endpoints + NotificationBell popover บน DashboardShell | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
@@ -397,7 +398,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 - Phase 4: ~~filter params ของ list endpoints~~ ✅ ล็อกเป็น D17; FE query/filter/sort และ E2E ตรวจแล้ว
 - Phase 5: ~~threshold semantics~~ ✅ D27, ~~chart lib~~ ✅ D29 (recharts), ~~recurring กลไก~~ ✅ D26 (HostedService), ~~email provider~~ ✅ D28 (เลื่อนไปทีหลัง), ~~จัดหมวดอัตโนมัติ~~ ✅ D31–D33, ~~Reports calendar~~ ✅ D34, ~~default date range~~ ✅ D36
 - Phase 5.5: ~~ขอบเขตล้างข้อมูลเริ่มใหม่ (FR6.3.6), เปลี่ยนอีเมลต้องยืนยันใหม่ไหม~~ ✅ D35
-- Phase 6: hub event contract (สัญญาตาม D11-⑤ — ล็อกตอนเริ่ม phase, ชื่อ candidate อยู่ที่ API_SPECIFICATION §6), scale-out (เลื่อน Phase 8)
+- Phase 6: ~~hub event contract, package, rest endpoints~~ ✅ D37; scale-out (เลื่อน Phase 8)
 - Phase 7: file storage, ข้อจำกัดไฟล์, OCR provider
 - Phase 8: hosting, backup policy, CI แบบไหน, monitoring
 - Schema เพิ่มในอนาคต — เริ่มจาก **เพิ่ม FR ใน REQUIREMENTS.md** ก่อน แล้วขยาย DataDictionary + Entities ตาม (กระบวนการเดียวกับกติกา §8)

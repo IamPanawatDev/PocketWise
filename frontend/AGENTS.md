@@ -37,6 +37,7 @@
    - ปฏิทินใช้ `react-day-picker` (`^10.0.2`, runtime dependency ของ `frontend/pocketwise-web/`) ผ่าน shared `Calendar`; ปรับ shadcn-generated classes ให้ใช้ `--pw-*` tokens และอย่า overwrite shared primitives ที่ถูกปรับ theme แล้วเมื่อนำ component ใหม่เข้า
    - ออกแบบหน้าแบบ mobile-first: sidebar ของแอปต้อง fixed เต็ม viewport (`h-dvh`) และใช้ hamburger/drawer บนจอเล็ก; จัดฟอร์มและ action ให้ใช้งานได้ในจอแคบ, ใช้ card/list แทนตารางบนมือถือ และคงตารางไว้สำหรับจอใหญ่
    - เมื่อเพิ่มภาพลักษณ์แบรนด์/ไอคอน ให้ตั้งค่า site icon ใน Next metadata และระบุ attribution ที่มาของ asset ใน UI/เอกสารเมื่อแหล่งที่มาให้ข้อกำหนด
+   - Real-time Notifications ใช้ `@microsoft/signalr` (`^10.0.11`, runtime dependency ของ `frontend/pocketwise-web/`) จัดการการเชื่อมต่อผ่าน `src/lib/signalr.ts` ไปยัง Hub `/hubs/notifications`; ดึง access token ผ่าน Next.js BFF route เพื่อใช้กับ `accessTokenFactory`; รองรับ automatic reconnect และกระจายเหตุการณ์เข้า React Query cache invalidation พร้อม Toast แจ้งเตือนด้วย `sonner`
 
 ---
 

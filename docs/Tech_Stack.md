@@ -46,7 +46,7 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 | Forms | React Hook Form + Zod | Form state and schema-based validation. Validate on both client and server. |
 | API client | Native fetch or a small typed API wrapper | Centralize base URL, headers, error handling, and credentials. Add TanStack Query if server-state caching/invalidation becomes useful. |
 | Reports charts | Recharts | Responsive report charts; render amounts in separate currency series and use the project design tokens. |
-| SignalR client | @microsoft/signalr | Connect to the ASP.NET Core SignalR hub and handle reconnects/events. |
+| SignalR client | @microsoft/signalr (^10.0.11 — ติดตั้งแล้วใน frontend/pocketwise-web) | Connect to the ASP.NET Core SignalR hub and handle reconnects/events. |
 | Database | Microsoft SQL Server | Relational storage for users, transactions, categories, budgets, cards, and audit records. |
 | ORM / migrations | Entity Framework Core SQL Server provider | Database access, LINQ, entity mapping, and schema migrations. |
 | Authentication | ASP.NET Core Identity or a carefully designed external identity provider | Password hashing, account lifecycle, roles/claims, and secure sign-in. Decide cookie/BFF vs bearer-token architecture before implementation. |

@@ -1,5 +1,7 @@
 using FluentValidation;
 using PocketWise.Api.Authentication;
+using PocketWise.Api.Services;
+using PocketWise.Application.Features.Notifications;
 using PocketWise.Application.DTOs.Auth;
 using PocketWise.Application.DTOs.BankAccounts;
 using PocketWise.Application.DTOs.Budgets;
@@ -53,6 +55,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IMerchantRepository, MerchantRepository>();
         services.AddScoped<ICategoryRuleRepository, CategoryRuleRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         // Services
         services.AddScoped<ITransactionService, TransactionService>();
@@ -67,6 +70,8 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IMerchantService, MerchantService>();
         services.AddScoped<ICategoryRuleService, CategoryRuleService>();
         services.AddScoped<IUserSettingsService, UserSettingsService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<INotificationSender, SignalRNotificationSender>();
 
         // Validators
         services.AddScoped<IValidator<CreateTransactionRequest>, CreateTransactionValidator>();

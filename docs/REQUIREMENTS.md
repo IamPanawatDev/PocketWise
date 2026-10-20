@@ -94,7 +94,7 @@
 | FR | รายการ | สถานะ | หมายเหตุ |
 |:-:|---|:-:|---|
 | FR5.2.1 | ติดตามยอดใช้จ่ายเทียบกับงบที่ตั้งไว้ | ✅ Phase 5 | |
-| FR5.2.2 | แจ้งเตือนเมื่อใช้จ่ายใกล้ถึงงบ **ผ่าน email ที่ลงทะเบียน** | 🟡 Phase 5 (notification persist) + later delivery | D27 persists threshold/exceeded notifications; D28 defers email provider, in-app delivery starts in Phase 6; delivery is not complete |
+| FR5.2.2 | แจ้งเตือนเมื่อใช้จ่ายใกล้ถึงงบ **ผ่าน email ที่ลงทะเบียน** | 🟡 Phase 5 (persist) + Phase 6 (in-app SignalR delivery) | In-app real-time notification delivery completed via SignalR in Phase 6; email provider delivery deferred per D28 |
 | FR5.2.3 | แก้ไขงบประมาณ | ✅ Phase 5 | |
 | FR5.2.4 | ลบงบที่ไม่ใช้แล้ว | ✅ Phase 5 | |
 
