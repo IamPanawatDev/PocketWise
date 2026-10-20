@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: dark;
   --pw-canvas: #0a0d3a;
   --pw-primary: #5865f2;
   --pw-on-primary: #ffffff;

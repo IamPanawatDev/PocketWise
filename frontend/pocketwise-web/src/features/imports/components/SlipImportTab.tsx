@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { FormField } from "@/components/ui/form-field";
 import { DateTimeInput } from "@/components/ui/date-input";
 import {
@@ -366,9 +367,8 @@ export function SlipImportTab() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField label="จำนวนเงิน (บาท)">
-                    <Input
-                      type="number"
-                      step="0.01"
+                    <NumberInput
+                      step={0.01}
                       placeholder="0.00"
                       value={amount}
                       disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}

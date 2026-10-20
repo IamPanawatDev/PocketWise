@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import {
   Select,
   SelectContent,
@@ -273,7 +274,7 @@ export function CategorizationView() {
                 )} />
               </FormField>
               <FormField label="ลำดับความสำคัญ (ค่าน้อยมาก่อน)" htmlFor="rule-priority" error={ruleForm.formState.errors.priority?.message}>
-                <Input id="rule-priority" type="number" min="0" {...ruleForm.register("priority")} />
+                <NumberInput id="rule-priority" min={0} step={1} {...ruleForm.register("priority")} />
               </FormField>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">

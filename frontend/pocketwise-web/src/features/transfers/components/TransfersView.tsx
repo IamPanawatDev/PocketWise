@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
+import { NumberInput } from "@/components/ui/number-input";
 import {
   Select,
   SelectContent,
@@ -116,7 +117,7 @@ export function TransfersView() {
               />
             </FormField>
             <FormField label="จำนวนเงิน" htmlFor="transfer-amount" error={errors.amount?.message}>
-              <Input id="transfer-amount" type="number" step="0.01" {...register("amount")} />
+              <NumberInput id="transfer-amount" step="0.01" min="0.01" {...register("amount")} />
             </FormField>
             <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)" htmlFor="transfer-date" error={errors.transferDate?.message}>
               <Controller

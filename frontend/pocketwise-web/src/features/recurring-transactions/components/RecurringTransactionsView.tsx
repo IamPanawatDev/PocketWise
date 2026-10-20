@@ -23,6 +23,7 @@ import { Card } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import {
   Select,
   SelectContent,
@@ -156,7 +157,7 @@ export function RecurringTransactionsView() {
               />
             </FormField>
             <FormField label="จำนวนเงิน" htmlFor="recurring-amount" error={errors.amount?.message}>
-              <Input id="recurring-amount" type="number" min="0.01" step="0.01" {...register("amount")} />
+              <NumberInput id="recurring-amount" min={0.01} step={0.01} {...register("amount")} />
             </FormField>
             <FormField label="รายละเอียด" htmlFor="recurring-description" error={errors.description?.message}>
               <Input id="recurring-description" {...register("description")} />
@@ -192,7 +193,7 @@ export function RecurringTransactionsView() {
               )} />
             </FormField>
             <FormField label="ทุกกี่หน่วย" htmlFor="recurring-interval" error={errors.intervalValue?.message}>
-              <Input id="recurring-interval" type="number" min="1" {...register("intervalValue")} />
+              <NumberInput id="recurring-interval" min={1} step={1} {...register("intervalValue")} />
             </FormField>
             <FormField label="วันเริ่มต้น" htmlFor="recurring-start" error={errors.startDate?.message}>
               <Controller control={control} name="startDate" render={({ field }) => (

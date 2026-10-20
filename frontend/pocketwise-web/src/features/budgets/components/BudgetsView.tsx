@@ -22,6 +22,7 @@ import { Card } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import {
   Select,
   SelectContent,
@@ -226,7 +227,7 @@ export function BudgetsView() {
             )}
 
             <FormField label="วงเงิน (สกุลเงินหลัก)" htmlFor="budget-amount" error={errors.amountLimit?.message}>
-              <Input id="budget-amount" type="number" min="0.01" step="0.01" aria-invalid={!!errors.amountLimit} {...register("amountLimit")} />
+              <NumberInput id="budget-amount" min={0.01} step={0.01} aria-invalid={!!errors.amountLimit} {...register("amountLimit")} />
             </FormField>
             <FormField label="รอบงบ" htmlFor="budget-period" error={errors.periodType?.message}>
               <Controller
@@ -261,7 +262,7 @@ export function BudgetsView() {
               />
             </FormField>
             <FormField label="แจ้งเตือนเมื่อใช้ถึง (%)" htmlFor="budget-threshold" error={errors.alertThresholdPercent?.message}>
-              <Input id="budget-threshold" type="number" min="1" max="100" aria-invalid={!!errors.alertThresholdPercent} {...register("alertThresholdPercent")} />
+              <NumberInput id="budget-threshold" min={1} max={100} step={1} aria-invalid={!!errors.alertThresholdPercent} {...register("alertThresholdPercent")} />
             </FormField>
           </div>
 

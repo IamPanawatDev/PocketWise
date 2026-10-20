@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 
@@ -100,13 +101,13 @@ export function CreditCardsView() {
               <Input id="credit-card-number" placeholder="**** **** **** 1234" {...register("cardNumberMasked")} />
             </FormField>
             <FormField label="วงเงิน (ไม่บังคับ)" htmlFor="credit-card-limit" error={errors.creditLimit?.message}>
-              <Input id="credit-card-limit" type="number" min="0" step="0.01" {...register("creditLimit")} />
+              <NumberInput id="credit-card-limit" min={0} step={0.01} {...register("creditLimit")} />
             </FormField>
             <FormField label="วันสรุปยอด (1–31)" htmlFor="credit-card-billing" error={errors.billingDay?.message}>
-              <Input id="credit-card-billing" type="number" min="1" max="31" {...register("billingDay")} />
+              <NumberInput id="credit-card-billing" min={1} max={31} step={1} {...register("billingDay")} />
             </FormField>
             <FormField label="วันครบกำหนดชำระ (1–31)" htmlFor="credit-card-due" error={errors.paymentDueDay?.message}>
-              <Input id="credit-card-due" type="number" min="1" max="31" {...register("paymentDueDay")} />
+              <NumberInput id="credit-card-due" min={1} max={31} step={1} {...register("paymentDueDay")} />
             </FormField>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
