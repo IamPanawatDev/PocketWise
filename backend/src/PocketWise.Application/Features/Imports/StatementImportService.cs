@@ -12,15 +12,18 @@ public class StatementImportService : IStatementImportService
     private readonly IImportRepository _repository;
     private readonly IStatementParserService _parserService;
     private readonly INotificationSender? _notificationSender;
+    private readonly IAuditLogService? _auditLogService;
 
     public StatementImportService(
         IImportRepository repository,
         IStatementParserService parserService,
-        INotificationSender? notificationSender = null)
+        INotificationSender? notificationSender = null,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _parserService = parserService;
         _notificationSender = notificationSender;
+        _auditLogService = auditLogService;
     }
 
     public async Task<CreditCardStatementImportResponse> ImportStatementAsync(
@@ -148,6 +151,24 @@ public class StatementImportService : IStatementImportService
                 RelatedEntityId = statement.StatementId,
                 CreatedAt = DateTime.UtcNow
             }, cancellationToken);
+        }
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Import,
+                "CreditCardStatements",
+                statement.StatementId.ToString(),
+                new
+                {
+                    statement.CreditCardId,
+                    statement.StatementDate,
+                    statement.TotalDue,
+                    TotalItems = statement.Items.Count,
+                    DuplicateItems = duplicateCount
+                },
+                cancellationToken);
         }
 
         return new CreditCardStatementImportResponse
@@ -356,6 +377,23 @@ public class StatementImportService : IStatementImportService
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Import,
+                "CreditCardStatements",
+                statementId.ToString(),
+                new
+                {
+                    StatementId = statementId,
+                    CreditCardId = statement.CreditCardId,
+                    ConfirmedCount = createdTxnIds.Count,
+                    TransactionIds = createdTxnIds
+                },
+                cancellationToken);
+        }
 
         // Send SignalR refresh hint
         if (_notificationSender != null && createdTxnIds.Count > 0)

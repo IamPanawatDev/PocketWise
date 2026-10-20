@@ -2,6 +2,7 @@ using FluentValidation;
 using PocketWise.Application.DTOs.Categories;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
+using PocketWise.Domain.Enums;
 using PocketWise.Domain.Rules;
 
 namespace PocketWise.Application.Features.Categories;
@@ -11,15 +12,18 @@ public class CategoryService : ICategoryService
     private readonly ICategoryRepository _repository;
     private readonly IValidator<CreateCategoryRequest> _createValidator;
     private readonly IValidator<UpdateCategoryRequest> _updateValidator;
+    private readonly IAuditLogService? _auditLogService;
 
     public CategoryService(
         ICategoryRepository repository,
         IValidator<CreateCategoryRequest> createValidator,
-        IValidator<UpdateCategoryRequest> updateValidator)
+        IValidator<UpdateCategoryRequest> updateValidator,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<CategoryResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
@@ -59,6 +63,23 @@ public class CategoryService : ICategoryService
         await _repository.AddAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Create,
+                "Categories",
+                entity.CategoryId.ToString(),
+                new
+                {
+                    entity.CategoryName,
+                    entity.CategoryType,
+                    entity.Icon,
+                    entity.Color
+                },
+                cancellationToken);
+        }
+
         return Map(entity);
     }
 
@@ -82,6 +103,15 @@ public class CategoryService : ICategoryService
             throw new BusinessException("CONFLICT", "มีหมวดหมู่ชื่อนี้อยู่แล้ว");
         }
 
+        var beforeState = new
+        {
+            entity.CategoryName,
+            entity.CategoryType,
+            entity.Icon,
+            entity.Color,
+            entity.IsActive
+        };
+
         entity.CategoryName = request.CategoryName;
         entity.CategoryType = request.CategoryType;
         entity.Icon = request.Icon;
@@ -90,6 +120,28 @@ public class CategoryService : ICategoryService
 
         await _repository.UpdateAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "Categories",
+                id.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        request.CategoryName,
+                        request.CategoryType,
+                        request.Icon,
+                        request.Color,
+                        request.IsActive
+                    }
+                },
+                cancellationToken);
+        }
 
         return Map(entity);
     }
@@ -109,6 +161,17 @@ public class CategoryService : ICategoryService
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "Categories",
+                "reorder",
+                new { Count = request.Items.Count },
+                cancellationToken);
+        }
     }
 
     public async Task<bool> DeleteAsync(long id, long userId, CancellationToken cancellationToken = default)
@@ -131,6 +194,22 @@ public class CategoryService : ICategoryService
 
         await _repository.DeleteAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Delete,
+                "Categories",
+                id.ToString(),
+                new
+                {
+                    entity.CategoryName,
+                    entity.CategoryType
+                },
+                cancellationToken);
+        }
+
         return true;
     }
 

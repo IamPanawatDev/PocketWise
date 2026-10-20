@@ -17,6 +17,7 @@ public class AuthService : IAuthService
     private readonly ITokenService _tokenService;
     private readonly IValidator<UpdateUserProfileRequest> _profileValidator;
     private readonly IEmailService _emailService;
+    private readonly IAuditLogService? _auditLogService;
 
     private static readonly ConcurrentDictionary<long, DateTime> _verificationCooldowns = new();
 
@@ -25,13 +26,15 @@ public class AuthService : IAuthService
         IUserRefreshTokenRepository refreshTokenRepository,
         ITokenService tokenService,
         IValidator<UpdateUserProfileRequest> profileValidator,
-        IEmailService emailService)
+        IEmailService emailService,
+        IAuditLogService? auditLogService = null)
     {
         _userManager = userManager;
         _refreshTokenRepository = refreshTokenRepository;
         _tokenService = tokenService;
         _profileValidator = profileValidator;
         _emailService = emailService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default)
@@ -198,6 +201,24 @@ public class AuthService : IAuthService
         var updatedProfile = MapToProfile(applicationUser);
         var roles = await _userManager.GetRolesAsync(applicationUser);
         updatedProfile.Roles = roles.ToList();
+
+        if (_auditLogService != null && long.TryParse(userIdValue, out var uId))
+        {
+            await _auditLogService.LogAsync(
+                uId,
+                AuditAction.Update,
+                "Users",
+                userIdValue,
+                new
+                {
+                    request.DisplayName,
+                    request.PhoneNumber,
+                    request.BirthDate,
+                    EmailChanged = emailChanged
+                },
+                cancellationToken);
+        }
+
         return updatedProfile;
     }
 

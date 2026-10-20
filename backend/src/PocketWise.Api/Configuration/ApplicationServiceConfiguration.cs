@@ -17,6 +17,7 @@ using PocketWise.Application.DTOs.Reports;
 using PocketWise.Application.DTOs.Settings;
 using PocketWise.Application.DTOs.Transactions;
 using PocketWise.Application.DTOs.Transfers;
+using PocketWise.Application.Features.AuditLogs;
 using PocketWise.Application.Features.Auth;
 using PocketWise.Application.Features.BankAccounts;
 using PocketWise.Application.Features.Budgets;
@@ -61,6 +62,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IImportRepository, ImportRepository>();
         services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
         // Services
         services.AddScoped<ITransactionService, TransactionService>();
@@ -78,6 +80,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<INotificationSender, SignalRNotificationSender>();
         services.AddScoped<IRolePermissionService, RolePermissionService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
 
         // Import Services
         services.AddScoped<IFileStorageService, LocalFileStorageService>();

@@ -949,6 +949,106 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 
 ---
 
+## 5K. Audit Logs (contract — ล็อกแล้วตาม D13/FR8)
+
+**สถานะ:** ✅ ล็อกแล้ว (D13, FR8.1, FR8.2)
+
+### Endpoints
+
+| Method | Path | Summary | Auth |
+|---|---|---|---|
+| `GET` | `/api/v1/audit-logs` | ดึงรายการประวัติการเปลี่ยนแปลงแบบแบ่งหน้า (กรองตาม action, entityType, entityId, ช่วงเวลา, คำค้นหา, userId สำหรับ Admin) | `Member` / `Admin` |
+| `GET` | `/api/v1/audit-logs/entity-types` | ดึงรายการ EntityType ทั้งหมดที่มีการบันทึกประวัติ (สำหรับ dropdown filter) | `Member` / `Admin` |
+| `GET` | `/api/v1/audit-logs/{id}` | ดึงรายละเอียดประวัติการเปลี่ยนแปลงตาม Id พร้อม DetailsJson (before/after/payload) | `Member` / `Admin` |
+
+### Query Parameters สำหรับ `GET /api/v1/audit-logs`
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` | `string` | No | - | กรองตามประเภทเหตุการณ์ (`Create`, `Update`, `Delete`, `Import`) |
+| `entityType` | `string` | No | - | กรองตามชื่อ Entity (เช่น `Transaction`, `Budget`, `BankAccount`, `CreditCard`) |
+| `entityId` | `string` | No | - | กรองตาม Id ของ Entity |
+| `fromDate` | `DateTime` (ISO 8601) | No | - | วันที่เริ่มต้น (UTC) |
+| `toDate` | `DateTime` (ISO 8601) | No | - | วันที่สิ้นสุด (UTC) |
+| `q` | `string` | No | - | ค้นหาข้อความใน DetailsJson หรือ EntityId |
+| `userId` | `long` | No | - | กรองตาม UserId (เฉพาะผู้ใช้สิทธิ์ `Admin` เท่านั้น; ผู้ใช้ทั่วไปจะถูกบังคับให้ดูเฉพาะ UserId ของตนเองเสมอ) |
+| `page` | `int` | No | 1 | หน้าที่ต้องการ |
+| `pageSize` | `int` | No | 20 | จำนวนรายการต่อหน้า (สูงสุด 100) |
+
+### Authorization Rule
+- **ผู้ใช้ทั่วไป (Member):** ดูได้เฉพาะประวัติที่ตนเองเป็น Actor (`UserId = currentUserId`) เท่านั้น หากพยายามเข้าถึงรายการของผู้อื่นผ่าน `GET /api/v1/audit-logs/{id}` จะได้รับ `404 Not Found`
+- **ผู้ดูแลระบบ (Admin):** สามารถดูประวัติของทุก User หรือระบุ query `userId` เพื่อเจาะจงรายบุคคลได้
+
+### Data Sanitization
+- ทุกเหตุการณ์จะถูกทำ Sensitive Key Sanitization อัตโนมัติ (`password`, `token`, `secret`, `cvv`, `cardNumber` ฯลฯ จะถูกแปลงเป็น `***MASKED***` ก่อนบันทึกลงฐานข้อมูล)
+
+### Request / Response Schemas
+
+#### 1. `AuditLogResponse`
+```json
+{
+  "auditLogId": 1024,
+  "userId": 5,
+  "userDisplayName": "Somchai Jaidee",
+  "action": "Update",
+  "entityType": "Transaction",
+  "entityId": "502",
+  "occurredAt": "2026-10-21T00:00:00Z",
+  "detailsJson": "{\"before\":{\"amount\":150.00,\"note\":\"อาหารเที่ยง\"},\"after\":{\"amount\":180.00,\"note\":\"อาหารเที่ยง + กาแฟ\"}}"
+}
+```
+
+#### 2. `GET /api/v1/audit-logs` Response
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "auditLogId": 1024,
+        "userId": 5,
+        "userDisplayName": "Somchai Jaidee",
+        "action": "Update",
+        "entityType": "Transaction",
+        "entityId": "502",
+        "occurredAt": "2026-10-21T00:00:00Z",
+        "detailsJson": "{\"before\":{\"amount\":150.00},\"after\":{\"amount\":180.00}}"
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "totalItems": 1,
+    "totalPages": 1
+  }
+}
+```
+
+#### 3. `GET /api/v1/audit-logs/entity-types` Response
+```json
+{
+  "success": true,
+  "data": [
+    "BankAccount",
+    "Budget",
+    "Category",
+    "CategoryRule",
+    "CreditCard",
+    "Merchant",
+    "RecurringTransaction",
+    "Role",
+    "SlipImport",
+    "StatementImport",
+    "Tag",
+    "Transaction",
+    "Transfer",
+    "User",
+    "UserSettings"
+  ]
+}
+```
+
+---
+
 ## 6. SignalR Events (contract — ล็อกแล้วตาม D37)
 
 **สถานะ:** ✅ ล็อกแล้ว (D37)

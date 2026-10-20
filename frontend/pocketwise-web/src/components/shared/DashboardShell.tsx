@@ -23,6 +23,7 @@ import {
   ArrowRightLeft,
   CreditCard,
   FileUp,
+  History,
   ChartNoAxesCombined,
   LoaderCircle,
   LogOut,
@@ -50,6 +51,7 @@ const nav = [
   { href: "/tags", label: "แท็ก", icon: Tags },
   { href: "/bank-accounts", label: "บัญชี", icon: WalletCards },
   { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
+  { href: "/audit-logs", label: "ประวัติการใช้งาน", icon: History },
   { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog },
   { href: "/admin/permissions", label: "สิทธิ์และบทบาท (Admin)", icon: ShieldCheck },
 ];

@@ -18,19 +18,22 @@ public class BudgetService : IBudgetService
     private readonly IValidator<UpdateBudgetRequest> _updateValidator;
     private readonly INotificationSender? _notificationSender;
     private readonly IEmailService? _emailService;
+    private readonly IAuditLogService? _auditLogService;
 
     public BudgetService(
         IBudgetRepository repository,
         IValidator<CreateBudgetRequest> createValidator,
         IValidator<UpdateBudgetRequest> updateValidator,
         INotificationSender? notificationSender = null,
-        IEmailService? emailService = null)
+        IEmailService? emailService = null,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _notificationSender = notificationSender;
         _emailService = emailService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<BudgetResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
@@ -145,6 +148,28 @@ public class BudgetService : IBudgetService
         await _repository.AddAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Create,
+                "Budgets",
+                entity.BudgetId.ToString(),
+                new
+                {
+                    entity.BudgetName,
+                    entity.ScopeType,
+                    entity.CategoryId,
+                    entity.TagId,
+                    entity.AmountLimit,
+                    entity.PeriodType,
+                    entity.StartDate,
+                    entity.EndDate,
+                    entity.AlertThresholdPercent
+                },
+                cancellationToken);
+        }
+
         var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
         return Map(entity, currencyCode);
     }
@@ -161,6 +186,20 @@ public class BudgetService : IBudgetService
 
         await ValidateScopeAsync(userId, request.ScopeType, request.CategoryId, request.TagId, cancellationToken);
 
+        var beforeState = new
+        {
+            entity.BudgetName,
+            entity.ScopeType,
+            entity.CategoryId,
+            entity.TagId,
+            entity.AmountLimit,
+            entity.PeriodType,
+            entity.StartDate,
+            entity.EndDate,
+            entity.AlertThresholdPercent,
+            entity.IsActive
+        };
+
         entity.BudgetName = request.BudgetName;
         entity.ScopeType = request.ScopeType;
         entity.CategoryId = request.CategoryId;
@@ -174,6 +213,33 @@ public class BudgetService : IBudgetService
 
         await _repository.UpdateAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "Budgets",
+                id.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        request.BudgetName,
+                        request.ScopeType,
+                        request.CategoryId,
+                        request.TagId,
+                        request.AmountLimit,
+                        request.PeriodType,
+                        request.StartDate,
+                        request.EndDate,
+                        request.AlertThresholdPercent,
+                        request.IsActive
+                    }
+                },
+                cancellationToken);
+        }
 
         var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
         return Map(entity, currencyCode);
@@ -189,6 +255,23 @@ public class BudgetService : IBudgetService
 
         await _repository.SoftDeleteAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Delete,
+                "Budgets",
+                id.ToString(),
+                new
+                {
+                    entity.BudgetName,
+                    entity.AmountLimit,
+                    IsDeleted = true
+                },
+                cancellationToken);
+        }
+
         return true;
     }
 

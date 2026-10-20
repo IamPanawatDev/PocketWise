@@ -12,15 +12,18 @@ public class RecurringTransactionService : IRecurringTransactionService
     private readonly IRecurringTransactionRepository _repository;
     private readonly IValidator<CreateRecurringTransactionRequest> _createValidator;
     private readonly IValidator<UpdateRecurringTransactionRequest> _updateValidator;
+    private readonly IAuditLogService? _auditLogService;
 
     public RecurringTransactionService(
         IRecurringTransactionRepository repository,
         IValidator<CreateRecurringTransactionRequest> createValidator,
-        IValidator<UpdateRecurringTransactionRequest> updateValidator)
+        IValidator<UpdateRecurringTransactionRequest> updateValidator,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<RecurringTransactionResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
@@ -59,6 +62,27 @@ public class RecurringTransactionService : IRecurringTransactionService
         await _repository.AddAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Create,
+                "RecurringTransactions",
+                entity.RecurringTransactionId.ToString(),
+                new
+                {
+                    entity.TransactionType,
+                    entity.Amount,
+                    entity.Description,
+                    entity.CategoryId,
+                    entity.Frequency,
+                    entity.IntervalValue,
+                    entity.StartDate,
+                    entity.EndDate
+                },
+                cancellationToken);
+        }
+
         return Map(entity);
     }
 
@@ -74,6 +98,19 @@ public class RecurringTransactionService : IRecurringTransactionService
 
         await ValidateCategoryAsync(userId, request.CategoryId, cancellationToken);
 
+        var beforeState = new
+        {
+            entity.TransactionType,
+            entity.Amount,
+            entity.Description,
+            entity.CategoryId,
+            entity.Frequency,
+            entity.IntervalValue,
+            entity.StartDate,
+            entity.EndDate,
+            entity.IsActive
+        };
+
         entity.TransactionType = request.TransactionType;
         entity.Amount = request.Amount;
         entity.Description = request.Description;
@@ -88,6 +125,32 @@ public class RecurringTransactionService : IRecurringTransactionService
         await _repository.UpdateAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "RecurringTransactions",
+                id.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        request.TransactionType,
+                        request.Amount,
+                        request.Description,
+                        request.CategoryId,
+                        request.Frequency,
+                        request.IntervalValue,
+                        request.StartDate,
+                        request.EndDate,
+                        request.IsActive
+                    }
+                },
+                cancellationToken);
+        }
+
         return Map(entity);
     }
 
@@ -101,6 +164,23 @@ public class RecurringTransactionService : IRecurringTransactionService
 
         await _repository.SoftDeleteAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Delete,
+                "RecurringTransactions",
+                id.ToString(),
+                new
+                {
+                    entity.Description,
+                    entity.Amount,
+                    IsDeleted = true
+                },
+                cancellationToken);
+        }
+
         return true;
     }
 

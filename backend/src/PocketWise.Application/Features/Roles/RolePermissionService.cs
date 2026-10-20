@@ -1,16 +1,21 @@
 using PocketWise.Application.DTOs.Roles;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
+using PocketWise.Domain.Enums;
 
 namespace PocketWise.Application.Features.Roles;
 
 public class RolePermissionService : IRolePermissionService
 {
     private readonly IRolePermissionRepository _repository;
+    private readonly IAuditLogService? _auditLogService;
 
-    public RolePermissionService(IRolePermissionRepository repository)
+    public RolePermissionService(
+        IRolePermissionRepository repository,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<List<RoleResponse>> GetRolesAsync(CancellationToken cancellationToken = default)
@@ -89,6 +94,22 @@ public class RolePermissionService : IRolePermissionService
             await _repository.SaveChangesAsync(cancellationToken);
         }
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                null,
+                AuditAction.Create,
+                "Roles",
+                role.Id.ToString(),
+                new
+                {
+                    role.Name,
+                    role.Description,
+                    request.PermissionIds
+                },
+                cancellationToken);
+        }
+
         return (await GetRoleByIdAsync(role.Id, cancellationToken))!;
     }
 
@@ -108,6 +129,13 @@ public class RolePermissionService : IRolePermissionService
             throw new InvalidOperationException($"บทบาทชื่อ '{roleName}' มีอยู่ในระบบแล้ว");
         }
 
+        var beforeState = new
+        {
+            role.Name,
+            role.Description,
+            role.IsActive
+        };
+
         role.Name = roleName;
         role.NormalizedName = roleName.ToUpperInvariant();
         role.Description = request.Description?.Trim();
@@ -115,6 +143,26 @@ public class RolePermissionService : IRolePermissionService
         role.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                null,
+                AuditAction.Update,
+                "Roles",
+                roleId.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        role.Name,
+                        role.Description,
+                        role.IsActive
+                    }
+                },
+                cancellationToken);
+        }
 
         return await GetRoleByIdAsync(roleId, cancellationToken);
     }
@@ -132,6 +180,18 @@ public class RolePermissionService : IRolePermissionService
 
         await _repository.DeleteRoleAsync(role, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                null,
+                AuditAction.Delete,
+                "Roles",
+                roleId.ToString(),
+                new { role.Name },
+                cancellationToken);
+        }
+
         return true;
     }
 
@@ -154,6 +214,17 @@ public class RolePermissionService : IRolePermissionService
 
         await _repository.UpdateRolePermissionsAsync(roleId, request.PermissionIds, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                null,
+                AuditAction.Update,
+                "RolePermissions",
+                roleId.ToString(),
+                new { RoleId = roleId, PermissionIds = request.PermissionIds },
+                cancellationToken);
+        }
 
         return await GetRoleByIdAsync(roleId, cancellationToken);
     }
@@ -181,6 +252,17 @@ public class RolePermissionService : IRolePermissionService
 
         await _repository.AssignUserRolesAsync(userId, request.RoleNames, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "UserRoles",
+                userId.ToString(),
+                new { TargetUserId = userId, AssignedRoles = request.RoleNames },
+                cancellationToken);
+        }
 
         var updatedMap = await _repository.GetUserRoleNamesMapAsync(cancellationToken);
         return new UserWithRolesResponse(

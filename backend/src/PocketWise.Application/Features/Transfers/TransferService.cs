@@ -12,15 +12,18 @@ public class TransferService : ITransferService
     private readonly ITransferRepository _transferRepository;
     private readonly IBankAccountRepository _bankAccountRepository;
     private readonly IValidator<CreateTransferRequest> _validator;
+    private readonly IAuditLogService? _auditLogService;
 
     public TransferService(
         ITransferRepository transferRepository,
         IBankAccountRepository bankAccountRepository,
-        IValidator<CreateTransferRequest> validator)
+        IValidator<CreateTransferRequest> validator,
+        IAuditLogService? auditLogService = null)
     {
         _transferRepository = transferRepository;
         _bankAccountRepository = bankAccountRepository;
         _validator = validator;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<TransferResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
@@ -99,6 +102,26 @@ public class TransferService : ITransferService
 
         await _transferRepository.AddTransactionsAsync(new[] { outTransaction, inTransaction }, cancellationToken);
         await _transferRepository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Create,
+                "TransferGroups",
+                transferGroup.TransferGroupId.ToString(),
+                new
+                {
+                    transferGroup.Amount,
+                    transferGroup.TransferDate,
+                    transferGroup.Reference,
+                    FromBankAccountId = request.FromBankAccountId,
+                    ToBankAccountId = request.ToBankAccountId,
+                    FromAccountName = fromAccount.AccountName,
+                    ToAccountName = toAccount.AccountName
+                },
+                cancellationToken);
+        }
 
         return Map(transferGroup);
     }

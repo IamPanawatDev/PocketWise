@@ -14,17 +14,20 @@ public class TransactionService : ITransactionService
     private readonly IValidator<CreateTransactionRequest> _createValidator;
     private readonly IValidator<UpdateTransactionRequest> _updateValidator;
     private readonly ICategoryRuleService _categoryRuleService;
+    private readonly IAuditLogService? _auditLogService;
 
     public TransactionService(
         ITransactionRepository repository,
         IValidator<CreateTransactionRequest> createValidator,
         IValidator<UpdateTransactionRequest> updateValidator,
-        ICategoryRuleService categoryRuleService)
+        ICategoryRuleService categoryRuleService,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _categoryRuleService = categoryRuleService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<TransactionResponse?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default)
@@ -99,6 +102,28 @@ public class TransactionService : ITransactionService
 
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Create,
+                "Transactions",
+                entity.TransactionId.ToString(),
+                new
+                {
+                    entity.TransactionType,
+                    entity.Amount,
+                    entity.CurrencyCode,
+                    entity.TransactionDate,
+                    entity.Description,
+                    entity.CategoryId,
+                    entity.BankAccountId,
+                    entity.CreditCardId,
+                    entity.SourceType
+                },
+                cancellationToken);
+        }
+
         var fresh = await _repository.GetByIdAsync(entity.TransactionId, userId, cancellationToken);
         return Map(fresh ?? entity);
     }
@@ -112,6 +137,18 @@ public class TransactionService : ITransactionService
         {
             return null;
         }
+
+        var beforeState = new
+        {
+            entity.TransactionType,
+            entity.Amount,
+            entity.CurrencyCode,
+            entity.TransactionDate,
+            entity.Description,
+            entity.CategoryId,
+            entity.BankAccountId,
+            entity.CreditCardId
+        };
 
         entity.TransactionType = request.TransactionType;
         entity.Amount = request.Amount;
@@ -143,6 +180,31 @@ public class TransactionService : ITransactionService
 
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "Transactions",
+                id.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        request.TransactionType,
+                        request.Amount,
+                        request.CurrencyCode,
+                        request.TransactionDate,
+                        request.Description,
+                        request.CategoryId,
+                        request.BankAccountId,
+                        request.CreditCardId
+                    }
+                },
+                cancellationToken);
+        }
+
         var fresh = await _repository.GetByIdAsync(id, userId, cancellationToken);
         return Map(fresh ?? entity);
     }
@@ -157,6 +219,26 @@ public class TransactionService : ITransactionService
 
         await _repository.SoftDeleteAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Delete,
+                "Transactions",
+                id.ToString(),
+                new
+                {
+                    entity.TransactionType,
+                    entity.Amount,
+                    entity.CurrencyCode,
+                    entity.TransactionDate,
+                    entity.Description,
+                    IsDeleted = true
+                },
+                cancellationToken);
+        }
+
         return true;
     }
 

@@ -2,6 +2,7 @@ using FluentValidation;
 using PocketWise.Application.DTOs.Tags;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
+using PocketWise.Domain.Enums;
 using PocketWise.Domain.Rules;
 
 namespace PocketWise.Application.Features.Tags;
@@ -13,15 +14,18 @@ public class TagService : ITagService
     private readonly ITagRepository _repository;
     private readonly IValidator<CreateTagRequest> _createValidator;
     private readonly IValidator<UpdateTagRequest> _updateValidator;
+    private readonly IAuditLogService? _auditLogService;
 
     public TagService(
         ITagRepository repository,
         IValidator<CreateTagRequest> createValidator,
-        IValidator<UpdateTagRequest> updateValidator)
+        IValidator<UpdateTagRequest> updateValidator,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<TagResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
@@ -63,6 +67,21 @@ public class TagService : ITagService
         await _repository.AddAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Create,
+                "Tags",
+                entity.TagId.ToString(),
+                new
+                {
+                    entity.TagName,
+                    entity.Color
+                },
+                cancellationToken);
+        }
+
         return Map(entity);
     }
 
@@ -81,11 +100,36 @@ public class TagService : ITagService
             throw new BusinessException("CONFLICT", "มีแท็กชื่อนี้อยู่แล้ว");
         }
 
+        var beforeState = new
+        {
+            entity.TagName,
+            entity.Color
+        };
+
         entity.TagName = request.TagName;
         entity.Color = request.Color;
 
         await _repository.UpdateAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "Tags",
+                id.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        request.TagName,
+                        request.Color
+                    }
+                },
+                cancellationToken);
+        }
 
         return Map(entity);
     }
@@ -105,6 +149,17 @@ public class TagService : ITagService
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "Tags",
+                "reorder",
+                new { Count = request.Items.Count },
+                cancellationToken);
+        }
     }
 
     public async Task<bool> DeleteAsync(long id, long userId, CancellationToken cancellationToken = default)
@@ -117,6 +172,21 @@ public class TagService : ITagService
 
         await _repository.DeleteAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Delete,
+                "Tags",
+                id.ToString(),
+                new
+                {
+                    entity.TagName
+                },
+                cancellationToken);
+        }
+
         return true;
     }
 

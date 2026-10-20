@@ -26,17 +26,20 @@ public class SlipImportService : ISlipImportService
     private readonly IFileStorageService _fileStorageService;
     private readonly ISlipOcrService _ocrService;
     private readonly INotificationSender? _notificationSender;
+    private readonly IAuditLogService? _auditLogService;
 
     public SlipImportService(
         IImportRepository repository,
         IFileStorageService fileStorageService,
         ISlipOcrService ocrService,
-        INotificationSender? notificationSender = null)
+        INotificationSender? notificationSender = null,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _fileStorageService = fileStorageService;
         _ocrService = ocrService;
         _notificationSender = notificationSender;
+        _auditLogService = auditLogService;
     }
 
     public async Task<SlipImportResponse> UploadSlipAsync(
@@ -150,6 +153,26 @@ public class SlipImportService : ISlipImportService
                 RelatedEntityId = slip.SlipImportFileId,
                 CreatedAt = DateTime.UtcNow
             }, cancellationToken);
+        }
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Import,
+                "SlipImportFiles",
+                slip.SlipImportFileId.ToString(),
+                new
+                {
+                    slip.OriginalFileName,
+                    slip.FileSizeBytes,
+                    slip.DetectedAmount,
+                    slip.BankCode,
+                    slip.PayeeName,
+                    slip.PayerName,
+                    ReviewStatus = slip.ReviewStatus.ToString()
+                },
+                cancellationToken);
         }
 
         return new SlipImportResponse
@@ -291,6 +314,27 @@ public class SlipImportService : ISlipImportService
 
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Import,
+                "Transactions",
+                transaction.TransactionId.ToString(),
+                new
+                {
+                    SlipImportFileId = slip.SlipImportFileId,
+                    slip.OriginalFileName,
+                    transaction.Amount,
+                    transaction.CurrencyCode,
+                    transaction.Description,
+                    transaction.CategoryId,
+                    transaction.BankAccountId,
+                    Source = "SlipImport"
+                },
+                cancellationToken);
+        }
+
         // Send SignalR refresh hint
         if (_notificationSender != null)
         {
@@ -340,6 +384,18 @@ public class SlipImportService : ISlipImportService
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "SlipImportFiles",
+                slipId.ToString(),
+                new { slip.OriginalFileName, ReviewStatus = "Rejected" },
+                cancellationToken);
+        }
+
         return true;
     }
 }

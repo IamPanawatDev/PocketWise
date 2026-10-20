@@ -2,6 +2,7 @@ using FluentValidation;
 using PocketWise.Application.DTOs.Merchants;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
+using PocketWise.Domain.Enums;
 using PocketWise.Domain.Rules;
 
 namespace PocketWise.Application.Features.Merchants;
@@ -11,15 +12,18 @@ public class MerchantService : IMerchantService
     private readonly IMerchantRepository _repository;
     private readonly IValidator<CreateMerchantRequest> _createValidator;
     private readonly IValidator<UpdateMerchantRequest> _updateValidator;
+    private readonly IAuditLogService? _auditLogService;
 
     public MerchantService(
         IMerchantRepository repository,
         IValidator<CreateMerchantRequest> createValidator,
-        IValidator<UpdateMerchantRequest> updateValidator)
+        IValidator<UpdateMerchantRequest> updateValidator,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<MerchantResponse>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -59,6 +63,23 @@ public class MerchantService : IMerchantService
         await _repository.AddAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                null,
+                AuditAction.Create,
+                "Merchants",
+                entity.MerchantId.ToString(),
+                new
+                {
+                    entity.MerchantName,
+                    entity.NormalizedName,
+                    entity.DefaultCategoryId,
+                    entity.BankOrProvider
+                },
+                cancellationToken);
+        }
+
         return Map(entity);
     }
 
@@ -83,6 +104,15 @@ public class MerchantService : IMerchantService
             throw new BusinessException("CONFLICT", "มีร้านค้าชื่อนี้อยู่แล้ว");
         }
 
+        var beforeState = new
+        {
+            entity.MerchantName,
+            entity.NormalizedName,
+            entity.DefaultCategoryId,
+            entity.BankOrProvider,
+            entity.IsVerified
+        };
+
         entity.MerchantName = request.MerchantName.Trim();
         entity.NormalizedName = normalized;
         entity.DefaultCategoryId = request.DefaultCategoryId;
@@ -91,6 +121,27 @@ public class MerchantService : IMerchantService
 
         await _repository.UpdateAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                null,
+                AuditAction.Update,
+                "Merchants",
+                id.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        request.MerchantName,
+                        request.DefaultCategoryId,
+                        request.BankOrProvider,
+                        request.IsVerified
+                    }
+                },
+                cancellationToken);
+        }
 
         return Map(entity);
     }
@@ -105,25 +156,35 @@ public class MerchantService : IMerchantService
 
         await _repository.DeleteAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
-        return true;
-    }
 
-    public static string Normalize(string name)
-    {
-        return (name ?? string.Empty).Trim().ToLowerInvariant();
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                null,
+                AuditAction.Delete,
+                "Merchants",
+                id.ToString(),
+                new
+                {
+                    entity.MerchantName
+                },
+                cancellationToken);
+        }
+
+        return true;
     }
 
     private async Task ValidateCategoryAsync(long? categoryId, CancellationToken cancellationToken)
     {
-        if (!categoryId.HasValue)
-        {
-            return;
-        }
-
-        if (!await _repository.CategoryExistsAsync(categoryId.Value, cancellationToken))
+        if (categoryId.HasValue && !await _repository.CategoryExistsAsync(categoryId.Value, cancellationToken))
         {
             throw new BusinessException("NOT_FOUND", "ไม่พบหมวดหมู่ที่ระบุ");
         }
+    }
+
+    private static string Normalize(string name)
+    {
+        return name.Trim().ToLowerInvariant();
     }
 
     private static MerchantResponse Map(Merchant entity)

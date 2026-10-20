@@ -13,17 +13,20 @@ public class CategoryRuleService : ICategoryRuleService
     private readonly IMerchantRepository _merchantRepository;
     private readonly IValidator<CreateCategoryRuleRequest> _createValidator;
     private readonly IValidator<UpdateCategoryRuleRequest> _updateValidator;
+    private readonly IAuditLogService? _auditLogService;
 
     public CategoryRuleService(
         ICategoryRuleRepository repository,
         IMerchantRepository merchantRepository,
         IValidator<CreateCategoryRuleRequest> createValidator,
-        IValidator<UpdateCategoryRuleRequest> updateValidator)
+        IValidator<UpdateCategoryRuleRequest> updateValidator,
+        IAuditLogService? auditLogService = null)
     {
         _repository = repository;
         _merchantRepository = merchantRepository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<CategoryRuleResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
@@ -62,6 +65,24 @@ public class CategoryRuleService : ICategoryRuleService
         await _repository.AddAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Create,
+                "CategoryRules",
+                entity.CategoryRuleId.ToString(),
+                new
+                {
+                    entity.RuleName,
+                    entity.MatchType,
+                    entity.MatchPattern,
+                    entity.CategoryId,
+                    entity.Priority
+                },
+                cancellationToken);
+        }
+
         return Map(entity);
     }
 
@@ -80,6 +101,16 @@ public class CategoryRuleService : ICategoryRuleService
             throw new BusinessException("NOT_FOUND", "ไม่พบหมวดหมู่ที่ระบุ");
         }
 
+        var beforeState = new
+        {
+            entity.RuleName,
+            entity.MatchType,
+            entity.MatchPattern,
+            entity.CategoryId,
+            entity.Priority,
+            entity.IsActive
+        };
+
         entity.RuleName = request.RuleName;
         entity.MatchType = request.MatchType;
         entity.MatchPattern = request.MatchPattern;
@@ -90,6 +121,29 @@ public class CategoryRuleService : ICategoryRuleService
 
         await _repository.UpdateAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "CategoryRules",
+                id.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        request.RuleName,
+                        request.MatchType,
+                        request.MatchPattern,
+                        request.CategoryId,
+                        request.Priority,
+                        request.IsActive
+                    }
+                },
+                cancellationToken);
+        }
 
         return Map(entity);
     }
@@ -104,6 +158,22 @@ public class CategoryRuleService : ICategoryRuleService
 
         await _repository.DeleteAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Delete,
+                "CategoryRules",
+                id.ToString(),
+                new
+                {
+                    entity.RuleName,
+                    entity.MatchPattern
+                },
+                cancellationToken);
+        }
+
         return true;
     }
 

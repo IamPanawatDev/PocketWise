@@ -69,6 +69,7 @@
 | 3.12 | Gate Phase 3: login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB | ✅ | ทดสอบ register/login/me ผ่าน; `dotnet build` 0 error; refresh/logout flow มีให้ใช้ |
 | 3.13 | Seeding อัตโนมัติ: หมวดหมู่มาตรฐานระบบ 12 รายการ (`IsSystem = 1`), สิทธิ์มาตรฐาน 15 รายการ, บทบาทเริ่มต้น (`Admin`, `Member`) และมอบหมายสิทธิ์ Admin ให้ผู้ใช้เดิม | ✅ | `DatabaseSeeder.cs` + รันตอน API start |
 | 3.14 | Admin Roles & Permissions Access Management: Backend (`AdminRolesController`, `IRolePermissionService`, `RolePermissionRepository`), Frontend หน้า `/admin/permissions` (Matrix, Roles, User Roles) | ✅ | API contract §5J, unit tests 40/40 ผ่าน, frontend build 22/22 routes ผ่าน |
+| 3.15 | Audit Logs (F8 — FR8.1, FR8.2, D13): บันทึกประวัติการเปลี่ยนแปลงทุก Entity สำคัญ (Create, Update, Delete, Import) พร้อม Actor + Entity + Sanitize sensitive keys ใน `AuditLogs` table, API (`AuditLogsController`, `AuditLogRepository`, `AuditLogService`), Frontend หน้า `/audit-logs` (FilterBar, Table, Detail/Diff Dialog, Card View บน Mobile) | ✅ | API contract §5K, Backend Unit Tests 53/53 + 3/3 Integration Tests ผ่าน 100%, Frontend Next.js build ผ่าน 0 error |
 
 ## 5. Phase 4 — Core Transactions ✅ (4.10 Gate ผ่าน; FR2.2 UI picker เชื่อมกับ CreditCards CRUD ใน Phase 5 แล้ว)
 

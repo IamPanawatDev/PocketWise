@@ -147,8 +147,8 @@
 
 | FR | รายการ | สถานะ | หมายเหตุ |
 |:-:|---|:-:|---|
-| FR8.1 | บันทึกเหตุการณ์สำคัญ (CREATE/UPDATE/DELETE/IMPORT) พร้อม actor + entity | ⬜ | ตาราง AuditLogs |
-| FR8.2 | ดูย้อนหลังการแก้ไข/ลบข้อมูลและเหตุการณ์นำเข้า (สำหรับเจ้าของข้อมูล) | ⬜ | per-user |
+| FR8.1 | บันทึกเหตุการณ์สำคัญ (CREATE/UPDATE/DELETE/IMPORT) พร้อม actor + entity | ✅ Phase 3 | ตาราง AuditLogs ครอบคลุมทุก Service สำคัญ พร้อม Sanitize sensitive keys |
+| FR8.2 | ดูย้อนหลังการแก้ไข/ลบข้อมูลและเหตุการณ์นำเข้า (สำหรับเจ้าของข้อมูล) | ✅ Phase 3 | per-user UI (/audit-logs) + API, Admin ดูข้าม user ได้, Before/After Diff Dialog |
 
 ---
 
