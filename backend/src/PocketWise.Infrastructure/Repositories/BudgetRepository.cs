@@ -46,6 +46,7 @@ public class BudgetRepository : IBudgetRepository
     {
         var query = _context.Transactions
             .Where(t => t.UserId == userId
+                && !t.IsDeleted
                 && t.TransactionType == TransactionType.Expense
                 && t.Status == TransactionStatus.Confirmed
                 && t.CurrencyCode == currencyCode

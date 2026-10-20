@@ -57,3 +57,25 @@ export interface VerifyEmailResponse {
   email: string;
   message: string;
 }
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  sent: boolean;
+  cooldownSeconds: number;
+  message: string;
+}
+
+export interface ResetPasswordRequest {
+  userId: number;
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+}

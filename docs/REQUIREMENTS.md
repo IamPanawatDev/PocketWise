@@ -132,7 +132,7 @@
 | FR6.3.5 | แก้ไขวันเกิด | ✅ Phase 5.5 — persisted and verified end-to-end |
 | FR6.3.6 | ล้างข้อมูลเพื่อเริ่มต้นใหม่ (data reset) | ✅ Phase 5.5 — soft-delete, preserved identity/settings, and refresh-token revocation verified end-to-end |
 | FR6.3.7 | ยืนยันอีเมลของผู้ใช้ (Email Verification) — ส่งลิงก์ยืนยันทางอีเมลและอัปเดตสถานะ IsEmailVerified | ✅ Phase 5.5/D42 — Built-in ASP.NET Core Identity Token + SmtpEmailService (0 บาท ฟรี 100%), 60s Cooldown, URL-safe Base64Url, หน้า /verify-email และ UI ตั้งค่าพร้อมเทสต์ครบ 100% |
-| FR6.3.8 | รีเซ็ตรหัสผ่านผ่านอีเมล (Forgot / Reset Password) — ผู้ใช้ขอรีเซ็ตรหัสผ่านและตั้งรหัสผ่านใหม่ผ่านลิงก์ที่ส่งไปทางอีเมล | 📋 Planned (รอดำเนินการตามคำขอเจ้าของโปรเจกต์) | ดูข้อกำหนดละเอียดด้านล่าง |
+| FR6.3.8 | รีเซ็ตรหัสผ่านผ่านอีเมล (Forgot / Reset Password) — ผู้ใช้ขอรีเซ็ตรหัสผ่านและตั้งรหัสผ่านใหม่ผ่านลิงก์ที่ส่งไปทางอีเมล | ✅ Phase 5.5/D43 — Built-in ASP.NET Core Identity Token + SmtpEmailService (0 บาท ฟรี 100%), Anti-Email Enumeration, 60s Cooldown, URL-safe Base64Url, Session Revocation (RevokeAllForUserAsync), Audit Log, หน้า /forgot-password และ /reset-password พร้อมเทสต์ครบ 100% | ดูข้อกำหนดละเอียดด้านล่าง |
 
 #### ข้อกำหนดฟังก์ชัน FR6.3.8: การขอรีเซ็ตรหัสผ่านทางอีเมล (Forgot Password & Password Reset Flow)
 - **วัตถุประสงค์:** อำนวยความสะดวกให้ผู้ใช้ที่ลืมรหัสผ่านสามารถกู้คืนและตั้งรหัสผ่านใหม่ได้ด้วยตนเองอย่างปลอดภัยผ่านอีเมลที่ลงทะเบียนไว้

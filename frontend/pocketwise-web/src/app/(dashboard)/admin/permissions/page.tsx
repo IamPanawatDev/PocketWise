@@ -5,10 +5,9 @@ import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { RolePermissionsMatrix } from "@/features/admin-permissions/components/RolePermissionsMatrix";
 import { RolesManager } from "@/features/admin-permissions/components/RolesManager";
 import { UserRolesManager } from "@/features/admin-permissions/components/UserRolesManager";
-import { SystemCategoriesManager } from "@/features/admin-categories/components/SystemCategoriesManager";
-import { FolderTree, KeyRound, ShieldAlert, ShieldCheck, Users } from "lucide-react";
+import { KeyRound, ShieldAlert, ShieldCheck, Users } from "lucide-react";
 
-type TabKey = "matrix" | "roles" | "users" | "categories";
+type TabKey = "matrix" | "roles" | "users";
 
 export default function AdminPermissionsPage() {
   const { data: user, isLoading } = useCurrentUser();
@@ -43,7 +42,7 @@ export default function AdminPermissionsPage() {
               ตั้งค่าสิทธิ์และบทบาท (Admin Management)
             </h1>
             <p className="text-xs text-[var(--pw-ink)]/70">
-              จัดการบทบาท กำหนดสิทธิ์การเข้าถึงตามโมดูล มอบหมายสิทธิ์ให้ผู้ใช้ และจัดการหมวดหมู่มาตรฐานของระบบ
+              จัดการบทบาท กำหนดสิทธิ์การเข้าถึงตามโมดูล และมอบหมายบทบาทให้ผู้ใช้งาน
             </p>
           </div>
         </div>
@@ -89,19 +88,6 @@ export default function AdminPermissionsPage() {
           <Users className="size-4" />
           กำหนดบทบาทผู้ใช้งาน (User Roles)
         </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("categories")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${
-            activeTab === "categories"
-              ? "border-[var(--pw-primary)] text-[var(--pw-primary)]"
-              : "border-transparent text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
-          }`}
-        >
-          <FolderTree className="size-4" />
-          หมวดหมู่มาตรฐาน (System Categories)
-        </button>
       </div>
 
       {/* Tab Panels */}
@@ -109,7 +95,6 @@ export default function AdminPermissionsPage() {
         {activeTab === "matrix" && <RolePermissionsMatrix />}
         {activeTab === "roles" && <RolesManager />}
         {activeTab === "users" && <UserRolesManager />}
-        {activeTab === "categories" && <SystemCategoriesManager />}
       </div>
     </div>
   );

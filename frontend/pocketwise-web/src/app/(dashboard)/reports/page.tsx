@@ -22,10 +22,11 @@ export default function ReportsPage() {
 async function ReportsContent() {
   await connection();
   const today = toThailandDateInputValue(new Date());
+  const firstDayOfMonth = `${today.slice(0, 7)}-01`;
   return (
     <ReportsView
-      initialFromDate={`${today.slice(0, 4)}-01-01`}
-      initialToDate={`${today.slice(0, 4)}-12-31`}
+      initialFromDate={firstDayOfMonth}
+      initialToDate={today}
     />
   );
 }

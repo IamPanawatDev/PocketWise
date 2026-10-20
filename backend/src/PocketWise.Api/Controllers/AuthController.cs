@@ -109,6 +109,29 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<VerifyEmailResponse>.Ok(result));
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<ForgotPasswordResponse>>> ForgotPasswordAsync(
+        [FromBody] ForgotPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var originUrl = Request.Headers.Origin.FirstOrDefault()
+            ?? Request.Headers.Referer.FirstOrDefault();
+
+        var result = await _authService.ForgotPasswordAsync(request, originUrl, cancellationToken);
+        return Ok(ApiResponse<ForgotPasswordResponse>.Ok(result));
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<ResetPasswordResponse>>> ResetPasswordAsync(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.ResetPasswordAsync(request, cancellationToken);
+        return Ok(ApiResponse<ResetPasswordResponse>.Ok(result));
+    }
+
     [HttpPost("purge-expired-tokens")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<object>>> PurgeExpiredTokensAsync(CancellationToken cancellationToken)

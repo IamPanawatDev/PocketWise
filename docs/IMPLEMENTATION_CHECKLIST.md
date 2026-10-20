@@ -110,7 +110,8 @@
 | 5.5.2 | โปรไฟล์: เปลี่ยนเบอร์/วันเกิด + อีเมล (รีเซ็ต IsEmailVerified) | ✅ | FR6.3.2–5; email เปลี่ยนแล้ว IsEmailVerified=false ตาม D35 |
 | 5.5.3 | ล้างข้อมูลเริ่มใหม่ (soft delete ตารางการเงินของ user + revoke tokens) | ✅ | FR6.3.6; scope 9 ตารางและ exclusions ตาม D35 |
 | 5.5.4 | ยืนยันอีเมลของผู้ใช้ (FR6.3.7, D42) | ✅ | ฟรี 100% (0 บาท, ไม่เพิ่ม package); built-in Identity Token Provider + SmtpEmailService, 60s cooldown, Base64Url token; endpoints `/api/v1/auth/send-verification-email` และ `/verify-email`; Frontend หน้า `/verify-email` + ปุ่มส่งยืนยันและ cooldown ในหน้า `/settings` |
-| 5.5.5 | Gate: ทำงานจริง end-to-end + FR สถานะอัปเดต | ✅ | E2E กับ SQL Server ผ่าน: settings/profile persistence, email verification reset, reset soft-delete และ revoke refresh token; identity/settings คงอยู่. Backend Unit Tests 45/45 ผ่าน 100%; Frontend ESLint 0 warnings/errors และ Next.js build ผ่านสมบูรณ์ |
+| 5.5.5 | ขอรีเซ็ตรหัสผ่านทางอีเมล (FR6.3.8, D43) | ✅ | ฟรี 100% (0 บาท, ไม่เพิ่ม package); built-in Identity Token Provider + SmtpEmailService, Anti-Email Enumeration, 60s cooldown, Base64Url token, Session Revocation (RevokeAllForUserAsync), Audit Log; endpoints `/api/v1/auth/forgot-password` และ `/api/v1/auth/reset-password`; Frontend หน้า `/forgot-password`, `/reset-password` และปุ่ม "ลืมรหัสผ่าน?" ในหน้า `/login` |
+| 5.5.6 | Gate: ทำงานจริง end-to-end + FR สถานะอัปเดต | ✅ | E2E กับ SQL Server ผ่าน: settings/profile persistence, email verification reset, reset soft-delete และ revoke refresh token; identity/settings คงอยู่. Backend Unit Tests 82/82 ผ่าน 100%; Frontend ESLint 0 warnings/errors และ Next.js build ผ่านสมบูรณ์ |
 
 ## 8. Phase 6 — SignalR & Notifications ✅
 

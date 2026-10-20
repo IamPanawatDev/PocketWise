@@ -37,7 +37,21 @@ export function LoginForm() {
             <Input id="email" type="email" {...register("email")} />
           </FormField>
 
-          <FormField label="รหัสผ่าน" htmlFor="password" error={errors.password?.message}>
+          <FormField
+            label={
+              <div className="flex items-center justify-between">
+                <span>รหัสผ่าน</span>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-normal text-[var(--pw-link)] hover:underline"
+                >
+                  ลืมรหัสผ่าน?
+                </Link>
+              </div>
+            }
+            htmlFor="password"
+            error={errors.password?.message}
+          >
             <Input id="password" type="password" {...register("password")} />
           </FormField>
 

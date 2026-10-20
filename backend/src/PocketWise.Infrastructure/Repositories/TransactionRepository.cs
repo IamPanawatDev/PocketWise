@@ -23,7 +23,7 @@ public class TransactionRepository : ITransactionRepository
             .Include(t => t.Category)
             .Include(t => t.TransactionTags)
                 .ThenInclude(tt => tt.Tag)
-            .FirstOrDefaultAsync(t => t.TransactionId == id && t.UserId == userId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.TransactionId == id && t.UserId == userId && !t.IsDeleted, cancellationToken);
     }
 
     public async Task<PagedResult<Transaction>> GetPagedAsync(long userId, TransactionFilter filter, int page, int pageSize, string sortBy, bool sortDesc, CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ public class TransactionRepository : ITransactionRepository
             .Include(t => t.Category)
             .Include(t => t.TransactionTags)
                 .ThenInclude(tt => tt.Tag)
-            .Where(t => t.UserId == userId);
+            .Where(t => t.UserId == userId && !t.IsDeleted);
 
         if (filter.CategoryId.HasValue)
         {

@@ -144,6 +144,8 @@ GET /api/v1/transactions?page=1&pageSize=20
 | `GET` | `/api/v1/auth/me` | ต้อง | profile จาก claims (อ่าน DB ถ้าจำเป็น) |
 | `POST` | `/api/v1/auth/send-verification-email` | ต้อง | ส่งลิงก์ยืนยันทางอีเมลไปยังอีเมลปัจจุบันของผู้ใช้ (คูลดาวน์ 60 วินาที) |
 | `POST` | `/api/v1/auth/verify-email` | ไม่ต้อง | ยืนยันอีเมลด้วยโทเค็นและ userId — อัปเดต `IsEmailVerified = true` |
+| `POST` | `/api/v1/auth/forgot-password` | ไม่ต้อง | ขอลิงก์ตั้งรหัสผ่านใหม่ทางอีเมล (Anti-Email Enumeration + คูลดาวน์ 60 วินาที) |
+| `POST` | `/api/v1/auth/reset-password` | ไม่ต้อง | ตั้งรหัสผ่านใหม่ด้วยโทเค็นและ userId พร้อมเพิกถอน (revoke) Refresh Token ทุก session |
 | `POST` | `/api/v1/auth/purge-expired-tokens` | Admin | ล้าง Refresh Token ที่หมดอายุหรือถูกเพิกถอน (Revoked) ออกจากฐานข้อมูล |
 
 #### 5.1 Request/Response DTO
@@ -195,6 +197,40 @@ GET /api/v1/transactions?page=1&pageSize=20
   "email": "user@example.com",
   "displayName": "Display Name",
   "isEmailVerified": false
+}
+```
+
+**`ForgotPasswordRequest`**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**`ForgotPasswordResponse`**
+```json
+{
+  "sent": true,
+  "cooldownSeconds": 60,
+  "message": "หากอีเมลนี้ลงทะเบียนไว้ในระบบ ลิงก์สำหรับตั้งรหัสผ่านใหม่ได้ถูกส่งไปยังอีเมลของคุณเรียบร้อยแล้ว"
+}
+```
+
+**`ResetPasswordRequest`**
+```json
+{
+  "userId": 1,
+  "token": "CfDJ8N...",
+  "newPassword": "NewStrongPassword123!",
+  "confirmPassword": "NewStrongPassword123!"
+}
+```
+
+**`ResetPasswordResponse`**
+```json
+{
+  "success": true,
+  "message": "ตั้งรหัสผ่านใหม่สำเร็จเรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่"
 }
 ```
 
@@ -705,6 +741,11 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 
 - `POST /api/v1/auth/send-verification-email` (Auth: Required): ส่งลิงก์ยืนยันทางอีเมลไปยังอีเมลปัจจุบันของผู้ใช้ คืน `{ "sent": true, "email": "...", "cooldownSeconds": 60, "message": "..." }`
 - `POST /api/v1/auth/verify-email` (Auth: Anonymous): รับ `{ "userId": 123, "token": "..." }` และตรวจสอบโทเค็นผ่าน ASP.NET Core Identity แล้วอัปเดต `Users.IsEmailVerified = true` และ `EmailConfirmed = true` ในฐานข้อมูล คืน `{ "verified": true, "email": "...", "message": "..." }`
+
+### Password reset via Email (FR6.3.8 — Phase 5.5/D43) ✅
+
+- `POST /api/v1/auth/forgot-password` (Auth: Anonymous): รับ `{ "email": "user@example.com" }` ส่งอีเมลพร้อมลิงก์ตั้งรหัสผ่านใหม่ (Anti-Email Enumeration ป้องกันการเดาอีเมลในระบบ และคูลดาวน์ 60 วินาที) คืน `{ "sent": true, "cooldownSeconds": 60, "message": "..." }`
+- `POST /api/v1/auth/reset-password` (Auth: Anonymous): รับ `{ "userId": 123, "token": "...", "newPassword": "...", "confirmPassword": "..." }` ตั้งรหัสผ่านใหม่ผ่าน ASP.NET Core Identity และเพิกถอน (Revoke) Refresh Tokens ของผู้ใช้ทุก session เพื่อบังคับล็อกอินใหม่ทุกอุปกรณ์ คืน `{ "success": true, "message": "..." }`
 
 ---
 

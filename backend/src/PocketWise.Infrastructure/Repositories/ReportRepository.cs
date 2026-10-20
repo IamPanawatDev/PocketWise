@@ -27,6 +27,7 @@ public sealed class ReportRepository : IReportRepository
             .AsNoTracking()
             .Where(transaction =>
                 transaction.UserId == userId
+                && !transaction.IsDeleted
                 && transaction.Status == TransactionStatus.Confirmed
                 && transaction.TransactionType != TransactionType.Transfer
                 && transaction.TransactionDate >= fromUtc

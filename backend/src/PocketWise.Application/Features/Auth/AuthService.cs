@@ -20,6 +20,7 @@ public class AuthService : IAuthService
     private readonly IAuditLogService? _auditLogService;
 
     private static readonly ConcurrentDictionary<long, DateTime> _verificationCooldowns = new();
+    private static readonly ConcurrentDictionary<string, DateTime> _passwordResetCooldowns = new(StringComparer.OrdinalIgnoreCase);
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -399,6 +400,157 @@ public class AuthService : IAuthService
         }
 
         return new VerifyEmailResponse(true, user.Email ?? string.Empty, "ยืนยันที่อยู่อีเมลสำเร็จเรียบร้อยแล้ว");
+    }
+
+    public async Task<ForgotPasswordResponse> ForgotPasswordAsync(
+        ForgotPasswordRequest request,
+        string? originUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            throw new AuthException("VALIDATION_ERROR", "กรุณากรอกที่อยู่อีเมล");
+        }
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+        // Check cooldown (60 seconds)
+        if (_passwordResetCooldowns.TryGetValue(normalizedEmail, out var lastSent))
+        {
+            var elapsed = DateTime.UtcNow - lastSent;
+            if (elapsed < TimeSpan.FromSeconds(60))
+            {
+                var remaining = (int)Math.Ceiling((TimeSpan.FromSeconds(60) - elapsed).TotalSeconds);
+                throw new AuthException("COOLDOWN", $"กรุณารออีก {remaining} วินาทีก่อนส่งคำขอใหม่อีกครั้ง");
+            }
+        }
+
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+
+        // Anti-Email Enumeration: If user not found or inactive, pretend success and record cooldown
+        if (user is null || !user.IsActive)
+        {
+            _passwordResetCooldowns[normalizedEmail] = DateTime.UtcNow;
+            return new ForgotPasswordResponse(
+                true,
+                60,
+                "หากอีเมลนี้ลงทะเบียนไว้ในระบบ ลิงก์สำหรับตั้งรหัสผ่านใหม่ได้ถูกส่งไปยังอีเมลของคุณเรียบร้อยแล้ว");
+        }
+
+        var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var encodedToken = Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+
+        var baseUrl = !string.IsNullOrWhiteSpace(originUrl) ? originUrl.TrimEnd('/') : "http://localhost:3000";
+        var resetUrl = $"{baseUrl}/reset-password?userId={user.Id}&token={encodedToken}";
+
+        var bodyHtml = $"""
+            <!DOCTYPE html>
+            <html lang="th">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            </head>
+            <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; color: #1e293b;">
+              <div style="max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <h2 style="color: #4f46e5; margin: 0 0 8px 0; font-size: 22px;">ตั้งรหัสผ่านใหม่สำหรับบัญชี PocketWise</h2>
+                  <p style="color: #64748b; font-size: 14px; margin: 0;">PocketWise — ระบบบันทึกรายรับรายจ่ายอัจฉริยะ</p>
+                </div>
+                <p style="font-size: 15px; line-height: 1.6;">สวัสดีคุณ <strong>{user.DisplayName}</strong>,</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #334155;">เราได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชี PocketWise ของคุณ หากคุณเป็นผู้ส่งคำขอนี้ กรุณากดปุ่มด้านล่างเพื่อกำหนดรหัสผ่านใหม่:</p>
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="{resetUrl}" target="_blank" style="display: inline-block; background-color: #4f46e5; color: #ffffff; font-weight: 600; font-size: 15px; padding: 12px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
+                    ตั้งรหัสผ่านใหม่
+                  </a>
+                </div>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px;">
+                  หากปุ่มด้านบนไม่ทำงาน สามารถคัดลอกลิงก์ด้านล่างไปวางในแถบที่อยู่ของเว็บเบราว์เซอร์ได้:<br/>
+                  <a href="{resetUrl}" style="color: #4f46e5; word-break: break-all;">{resetUrl}</a>
+                </p>
+                <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
+                <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+                  หากคุณไม่ได้ส่งคำขอนี้ คุณสามารถละเว้นอีเมลฉบับนี้ได้อย่างปลอดภัย รหัสผ่านเดิมของคุณจะไม่เปลี่ยนแปลง<br/>
+                  ลิงก์นี้ใช้ได้เฉพาะบัญชีของคุณและมีระยะเวลาหมดอายุ
+                </p>
+              </div>
+            </body>
+            </html>
+            """;
+
+        await _emailService.SendEmailAsync(
+            user.Email!,
+            "คำขอตั้งรหัสผ่านใหม่ — PocketWise",
+            bodyHtml,
+            cancellationToken);
+
+        _passwordResetCooldowns[normalizedEmail] = DateTime.UtcNow;
+
+        return new ForgotPasswordResponse(
+            true,
+            60,
+            "หากอีเมลนี้ลงทะเบียนไว้ในระบบ ลิงก์สำหรับตั้งรหัสผ่านใหม่ได้ถูกส่งไปยังอีเมลของคุณเรียบร้อยแล้ว");
+    }
+
+    public async Task<ResetPasswordResponse> ResetPasswordAsync(
+        ResetPasswordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.UserId <= 0 || string.IsNullOrWhiteSpace(request.Token))
+        {
+            throw new AuthException("VALIDATION_ERROR", "ข้อมูลสำหรับตั้งรหัสผ่านใหม่ไม่ถูกต้อง");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 6)
+        {
+            throw new AuthException("VALIDATION_ERROR", "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
+        }
+
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            throw new AuthException("VALIDATION_ERROR", "รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน");
+        }
+
+        var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+        if (user is null || !user.IsActive)
+        {
+            throw new AuthException("INVALID_TOKEN", "ลิงก์ตั้งรหัสผ่านใหม่ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาขอลิงก์ใหม่");
+        }
+
+        string rawToken;
+        try
+        {
+            rawToken = Encoding.UTF8.GetString(Base64UrlDecode(request.Token));
+        }
+        catch
+        {
+            throw new AuthException("INVALID_TOKEN", "รูปแบบโทเค็นตั้งรหัสผ่านใหม่ไม่ถูกต้อง");
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, rawToken, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            throw new AuthException("INVALID_TOKEN", "ลิงก์ตั้งรหัสผ่านใหม่ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาขอลิงก์ใหม่");
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
+
+        // Security: Revoke all existing refresh tokens to force re-login on all devices
+        await _refreshTokenRepository.RevokeAllForUserAsync(user.Id, null, RevokeReason.Compromised.ToString(), cancellationToken);
+        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                user.Id,
+                AuditAction.Update,
+                "Users",
+                user.Id.ToString(),
+                new { Action = "ResetPassword", user.Email },
+                cancellationToken);
+        }
+
+        return new ResetPasswordResponse(true, "ตั้งรหัสผ่านใหม่สำเร็จเรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่");
     }
 
     private static string Base64UrlEncode(byte[] bytes)
