@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PocketWise.Application.Interfaces;
@@ -51,14 +52,17 @@ public class SmtpEmailService : IEmailService
             return true;
         }
 
-        // 3. Real SMTP transmission
+        // 3. Real SMTP transmission with explicit UTF-8 encoding for Thai and international characters
         try
         {
             using var message = new MailMessage
             {
-                From = new MailAddress(_settings.FromEmail, _settings.FromDisplayName),
+                From = new MailAddress(_settings.FromEmail, _settings.FromDisplayName, Encoding.UTF8),
                 Subject = subject,
+                SubjectEncoding = Encoding.UTF8,
                 Body = bodyHtml,
+                BodyEncoding = Encoding.UTF8,
+                HeadersEncoding = Encoding.UTF8,
                 IsBodyHtml = true
             };
             message.To.Add(toEmail);

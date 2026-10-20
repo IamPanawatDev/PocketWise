@@ -245,28 +245,37 @@ public class AuthService : IAuthService
         var verificationUrl = $"{baseUrl}/verify-email?userId={applicationUser.Id}&token={encodedToken}";
 
         var bodyHtml = $"""
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #1e293b;">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="color: #4f46e5; margin: 0 0 8px 0; font-size: 22px;">ยืนยันที่อยู่อีเมลของคุณ</h2>
-                <p style="color: #64748b; font-size: 14px; margin: 0;">PocketWise — ระบบบันทึกรายรับรายจ่ายอัจฉริยะ</p>
+            <!DOCTYPE html>
+            <html lang="th">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            </head>
+            <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; color: #1e293b;">
+              <div style="max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <h2 style="color: #4f46e5; margin: 0 0 8px 0; font-size: 22px;">ยืนยันที่อยู่อีเมลของคุณ</h2>
+                  <p style="color: #64748b; font-size: 14px; margin: 0;">PocketWise — ระบบบันทึกรายรับรายจ่ายอัจฉริยะ</p>
+                </div>
+                <p style="font-size: 15px; line-height: 1.6;">สวัสดีคุณ <strong>{applicationUser.DisplayName}</strong>,</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #334155;">คุณได้ร้องขอการยืนยันที่อยู่อีเมลสำหรับบัญชี PocketWise ของคุณ กรุณากดปุ่มด้านล่างเพื่อยืนยันบัญชีให้สมบูรณ์:</p>
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="{verificationUrl}" target="_blank" style="display: inline-block; background-color: #4f46e5; color: #ffffff; font-weight: 600; font-size: 15px; padding: 12px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
+                    ยืนยันที่อยู่อีเมล
+                  </a>
+                </div>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px;">
+                  หากปุ่มด้านบนไม่ทำงาน สามารถคัดลอกลิงก์ด้านล่างไปวางในแถบที่อยู่ของเว็บเบราว์เซอร์ได้:<br/>
+                  <a href="{verificationUrl}" style="color: #4f46e5; word-break: break-all;">{verificationUrl}</a>
+                </p>
+                <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
+                <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+                  หากคุณไม่ได้ส่งคำขอนี้ สามารถละเว้นอีเมลฉบับนี้ได้อย่างปลอดภัย<br/>
+                  ลิงก์นี้ใช้ได้เฉพาะบัญชีของคุณเท่านั้น
+                </p>
               </div>
-              <p style="font-size: 15px; line-height: 1.6;">สวัสดีคุณ <strong>{applicationUser.DisplayName}</strong>,</p>
-              <p style="font-size: 15px; line-height: 1.6; color: #334155;">คุณได้ร้องขอการยืนยันที่อยู่อีเมลสำหรับบัญชี PocketWise ของคุณ กรุณากดปุ่มด้านล่างเพื่อยืนยันบัญชีให้สมบูรณ์:</p>
-              <div style="text-align: center; margin: 32px 0;">
-                <a href="{verificationUrl}" target="_blank" style="display: inline-block; background-color: #4f46e5; color: #ffffff; font-weight: 600; font-size: 15px; padding: 12px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
-                  ยืนยันที่อยู่อีเมล
-                </a>
-              </div>
-              <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px;">
-                หากปุ่มด้านบนไม่ทำงาน สามารถคัดลอกลิงก์ด้านล่างไปวางในแถบที่อยู่ของเว็บเบราว์เซอร์ได้:<br/>
-                <a href="{verificationUrl}" style="color: #4f46e5; word-break: break-all;">{verificationUrl}</a>
-              </p>
-              <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
-              <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
-                หากคุณไม่ได้ส่งคำขอนี้ สามารถละเว้นอีเมลฉบับนี้ได้อย่างปลอดภัย<br/>
-                ลิงก์นี้ใช้ได้เฉพาะบัญชีของคุณเท่านั้น
-              </p>
-            </div>
+            </body>
+            </html>
             """;
 
         await _emailService.SendEmailAsync(

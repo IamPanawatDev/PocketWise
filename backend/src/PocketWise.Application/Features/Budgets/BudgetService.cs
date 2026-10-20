@@ -325,7 +325,14 @@ public class BudgetService : IBudgetService
                 var remaining = Math.Max(0, budget.AmountLimit - spent);
                 var subject = $"[PocketWise] แจ้งเตือนงบประมาณ: ใกล้ถึงขีดจำกัดงบ {budget.BudgetName}";
                 var htmlBody = $"""
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <!DOCTYPE html>
+                    <html lang="th">
+                    <head>
+                      <meta charset="utf-8" />
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    </head>
+                    <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc;">
+                      <div style="max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
                         <h2 style="color: #4f46e5; margin-top: 0;">PocketWise — แจ้งเตือนงบประมาณ</h2>
                         <p>เรียน คุณผู้ใช้,</p>
                         <p>งบประมาณ <strong>{budget.BudgetName}</strong> ของคุณ มีการใช้จ่ายใกล้ถึงขีดจำกัดที่ตั้งไว้ ({budget.AlertThresholdPercent}%) แล้ว:</p>
@@ -344,7 +351,9 @@ public class BudgetService : IBudgetService
                             </tr>
                         </table>
                         <p style="color: #64748b; font-size: 14px;">คุณสามารถเข้าสู่ระบบ PocketWise เพื่อตรวจสอบหรือปรับแต่งงบประมาณได้ตลอดเวลา</p>
-                    </div>
+                      </div>
+                    </body>
+                    </html>
                     """;
 
                 var sent = await _emailService.SendEmailAsync(userEmail, subject, htmlBody, cancellationToken);
@@ -416,7 +425,14 @@ public class BudgetService : IBudgetService
                 var overSpent = spent - budget.AmountLimit;
                 var subject = $"[PocketWise] แจ้งเตือนด่วน: เกินขีดจำกัดงบประมาณ {budget.BudgetName}";
                 var htmlBody = $"""
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #fee2e2; border-radius: 8px;">
+                    <!DOCTYPE html>
+                    <html lang="th">
+                    <head>
+                      <meta charset="utf-8" />
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    </head>
+                    <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #fef2f2;">
+                      <div style="max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #fee2e2; border-radius: 8px; background-color: #ffffff;">
                         <h2 style="color: #dc2626; margin-top: 0;">PocketWise — แจ้งเตือนด่วน: เกินงบประมาณ!</h2>
                         <p>เรียน คุณผู้ใช้,</p>
                         <p>งบประมาณ <strong>{budget.BudgetName}</strong> ของคุณ มีการใช้จ่ายเกินวงเงินที่กำหนดแล้ว:</p>
@@ -435,7 +451,9 @@ public class BudgetService : IBudgetService
                             </tr>
                         </table>
                         <p style="color: #64748b; font-size: 14px;">คุณสามารถเข้าสู่ระบบ PocketWise เพื่อตรวจสอบหรือปรับแต่งงบประมาณได้ทันที</p>
-                    </div>
+                      </div>
+                    </body>
+                    </html>
                     """;
 
                 var sent = await _emailService.SendEmailAsync(userEmail, subject, htmlBody, cancellationToken);
