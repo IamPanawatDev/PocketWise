@@ -13,16 +13,10 @@ import {
   useUpdateCategory,
 } from "@/features/categories/hooks/useCategories";
 import { ApiError } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
@@ -126,14 +120,50 @@ export function CategoriesView() {
                 control={control}
                 name="categoryType"
                 render={({ field }) => (
-                  <Select value={field.value || "expense"} onValueChange={field.onChange}>
-                    <SelectTrigger id="category-type"><SelectValue placeholder="เลือกประเภท" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="expense">รายจ่าย</SelectItem>
-                      <SelectItem value="income">รายรับ</SelectItem>
-                      <SelectItem value="both">ทั้งคู่</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div id="category-type" className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="ประเภทหมวดหมู่">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={field.value === "expense"}
+                      onClick={() => field.onChange("expense")}
+                      className={cn(
+                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        field.value === "expense"
+                          ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
+                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
+                      )}
+                    >
+                      รายจ่าย
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={field.value === "income"}
+                      onClick={() => field.onChange("income")}
+                      className={cn(
+                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        field.value === "income"
+                          ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
+                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
+                      )}
+                    >
+                      รายรับ
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={field.value === "both"}
+                      onClick={() => field.onChange("both")}
+                      className={cn(
+                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        field.value === "both"
+                          ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
+                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
+                      )}
+                    >
+                      ทั้งคู่
+                    </button>
+                  </div>
                 )}
               />
             </FormField>

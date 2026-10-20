@@ -114,7 +114,12 @@ export function CreditCardsView() {
               {isSaving ? <LoaderCircle className="animate-spin" /> : editing ? <Save /> : <Plus />}
               {editing ? "บันทึก" : "เพิ่มบัตร"}
             </Button>
-            {editing && <Button type="button" variant="ghost" onClick={clearForm}><X />ยกเลิก</Button>}
+            {editing && (
+              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearForm}>
+                <X />
+                ยกเลิก
+              </Button>
+            )}
           </div>
         </form>
       </Card>

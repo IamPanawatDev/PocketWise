@@ -91,25 +91,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      {isMobileOpen && (
-        <button
-          type="button"
-          aria-label="ปิดเมนู"
-          className="fixed inset-0 z-40 cursor-pointer bg-black/60 md:hidden"
-          onClick={closeNavigation}
-        />
-      )}
-
+      <div
+        role="presentation"
+        aria-hidden={!isMobileOpen}
+        className={cn(
+          "fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ease-in-out md:hidden",
+          isMobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={closeNavigation}
+      />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col overflow-y-auto border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-3 transition-[width,transform] duration-200 md:p-4",
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col overflow-y-auto border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-3 shadow-2xl transition-all duration-300 ease-in-out md:p-4 md:shadow-none",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          isCollapsed ? "md:w-20" : "md:w-60",
+          isCollapsed ? "md:w-20" : "md:w-72",
         )}
       >
-        <div className="mb-5 flex items-start gap-2">
-          <div className={cn("min-w-0 flex-1", iconOnly && "md:hidden")}>
-            <div className="flex min-w-0 items-center gap-2 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)] px-3 py-2 text-base font-bold text-[var(--pw-on-primary)]">
+        <div className={cn("mb-5 w-full", iconOnly && "md:hidden")}>
+          <div className="flex w-full items-center justify-between rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)] px-3 py-2 text-base font-bold text-[var(--pw-on-primary)]">
+            <div className="flex min-w-0 items-center gap-2">
               <span
                 role="img"
                 aria-label="PocketWise money icon"
@@ -120,41 +120,42 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               />
               <span className="truncate">PocketWise</span>
             </div>
-            <div className="mt-2 flex items-center justify-between gap-1.5 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] p-1.5">
-              <p className="min-w-0 flex-1 truncate px-1 text-sm text-[var(--pw-link)]">
-                {user?.displayName
-                  ? /[\u0E00-\u0E7F]/u.test(user.displayName)
-                    ? `สวัสดี คุณ ${user.displayName}`
-                    : `Welcome ${user.displayName}`
-                  : "..."}
-              </p>
-              <NotificationBell className="shrink-0 size-8 text-[var(--pw-ink)] hover:text-white" />
-            </div>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              className="size-7 shrink-0 text-white hover:bg-white/20 md:hidden"
+              aria-label="ปิดเมนู"
+              onClick={closeNavigation}
+            >
+              <X className="size-4" />
+            </Button>
           </div>
-          <div
-            role="img"
-            aria-label="PocketWise money icon"
-            className={cn("hidden size-10 shrink-0 rounded-xl bg-white bg-contain bg-center bg-no-repeat", iconOnly && "md:block")}
-            style={{
-              backgroundImage: "url(https://cdn-icons-png.flaticon.com/512/10384/10384161.png)",
-            }}
-          />
-          {iconOnly && (
-            <div className="hidden md:flex justify-center mt-2">
-              <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-white" />
-            </div>
-          )}
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="shrink-0 md:hidden"
-            aria-label="ปิดเมนู"
-            onClick={closeNavigation}
-          >
-            <X />
-          </Button>
+          <div className="mt-2 flex w-full items-center justify-between gap-1.5 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] p-1.5">
+            <p className="min-w-0 flex-1 truncate px-1 text-sm text-[var(--pw-link)]">
+              {user?.displayName
+                ? /[\u0E00-\u0E7F]/u.test(user.displayName)
+                  ? `สวัสดี คุณ ${user.displayName}`
+                  : `Welcome, ${user.displayName}`
+                : "..."}
+            </p>
+            <NotificationBell className="size-8 shrink-0 text-[var(--pw-ink)] hover:text-white" />
+          </div>
         </div>
+
+        {iconOnly && (
+          <div className="mb-5 hidden flex-col items-center gap-2 md:flex">
+            <div
+              role="img"
+              aria-label="PocketWise money icon"
+              className="size-10 shrink-0 rounded-xl bg-white bg-contain bg-center bg-no-repeat"
+              style={{
+                backgroundImage: "url(https://cdn-icons-png.flaticon.com/512/10384/10384161.png)",
+              }}
+            />
+            <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-white" />
+          </div>
+        )}
 
         <TooltipProvider>
           <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
@@ -240,7 +241,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-200", isCollapsed ? "md:ml-20" : "md:ml-60")}>
+      <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-300", isCollapsed ? "md:ml-20" : "md:ml-72")}>
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/95 px-3 backdrop-blur md:hidden">
           <div className="flex items-center gap-3">
             <Button type="button" size="icon" variant="ghost" aria-label="เปิดเมนู" onClick={toggleNavigation}>

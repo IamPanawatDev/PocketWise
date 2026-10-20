@@ -12,8 +12,10 @@ import { profileSchema, type ProfileFormValues } from "@/schemas/profile.schema"
 import { settingsSchema, type SettingsFormValues } from "@/schemas/settings.schema";
 import { zodResolver } from "@/lib/zod-resolver";
 import { ApiError } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -195,16 +197,13 @@ export function SettingsView() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="THB">THB — บาทไทย (฿)</SelectItem>
-                          <SelectItem value="USD">USD — ดอลลาร์สหรัฐ ($)</SelectItem>
-                          <SelectItem value="EUR">EUR — ยูโร (€)</SelectItem>
-                          <SelectItem value="JPY">JPY — เยนญี่ปุ่น (¥)</SelectItem>
-                          <SelectItem value="GBP">GBP — ปอนด์สเตอร์ลิง (£)</SelectItem>
-                          <SelectItem value="SGD">SGD — ดอลลาร์สิงคโปร์ (S$)</SelectItem>
-                          <SelectItem value="CNY">CNY — หยวนจีน (¥)</SelectItem>
                         </SelectContent>
                       </Select>
                     )}
                   />
+                  <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+                    ขณะนี้ระบบเปิดใช้งานเฉพาะสกุลเงินบาทไทย (THB) เท่านั้น
+                  </p>
                 </FormField>
 
                 <FormField label="ภาษาของระบบ (Language / Locale)" htmlFor="settings-locale" error={settingsForm.formState.errors.locale?.message}>
@@ -228,39 +227,87 @@ export function SettingsView() {
                 </FormField>
 
                 <div className="flex flex-col justify-end gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">อีเมลแจ้งเตือนงบประมาณ</span>
-                    {!isEmailServiceEnabled && (
-                      <span className="rounded bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-500 dark:text-amber-400">
-                        ระบบปิดส่งอีเมล
-                      </span>
-                    )}
-                  </div>
                   <Controller
                     control={settingsForm.control}
                     name="emailBudgetAlertsEnabled"
-                    render={({ field }) => (
-                      <Button
-                        type="button"
-                        variant={field.value ? "success" : "secondary"}
-                        aria-pressed={field.value}
-                        disabled={!isEmailServiceEnabled}
-                        onClick={() => field.onChange(!field.value)}
-                      >
-                        {field.value ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                      </Button>
-                    )}
+                    render={({ field }) => {
+                      const isEmailVerified = profileQuery.data?.isEmailVerified ?? false;
+                      const isLocked = !isEmailVerified || !isEmailServiceEnabled;
+
+                      const handleCheckboxClick = (e: React.MouseEvent) => {
+                        if (!isEmailVerified) {
+                          e.preventDefault();
+                          toast.error("กรุณายืนยันอีเมลของคุณก่อนเปิดใช้งานการแจ้งเตือนงบประมาณทางอีเมล");
+                          field.onChange(false);
+                          return;
+                        }
+                        if (!isEmailServiceEnabled) {
+                          e.preventDefault();
+                          toast.error("ระบบปิดการให้บริการส่งอีเมลชั่วคราว");
+                          field.onChange(false);
+                        }
+                      };
+
+                      return (
+                        <div className="space-y-2 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-3">
+                          <div
+                            className={cn("flex items-center gap-2", isLocked && "cursor-pointer")}
+                            onClick={isLocked ? handleCheckboxClick : undefined}
+                          >
+                            <Checkbox
+                              id="settings-email-alerts"
+                              checked={Boolean(field.value && isEmailVerified && isEmailServiceEnabled)}
+                              disabled={isLocked}
+                              className={cn(isLocked && "pointer-events-none")}
+                              onCheckedChange={(checked) => {
+                                if (checked && !isEmailVerified) {
+                                  toast.error("กรุณายืนยันอีเมลของคุณก่อนเปิดใช้งานการแจ้งเตือนงบประมาณทางอีเมล");
+                                  field.onChange(false);
+                                  return;
+                                }
+                                field.onChange(Boolean(checked));
+                              }}
+                            />
+                            <label
+                              htmlFor="settings-email-alerts"
+                              className={cn(
+                                "text-sm font-medium select-none cursor-pointer",
+                                isLocked && "text-[var(--pw-ink)]/70",
+                              )}
+                            >
+                              อีเมลแจ้งเตือนงบประมาณ
+                            </label>
+                            {!isEmailServiceEnabled && (
+                              <span className="rounded bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-500 dark:text-amber-400">
+                                ระบบปิดส่งอีเมล
+                              </span>
+                            )}
+                            {!isEmailVerified && (
+                              <span className="rounded bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-[var(--pw-expense)]">
+                                ล็อก (ยังไม่ยืนยันอีเมล)
+                              </span>
+                            )}
+                          </div>
+
+                          {!isEmailVerified ? (
+                            <p className="flex items-center gap-1.5 text-xs text-[var(--pw-expense)]">
+                              <AlertCircle className="size-3.5 shrink-0" />
+                              <span>สถานะอีเมลยังไม่ยืนยัน กรุณายืนยันอีเมลในส่วนข้อมูลโปรไฟล์ก่อน จึงจะสามารถเปิดใช้งานการแจ้งเตือนได้</span>
+                            </p>
+                          ) : !isEmailServiceEnabled ? (
+                            <p className="flex items-center gap-1.5 text-xs text-amber-500 dark:text-amber-400">
+                              <AlertCircle className="size-3.5 shrink-0" />
+                              <span>ระบบปิดการให้บริการส่งอีเมลไว้ชั่วคราว การแจ้งเตือนจะส่งผ่านระบบ (In-App) เท่านั้น</span>
+                            </p>
+                          ) : (
+                            <p className="text-xs text-[var(--pw-ink)]/60">
+                              รับการแจ้งเตือนทางอีเมลเมื่อยอดใช้จ่ายใกล้ถึงขีดจำกัด (80%) หรือเกินงบประมาณ (100%)
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }}
                   />
-                  {!isEmailServiceEnabled ? (
-                    <p className="flex items-center gap-1.5 text-xs text-amber-500 dark:text-amber-400">
-                      <AlertCircle className="size-3.5 shrink-0" />
-                      <span>ระบบปิดการให้บริการส่งอีเมลไว้ชั่วคราว การแจ้งเตือนจะส่งผ่านระบบ (In-App) เท่านั้น</span>
-                    </p>
-                  ) : (
-                    <p className="text-xs text-[var(--pw-ink)]/60">
-                      รับการแจ้งเตือนทางอีเมลเมื่อยอดใช้จ่ายใกล้ถึงขีดจำกัดหรือเกินงบประมาณ
-                    </p>
-                  )}
                 </div>
               </div>
               <Button type="submit" disabled={saveSettings.isPending}>

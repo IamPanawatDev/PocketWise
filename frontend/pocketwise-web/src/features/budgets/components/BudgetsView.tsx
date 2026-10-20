@@ -270,7 +270,12 @@ export function BudgetsView() {
               {loadingMutation ? <LoaderCircle className="animate-spin" /> : editing ? <Save /> : <Plus />}
               {editing ? "บันทึก" : "ตั้งงบ"}
             </Button>
-            {editing && <Button type="button" variant="ghost" onClick={resetForm}><X />ยกเลิก</Button>}
+            {editing && (
+              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={resetForm}>
+                <X />
+                ยกเลิก
+              </Button>
+            )}
           </div>
         </form>
       </Card>

@@ -69,7 +69,15 @@ function AlertDialogDescription({
 }
 
 function AlertDialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mt-6 flex justify-end gap-3", className)} {...props} />;
+  return (
+    <div
+      className={cn(
+        "mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 function AlertDialogAction({
@@ -79,7 +87,7 @@ function AlertDialogAction({
   return (
     <AlertDialogPrimitive.Action
       className={cn(
-        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-magenta)] px-6 py-2.5 text-sm font-medium text-[var(--pw-ink)] transition hover:brightness-110 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4",
+        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-magenta)] px-6 py-2.5 text-sm font-medium text-[var(--pw-ink)] transition hover:brightness-110 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 w-full sm:w-auto [&_svg]:size-4",
         className,
       )}
       {...props}
@@ -94,7 +102,7 @@ function AlertDialogCancel({
   return (
     <AlertDialogPrimitive.Cancel
       className={cn(
-        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-input-border)] bg-[var(--pw-surface-onyx)] px-6 py-2.5 text-sm font-medium text-[var(--pw-ink)] transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/50 [&_svg]:size-4",
+        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-input-border)] bg-[var(--pw-surface-onyx)] px-6 py-2.5 text-sm font-medium text-[var(--pw-ink)] transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/50 w-full sm:w-auto [&_svg]:size-4",
         className,
       )}
       {...props}

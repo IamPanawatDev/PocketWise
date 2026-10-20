@@ -435,7 +435,14 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={trendPoints} margin={{ top: 8, right: 12, left: 8, bottom: 8 }}>
                       <CartesianGrid stroke="var(--pw-hairline)" strokeDasharray="3 3" />
-                      <XAxis dataKey="label" tick={{ fill: "var(--pw-ink)", fontSize: 12 }} />
+                      <XAxis
+                        dataKey="label"
+                        interval={0}
+                        angle={-25}
+                        textAnchor="end"
+                        height={50}
+                        tick={{ fill: "var(--pw-ink)", fontSize: 11 }}
+                      />
                       <YAxis tick={{ fill: "var(--pw-ink)", fontSize: 12 }} />
                       <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
                       <Legend />

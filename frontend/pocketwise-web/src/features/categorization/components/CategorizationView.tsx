@@ -174,11 +174,16 @@ export function CategorizationView() {
               </FormField>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button type="submit" disabled={isSavingMerchant}>
+              <Button type="submit" disabled={isSavingMerchant} className="w-full sm:w-auto">
                 {isSavingMerchant ? <LoaderCircle className="animate-spin" /> : editingMerchant ? <Save /> : <Plus />}
                 {editingMerchant ? "บันทึกร้านค้า" : "เพิ่มร้านค้า"}
               </Button>
-              {editingMerchant && <Button type="button" variant="ghost" onClick={clearMerchantForm}><X />ยกเลิก</Button>}
+              {editingMerchant && (
+                <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearMerchantForm}>
+                  <X />
+                  ยกเลิก
+                </Button>
+              )}
             </div>
           </form>
         </Card>
@@ -272,11 +277,16 @@ export function CategorizationView() {
               </FormField>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button type="submit" disabled={isSavingRule}>
+              <Button type="submit" disabled={isSavingRule} className="w-full sm:w-auto">
                 {isSavingRule ? <LoaderCircle className="animate-spin" /> : editingRule ? <Save /> : <Plus />}
                 {editingRule ? "บันทึกกฎ" : "เพิ่มกฎ"}
               </Button>
-              {editingRule && <Button type="button" variant="ghost" onClick={clearRuleForm}><X />ยกเลิก</Button>}
+              {editingRule && (
+                <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearRuleForm}>
+                  <X />
+                  ยกเลิก
+                </Button>
+              )}
             </div>
           </form>
         </Card>

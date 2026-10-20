@@ -17,7 +17,7 @@ import {
 import type { RecurringTransactionResponse } from "@/types/recurring-transaction.types";
 import { zodResolver } from "@/lib/zod-resolver";
 import { ApiError } from "@/lib/api-client";
-import { formatCurrency, formatDate, formatDateTime, toThailandDateInputValue } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, formatDateTime, toThailandDateInputValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-input";
@@ -118,15 +118,42 @@ export function RecurringTransactionsView() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="ประเภท" htmlFor="recurring-type" error={errors.transactionType?.message}>
-              <Controller control={control} name="transactionType" render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="recurring-type"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense">รายจ่าย</SelectItem>
-                    <SelectItem value="income">รายรับ</SelectItem>
-                  </SelectContent>
-                </Select>
-              )} />
+              <Controller
+                control={control}
+                name="transactionType"
+                render={({ field }) => (
+                  <div id="recurring-type" className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="ประเภทรายการประจำ">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={field.value === "expense"}
+                      onClick={() => field.onChange("expense")}
+                      className={cn(
+                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        field.value === "expense"
+                          ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
+                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
+                      )}
+                    >
+                      รายจ่าย
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={field.value === "income"}
+                      onClick={() => field.onChange("income")}
+                      className={cn(
+                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        field.value === "income"
+                          ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
+                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
+                      )}
+                    >
+                      รายรับ
+                    </button>
+                  </div>
+                )}
+              />
             </FormField>
             <FormField label="จำนวนเงิน" htmlFor="recurring-amount" error={errors.amount?.message}>
               <Input id="recurring-amount" type="number" min="0.01" step="0.01" {...register("amount")} />
@@ -179,11 +206,16 @@ export function RecurringTransactionsView() {
             </FormField>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button type="submit" disabled={isSaving}>
+            <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
               {isSaving ? <LoaderCircle className="animate-spin" /> : editing ? <Save /> : <Plus />}
               {editing ? "บันทึก" : "ตั้งรายการ"}
             </Button>
-            {editing && <Button type="button" variant="ghost" onClick={clearForm}><X />ยกเลิก</Button>}
+            {editing && (
+              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearForm}>
+                <X />
+                ยกเลิก
+              </Button>
+            )}
           </div>
         </form>
       </Card>

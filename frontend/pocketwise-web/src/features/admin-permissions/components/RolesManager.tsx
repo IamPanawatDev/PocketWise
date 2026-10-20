@@ -274,13 +274,14 @@ export function RolesManager() {
                 </Label>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-[var(--pw-hairline)]">
-                <Button type="button" variant="ghost" onClick={closeDialog}>
+              <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
+                <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={closeDialog}>
                   ยกเลิก
                 </Button>
                 <Button
                   type="submit"
                   variant="default"
+                  className="w-full sm:w-auto"
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   {createMutation.isPending || updateMutation.isPending ? (

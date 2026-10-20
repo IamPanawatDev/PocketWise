@@ -158,20 +158,56 @@ export function TransactionForm({
               control={control}
               name="transactionType"
               render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    if (value !== "expense") setValue("creditCardId", null);
-                  }}
-                >
-                  <SelectTrigger id="transaction-type"><SelectValue placeholder="เลือกประเภท" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense">รายจ่าย</SelectItem>
-                    <SelectItem value="income">รายรับ</SelectItem>
-                    <SelectItem value="transfer">โอน</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div id="transaction-type" className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="ประเภทธุรกรรม">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={field.value === "expense"}
+                    onClick={() => field.onChange("expense")}
+                    className={cn(
+                      "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                      field.value === "expense"
+                        ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
+                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
+                    )}
+                  >
+                    รายจ่าย
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={field.value === "income"}
+                    onClick={() => {
+                      field.onChange("income");
+                      setValue("creditCardId", null);
+                    }}
+                    className={cn(
+                      "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                      field.value === "income"
+                        ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
+                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
+                    )}
+                  >
+                    รายรับ
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={field.value === "transfer"}
+                    onClick={() => {
+                      field.onChange("transfer");
+                      setValue("creditCardId", null);
+                    }}
+                    className={cn(
+                      "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                      field.value === "transfer"
+                        ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
+                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
+                    )}
+                  >
+                    โอน
+                  </button>
+                </div>
               )}
             />
           </FormField>
@@ -329,7 +365,7 @@ export function TransactionForm({
           <Input id="transaction-description" {...register("description")} />
         </FormField>
 
-        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row-reverse sm:justify-start">
           <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending || update.isPending}>
             {create.isPending || update.isPending
               ? <LoaderCircle className="animate-spin" />
