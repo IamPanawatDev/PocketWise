@@ -94,7 +94,7 @@
 | FR | รายการ | สถานะ | หมายเหตุ |
 |:-:|---|:-:|---|
 | FR5.2.1 | ติดตามยอดใช้จ่ายเทียบกับงบที่ตั้งไว้ | ✅ Phase 5 | |
-| FR5.2.2 | แจ้งเตือนเมื่อใช้จ่ายใกล้ถึงงบ **ผ่าน email ที่ลงทะเบียน** | 🟡 Phase 5 (persist) + Phase 6 (in-app SignalR delivery) | In-app real-time notification delivery completed via SignalR in Phase 6; email provider delivery deferred per D28 |
+| FR5.2.2 | แจ้งเตือนเมื่อใช้จ่ายใกล้ถึงงบ **ผ่าน email ที่ลงทะเบียน** | ✅ Phase 5 | ส่งอีเมลแจ้งเตือนงบ (ใกล้ถึงขีดจำกัด/เกินงบ) ผ่าน built-in SMTP (SmtpEmailService), รองรับ dev mode mock log, เคารพ EmailBudgetAlertsEnabled, บันทึก NotificationChannel.Email และ in-app SignalR เรียบร้อย |
 | FR5.2.3 | แก้ไขงบประมาณ | ✅ Phase 5 | |
 | FR5.2.4 | ลบงบที่ไม่ใช้แล้ว | ✅ Phase 5 | |
 
@@ -131,16 +131,17 @@
 | FR6.3.4 | เปลี่ยนอีเมล | ✅ Phase 5.5 — persisted; IsEmailVerified reset per D35 and verified end-to-end |
 | FR6.3.5 | แก้ไขวันเกิด | ✅ Phase 5.5 — persisted and verified end-to-end |
 | FR6.3.6 | ล้างข้อมูลเพื่อเริ่มต้นใหม่ (data reset) | ✅ Phase 5.5 — soft-delete, preserved identity/settings, and refresh-token revocation verified end-to-end |
+| FR6.3.7 | ยืนยันอีเมลของผู้ใช้ (Email Verification) — ส่งลิงก์ยืนยันทางอีเมลและอัปเดตสถานะ IsEmailVerified | ⬜ วางแผนตามสัญญา API (ยังไม่ลงมือ Dev ตามคำสั่ง) |
 
-### F7 — ระบบบทบาทและสิทธิ์ (Role-Based Access Control) — เพิ่มจากเจ้าของโปรเจค (D13)
+### F7 — ระบบบทบาทและสิทธิ์ (Role-Based Access Control) — เพิ่มจากเจ้าของโปรเจค (D13, D41)
 
 | FR | รายการ | สถานะ | หมายเหตุ |
 |:-:|---|:-:|---|
-| FR7.1 | จัดการบทบาทผู้ใช้ (Roles) — สร้าง/แก้ไข/ปิดใช้งาน | ⬜ | ตาราง Roles |
-| FR7.2 | จัดการรายการสิทธิ์ (Permissions) — ดู/เพิ่ม/แก้ไข/ลบข้อมูล | ⬜ | ตาราง Permissions |
-| FR7.3 | กำหนดหนึ่งหรือหลายบทบาทให้ผู้ใช้ (UserRoles) | ⬜ | ตาราง UserRoles (many-to-many) |
-| FR7.4 | กำหนดสิทธิ์ให้แต่ละบทบาท (RolePermissions) | ⬜ | ตาราง RolePermissions (many-to-many) |
-| FR7.5 | บังคับสิทธิ์ตาม role ตอน authorize ทุก endpoint | ⬜ | เชื่อมกับ auth (ARCHITECTURE §5) — per-user ownership คงเดิม |
+| FR7.1 | จัดการบทบาทผู้ใช้ (Roles) — สร้าง/แก้ไข/ปิดใช้งาน/ลบ | ✅ Phase 3 (D41) | ตาราง Roles, RolesManager หน้า /admin/permissions, ป้องกันการลบ Admin |
+| FR7.2 | จัดการรายการสิทธิ์ (Permissions) — ดูสิทธิ์แยกตามโมดูล | ✅ Phase 3 (D41) | ตาราง Permissions 15 สิทธิ์ 6 โมดูล พร้อม Seed อัตโนมัติ |
+| FR7.3 | กำหนดหนึ่งหรือหลายบทบาทให้ผู้ใช้ (UserRoles) | ✅ Phase 3 (D41) | ตาราง UserRoles, UserRolesManager หน้า /admin/permissions พร้อมค้นหา |
+| FR7.4 | กำหนดสิทธิ์ให้แต่ละบทบาท (RolePermissions) | ✅ Phase 3 (D41) | ตาราง RolePermissions, RolePermissionsMatrix หน้า /admin/permissions |
+| FR7.5 | บังคับสิทธิ์ตาม role ตอน authorize ทุก endpoint | ✅ Phase 3 (D41) | ClaimTypes.Role ใน JWT + [Authorize(Roles = "Admin")] บน Admin API |
 
 ### F8 — บันทึกประวัติการเปลี่ยนแปลง (Audit Logs) — เพิ่มจากเจ้าของโปรเจค (D13)
 

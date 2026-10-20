@@ -8,4 +8,5 @@ public class UserProfileResponse
     public string? PhoneNumber { get; set; }
     public DateOnly? BirthDate { get; set; }
     public bool IsEmailVerified { get; set; }
+    public List<string> Roles { get; set; } = [];
 }

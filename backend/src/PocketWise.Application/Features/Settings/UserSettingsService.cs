@@ -9,13 +9,16 @@ public sealed class UserSettingsService : IUserSettingsService
 {
     private readonly IUserSettingsRepository _repository;
     private readonly IValidator<UpdateUserSettingsRequest> _validator;
+    private readonly IEmailService? _emailService;
 
     public UserSettingsService(
         IUserSettingsRepository repository,
-        IValidator<UpdateUserSettingsRequest> validator)
+        IValidator<UpdateUserSettingsRequest> validator,
+        IEmailService? emailService = null)
     {
         _repository = repository;
         _validator = validator;
+        _emailService = emailService;
     }
 
     public async Task<UserSettingsResponse> GetAsync(long userId, CancellationToken cancellationToken = default)
@@ -47,12 +50,13 @@ public sealed class UserSettingsService : IUserSettingsService
         return new DataResetResponse { ResetAt = resetAt };
     }
 
-    private static UserSettingsResponse Map(UserSettings settings) => new()
+    private UserSettingsResponse Map(UserSettings settings) => new()
     {
         Theme = settings.Theme,
         CurrencyCode = settings.CurrencyCode,
         Locale = settings.Locale,
         EmailBudgetAlertsEnabled = settings.EmailBudgetAlertsEnabled,
+        IsEmailServiceEnabled = _emailService?.IsEnabled ?? true,
         UpdatedAt = settings.UpdatedAt
     };
 }

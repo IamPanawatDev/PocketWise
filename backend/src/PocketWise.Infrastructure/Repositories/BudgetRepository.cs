@@ -79,6 +79,24 @@ public class BudgetRepository : IBudgetRepository
         return Task.CompletedTask;
     }
 
+    public async Task<(string? Email, bool EmailAlertsEnabled)> GetUserEmailAndAlertPreferenceAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => new { u.Email })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var settings = await _context.UserSettings
+            .AsNoTracking()
+            .Where(s => s.UserId == userId)
+            .Select(s => new { s.EmailBudgetAlertsEnabled })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var alertsEnabled = settings?.EmailBudgetAlertsEnabled ?? true;
+        return (user?.Email, alertsEnabled);
+    }
+
     public Task<bool> CategoryExistsAsync(long userId, long categoryId, CancellationToken cancellationToken = default)
     {
         return _context.Categories.AnyAsync(

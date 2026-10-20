@@ -5,7 +5,7 @@ namespace PocketWise.Application.Interfaces;
 
 public interface ITokenService
 {
-    AuthResponse GenerateTokenPair(ApplicationUser user);
+    AuthResponse GenerateTokenPair(ApplicationUser user, IEnumerable<string>? roles = null);
     string HashToken(string token);
     string GenerateRefreshToken();
 }

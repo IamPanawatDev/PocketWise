@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { LoaderCircle, Save, Trash2 } from "lucide-react";
+import { AlertCircle, LoaderCircle, Save, Trash2 } from "lucide-react";
 
 export function SettingsView() {
   const queryClient = useQueryClient();
@@ -118,6 +118,7 @@ export function SettingsView() {
 
   const loading = settingsQuery.isLoading || profileQuery.isLoading;
   const failed = settingsQuery.isError || profileQuery.isError;
+  const isEmailServiceEnabled = settingsQuery.data?.isEmailServiceEnabled ?? true;
 
   return (
     <div className="space-y-6">
@@ -157,23 +158,59 @@ export function SettingsView() {
                     )}
                   />
                 </FormField>
+
                 <FormField label="สกุลเงินหลัก (ISO 4217)" htmlFor="settings-currency" error={settingsForm.formState.errors.currencyCode?.message}>
-                  <Input
-                    id="settings-currency"
-                    maxLength={3}
-                    autoCapitalize="characters"
-                    {...settingsForm.register("currencyCode", {
-                      onChange: (event) => {
-                        event.target.value = event.target.value.toUpperCase();
-                      },
-                    })}
+                  <Controller
+                    control={settingsForm.control}
+                    name="currencyCode"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="settings-currency">
+                          <SelectValue placeholder="เลือกสกุลเงิน" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="THB">THB — บาทไทย (฿)</SelectItem>
+                          <SelectItem value="USD">USD — ดอลลาร์สหรัฐ ($)</SelectItem>
+                          <SelectItem value="EUR">EUR — ยูโร (€)</SelectItem>
+                          <SelectItem value="JPY">JPY — เยนญี่ปุ่น (¥)</SelectItem>
+                          <SelectItem value="GBP">GBP — ปอนด์สเตอร์ลิง (£)</SelectItem>
+                          <SelectItem value="SGD">SGD — ดอลลาร์สิงคโปร์ (S$)</SelectItem>
+                          <SelectItem value="CNY">CNY — หยวนจีน (¥)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   />
                 </FormField>
-                <FormField label="ภาษา / Locale" htmlFor="settings-locale" error={settingsForm.formState.errors.locale?.message}>
-                  <Input id="settings-locale" placeholder="th-TH" {...settingsForm.register("locale")} />
+
+                <FormField label="ภาษาของระบบ (Language / Locale)" htmlFor="settings-locale" error={settingsForm.formState.errors.locale?.message}>
+                  <Controller
+                    control={settingsForm.control}
+                    name="locale"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="settings-locale">
+                          <SelectValue placeholder="เลือกภาษา" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="th-TH">th-TH — ภาษาไทย (ค่าเริ่มต้น)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+                    ขณะนี้ระบบรองรับการแสดงผลภาษาไทยเป็นหลัก
+                  </p>
                 </FormField>
+
                 <div className="flex flex-col justify-end gap-2">
-                  <span className="text-sm font-medium">อีเมลแจ้งเตือนงบประมาณ</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">อีเมลแจ้งเตือนงบประมาณ</span>
+                    {!isEmailServiceEnabled && (
+                      <span className="rounded bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-500 dark:text-amber-400">
+                        ระบบปิดส่งอีเมล
+                      </span>
+                    )}
+                  </div>
                   <Controller
                     control={settingsForm.control}
                     name="emailBudgetAlertsEnabled"
@@ -182,13 +219,23 @@ export function SettingsView() {
                         type="button"
                         variant={field.value ? "success" : "secondary"}
                         aria-pressed={field.value}
+                        disabled={!isEmailServiceEnabled}
                         onClick={() => field.onChange(!field.value)}
                       >
                         {field.value ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                       </Button>
                     )}
                   />
-                  <p className="text-xs text-[var(--pw-ink)]/60">การส่งอีเมลยังไม่เปิดให้ใช้งานในระยะนี้</p>
+                  {!isEmailServiceEnabled ? (
+                    <p className="flex items-center gap-1.5 text-xs text-amber-500 dark:text-amber-400">
+                      <AlertCircle className="size-3.5 shrink-0" />
+                      <span>ระบบปิดการให้บริการส่งอีเมลไว้ชั่วคราว การแจ้งเตือนจะส่งผ่านระบบ (In-App) เท่านั้น</span>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-[var(--pw-ink)]/60">
+                      รับการแจ้งเตือนทางอีเมลเมื่อยอดใช้จ่ายใกล้ถึงขีดจำกัดหรือเกินงบประมาณ
+                    </p>
+                  )}
                 </div>
               </div>
               <Button type="submit" disabled={saveSettings.isPending}>
@@ -207,9 +254,19 @@ export function SettingsView() {
                 </FormField>
                 <FormField label="อีเมล" htmlFor="profile-email" error={profileForm.formState.errors.email?.message}>
                   <Input id="profile-email" type="email" autoComplete="email" {...profileForm.register("email")} />
-                  <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-                    สถานะอีเมล: {profileQuery.data?.isEmailVerified ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"}
-                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <p className="text-xs text-[var(--pw-ink)]/60">
+                      สถานะอีเมล:{" "}
+                      <span className={profileQuery.data?.isEmailVerified ? "font-semibold text-emerald-500" : "font-semibold text-amber-500"}>
+                        {profileQuery.data?.isEmailVerified ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"}
+                      </span>
+                    </p>
+                    {!profileQuery.data?.isEmailVerified && (
+                      <span className="text-xs text-[var(--pw-ink)]/40">
+                        (ยังไม่เปิดระบบยืนยันอีเมลในระยะนี้)
+                      </span>
+                    )}
+                  </div>
                 </FormField>
                 <FormField label="เบอร์โทรศัพท์ (ไม่บังคับ)" htmlFor="profile-phone" error={profileForm.formState.errors.phoneNumber?.message}>
                   <Input id="profile-phone" type="tel" autoComplete="tel" {...profileForm.register("phoneNumber")} />

@@ -67,6 +67,8 @@
 | 3.10 | FE sync: `types/api.types.ts`, `types/auth.types.ts`, `schemas/auth.schema.ts`, หน้า (auth)/ + form | ✅ | types/schemas/hooks/BFF routes + หน้า (auth)/login + register + proxy route protection ครบ |
 | 3.11 | Migration update (ตาราง Identity) + apply จริง | ✅ | migration `20261019061116_AddIdentity` applied บน `PocketWiseDb` |
 | 3.12 | Gate Phase 3: login → refresh → revoke ผ่าน API จริง, build ผ่าน, tokens ถูก hash ใน DB | ✅ | ทดสอบ register/login/me ผ่าน; `dotnet build` 0 error; refresh/logout flow มีให้ใช้ |
+| 3.13 | Seeding อัตโนมัติ: หมวดหมู่มาตรฐานระบบ 12 รายการ (`IsSystem = 1`), สิทธิ์มาตรฐาน 15 รายการ, บทบาทเริ่มต้น (`Admin`, `Member`) และมอบหมายสิทธิ์ Admin ให้ผู้ใช้เดิม | ✅ | `DatabaseSeeder.cs` + รันตอน API start |
+| 3.14 | Admin Roles & Permissions Access Management: Backend (`AdminRolesController`, `IRolePermissionService`, `RolePermissionRepository`), Frontend หน้า `/admin/permissions` (Matrix, Roles, User Roles) | ✅ | API contract §5J, unit tests 40/40 ผ่าน, frontend build 22/22 routes ผ่าน |
 
 ## 5. Phase 4 — Core Transactions ✅ (4.10 Gate ผ่าน; FR2.2 UI picker เชื่อมกับ CreditCards CRUD ใน Phase 5 แล้ว)
 
@@ -90,16 +92,16 @@
 | 5.1 | Budgets CRUD (scopeType TOTAL/CATEGORY/TAG + AlertThresholdPercent 80) | ✅ | FR5.1.x — CRUD + tracking, currency จาก UserSettings (fallback THB), time boundaries ตาม Asia/Bangkok, records ที่ soft-delete ถูกตัดออก — build ผ่าน |
 | 5.2 | Tracking ยอดใช้เทียบงบ (FR5.2.1) | ✅ | `GET /api/v1/budgets/tracking` → `BudgetTrackingResponse` (spentAmount/remainingAmount/percentageUsed/isOverLimit) คำนวณจาก expense+confirmed ในรอบงบปัจจุบัน |
 | 5.3 | Budget threshold notifications (D27) | ✅ | บันทึกหนึ่ง notification ต่อรอบเมื่อถึง threshold และอีกครั้งเมื่อเกิน 100% ลง `Notifications` (channel InApp); คัด duplicate ในการเรียกปกติ |
-| 5.4 | Email แจ้งเตือนงบ (FR5.2.2) — (📦 email provider) | ⏸️ | D28: delivery เลื่อนไปทีหลัง — Phase 5 persist notification; email provider ยังไม่ติดตั้ง และ in-app/SignalR delivery เป็น Phase 6 |
+| 5.4 | Email แจ้งเตือนงบ (FR5.2.2) — (📦 email provider) | ✅ | D28 ปิดแล้ว: ส่งอีเมลแจ้งเตือนงบ (threshold 80% / exceeded 100%) ผ่าน built-in SMTP (SmtpEmailService) ใน .NET ไม่ต้องลง package, รองรับ dev mode mock log, ตรวจสอบ EmailBudgetAlertsEnabled, บันทึก NotificationChannel.Email และ 5 tests ผ่าน 100% |
 | 5.5 | CreditCards CRUD + ผูก transaction (FR2.2 เต็ม) | ✅ | CRUD + picker ใน transaction form; records ที่ soft-delete ไม่แสดง/แก้ไข |
 | 5.6 | RecurringTransactions CRUD + กลไกสร้างตามรอบ (FR2.7) | ✅ | D26 HostedService interval `RecurringJob:IntervalMinutes`=60; soft-delete ถูกตัดออกและ schedule ที่หมดอายุถูกปิด |
 | 5.7 | จัดหมวดอัตโนมัติ — Merchants + CategoryRules (FR3.1.1, FR3.1.3) | ✅ | CRUD UI/API, suggestion endpoint, auto-apply ตอนสร้าง transaction และ auto-learn; API contract ตรง GET |
 | 5.8 | Reports/Dashboard aggregate APIs (FR4.6, FR6.1.x, FR6.2.x) | ✅ | Summary/trends แยก currency, category/source/bank/card, filters, timezone Asia/Bangkok และ weekly Sunday |
 | 5.9 | (📦 optional) chart lib ฝั่ง FE | ✅ | D29: `recharts@3.10.1` ติดตั้งแล้ว |
 | 5.10 | FE: features (budgets, credit-cards, recurring, categorization, reports) + dashboard | ✅ | หน้าและ hooks ครบ; Reports เริ่ม 1 ม.ค. ถึง 31 ธ.ค. ปีปัจจุบัน (D36); transaction form ใช้ category suggestion และ credit-card selector |
-| 5.11 | Gate Phase 5: core implementation + สถานะอัปเดต + build/test ผ่าน | ✅ | Backend build 0 warnings/errors; backend tests 9/9; frontend lint/build ผ่าน. FR5.2.2 delivery เลื่อนไปตาม D28 และข้อมูลสลิปรอ Phase 7 ตาม S2. |
+| 5.11 | Gate Phase 5: core implementation + สถานะอัปเดต + build/test ผ่าน | ✅ | Backend build 0 warnings/errors; backend tests 33/33; frontend lint/build ผ่าน; FR5.2.2 email alert delivery สำเร็จสมบูรณ์ |
 
-## 7. Phase 5.5 — Settings & Profile 🔁
+## 7. Phase 5.5 — Settings & Profile ✅
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|

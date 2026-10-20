@@ -153,8 +153,9 @@ Authentication middleware (Api/Authentication/)
    │ validate signature + expiry + issuer/audience → สร้าง ClaimsPrincipal (UserId)
    ▼
 Authorization
-   │ [Authorize] ระดับ controller/endpoint
-   │ Ownership: ทุก query/command ต้องกรองโดย UserId จาก claims — **ห้าม**รับ UserId จาก client
+   │ [Authorize] ระดับ controller/endpoint และ [Authorize(Roles = "Admin")] สำหรับ Admin APIs
+   │ Claims: UserId (ClaimTypes.NameIdentifier) + Roles (ClaimTypes.Role)
+   │ Ownership: ทุก query/command ทั่วไปต้องกรองโดย UserId จาก claims — **ห้าม**รับ UserId จาก client
    ▼
 SignalR (Phase 6): hub connection ใช้ JWT เดียวกัน + per-user groups อิง claims — ไม่รับ client-provided userId
 ```

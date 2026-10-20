@@ -69,9 +69,9 @@
 | 0 สภาพแวดล้อม | ✅ | `run.cmd`, local tool manifest พร้อม + **SQL Server 2025 ที่ localhost ตรวจแล้ว — `PocketWiseDb` พร้อม (ว่าง 0 ตาราง)** |
 | 1 Foundation | ✅ | Solution 4 โปรเจค, Next.js app, ESLint, `.env.example` |
 | 2 Data Model | ✅ | Entities/DbContext/Configurations/Migration ครบ 25 ตาราง; `InitialCreate` applied บน `PocketWiseDb`; build ผ่าน |
-| 3 Identity | ✅ | `ApplicationUser : IdentityUser<long>`, JWT + Refresh Token, 5 `/api/v1/auth/*` endpoints ใช้งานได้, migration applied, build ผ่าน |
+| 3 Identity & RBAC | ✅ | `ApplicationUser : IdentityUser<long>`, JWT + Refresh Token, Role-Based Access Control (Admin/Member, Permissions 15 รายการ 6 โมดูล, Role-Permission Matrix, Roles CRUD, User Roles Assignment หน้า /admin/permissions), DatabaseSeeder (หมวดหมู่มาตรฐาน 12 รายการ, สิทธิ์, บทบาทเริ่มต้น) |
 | 4 Core Transactions | ✅ | 4.10 Gate ผ่านและ E2E ตรวจแล้ว; FR2.2 credit-card picker เชื่อมกับ CRUD ใน Phase 5 แล้ว |
-| 5 Budgets, Credit Cards & Reports | ✅ | Core implementation, frontend, build และ tests ผ่าน; FR5.2.2 delivery เลื่อนไปตาม D28 และข้อมูลสลิปรอ Phase 7 |
+| 5 Budgets, Credit Cards & Reports | ✅ | Core implementation, frontend, build และ tests ผ่าน; FR5.2.2 email delivery สำเร็จผ่าน built-in SMTP (SmtpEmailService) |
 | 5.5 Settings & Profile | ✅ | Gate ผ่าน: settings/profile/data-reset E2E กับ SQL Server จริง; ตรวจ persistence, soft-delete, คง user/settings และ revoke refresh token; Backend Release build 0 warnings/errors, 13 unit tests + 1 integration test ผ่าน; frontend lint/build ผ่าน |
 | 6 SignalR | ✅ | NotificationHub (/hubs/notifications), per-user claims group, InApp SignalR delivery, Notification REST APIs, NotificationBell popover, @microsoft/signalr ^10.0.11 ติดตั้งแล้ว |
 | 7 Imports | ✅ | นำเข้าสลิปโอนเงิน (SHA-256 duplicate detection, local OCR parser, review & confirm), นำเข้าใบแจ้งยอดบัตรเครดิต CSV/JSON (duplicate detection, batch confirm), SignalR real-time notification, import jobs history; 27 unit tests + 3 integration tests ผ่าน, FE build & lint ผ่าน |
@@ -181,6 +181,10 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 7. ✅ ชื่อ route ของ auth endpoints — ล็อกจาก D11: `/api/v1/auth/{register,login,refresh,logout,me}`
 8. ✅ **Frontend sync:** `src/types/api.types.ts`, `src/types/auth.types.ts`, `src/schemas/auth.schema.ts`, หน้า `(auth)/login` + `(auth)/register`, BFF auth routes, และ proxy route guard ครบถ้วน
 9. ✅ Gate: register/login/me ผ่าน API จริง; build ผ่าน 0 error; tokens ถูก hash ใน DB
+10. ✅ **Role-Based Access Control (RBAC) & Seeding (D41):**
+   - DatabaseSeeder: รันอัตโนมัติเมื่อ API start เพื่อ seed หมวดหมู่มาตรฐานระบบ 12 หมวดหมู่ (IsSystem = 1), สิทธิ์มาตรฐาน 15 รายการ 6 โมดูล, บทบาทเริ่มต้น (Admin, Member) และมอบหมายสิทธิ์ Admin ให้บัญชีผู้ใช้เดิม
+   - Backend RBAC: IRolePermissionRepository, RolePermissionRepository, IRolePermissionService, RolePermissionService, AdminRolesController (/api/v1/admin/*) พร้อม ClaimTypes.Role ใน JWT และ unit tests ผ่าน 100% (40/40 tests)
+   - Frontend Admin UI: หน้า /admin/permissions พร้อม 3 แท็บ (Permission Matrix, Role Management CRUD, User Roles Assignment) เมนูบน DashboardShell และ route protection ใน proxy.ts
 
 ---
 
@@ -217,8 +221,8 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 4. จัดหมวดอัตโนมัติ: Merchants (DefaultCategoryId) + CategoryRules (MatchType/MatchPattern/Priority)
 5. Reports: aggregate query ใน Application (logic อยู่ฝั่งโค้ดตาม ARCHITECTURE §4 — DB เก็บข้อมูลเท่านั้น); ใช้ Recharts ฝั่ง FE (D29)
 6. Export (CSV/XLSX/PDF) — ยังไม่อยู่ใน REQUIREMENTS (ผู้พัฒนาจะเพิ่ม FR เมื่อต้องการใช้)
-7. แจ้งเตือนงบ: Phase 5 บันทึก notification ลง Notifications; email delivery เลื่อนไปตาม D28 และ in-app/SignalR เริ่ม Phase 6
-8. **Gate:** core implementation ใน Phase 5 ครบ + build/test ผ่าน + สถานะใน REQUIREMENTS อัปเดต; FR5.2.2 delivery คง 🟡 ตาม D28 และข้อมูลสลิปรอ Phase 7
+7. แจ้งเตือนงบ: บันทึก notification ลง Notifications; in-app broadcast ผ่าน SignalR และ email delivery ผ่าน built-in SMTP (`SmtpEmailService`) ตาม FR5.2.2 (D28 ปิดแล้ว)
+8. **Gate:** core implementation ใน Phase 5 ครบ + build/test ผ่าน + สถานะใน REQUIREMENTS อัปเดต; FR5.2.2 email delivery เสร็จสมบูรณ์ ✅
 
 ---
 
@@ -386,7 +390,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D25 | FE data table standard | ใช้ shadcn/ui ที่ยึด `DESIGN.md` + TanStack Table เป็น engine และ reusable table กลาง; รองรับ states/responsive/a11y, ใช้ server-side operations เมื่อ API จัดการ query หรือข้อมูลมีจำนวนมาก; TanStack Table ยังไม่ติดตั้งและต้องขออนุมัติก่อนเพิ่ม dependency | เจ้าของโปรเจค | ✅ ล็อก |
 | D26 | Phase 5 recurring กลไกสร้างรายการ | ใช้ **Background job แบบ HostedService (built-in ASP.NET Core `BackgroundService` — ไม่ติดตั้ง package)** วนตรวจและสร้างรายการที่ถึงกำหนด | เจ้าของโปรเจค | ✅ ล็อก |
 | D27 | Phase 5 budget threshold semantics | แจ้งเตือน**ครั้งเดียวต่อรอบ**ตอนข้าม `AlertThresholdPercent` (80%) และอีกครั้งตอนเกิน 100% — บันทึกลงตาราง `Notifications` (channel `InApp`) | เจ้าของโปรเจค | ✅ ล็อก |
-| D28 | Phase 5 email แจ้งเตือนงบ | **เลื่อน email ไปทีหลัง** — Phase 5 ทำแค่บันทึก notification (in-app เริ่ม Phase 6); email provider ยังไม่ติดตั้ง | เจ้าของโปรเจค | ✅ ล็อก |
+| D28 | Phase 5 email แจ้งเตือนงบ | **ส่งอีเมลแจ้งเตือนงบ (FR5.2.2)** ผ่าน built-in `System.Net.Mail` SMTP (`SmtpEmailService`) ไม่ต้องติดตั้ง external NuGet package; มี dev mock logger mode เมื่อ host ว่าง, เคารพ `EmailBudgetAlertsEnabled` ของ UserSettings, ป้องกัน duplicate ต่อรอบ, และบันทึก `NotificationChannel.Email` | เจ้าของโปรเจค | ✅ ล็อก |
 | D29 | Phase 5 chart lib ฝั่ง FE | ติดตั้ง `recharts` ฝั่ง frontend (อนุมัติแล้ว) — ใช้ทำกราฟ reports | เจ้าของโปรเจค | ✅ ล็อก |
 | D30 | Phase 5 วิธีการส่งมอบ | **แบ่งเป็นชุดย่อยตรวจเป็นระยะ** (Budgets → CreditCards → Recurring → จัดหมวดอัตโนมัติ → Reports) แทน backend ทั้งหมดแล้วค่อย FE | เจ้าของโปรเจค | ✅ ล็อก |
 | D31 | Phase 5 CategoryRules ที่มา | **ทั้งสองแบบ**: ผู้ใช้ตั้งกฎเอง (CategoryRules CRUD) + ระบบ auto-learn จากประวัติ (เมื่อผู้ใช้เลือกหมวดให้รายการที่มี description → บันทึกกฎ Description→Category ให้อัตโนมัติ) | เจ้าของโปรเจค | ✅ ล็อก |
@@ -398,6 +402,8 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D37 | Phase 6 SignalR & Notifications contract & package | ติดตั้ง `@microsoft/signalr` (^10.0.11) ฝั่ง FE (อนุมัติแล้ว); สัญญา Event กลาง `ReceiveNotification` (Payload `NotificationResponse`) + `ReceiveRefreshHint`; Auth query `?access_token=...` ผ่าน BFF `/api/auth/token`; จัดการ per-user group `$"user_{userId}"` ฝั่ง server; REST endpoints 4 endpoints + NotificationBell popover บน DashboardShell | เจ้าของโปรเจค | ✅ ล็อก |
 | D39 | Database Inspection via Devart MCP Server | ใช้ Devart MCP Server for SQL Server (v1.1.0, Connection: PocketWise, DSN: PocketWiseDb, Stdio transport) สำหรับการตรวจสอบ Schema, Seed Data, และ Query ผลลัพธ์ใน SQL Server แทนการเขียนคำสั่งเฉพาะกิจ โดยห้ามรันคำสั่ง DDL นอกเหนือจาก EF Core Migrations | เจ้าของโปรเจค | ✅ ล็อก |
 | D38 | Phase 7 File Storage, Limits, Formats & Slip OCR | ที่เก็บไฟล์: Local Disk Storage ผ่าน `IFileStorageService` (`App_Data/uploads/`) นอก public web root; ข้อจำกัด: สลิปไม่เกิน 10 MB (.jpg, .jpeg, .png, .webp, .pdf), ใบแจ้งยอดรองรับทั้ง CSV และ JSON; Slip OCR: Local Offline OCR ผ่าน `Tesseract` 5.2.0 (`TesseractSlipOcrService`) พร้อมโมเดลภาษา `tessdata/{tha,eng}.traineddata` อ่านยอดเงิน/วันที่ (แปลง พ.ศ.->ค.ศ.)/รหัสอ้างอิง/ผู้รับ/ผู้โอน/ธนาคาร และมี UI Review & Confirm ก่อนบันทึก | เจ้าของโปรเจค | ✅ ล็อก |
+| D40 | Email Verification Feature (FR6.3.7) | เพิ่ม FR6.3.7 และสัญญา API ใน REQUIREMENTS.md และ API_SPECIFICATION.md เพื่อรองรับการยืนยันอีเมลในอนาคต โดยยังไม่เริ่มลงมือ Dev ตามคำสั่งเจ้าของโปรเจค | เจ้าของโปรเจค | 🟡 บันทึกความต้องการแล้ว รออนุมัติเริ่ม Dev |
+| D41 | System Categories Seeding & Admin Role & Permission Management | Seeding อัตโนมัติเมื่อ API สตาร์ท (`DatabaseSeeder.cs`): หมวดหมู่มาตรฐานระบบ 12 หมวดหมู่ (`IsSystem = 1`), สิทธิ์มาตรฐาน 15 รายการ (6 โมดูล), บทบาทเริ่มต้น (`Admin`, `Member`), และมอบหมาย `Admin` ให้กับบัญชีผู้ใช้เดิมทั้งหมด; พัฒนา Backend Admin Management endpoints (`/api/v1/admin/roles`, `/permissions`, `/users`) พร้อม Frontend หน้า `/admin/permissions` รองรับ 3 แท็บ: Permission Matrix, Role Management (CRUD), User Role Assignment; ป้องกัน route ใน `proxy.ts` และแสดงเมนูใน `DashboardShell` เฉพาะผู้ใช้ที่มีสิทธิ์ Admin | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 

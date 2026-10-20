@@ -19,12 +19,13 @@ public class JwtTokenService : ITokenService
         _settings = options.Value;
     }
 
-    public AuthResponse GenerateTokenPair(ApplicationUser user)
+    public AuthResponse GenerateTokenPair(ApplicationUser user, IEnumerable<string>? roles = null)
     {
+        var roleList = roles?.ToList() ?? new List<string>();
         var accessTokenExpiresAt = DateTime.UtcNow.AddMinutes(_settings.AccessTokenExpirationMinutes);
         var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(_settings.RefreshTokenExpirationDays);
 
-        var accessToken = GenerateAccessToken(user, accessTokenExpiresAt);
+        var accessToken = GenerateAccessToken(user, roleList, accessTokenExpiresAt);
         var refreshToken = GenerateRefreshToken();
 
         return new AuthResponse
@@ -38,7 +39,8 @@ public class JwtTokenService : ITokenService
                 Id = user.Id,
                 Email = user.Email ?? string.Empty,
                 DisplayName = user.DisplayName,
-                IsEmailVerified = user.IsEmailVerified
+                IsEmailVerified = user.IsEmailVerified,
+                Roles = roleList
             }
         };
     }
@@ -59,12 +61,12 @@ public class JwtTokenService : ITokenService
         return Convert.ToBase64String(randomBytes);
     }
 
-    private string GenerateAccessToken(ApplicationUser user, DateTime expiresAt)
+    private string GenerateAccessToken(ApplicationUser user, IEnumerable<string> roles, DateTime expiresAt)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
@@ -72,6 +74,11 @@ public class JwtTokenService : ITokenService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
         };
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,

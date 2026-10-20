@@ -687,6 +687,11 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 
 `POST /users/me/data-reset` รับ body ว่าง และ soft-delete เฉพาะข้อมูลของผู้ใช้ใน 9 ตารางที่กำหนด D5: Transactions, BankAccounts, CreditCards, Budgets, RecurringTransactions, InstallmentPlans, TransferGroups, CreditCardStatements, CreditCardStatementItems. User identity, UserSettings, หมวดหมู่/แท็ก/กฎ, Notifications, import history และ AuditLogs จะคงอยู่. การล้างทำงานเป็น transaction เดียว, คืน `{ "resetAt": "2026-10-20T00:00:00Z" }`, และ revoke refresh tokens ทุก session; access tokens ที่ออกไปแล้วจะหมดอายุตามปกติ (ไม่เกิน 60 นาที).
 
+### Email verification (วางแผนตาม FR6.3.7 — ยังไม่ลงมือ Dev)
+
+- `POST /api/v1/auth/send-verification-email` (Auth: Required): ส่งลิงก์ยืนยันทางอีเมลไปยังอีเมลปัจจุบันของผู้ใช้ คืน `{ "sent": true, "email": "...", "cooldownSeconds": 60 }`
+- `POST /api/v1/auth/verify-email` (Auth: Anonymous): รับ `{ "token": "..." }` และอัปเดต `Users.IsEmailVerified = true` ในฐานข้อมูล คืน `{ "verified": true, "email": "..." }`
+
 ---
 
 ## 5H. Phase 6 — Notifications (REST API contract)
@@ -871,6 +876,66 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 - **Duplicate Detection:** สลิปตรวจสอบด้วย `FileHash` (SHA-256) หากตรวจพบว่าผู้ใช้อัปโหลดไฟล์เดิมซ้ำ ระบบจะติดแฟล็ก `isDuplicate=true` และตั้งสถานะ `reviewStatus="duplicate"`; รายการใน statement ตรวจจับซ้ำด้วย `ExternalReference` หรือการจับคู่ วันที่ + บัตร + จำนวนเงิน
 - **Auto-Categorization Integration:** ตอน Review สลิปและ Statement Items ระบบจะทำการจับคู่ Category แนะนำอัตโนมัติจาก CategoryRules และ Merchants ที่มีอยู่
 - **Storage:** จัดเก็บไฟล์บน Local Disk Storage ผ่านอินเทอร์เฟซ `IFileStorageService` นอกไดเรกทอรีเว็บสาธารณะ
+
+---
+
+## 5J. Admin Roles & Permissions (contract — ล็อกแล้วตาม D41)
+
+**สถานะ:** ✅ ล็อกแล้ว (D41)
+
+### Endpoints
+
+| Method | Path | Summary | Auth |
+|---|---|---|---|
+| `GET` | `/api/v1/admin/roles` | ดึงรายการบทบาททั้งหมด พร้อมจำนวนผู้ใช้และสิทธิ์ | `Admin` |
+| `GET` | `/api/v1/admin/roles/{id}` | ดึงข้อมูลบทบาทพร้อมรายการสิทธิ์ทั้งหมดที่ผูกอยู่ | `Admin` |
+| `POST` | `/api/v1/admin/roles` | สร้างบทบาทใหม่ | `Admin` |
+| `PUT` | `/api/v1/admin/roles/{id}` | แก้ไขชื่อ คำอธิบาย หรือสถานะบทบาท | `Admin` |
+| `DELETE` | `/api/v1/admin/roles/{id}` | ลบบทบาท (ป้องกันการลบบทบาทหลัก `Admin`) | `Admin` |
+| `GET` | `/api/v1/admin/permissions` | ดึงรายการสิทธิ์ทั้งหมดในระบบ (จัดกลุ่มตาม Module) | `Admin` |
+| `PUT` | `/api/v1/admin/roles/{id}/permissions` | กำหนดชุดสิทธิ์ให้กับบทบาท (Permission Matrix) | `Admin` |
+| `GET` | `/api/v1/admin/users` | ดึงรายชื่อผู้ใช้ทั้งหมดพร้อมบทบาทที่ได้รับมอบหมาย | `Admin` |
+| `PUT` | `/api/v1/admin/users/{userId}/roles` | มอบหมายหรือเปลี่ยนแปลงบทบาทของผู้ใช้งาน | `Admin` |
+
+### Request/Response DTOs
+
+#### 1. `RoleResponse`
+```json
+{
+  "id": 1,
+  "name": "Admin",
+  "description": "ผู้ดูแลระบบ มีสิทธิ์เข้าถึงและจัดการได้ทุกส่วนของระบบ",
+  "isActive": true,
+  "userCount": 6,
+  "permissionCount": 15,
+  "createdAt": "2026-10-20T09:14:00Z"
+}
+```
+
+#### 2. `PermissionResponse`
+```json
+{
+  "permissionId": 1,
+  "permissionCode": "TRANSACTIONS_VIEW",
+  "permissionName": "ดูรายการธุรกรรม",
+  "module": "Transactions",
+  "description": "เข้าถึงและดูประวัติรายการรายรับรายจ่าย"
+}
+```
+
+#### 3. `UpdateRolePermissionsRequest`
+```json
+{
+  "permissionIds": [1, 2, 3, 5, 6, 7, 8, 10, 12]
+}
+```
+
+#### 4. `AssignUserRolesRequest`
+```json
+{
+  "roleNames": ["Admin", "Member"]
+}
+```
 
 ---
 

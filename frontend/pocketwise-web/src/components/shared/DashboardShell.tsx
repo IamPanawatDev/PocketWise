@@ -29,6 +29,7 @@ import {
   PieChart,
   Repeat,
   Settings2,
+  ShieldCheck,
   UserRoundCog,
   Wallet,
   Tags,
@@ -49,6 +50,7 @@ const nav = [
   { href: "/bank-accounts", label: "บัญชี", icon: WalletCards },
   { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
   { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog },
+  { href: "/admin/permissions", label: "สิทธิ์และบทบาท (Admin)", icon: ShieldCheck },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -85,6 +87,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const closeNavigation = () => setIsMobileOpen(false);
   const iconOnly = isCollapsed;
+  const visibleNav = nav.filter((item) => item.href !== "/admin/permissions" || !user?.roles || user.roles.includes("Admin"));
 
   return (
     <div className="min-h-dvh">
@@ -155,7 +158,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         <TooltipProvider>
           <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
-            {nav.map((item) => {
+            {visibleNav.map((item) => {
               const Icon = item.icon;
               const active = pathname.startsWith(item.href);
               const link = (

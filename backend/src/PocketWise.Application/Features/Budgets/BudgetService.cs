@@ -17,17 +17,20 @@ public class BudgetService : IBudgetService
     private readonly IValidator<CreateBudgetRequest> _createValidator;
     private readonly IValidator<UpdateBudgetRequest> _updateValidator;
     private readonly INotificationSender? _notificationSender;
+    private readonly IEmailService? _emailService;
 
     public BudgetService(
         IBudgetRepository repository,
         IValidator<CreateBudgetRequest> createValidator,
         IValidator<UpdateBudgetRequest> updateValidator,
-        INotificationSender? notificationSender = null)
+        INotificationSender? notificationSender = null,
+        IEmailService? emailService = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _notificationSender = notificationSender;
+        _emailService = emailService;
     }
 
     public async Task<IReadOnlyList<BudgetResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
@@ -54,6 +57,7 @@ public class BudgetService : IBudgetService
         var entities = await _repository.GetAllAsync(userId, cancellationToken);
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BangkokTimeZone));
         var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
+        var (userEmail, emailAlertsEnabled) = await _repository.GetUserEmailAndAlertPreferenceAsync(userId, cancellationToken);
 
         var result = new List<BudgetTrackingResponse>();
         var newNotifications = new List<Notification>();
@@ -83,6 +87,8 @@ public class BudgetService : IBudgetService
                 spent,
                 currencyCode,
                 newNotifications,
+                userEmail,
+                emailAlertsEnabled,
                 cancellationToken);
             await RecordExceededNotificationAsync(
                 userId,
@@ -91,6 +97,8 @@ public class BudgetService : IBudgetService
                 spent,
                 currencyCode,
                 newNotifications,
+                userEmail,
+                emailAlertsEnabled,
                 cancellationToken);
         }
 
@@ -100,7 +108,7 @@ public class BudgetService : IBudgetService
 
             if (_notificationSender != null)
             {
-                foreach (var notification in newNotifications)
+                foreach (var notification in newNotifications.Where(n => n.Channel == NotificationChannel.InApp))
                 {
                     await _notificationSender.SendNotificationToUserAsync(
                         userId,
@@ -276,31 +284,89 @@ public class BudgetService : IBudgetService
         decimal spent,
         string currencyCode,
         List<Notification> collectedNotifications,
+        string? userEmail,
+        bool emailAlertsEnabled,
         CancellationToken cancellationToken)
     {
-        var notificationType = $"BUDGET_WARNING_{periodStart:yyyyMMdd}";
-        if (spent / budget.AmountLimit * 100m < budget.AlertThresholdPercent
-            || await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, notificationType, cancellationToken))
+        var percentage = Math.Round(spent / budget.AmountLimit * 100m, 2);
+        if (percentage < budget.AlertThresholdPercent)
         {
             return;
         }
 
-        var notification = new Notification
+        // 1. In-App Notification (SignalR)
+        var notificationType = $"BUDGET_WARNING_{periodStart:yyyyMMdd}";
+        if (!await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, notificationType, cancellationToken))
         {
-            UserId = userId,
-            NotificationType = notificationType,
-            Title = $"งบ {budget.BudgetName} ใกล้ถึงขีดจำกัด",
-            Message = $"ใช้ไปแล้ว {spent:N2} {currencyCode} จาก {budget.AmountLimit:N2} {currencyCode} ({Math.Round(spent / budget.AmountLimit * 100m, 2):N2}%)",
-            Channel = NotificationChannel.InApp,
-            Status = NotificationStatus.Sent,
-            RelatedEntityType = "Budget",
-            RelatedEntityId = budget.BudgetId,
-            SentAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
-        };
+            var notification = new Notification
+            {
+                UserId = userId,
+                NotificationType = notificationType,
+                Title = $"งบ {budget.BudgetName} ใกล้ถึงขีดจำกัด",
+                Message = $"ใช้ไปแล้ว {spent:N2} {currencyCode} จาก {budget.AmountLimit:N2} {currencyCode} ({percentage:N2}%)",
+                Channel = NotificationChannel.InApp,
+                Status = NotificationStatus.Sent,
+                RelatedEntityType = "Budget",
+                RelatedEntityId = budget.BudgetId,
+                SentAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        await _repository.AddNotificationAsync(notification, cancellationToken);
-        collectedNotifications.Add(notification);
+            await _repository.AddNotificationAsync(notification, cancellationToken);
+            collectedNotifications.Add(notification);
+        }
+
+        // 2. Email Notification (FR5.2.2)
+        if (emailAlertsEnabled && !string.IsNullOrWhiteSpace(userEmail) && _emailService != null)
+        {
+            var emailNotificationType = $"BUDGET_WARNING_EMAIL_{periodStart:yyyyMMdd}";
+            if (!await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, emailNotificationType, cancellationToken))
+            {
+                var remaining = Math.Max(0, budget.AmountLimit - spent);
+                var subject = $"[PocketWise] แจ้งเตือนงบประมาณ: ใกล้ถึงขีดจำกัดงบ {budget.BudgetName}";
+                var htmlBody = $"""
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <h2 style="color: #4f46e5; margin-top: 0;">PocketWise — แจ้งเตือนงบประมาณ</h2>
+                        <p>เรียน คุณผู้ใช้,</p>
+                        <p>งบประมาณ <strong>{budget.BudgetName}</strong> ของคุณ มีการใช้จ่ายใกล้ถึงขีดจำกัดที่ตั้งไว้ ({budget.AlertThresholdPercent}%) แล้ว:</p>
+                        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #64748b;">ยอดที่ใช้ไป:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; text-align: right;">{spent:N2} {currencyCode} ({percentage:N2}%)</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #64748b;">วงเงินงบประมาณ:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; text-align: right;">{budget.AmountLimit:N2} {currencyCode}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #64748b;">คงเหลือ:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; text-align: right; color: #16a34a;">{remaining:N2} {currencyCode}</td>
+                            </tr>
+                        </table>
+                        <p style="color: #64748b; font-size: 14px;">คุณสามารถเข้าสู่ระบบ PocketWise เพื่อตรวจสอบหรือปรับแต่งงบประมาณได้ตลอดเวลา</p>
+                    </div>
+                    """;
+
+                var sent = await _emailService.SendEmailAsync(userEmail, subject, htmlBody, cancellationToken);
+
+                var emailNotification = new Notification
+                {
+                    UserId = userId,
+                    NotificationType = emailNotificationType,
+                    Title = $"[Email] งบ {budget.BudgetName} ใกล้ถึงขีดจำกัด",
+                    Message = $"ส่งอีเมลแจ้งเตือนไปยัง {userEmail}: ใช้ไปแล้ว {spent:N2} {currencyCode} ({percentage:N2}%) จาก {budget.AmountLimit:N2} {currencyCode}",
+                    Channel = NotificationChannel.Email,
+                    Status = sent ? NotificationStatus.Sent : NotificationStatus.Failed,
+                    RelatedEntityType = "Budget",
+                    RelatedEntityId = budget.BudgetId,
+                    SentAt = sent ? DateTime.UtcNow : null,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _repository.AddNotificationAsync(emailNotification, cancellationToken);
+                collectedNotifications.Add(emailNotification);
+            }
+        }
     }
 
     private async Task RecordExceededNotificationAsync(
@@ -310,30 +376,87 @@ public class BudgetService : IBudgetService
         decimal spent,
         string currencyCode,
         List<Notification> collectedNotifications,
+        string? userEmail,
+        bool emailAlertsEnabled,
         CancellationToken cancellationToken)
     {
-        var notificationType = $"BUDGET_EXCEEDED_{periodStart:yyyyMMdd}";
-        if (spent <= budget.AmountLimit
-            || await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, notificationType, cancellationToken))
+        if (spent <= budget.AmountLimit)
         {
             return;
         }
 
-        var notification = new Notification
+        // 1. In-App Notification (SignalR)
+        var notificationType = $"BUDGET_EXCEEDED_{periodStart:yyyyMMdd}";
+        if (!await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, notificationType, cancellationToken))
         {
-            UserId = userId,
-            NotificationType = notificationType,
-            Title = $"เกินงบ {budget.BudgetName}",
-            Message = $"ใช้ไปแล้ว {spent:N2} {currencyCode} จากงบ {budget.AmountLimit:N2} {currencyCode}",
-            Channel = NotificationChannel.InApp,
-            Status = NotificationStatus.Sent,
-            RelatedEntityType = "Budget",
-            RelatedEntityId = budget.BudgetId,
-            SentAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
-        };
+            var notification = new Notification
+            {
+                UserId = userId,
+                NotificationType = notificationType,
+                Title = $"เกินงบ {budget.BudgetName}",
+                Message = $"ใช้ไปแล้ว {spent:N2} {currencyCode} จากงบ {budget.AmountLimit:N2} {currencyCode}",
+                Channel = NotificationChannel.InApp,
+                Status = NotificationStatus.Sent,
+                RelatedEntityType = "Budget",
+                RelatedEntityId = budget.BudgetId,
+                SentAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        await _repository.AddNotificationAsync(notification, cancellationToken);
-        collectedNotifications.Add(notification);
+            await _repository.AddNotificationAsync(notification, cancellationToken);
+            collectedNotifications.Add(notification);
+        }
+
+        // 2. Email Notification (FR5.2.2)
+        if (emailAlertsEnabled && !string.IsNullOrWhiteSpace(userEmail) && _emailService != null)
+        {
+            var emailNotificationType = $"BUDGET_EXCEEDED_EMAIL_{periodStart:yyyyMMdd}";
+            if (!await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, emailNotificationType, cancellationToken))
+            {
+                var overSpent = spent - budget.AmountLimit;
+                var subject = $"[PocketWise] แจ้งเตือนด่วน: เกินขีดจำกัดงบประมาณ {budget.BudgetName}";
+                var htmlBody = $"""
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #fee2e2; border-radius: 8px;">
+                        <h2 style="color: #dc2626; margin-top: 0;">PocketWise — แจ้งเตือนด่วน: เกินงบประมาณ!</h2>
+                        <p>เรียน คุณผู้ใช้,</p>
+                        <p>งบประมาณ <strong>{budget.BudgetName}</strong> ของคุณ มีการใช้จ่ายเกินวงเงินที่กำหนดแล้ว:</p>
+                        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; color: #64748b;">ยอดที่ใช้ไป:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; font-weight: bold; text-align: right; color: #dc2626;">{spent:N2} {currencyCode}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; color: #64748b;">วงเงินงบประมาณ:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; font-weight: bold; text-align: right;">{budget.AmountLimit:N2} {currencyCode}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; color: #64748b;">ยอดที่เกิน:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; font-weight: bold; text-align: right; color: #dc2626;">{overSpent:N2} {currencyCode}</td>
+                            </tr>
+                        </table>
+                        <p style="color: #64748b; font-size: 14px;">คุณสามารถเข้าสู่ระบบ PocketWise เพื่อตรวจสอบหรือปรับแต่งงบประมาณได้ทันที</p>
+                    </div>
+                    """;
+
+                var sent = await _emailService.SendEmailAsync(userEmail, subject, htmlBody, cancellationToken);
+
+                var emailNotification = new Notification
+                {
+                    UserId = userId,
+                    NotificationType = emailNotificationType,
+                    Title = $"[Email] เกินงบ {budget.BudgetName}",
+                    Message = $"ส่งอีเมลแจ้งเตือนไปยัง {userEmail}: เกินงบแล้ว ใช้ไป {spent:N2} {currencyCode} จากงบ {budget.AmountLimit:N2} {currencyCode} (เกิน {overSpent:N2} {currencyCode})",
+                    Channel = NotificationChannel.Email,
+                    Status = sent ? NotificationStatus.Sent : NotificationStatus.Failed,
+                    RelatedEntityType = "Budget",
+                    RelatedEntityId = budget.BudgetId,
+                    SentAt = sent ? DateTime.UtcNow : null,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _repository.AddNotificationAsync(emailNotification, cancellationToken);
+                collectedNotifications.Add(emailNotification);
+            }
+        }
     }
 }

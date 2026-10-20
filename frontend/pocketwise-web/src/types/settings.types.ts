@@ -5,6 +5,7 @@ export interface UserSettingsResponse {
   currencyCode: string;
   locale: string;
   emailBudgetAlertsEnabled: boolean;
+  isEmailServiceEnabled?: boolean;
   updatedAt: string;
 }
 

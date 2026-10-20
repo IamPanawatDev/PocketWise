@@ -22,6 +22,7 @@ export interface UserProfileResponse {
   phoneNumber: string | null;
   birthDate: string | null;
   isEmailVerified: boolean;
+  roles?: string[];
 }
 
 export interface UpdateUserProfileRequest {

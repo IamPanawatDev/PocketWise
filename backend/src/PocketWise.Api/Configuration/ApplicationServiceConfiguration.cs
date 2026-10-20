@@ -26,6 +26,7 @@ using PocketWise.Application.Features.CreditCards;
 using PocketWise.Application.Features.Merchants;
 using PocketWise.Application.Features.RecurringTransactions;
 using PocketWise.Application.Features.Reports;
+using PocketWise.Application.Features.Roles;
 using PocketWise.Application.Features.Settings;
 using PocketWise.Application.Features.Tags;
 using PocketWise.Application.Features.Transactions;
@@ -59,6 +60,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<ICategoryRuleRepository, CategoryRuleRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IImportRepository, ImportRepository>();
+        services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 
         // Services
         services.AddScoped<ITransactionService, TransactionService>();
@@ -75,6 +77,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IUserSettingsService, UserSettingsService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<INotificationSender, SignalRNotificationSender>();
+        services.AddScoped<IRolePermissionService, RolePermissionService>();
 
         // Import Services
         services.AddScoped<IFileStorageService, LocalFileStorageService>();

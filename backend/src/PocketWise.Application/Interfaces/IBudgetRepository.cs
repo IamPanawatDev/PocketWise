@@ -12,6 +12,7 @@ public interface IBudgetRepository
     Task<decimal> GetSpentAmountAsync(long userId, string currencyCode, BudgetScopeType scopeType, long? categoryId, long? tagId, DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
     Task<bool> HasBudgetNotificationAsync(long userId, long budgetId, string notificationType, CancellationToken cancellationToken = default);
     Task AddNotificationAsync(Notification notification, CancellationToken cancellationToken = default);
+    Task<(string? Email, bool EmailAlertsEnabled)> GetUserEmailAndAlertPreferenceAsync(long userId, CancellationToken cancellationToken = default);
     Task<bool> CategoryExistsAsync(long userId, long categoryId, CancellationToken cancellationToken = default);
     Task<bool> TagExistsAsync(long userId, long tagId, CancellationToken cancellationToken = default);
     Task AddAsync(Budget budget, CancellationToken cancellationToken = default);

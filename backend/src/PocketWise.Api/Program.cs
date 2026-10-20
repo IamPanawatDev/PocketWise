@@ -3,6 +3,7 @@ using PocketWise.Api.Configuration;
 using PocketWise.Api.Hubs;
 using PocketWise.Api.Middleware;
 using PocketWise.Infrastructure.Configuration;
+using PocketWise.Infrastructure.Persistence;
 using NSwag.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +42,14 @@ builder.Services.AddCors(options =>
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Seed initial data (System categories, permissions, roles)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PocketWiseDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await DatabaseSeeder.SeedAsync(db, logger);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -32,7 +32,7 @@ public class AuthService : IAuthService
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser is not null)
         {
-            throw new AuthException("CONFlict", "อีเมลนี้ถูกใช้งานแล้ว");
+            throw new AuthException("CONFLICT", "อีเมลนี้ถูกใช้งานแล้ว");
         }
 
         var user = new ApplicationUser
@@ -51,6 +51,9 @@ public class AuthService : IAuthService
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             throw new AuthException("VALIDATION_ERROR", errors);
         }
+
+        // Assign default 'Member' role
+        await _userManager.AddToRoleAsync(user, "Member");
 
         return await GenerateTokenPairAndSaveAsync(user, ipAddress, userAgent, cancellationToken);
     }
@@ -129,7 +132,10 @@ public class AuthService : IAuthService
             return null;
         }
 
-        return MapToProfile(applicationUser);
+        var profile = MapToProfile(applicationUser);
+        var roles = await _userManager.GetRolesAsync(applicationUser);
+        profile.Roles = roles.ToList();
+        return profile;
     }
 
     public async Task<UserProfileResponse?> UpdateProfileAsync(
@@ -183,12 +189,16 @@ public class AuthService : IAuthService
             throw new AuthException(code, string.Join("; ", result.Errors.Select(error => error.Description)));
         }
 
-        return MapToProfile(applicationUser);
+        var updatedProfile = MapToProfile(applicationUser);
+        var roles = await _userManager.GetRolesAsync(applicationUser);
+        updatedProfile.Roles = roles.ToList();
+        return updatedProfile;
     }
 
     private async Task<AuthResponse> GenerateTokenPairAndSaveAsync(ApplicationUser user, string? ipAddress, string? userAgent, CancellationToken cancellationToken)
     {
-        var response = _tokenService.GenerateTokenPair(user);
+        var roles = await _userManager.GetRolesAsync(user);
+        var response = _tokenService.GenerateTokenPair(user, roles);
 
         var refreshTokenHash = _tokenService.HashToken(response.RefreshToken);
         var refreshToken = new UserRefreshToken
