@@ -109,6 +109,18 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<VerifyEmailResponse>.Ok(result));
     }
 
+    [HttpPost("purge-expired-tokens")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<object>>> PurgeExpiredTokensAsync(CancellationToken cancellationToken)
+    {
+        var deletedCount = await _authService.PurgeExpiredRefreshTokensAsync(cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            deletedCount,
+            message = $"ล้าง Refresh Token ที่หมดอายุแล้วเรียบร้อย ({deletedCount} รายการ)"
+        }));
+    }
+
     private string? GetIpAddress()
     {
         if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))

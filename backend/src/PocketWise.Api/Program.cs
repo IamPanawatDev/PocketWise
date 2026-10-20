@@ -27,6 +27,11 @@ builder.Services.Configure<RecurringJobOptions>(
     builder.Configuration.GetSection("RecurringJob"));
 builder.Services.AddHostedService<RecurringTransactionBackgroundService>();
 
+builder.Services.Configure<MaintenanceJobOptions>(
+    builder.Configuration.GetSection("MaintenanceJobs"));
+builder.Services.AddHostedService<AuditLogCleanupBackgroundService>();
+builder.Services.AddHostedService<RefreshTokenCleanupBackgroundService>();
+
 const string CorsPolicyName = "PocketWiseWeb";
 builder.Services.AddCors(options =>
 {

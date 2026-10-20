@@ -64,6 +64,14 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
         }
     }
 
+    public async Task<int> PurgeExpiredTokensAsync(DateTime? cutoffDate = null, CancellationToken cancellationToken = default)
+    {
+        var cutoff = cutoffDate ?? DateTime.UtcNow;
+        return await _context.UserRefreshTokens
+            .Where(t => t.ExpiresAt <= cutoff || (t.RevokedAt != null && t.RevokedAt <= cutoff))
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);

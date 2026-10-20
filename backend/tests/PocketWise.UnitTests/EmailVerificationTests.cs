@@ -94,6 +94,7 @@ public class EmailVerificationTests
         public Task AddAsync(UserRefreshToken token, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task RevokeAsync(UserRefreshToken token, string? revokedByIp = null, string? reason = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task RevokeAllForUserAsync(long userId, string? revokedByIp = null, string? reason = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<int> PurgeExpiredTokensAsync(DateTime? cutoffDate = null, CancellationToken cancellationToken = default) => Task.FromResult(0);
         public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 

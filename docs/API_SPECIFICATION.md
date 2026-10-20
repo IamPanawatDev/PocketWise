@@ -144,6 +144,7 @@ GET /api/v1/transactions?page=1&pageSize=20
 | `GET` | `/api/v1/auth/me` | ต้อง | profile จาก claims (อ่าน DB ถ้าจำเป็น) |
 | `POST` | `/api/v1/auth/send-verification-email` | ต้อง | ส่งลิงก์ยืนยันทางอีเมลไปยังอีเมลปัจจุบันของผู้ใช้ (คูลดาวน์ 60 วินาที) |
 | `POST` | `/api/v1/auth/verify-email` | ไม่ต้อง | ยืนยันอีเมลด้วยโทเค็นและ userId — อัปเดต `IsEmailVerified = true` |
+| `POST` | `/api/v1/auth/purge-expired-tokens` | Admin | ล้าง Refresh Token ที่หมดอายุหรือถูกเพิกถอน (Revoked) ออกจากฐานข้อมูล |
 
 #### 5.1 Request/Response DTO
 
@@ -1128,6 +1129,28 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 1. **ป้องกันชื่อซ้ำ:** ตรวจสอบ `SystemNameExistsAsync` เฉพาะในกลุ่ม `IsSystem = true`
 2. **ป้องกัน Data Integrity:** หากหมวดหมู่มีรายการธุรกรรม (`Transactions`) ผูกอยู่ จะปฏิเสธการลบด้วยข้อผิดพลาด `409 Conflict: ไม่สามารถลบหมวดหมู่ระบบนี้ได้เนื่องจากมีรายการธุรกรรมอ้างอิงอยู่ (แนะนำให้ปิดการใช้งานแทน)`
 3. **Audit Log:** บันทึกประวัติการเปลี่ยนแปลง (`AuditLogs`) ทุก Action (`Create`, `Update`, `Delete`, `system-reorder`, `seed-defaults`) พร้อม `actorUserId` และ Before/After state เสมอ
+
+---
+
+## 5M. Background Jobs & System Maintenance (contract — Hosted Services)
+
+**สถานะ:** ✅ ล็อกแล้ว
+
+ระบบงานเบื้องหลัง (ASP.NET Core Hosted Services) สำหรับบำรุงรักษาและป้องกันฐานข้อมูลบวมอัตโนมัติ:
+
+### 1. รายการ Background Services
+
+| Service | ความถี่และเวลาทำงาน | เป้าหมายการทำงาน | Configuration (appsettings) |
+|---|---|---|---|
+| `AuditLogCleanupBackgroundService` | **ทุกวัน ตอนกลางคืน** (ค่าเริ่มต้น: 02:00 น.) | ลบข้อมูลในตาราง `AuditLogs` ที่มีอายุมากกว่า 90 วัน (`OccurredAt < Now - 90 วัน`) เพื่อลดขนาด Database | `MaintenanceJobs:AuditLogCleanup:RunHour = 2`, `RetentionDays = 90` |
+| `RefreshTokenCleanupBackgroundService` | **รายสัปดาห์ ทุกคืนวันอาทิตย์** (ค่าเริ่มต้น: วันอาทิตย์ 03:00 น.) | ลบข้อมูลในตาราง `UserRefreshTokens` ที่หมดอายุแล้ว (`ExpiresAt <= Now`) หรือถูกเพิกถอน (`RevokedAt <= Now`) | `MaintenanceJobs:RefreshTokenCleanup:RunDayOfWeek = "Sunday"`, `RunHour = 3` |
+
+### 2. Manual Trigger / Maintenance Endpoints (สำหรับ Admin)
+
+| Method | Path | Auth | คำอธิบาย |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/purge-expired-tokens` | `Admin` | ล้าง Refresh Token ที่หมดอายุหรือถูกเพิกถอน (Revoked) ทันทีบนฐานข้อมูล คืนจำนวนที่ถูกลบ |
+| `POST` | `/api/v1/audit-logs/purge` | `Admin` | ล้างประวัติ Audit Logs ที่เก่ากว่า X วัน (หรือทั้งหมด) ทันทีบนฐานข้อมูล |
 
 ---
 

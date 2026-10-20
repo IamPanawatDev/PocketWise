@@ -442,6 +442,22 @@ public class AuthService : IAuthService
         return response;
     }
 
+    public async Task<int> PurgeExpiredRefreshTokensAsync(CancellationToken cancellationToken = default)
+    {
+        var deleted = await _refreshTokenRepository.PurgeExpiredTokensAsync(DateTime.UtcNow, cancellationToken);
+        if (_auditLogService != null && deleted > 0)
+        {
+            await _auditLogService.LogAsync(
+                null,
+                AuditAction.Delete,
+                "UserRefreshTokens",
+                "purge-expired",
+                new { Action = "PurgeExpiredTokens", DeletedCount = deleted, PurgedAt = DateTime.UtcNow },
+                cancellationToken);
+        }
+        return deleted;
+    }
+
     private static UserProfileResponse MapToProfile(ApplicationUser user)
     {
         return new UserProfileResponse
