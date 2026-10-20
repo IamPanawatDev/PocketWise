@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -151,11 +151,7 @@ export function TransactionForm({
   };
 
   return (
-    <Card className="mb-6 p-4 sm:p-6">
-      <h2 className="mb-4 text-lg font-bold">
-        {editing ? "แก้ไขรายการ" : "เพิ่มรายการ"}
-      </h2>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="ประเภท" htmlFor="transaction-type" error={errors.transactionType?.message}>
             <Controller
@@ -333,7 +329,7 @@ export function TransactionForm({
           <Input id="transaction-description" {...register("description")} />
         </FormField>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
           <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending || update.isPending}>
             {create.isPending || update.isPending
               ? <LoaderCircle className="animate-spin" />
@@ -346,6 +342,6 @@ export function TransactionForm({
           </Button>
         </div>
       </form>
-    </Card>
+
   );
 }

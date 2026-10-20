@@ -41,7 +41,12 @@
    - Reports ใช้ Recharts `^3.10.1` ที่ติดตั้งใน `frontend/pocketwise-web/`; กราฟต้องใช้ ResponsiveContainer และ `--pw-*` design tokens, แสดงข้อมูลแยก currency และไม่ทำ aggregate ข้ามสกุลเงิน
    - ป้องกัน route ที่ต้องล็อกอินผ่าน Next.js `src/proxy.ts` ด้วย httpOnly session cookies; หากไม่มี access/refresh token ให้ redirect ไป `/login` ก่อน render. Client-side guard ใช้เพื่อ UX เท่านั้นและห้ามแทน backend authorization
    - ฟิลด์เลือกสีใช้ color picker ไม่บังคับให้ผู้ใช้ป้อนค่า HEX
+   - ตัวเลือกแท็กในฟอร์มธุรกรรมต้องแสดงเป็น badge ด้วยสีจริงจาก `TagResponse.color`, สีข้อความต้อง contrast อ่านได้ และสถานะเลือกต้องเห็นชัด
    - หน้า register ต้องยืนยันว่ารหัสผ่านทั้งสองช่องตรงกัน แต่ส่งเฉพาะ contract fields ของ backend ไม่ส่ง `confirmPassword`
+6. **การตรวจสอบและสืบค้นฐานข้อมูลผ่าน Devart MCP Server for SQL Server**
+   - เมื่อ AI ต้องตรวจสอบโครงสร้างตาราง (Schema), ข้อมูลดิบในฐานข้อมูล, ผลลัพธ์ของ Seed Data หรือทดสอบคำสั่ง Query ใน SQL Server (`PocketWiseDb`) ให้ใช้ **Devart MCP Server for SQL Server** (Server Name: `PocketWise`, Driver: `Devart ODBC Driver for SQL Server [STDIO]`, Version 1.1.0)
+   - การเชื่อมต่อ MCP Server ถูกตั้งค่าไว้ที่ `~/.gemini/config/mcp_config.json` โดยเรียกใช้ executable `C:\Program Files\Devart\MCP Server for SQL Server\Devart.AI.McpServer.Odbc.SqlServer.exe run PocketWise`
+   - ห้ามรันคำสั่ง DDL/DML ที่มีผลต่อการเปลี่ยนแปลงโครงสร้างหรือลบข้อมูลจริงโดยพลการ (การเปลี่ยนแปลงสกีมาต้องทำผ่าน EF Core Migrations ของฝั่ง Backend และอ้างอิง [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) เป็น Source of Truth เสมอ)
 
 ---
 

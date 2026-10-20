@@ -310,6 +310,11 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 ---
 
+**Database & Developer Tools (อนุมัติแล้ว):**
+- `Devart MCP Server for SQL Server` 1.1.0 — ใช้งานผ่าน stdio transport (`Connection: PocketWise`, `DSN: PocketWiseDb`) โดยตั้งค่าใน `~/.gemini/config/mcp_config.json` สำหรับตรวจสอบ schema, ข้อมูล และทดสอบ query
+
+---
+
 ## Appendix B — คำสั่งที่ใช้บ่อย
 
 ```bash
@@ -391,6 +396,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D35 | Phase 5.5 profile, settings และ reset | Settings API จัดการ Theme/CurrencyCode/Locale/EmailBudgetAlertsEnabled; เปลี่ยนอีเมลตั้ง `IsEmailVerified=false` โดยยังไม่มี verification flow; reset soft-delete เฉพาะ 9 finance tables ตาม D5, คง identity/settings/categories/tags/rules/notifications/import history/audit logs และ revoke refresh tokens ทุก session | เจ้าของโปรเจค | ✅ ล็อก |
 | D36 | Reports default date range | หน้า Reports ตั้งค่าเริ่มต้นตั้งแต่วันที่ 1 มกราคมถึง 31 ธันวาคมของปีปัจจุบัน (Asia/Bangkok) | เจ้าของโปรเจค | ✅ ล็อก |
 | D37 | Phase 6 SignalR & Notifications contract & package | ติดตั้ง `@microsoft/signalr` (^10.0.11) ฝั่ง FE (อนุมัติแล้ว); สัญญา Event กลาง `ReceiveNotification` (Payload `NotificationResponse`) + `ReceiveRefreshHint`; Auth query `?access_token=...` ผ่าน BFF `/api/auth/token`; จัดการ per-user group `$"user_{userId}"` ฝั่ง server; REST endpoints 4 endpoints + NotificationBell popover บน DashboardShell | เจ้าของโปรเจค | ✅ ล็อก |
+| D39 | Database Inspection via Devart MCP Server | ใช้ Devart MCP Server for SQL Server (v1.1.0, Connection: PocketWise, DSN: PocketWiseDb, Stdio transport) สำหรับการตรวจสอบ Schema, Seed Data, และ Query ผลลัพธ์ใน SQL Server แทนการเขียนคำสั่งเฉพาะกิจ โดยห้ามรันคำสั่ง DDL นอกเหนือจาก EF Core Migrations | เจ้าของโปรเจค | ✅ ล็อก |
 | D38 | Phase 7 File Storage, Limits, Formats & Slip OCR | ที่เก็บไฟล์: Local Disk Storage ผ่าน `IFileStorageService` (`App_Data/uploads/`) นอก public web root; ข้อจำกัด: สลิปไม่เกิน 10 MB (.jpg, .jpeg, .png, .webp, .pdf), ใบแจ้งยอดรองรับทั้ง CSV และ JSON; Slip OCR: Local Offline OCR ผ่าน `Tesseract` 5.2.0 (`TesseractSlipOcrService`) พร้อมโมเดลภาษา `tessdata/{tha,eng}.traineddata` อ่านยอดเงิน/วันที่ (แปลง พ.ศ.->ค.ศ.)/รหัสอ้างอิง/ผู้รับ/ผู้โอน/ธนาคาร และมี UI Review & Confirm ก่อนบันทึก | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**

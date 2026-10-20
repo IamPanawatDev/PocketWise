@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TransactionForm } from "./TransactionForm";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
@@ -69,13 +70,27 @@ export function TransactionList({
         </Button>
       </div>
 
-      {(showForm || editing) && (
+      <BottomSheet
+        open={showForm || editing !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setShowForm(false);
+            setEditing(null);
+          }
+        }}
+        title={editing ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}
+        description={
+          editing
+            ? "ปรับเปลี่ยนรายละเอียดของรายการธุรกรรม"
+            : "บันทึกรายการรายรับ รายจ่าย หรือโอนเงินใหม่"
+        }
+      >
         <TransactionForm
           key={editing?.transactionId ?? "new"}
           onClose={() => { setShowForm(false); setEditing(null); }}
           editing={editing ?? undefined}
         />
-      )}
+      </BottomSheet>
 
       <Card className="mb-4 grid grid-cols-1 items-end gap-3 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-4">
         <FormField

@@ -48,6 +48,7 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 | Reports charts | Recharts | Responsive report charts; render amounts in separate currency series and use the project design tokens. |
 | SignalR client | @microsoft/signalr (^10.0.11 — ติดตั้งแล้วใน frontend/pocketwise-web) | Connect to the ASP.NET Core SignalR hub and handle reconnects/events. |
 | Database | Microsoft SQL Server | Relational storage for users, transactions, categories, budgets, cards, and audit records. |
+| Database MCP Tool | Devart MCP Server for SQL Server (v1.1.0, Devart ODBC Driver for SQL Server STDIO) | ตรวจสอบ schema, ตรวจสอบข้อมูลในตาราง, และทดสอบ query กับฐานข้อมูล PocketWiseDb ผ่าน Model Context Protocol |
 | ORM / migrations | Entity Framework Core SQL Server provider | Database access, LINQ, entity mapping, and schema migrations. |
 | Authentication | ASP.NET Core Identity or a carefully designed external identity provider | Password hashing, account lifecycle, roles/claims, and secure sign-in. Decide cookie/BFF vs bearer-token architecture before implementation. |
 | Validation | FluentValidation (optional) + domain validation | Validate API inputs and enforce business rules server-side. Avoid duplicating rules without a clear source of truth. |
@@ -67,6 +68,7 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 - Do not mix incompatible major versions of Next.js, React, Tailwind CSS, shadcn/ui, or EF Core.
 - Re-check official release notes and support dates at project kickoff.
 - Recharts `^3.10.1` is installed as a runtime dependency in `frontend/pocketwise-web/` for Phase 5 reports; use it only for report visualizations.
+- Devart MCP Server for SQL Server (v1.1.0) ได้รับอนุมัติให้ใช้งานผ่าน stdio transport (Connection: `PocketWise`, DSN: `PocketWiseDb`) เพื่อให้ AI Agent สามารถตรวจสอบ schema และความถูกต้องของข้อมูลในฐานข้อมูลได้อย่างปลอดภัย
 - Frontend shadcn setup is present in `frontend/pocketwise-web/components.json` (Radix Nova, Tailwind CSS v4, `@/components` and `@/lib/utils` aliases). The `shadcn` CLI is a devDependency; runtime primitives use `radix-ui`, `@radix-ui/react-alert-dialog`, `class-variance-authority`, `tw-animate-css`, and `react-day-picker` (`^10.0.2`) for the shared Calendar UI. Date and date-time fields use `DateInput`/`DateTimeInput` in `src/components/ui/date-input.tsx`, backed by `Calendar` in `src/components/ui/calendar.tsx`; time selection uses shared shadcn `Select` components, not native browser date/time pickers. Use `npx shadcn add <component>` from the frontend app, then theme generated source against `DESIGN.md` without overwriting existing customized primitives.
 
 ## 3. Backend Project Structure
