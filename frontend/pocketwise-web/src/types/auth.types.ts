@@ -39,3 +39,21 @@ export interface AuthResponse {
   refreshTokenExpiresAt: string;
   user: UserProfileResponse;
 }
+
+export interface SendVerificationEmailResponse {
+  sent: boolean;
+  email: string;
+  cooldownSeconds: number;
+  message: string;
+}
+
+export interface VerifyEmailRequest {
+  userId: number;
+  token: string;
+}
+
+export interface VerifyEmailResponse {
+  verified: boolean;
+  email: string;
+  message: string;
+}

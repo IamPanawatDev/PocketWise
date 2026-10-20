@@ -242,12 +242,13 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 ### Phase 5.5 — Settings & Profile (FR6.3)
 
-**requirements ที่รองรับ:** FR6.3.1–FR6.3.6 (ตั้งค่าแอป + โปรไฟล์ + ล้างข้อมูล) — วางไว้หลัง Phase 5 เพราะ UserSettings พึ่งงบ/แท็ก/สกุลเงินที่ตั้งค่าได้
+**requirements ที่รองรับ:** FR6.3.1–FR6.3.7 (ตั้งค่าแอป + โปรไฟล์ + ล้างข้อมูล + ยืนยันอีเมล) — วางไว้หลัง Phase 5 เพราะ UserSettings พึ่งงบ/แท็ก/สกุลเงินที่ตั้งค่าได้
 
 1. UserSettings CRUD (Theme, CurrencyCode, Locale, EmailBudgetAlertsEnabled) — ผูก FR5.2.2 (email toggle)
-2. โปรไฟล์: เปลี่ยนเบอร์/อีเมล/วันเกิด (เปลี่ยนอีเมลต้องตั้ง `IsEmailVerified=false`; ยังไม่มี verification flow — D35)
-3. **ล้างข้อมูลเริ่มใหม่ (FR6.3.6):** soft-delete เฉพาะ 9 finance tables ตาม D5, คง identity/settings และข้อมูลตาม D35, revoke refresh tokens ทุก session
-4. **Gate:** settings/profile/reset ผ่าน E2E กับ SQL Server; ตรวจ persistence, soft-delete, การคง identity/settings และการ revoke refresh token — ผ่านแล้ว
+2. โปรไฟล์: เปลี่ยนเบอร์/อีเมล/วันเกิด (เปลี่ยนอีเมลต้องตั้ง `IsEmailVerified=false`)
+3. **ยืนยันอีเมล (FR6.3.7, D42):** รองรับการส่งลิงก์ยืนยันทางอีเมลด้วย built-in Identity token + SmtpEmailService (0 บาท ฟรี 100%), 60s cooldown, Base64Url token, หน้า `/verify-email` และปุ่มส่งซ้ำในหน้า `/settings`
+4. **ล้างข้อมูลเริ่มใหม่ (FR6.3.6):** soft-delete เฉพาะ 9 finance tables ตาม D5, คง identity/settings และข้อมูลตาม D35, revoke refresh tokens ทุก session
+5. **Gate:** settings/profile/reset/email-verification ผ่าน E2E และ Unit Tests (45/45 tests ผ่าน 100%)
 
 ---
 
@@ -402,8 +403,9 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D37 | Phase 6 SignalR & Notifications contract & package | ติดตั้ง `@microsoft/signalr` (^10.0.11) ฝั่ง FE (อนุมัติแล้ว); สัญญา Event กลาง `ReceiveNotification` (Payload `NotificationResponse`) + `ReceiveRefreshHint`; Auth query `?access_token=...` ผ่าน BFF `/api/auth/token`; จัดการ per-user group `$"user_{userId}"` ฝั่ง server; REST endpoints 4 endpoints + NotificationBell popover บน DashboardShell | เจ้าของโปรเจค | ✅ ล็อก |
 | D39 | Database Inspection via Devart MCP Server | ใช้ Devart MCP Server for SQL Server (v1.1.0, Connection: PocketWise, DSN: PocketWiseDb, Stdio transport) สำหรับการตรวจสอบ Schema, Seed Data, และ Query ผลลัพธ์ใน SQL Server แทนการเขียนคำสั่งเฉพาะกิจ โดยห้ามรันคำสั่ง DDL นอกเหนือจาก EF Core Migrations | เจ้าของโปรเจค | ✅ ล็อก |
 | D38 | Phase 7 File Storage, Limits, Formats & Slip OCR | ที่เก็บไฟล์: Local Disk Storage ผ่าน `IFileStorageService` (`App_Data/uploads/`) นอก public web root; ข้อจำกัด: สลิปไม่เกิน 10 MB (.jpg, .jpeg, .png, .webp, .pdf), ใบแจ้งยอดรองรับทั้ง CSV และ JSON; Slip OCR: Local Offline OCR ผ่าน `Tesseract` 5.2.0 (`TesseractSlipOcrService`) พร้อมโมเดลภาษา `tessdata/{tha,eng}.traineddata` อ่านยอดเงิน/วันที่ (แปลง พ.ศ.->ค.ศ.)/รหัสอ้างอิง/ผู้รับ/ผู้โอน/ธนาคาร และมี UI Review & Confirm ก่อนบันทึก | เจ้าของโปรเจค | ✅ ล็อก |
-| D40 | Email Verification Feature (FR6.3.7) | เพิ่ม FR6.3.7 และสัญญา API ใน REQUIREMENTS.md และ API_SPECIFICATION.md เพื่อรองรับการยืนยันอีเมลในอนาคต โดยยังไม่เริ่มลงมือ Dev ตามคำสั่งเจ้าของโปรเจค | เจ้าของโปรเจค | 🟡 บันทึกความต้องการแล้ว รออนุมัติเริ่ม Dev |
+| D40 | Email Verification Feature (FR6.3.7) Planning | วางแผน FR6.3.7 และสัญญา API ใน REQUIREMENTS.md และ API_SPECIFICATION.md | เจ้าของโปรเจค | ✅ ล็อก |
 | D41 | System Categories Seeding & Admin Role & Permission Management | Seeding อัตโนมัติเมื่อ API สตาร์ท (`DatabaseSeeder.cs`): หมวดหมู่มาตรฐานระบบ 12 หมวดหมู่ (`IsSystem = 1`), สิทธิ์มาตรฐาน 15 รายการ (6 โมดูล), บทบาทเริ่มต้น (`Admin`, `Member`), และมอบหมาย `Admin` ให้กับบัญชีผู้ใช้เดิมทั้งหมด; พัฒนา Backend Admin Management endpoints (`/api/v1/admin/roles`, `/permissions`, `/users`) พร้อม Frontend หน้า `/admin/permissions` รองรับ 3 แท็บ: Permission Matrix, Role Management (CRUD), User Role Assignment; ป้องกัน route ใน `proxy.ts` และแสดงเมนูใน `DashboardShell` เฉพาะผู้ใช้ที่มีสิทธิ์ Admin | เจ้าของโปรเจค | ✅ ล็อก |
+| D42 | Free Zero-Cost Built-in Email Verification Implementation (FR6.3.7) | พัฒนาระบบยืนยันอีเมลตามเงื่อนไขฟรี 100% (0 บาท, ไม่มีค่าบริการเสริม, ไม่เพิ่ม package ใหม่): ใช้ built-in ASP.NET Core Identity Token Provider (`GenerateEmailConfirmationTokenAsync` / `ConfirmEmailAsync`), ส่งอีเมลผ่าน `SmtpEmailService` (Gmail SMTP ฟรี หรือ Development Console logging), เข้ารหัส token ด้วย Base64Url ปลอดภัยสำหรับ URL, ป้องกัน spam ด้วย cooldown 60 วินาทีต่อผู้ใช้, พัฒนา Frontend หน้า `/verify-email` พร้อม fallback Suspense และเชื่อมโยงปุ่มส่งลิงก์ยืนยันในหน้า `/settings` พร้อมตัวนับ cooldown และ unit tests ครบ 100% (45/45 tests ผ่าน) | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 

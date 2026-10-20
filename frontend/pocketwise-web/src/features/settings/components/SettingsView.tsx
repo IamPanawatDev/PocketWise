@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { useSendVerificationEmail } from "@/features/auth/hooks/useEmailVerification";
 import { useResetFinancialData, useUpdateUserSettings, useUserSettings } from "@/features/settings/hooks/useSettings";
 import { useUpdateUserProfile } from "@/features/settings/hooks/useUpdateProfile";
 import { profileSchema, type ProfileFormValues } from "@/schemas/profile.schema";
@@ -34,7 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { AlertCircle, LoaderCircle, Save, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, LoaderCircle, Mail, Save, Trash2 } from "lucide-react";
 
 export function SettingsView() {
   const queryClient = useQueryClient();
@@ -43,6 +44,10 @@ export function SettingsView() {
   const saveSettings = useUpdateUserSettings();
   const saveProfile = useUpdateUserProfile();
   const resetData = useResetFinancialData();
+  const sendVerification = useSendVerificationEmail();
+
+  const [verificationCooldown, setVerificationCooldown] = useState(0);
+
   const settingsForm = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
@@ -61,6 +66,14 @@ export function SettingsView() {
       birthDate: "",
     },
   });
+
+  useEffect(() => {
+    if (verificationCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setVerificationCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [verificationCooldown]);
 
   useEffect(() => {
     if (!settingsQuery.data) return;
@@ -114,6 +127,18 @@ export function SettingsView() {
         onError: (error) => toast.error(error instanceof ApiError ? error.message : "บันทึกโปรไฟล์ไม่สำเร็จ"),
       },
     );
+  };
+
+  const handleSendVerificationEmail = () => {
+    sendVerification.mutate(undefined, {
+      onSuccess: (data) => {
+        toast.success(data.message || "ส่งลิงก์ยืนยันทางอีเมลเรียบร้อยแล้ว");
+        setVerificationCooldown(data.cooldownSeconds || 60);
+      },
+      onError: (error) => {
+        toast.error(error instanceof ApiError ? error.message : "ส่งลิงก์ยืนยันไม่สำเร็จ");
+      },
+    });
   };
 
   const loading = settingsQuery.isLoading || profileQuery.isLoading;
@@ -254,19 +279,45 @@ export function SettingsView() {
                 </FormField>
                 <FormField label="อีเมล" htmlFor="profile-email" error={profileForm.formState.errors.email?.message}>
                   <Input id="profile-email" type="email" autoComplete="email" {...profileForm.register("email")} />
-                  <div className="mt-1 flex items-center gap-2">
-                    <p className="text-xs text-[var(--pw-ink)]/60">
-                      สถานะอีเมล:{" "}
-                      <span className={profileQuery.data?.isEmailVerified ? "font-semibold text-emerald-500" : "font-semibold text-amber-500"}>
-                        {profileQuery.data?.isEmailVerified ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"}
-                      </span>
-                    </p>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--pw-ink)]/70">สถานะอีเมล:</span>
+                      {profileQuery.data?.isEmailVerified ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="size-3" /> ยืนยันแล้ว
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                          <AlertCircle className="size-3" /> ยังไม่ยืนยัน
+                        </span>
+                      )}
+                    </div>
+
                     {!profileQuery.data?.isEmailVerified && (
-                      <span className="text-xs text-[var(--pw-ink)]/40">
-                        (ยังไม่เปิดระบบยืนยันอีเมลในระยะนี้)
-                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={sendVerification.isPending || verificationCooldown > 0 || !isEmailServiceEnabled}
+                        onClick={handleSendVerificationEmail}
+                        className="h-7 text-xs"
+                      >
+                        {sendVerification.isPending ? (
+                          <LoaderCircle className="size-3 animate-spin" />
+                        ) : (
+                          <Mail className="size-3" />
+                        )}
+                        {verificationCooldown > 0
+                          ? `ส่งอีกครั้งใน (${verificationCooldown}s)`
+                          : "ส่งลิงก์ยืนยันอีเมล"}
+                      </Button>
                     )}
                   </div>
+                  {!isEmailServiceEnabled && !profileQuery.data?.isEmailVerified && (
+                    <p className="mt-1 text-xs text-amber-500 dark:text-amber-400">
+                      * ระบบปิดการให้บริการส่งอีเมลไว้ชั่วคราว จึงไม่สามารถส่งลิงก์ยืนยันได้
+                    </p>
+                  )}
                 </FormField>
                 <FormField label="เบอร์โทรศัพท์ (ไม่บังคับ)" htmlFor="profile-phone" error={profileForm.formState.errors.phoneNumber?.message}>
                   <Input id="profile-phone" type="tel" autoComplete="tel" {...profileForm.register("phoneNumber")} />

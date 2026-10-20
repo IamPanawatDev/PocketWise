@@ -15,12 +15,16 @@ async function forward(
   method: string,
   payload: BodyPayload,
   token: string | null,
+  clientOrigin?: string | null,
 ): Promise<Response> {
   const headers: Record<string, string> = {};
   if (payload.contentType) {
     headers["Content-Type"] = payload.contentType;
   }
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (clientOrigin) {
+    headers["Origin"] = clientOrigin;
+  }
 
   const qs = search.toString();
   const url = `${API_BASE_URL}/api/v1/${path.join("/")}${qs ? `?${qs}` : ""}`;
@@ -38,6 +42,7 @@ async function refreshAndRetry(
   search: URLSearchParams,
   method: string,
   payload: BodyPayload,
+  clientOrigin?: string | null,
 ): Promise<Response | null> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
@@ -61,21 +66,16 @@ async function refreshAndRetry(
     };
   };
 
-  if (!json.success || !json.data) return null;
+  const newTokens = json.data;
+  if (!newTokens) return null;
 
-  await setAuthCookies({
-    accessToken: json.data.accessToken,
-    accessTokenExpiresAt: json.data.accessTokenExpiresAt,
-    refreshToken: json.data.refreshToken,
-    refreshTokenExpiresAt: json.data.refreshTokenExpiresAt,
-  });
+  await setAuthCookies(newTokens);
 
-  const newToken = await getAccessToken();
-  return forward(path, search, method, payload, newToken);
+  return forward(path, search, method, payload, newTokens.accessToken, clientOrigin);
 }
 
 async function readBody(req: NextRequest): Promise<BodyPayload> {
-  const contentType = req.headers.get("content-type");
+  const contentType = req.headers.get("content-type") ?? "";
   if (!contentType) {
     return { body: null, contentType: null };
   }
@@ -94,10 +94,11 @@ async function readBody(req: NextRequest): Promise<BodyPayload> {
 export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
   const token = await getAccessToken();
+  const origin = req.headers.get("origin") ?? req.nextUrl.origin;
   const emptyPayload: BodyPayload = { body: null, contentType: null };
-  let res = await forward(path, req.nextUrl.searchParams, "GET", emptyPayload, token);
+  let res = await forward(path, req.nextUrl.searchParams, "GET", emptyPayload, token, origin);
   if (res.status === 401) {
-    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "GET", emptyPayload);
+    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "GET", emptyPayload, origin);
     if (retried) res = retried;
   }
   return passthrough(res);
@@ -107,9 +108,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   const { path } = await ctx.params;
   const payload = await readBody(req);
   const token = await getAccessToken();
-  let res = await forward(path, req.nextUrl.searchParams, "POST", payload, token);
+  const origin = req.headers.get("origin") ?? req.nextUrl.origin;
+  let res = await forward(path, req.nextUrl.searchParams, "POST", payload, token, origin);
   if (res.status === 401) {
-    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "POST", payload);
+    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "POST", payload, origin);
     if (retried) res = retried;
   }
   if (res.ok && path.join("/") === "users/me/data-reset") {
@@ -122,9 +124,10 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: strin
   const { path } = await ctx.params;
   const payload = await readBody(req);
   const token = await getAccessToken();
-  let res = await forward(path, req.nextUrl.searchParams, "PUT", payload, token);
+  const origin = req.headers.get("origin") ?? req.nextUrl.origin;
+  let res = await forward(path, req.nextUrl.searchParams, "PUT", payload, token, origin);
   if (res.status === 401) {
-    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "PUT", payload);
+    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "PUT", payload, origin);
     if (retried) res = retried;
   }
   return passthrough(res);
@@ -133,10 +136,11 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: strin
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
   const token = await getAccessToken();
+  const origin = req.headers.get("origin") ?? req.nextUrl.origin;
   const emptyPayload: BodyPayload = { body: null, contentType: null };
-  let res = await forward(path, req.nextUrl.searchParams, "DELETE", emptyPayload, token);
+  let res = await forward(path, req.nextUrl.searchParams, "DELETE", emptyPayload, token, origin);
   if (res.status === 401) {
-    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "DELETE", emptyPayload);
+    const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "DELETE", emptyPayload, origin);
     if (retried) res = retried;
   }
   return passthrough(res);

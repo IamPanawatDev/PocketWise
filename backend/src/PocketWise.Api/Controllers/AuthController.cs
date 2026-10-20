@@ -88,6 +88,27 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<UserProfileResponse>.Ok(result));
     }
 
+    [HttpPost("send-verification-email")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<SendVerificationEmailResponse>>> SendVerificationEmailAsync(CancellationToken cancellationToken)
+    {
+        var originUrl = Request.Headers.Origin.FirstOrDefault()
+            ?? Request.Headers.Referer.FirstOrDefault();
+
+        var result = await _authService.SendVerificationEmailAsync(User, originUrl, cancellationToken);
+        return Ok(ApiResponse<SendVerificationEmailResponse>.Ok(result));
+    }
+
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<VerifyEmailResponse>>> VerifyEmailAsync(
+        [FromBody] VerifyEmailRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.VerifyEmailAsync(request, cancellationToken);
+        return Ok(ApiResponse<VerifyEmailResponse>.Ok(result));
+    }
+
     private string? GetIpAddress()
     {
         if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))

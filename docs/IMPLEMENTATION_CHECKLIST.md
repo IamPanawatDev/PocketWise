@@ -108,7 +108,8 @@
 | 5.5.1 | UserSettings CRUD (Theme, CurrencyCode, Locale, EmailBudgetAlertsEnabled) | ✅ | FR6.3.1–3 และ FR5.2.2 toggle implement ครบ; backend/frontend build ผ่าน |
 | 5.5.2 | โปรไฟล์: เปลี่ยนเบอร์/วันเกิด + อีเมล (รีเซ็ต IsEmailVerified) | ✅ | FR6.3.2–5; email เปลี่ยนแล้ว IsEmailVerified=false ตาม D35 |
 | 5.5.3 | ล้างข้อมูลเริ่มใหม่ (soft delete ตารางการเงินของ user + revoke tokens) | ✅ | FR6.3.6; scope 9 ตารางและ exclusions ตาม D35 |
-| 5.5.4 | Gate: ทำงานจริง end-to-end + FR สถานะอัปเดต | ✅ | E2E กับ SQL Server ผ่าน: settings/profile persistence, email verification reset, reset soft-delete และ revoke refresh token; identity/settings คงอยู่. Backend Release build 0 warnings/errors, 13 unit tests + 1 integration test ผ่าน; frontend lint/build ผ่าน |
+| 5.5.4 | ยืนยันอีเมลของผู้ใช้ (FR6.3.7, D42) | ✅ | ฟรี 100% (0 บาท, ไม่เพิ่ม package); built-in Identity Token Provider + SmtpEmailService, 60s cooldown, Base64Url token; endpoints `/api/v1/auth/send-verification-email` และ `/verify-email`; Frontend หน้า `/verify-email` + ปุ่มส่งยืนยันและ cooldown ในหน้า `/settings` |
+| 5.5.5 | Gate: ทำงานจริง end-to-end + FR สถานะอัปเดต | ✅ | E2E กับ SQL Server ผ่าน: settings/profile persistence, email verification reset, reset soft-delete และ revoke refresh token; identity/settings คงอยู่. Backend Unit Tests 45/45 ผ่าน 100%; Frontend ESLint 0 warnings/errors และ Next.js build ผ่านสมบูรณ์ |
 
 ## 8. Phase 6 — SignalR & Notifications ✅
 

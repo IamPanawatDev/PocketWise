@@ -11,4 +11,6 @@ public interface IAuthService
     Task LogoutAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
     Task<UserProfileResponse?> MeAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
     Task<UserProfileResponse?> UpdateProfileAsync(ClaimsPrincipal user, UpdateUserProfileRequest request, CancellationToken cancellationToken = default);
+    Task<SendVerificationEmailResponse> SendVerificationEmailAsync(ClaimsPrincipal user, string? originUrl = null, CancellationToken cancellationToken = default);
+    Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default);
 }

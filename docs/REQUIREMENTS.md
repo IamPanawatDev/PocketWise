@@ -131,7 +131,7 @@
 | FR6.3.4 | เปลี่ยนอีเมล | ✅ Phase 5.5 — persisted; IsEmailVerified reset per D35 and verified end-to-end |
 | FR6.3.5 | แก้ไขวันเกิด | ✅ Phase 5.5 — persisted and verified end-to-end |
 | FR6.3.6 | ล้างข้อมูลเพื่อเริ่มต้นใหม่ (data reset) | ✅ Phase 5.5 — soft-delete, preserved identity/settings, and refresh-token revocation verified end-to-end |
-| FR6.3.7 | ยืนยันอีเมลของผู้ใช้ (Email Verification) — ส่งลิงก์ยืนยันทางอีเมลและอัปเดตสถานะ IsEmailVerified | ⬜ วางแผนตามสัญญา API (ยังไม่ลงมือ Dev ตามคำสั่ง) |
+| FR6.3.7 | ยืนยันอีเมลของผู้ใช้ (Email Verification) — ส่งลิงก์ยืนยันทางอีเมลและอัปเดตสถานะ IsEmailVerified | ✅ Phase 5.5/D42 — Built-in ASP.NET Core Identity Token + SmtpEmailService (0 บาท ฟรี 100%), 60s Cooldown, URL-safe Base64Url, หน้า /verify-email และ UI ตั้งค่าพร้อมเทสต์ครบ 100% |
 
 ### F7 — ระบบบทบาทและสิทธิ์ (Role-Based Access Control) — เพิ่มจากเจ้าของโปรเจค (D13, D41)
 

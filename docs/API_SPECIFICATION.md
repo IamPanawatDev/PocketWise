@@ -142,6 +142,8 @@ GET /api/v1/transactions?page=1&pageSize=20
 | `POST` | `/api/v1/auth/refresh` | ไม่ต้อง (ใช้ refresh token แทน) | ต่ออายุ — rotation |
 | `POST` | `/api/v1/auth/logout` | ต้อง | revoke refresh token ของ session ที่เรียก (ดีไซน์จาก UserRefreshTokens) |
 | `GET` | `/api/v1/auth/me` | ต้อง | profile จาก claims (อ่าน DB ถ้าจำเป็น) |
+| `POST` | `/api/v1/auth/send-verification-email` | ต้อง | ส่งลิงก์ยืนยันทางอีเมลไปยังอีเมลปัจจุบันของผู้ใช้ (คูลดาวน์ 60 วินาที) |
+| `POST` | `/api/v1/auth/verify-email` | ไม่ต้อง | ยืนยันอีเมลด้วยโทเค็นและ userId — อัปเดต `IsEmailVerified = true` |
 
 #### 5.1 Request/Response DTO
 
@@ -687,10 +689,10 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 
 `POST /users/me/data-reset` รับ body ว่าง และ soft-delete เฉพาะข้อมูลของผู้ใช้ใน 9 ตารางที่กำหนด D5: Transactions, BankAccounts, CreditCards, Budgets, RecurringTransactions, InstallmentPlans, TransferGroups, CreditCardStatements, CreditCardStatementItems. User identity, UserSettings, หมวดหมู่/แท็ก/กฎ, Notifications, import history และ AuditLogs จะคงอยู่. การล้างทำงานเป็น transaction เดียว, คืน `{ "resetAt": "2026-10-20T00:00:00Z" }`, และ revoke refresh tokens ทุก session; access tokens ที่ออกไปแล้วจะหมดอายุตามปกติ (ไม่เกิน 60 นาที).
 
-### Email verification (วางแผนตาม FR6.3.7 — ยังไม่ลงมือ Dev)
+### Email verification (FR6.3.7 — Phase 5.5/D42) ✅
 
-- `POST /api/v1/auth/send-verification-email` (Auth: Required): ส่งลิงก์ยืนยันทางอีเมลไปยังอีเมลปัจจุบันของผู้ใช้ คืน `{ "sent": true, "email": "...", "cooldownSeconds": 60 }`
-- `POST /api/v1/auth/verify-email` (Auth: Anonymous): รับ `{ "token": "..." }` และอัปเดต `Users.IsEmailVerified = true` ในฐานข้อมูล คืน `{ "verified": true, "email": "..." }`
+- `POST /api/v1/auth/send-verification-email` (Auth: Required): ส่งลิงก์ยืนยันทางอีเมลไปยังอีเมลปัจจุบันของผู้ใช้ คืน `{ "sent": true, "email": "...", "cooldownSeconds": 60, "message": "..." }`
+- `POST /api/v1/auth/verify-email` (Auth: Anonymous): รับ `{ "userId": 123, "token": "..." }` และตรวจสอบโทเค็นผ่าน ASP.NET Core Identity แล้วอัปเดต `Users.IsEmailVerified = true` และ `EmailConfirmed = true` ในฐานข้อมูล คืน `{ "verified": true, "email": "...", "message": "..." }`
 
 ---
 

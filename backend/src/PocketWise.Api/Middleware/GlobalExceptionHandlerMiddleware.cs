@@ -55,6 +55,8 @@ public class GlobalExceptionHandlerMiddleware
         {
             "VALIDATION_ERROR" => (int)HttpStatusCode.UnprocessableEntity,
             "CONFLICT" => (int)HttpStatusCode.Conflict,
+            "NOT_FOUND" => (int)HttpStatusCode.NotFound,
+            "COOLDOWN" => (int)HttpStatusCode.TooManyRequests,
             _ => (int)HttpStatusCode.BadRequest
         };
 
