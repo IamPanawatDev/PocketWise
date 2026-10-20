@@ -279,6 +279,8 @@ Content-Type: application/json
 | `categoryId` | กรองตามหมวดหมู่ |
 | `tagId` | กรองตามแท็ก |
 | `bankAccountId` | กรองตามบัญชีธนาคาร |
+| `creditCardId` | กรองตามบัตรเครดิต |
+| `sourceType` | กรองตามที่มา: `manual` / `slip` / `cardStatement` / `recurring` |
 | `type` | `income` / `expense` / `transfer` |
 | `fromDate` / `toDate` | ช่วงเวลา (UTC ISO) |
 | `q` | ค้นใน description / ชื่อหมวดหมู่ |
@@ -610,20 +612,26 @@ Content-Type: application/json
     "totalIncome": 45000.00,
     "totalExpense": 12500.00,
     "netAmount": 32500.00,
+    "totalSlipExpense": 3500.00,
+    "totalCreditCardExpense": 2000.00,
     "categoryBreakdown": [{
       "categoryId": 12, "categoryName": "อาหาร",
-      "amount": 5000.00, "percentage": 40.00
+      "amount": 5000.00, "percentage": 40.00, "transactionCount": 15
     }],
     "sourceBreakdown": [{
-      "sourceType": "manual", "amount": 12500.00, "percentage": 100.00
+      "sourceType": "manual", "amount": 7000.00, "percentage": 56.00, "transactionCount": 10
+    }, {
+      "sourceType": "slip", "amount": 3500.00, "percentage": 28.00, "transactionCount": 8
+    }, {
+      "sourceType": "cardStatement", "amount": 2000.00, "percentage": 16.00, "transactionCount": 4
     }],
     "bankAccountBreakdown": [{
       "bankAccountId": 4, "accountName": "บัญชีหลัก", "bankName": "ธนาคาร",
-      "amount": 3000.00, "percentage": 24.00
+      "amount": 3000.00, "percentage": 24.00, "transactionCount": 6
     }],
     "creditCardBreakdown": [{
       "creditCardId": 3, "cardName": "บัตรหลัก", "bankName": "ธนาคาร",
-      "amount": 2000.00, "percentage": 16.00
+      "amount": 2000.00, "percentage": 16.00, "transactionCount": 4
     }]
   }]
 }

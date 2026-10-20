@@ -19,6 +19,8 @@ function buildQuery(
   if (filter.categoryId !== undefined) params.set("categoryId", String(filter.categoryId));
   if (filter.tagId !== undefined) params.set("tagId", String(filter.tagId));
   if (filter.bankAccountId !== undefined) params.set("bankAccountId", String(filter.bankAccountId));
+  if (filter.creditCardId !== undefined) params.set("creditCardId", String(filter.creditCardId));
+  if (filter.sourceType) params.set("sourceType", filter.sourceType);
   if (filter.type) params.set("type", filter.type);
   if (filter.fromDate) params.set("fromDate", filter.fromDate);
   if (filter.toDate) params.set("toDate", filter.toDate);

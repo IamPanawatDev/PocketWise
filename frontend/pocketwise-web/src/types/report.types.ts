@@ -11,6 +11,8 @@ export interface ReportCurrencySummary {
   totalIncome: number;
   totalExpense: number;
   netAmount: number;
+  totalSlipExpense?: number;
+  totalCreditCardExpense?: number;
   categoryBreakdown: ReportCategoryBreakdown[];
   sourceBreakdown: ReportSourceBreakdown[];
   bankAccountBreakdown: ReportBankAccountBreakdown[];
@@ -22,12 +24,14 @@ export interface ReportCategoryBreakdown {
   categoryName: string;
   amount: number;
   percentage: number;
+  transactionCount?: number;
 }
 
 export interface ReportSourceBreakdown {
   sourceType: string;
   amount: number;
   percentage: number;
+  transactionCount?: number;
 }
 
 export interface ReportBankAccountBreakdown {
@@ -36,6 +40,7 @@ export interface ReportBankAccountBreakdown {
   bankName: string | null;
   amount: number;
   percentage: number;
+  transactionCount?: number;
 }
 
 export interface ReportCreditCardBreakdown {
@@ -44,6 +49,7 @@ export interface ReportCreditCardBreakdown {
   bankName: string | null;
   amount: number;
   percentage: number;
+  transactionCount?: number;
 }
 
 export interface ReportTrendResponse {

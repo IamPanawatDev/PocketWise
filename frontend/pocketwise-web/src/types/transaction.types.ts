@@ -47,6 +47,8 @@ export interface TransactionFilter {
   categoryId?: number;
   tagId?: number;
   bankAccountId?: number;
+  creditCardId?: number;
+  sourceType?: string;
   type?: string;
   fromDate?: string;
   toDate?: string;

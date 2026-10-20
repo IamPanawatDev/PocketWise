@@ -105,7 +105,7 @@
 | FR | รายการ | สถานะ |
 |:-:|---|:-:|
 | FR6.1.1 | สรุปค่าใช้จ่ายตามหมวดหมู่ | ✅ Phase 5 |
-| FR6.1.2 | ดูภาพรวมรายจ่ายจากสลิปและบัตรเครดิต | 🟡 Phase 5/7 | Credit-card and source breakdown implemented; slip transactions become available with Phase 7 import (S2) |
+| FR6.1.2 | ดูภาพรวมรายจ่ายจากสลิปและบัตรเครดิต | ✅ Phase 5/7 | สรุปภาพรวมรายจ่ายสลิป vs. บัตรเครดิต, สัดส่วน %, จำนวนรายการ, breakdown รายบัตร และ navigation กรองรายการ/บัตรเครดิตครบถ้วน |
 | FR6.1.3 | แยกดูค่าใช้จ่ายตามธนาคาร | ✅ Phase 5 |
 | FR6.1.4 | แสดงสัดส่วนการใช้จ่ายแต่ละหมวด (percentage breakdown) | ✅ Phase 5 |
 

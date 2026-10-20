@@ -50,6 +50,19 @@ public class TransactionRepository : ITransactionRepository
             query = query.Where(t => t.BankAccountId == filter.BankAccountId.Value);
         }
 
+        if (filter.CreditCardId.HasValue)
+        {
+            query = query.Where(t => t.CreditCardId == filter.CreditCardId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.SourceType))
+        {
+            if (Enum.TryParse<SourceType>(filter.SourceType, ignoreCase: true, out var sourceType))
+            {
+                query = query.Where(t => t.SourceType == sourceType);
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(filter.Type))
         {
             if (Enum.TryParse<TransactionType>(filter.Type, ignoreCase: true, out var type))

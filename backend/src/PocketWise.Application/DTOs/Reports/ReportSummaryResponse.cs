@@ -13,6 +13,8 @@ public sealed class ReportCurrencySummary
     public decimal TotalIncome { get; init; }
     public decimal TotalExpense { get; init; }
     public decimal NetAmount { get; init; }
+    public decimal TotalSlipExpense { get; init; }
+    public decimal TotalCreditCardExpense { get; init; }
     public IReadOnlyList<ReportCategoryBreakdown> CategoryBreakdown { get; init; } = [];
     public IReadOnlyList<ReportSourceBreakdown> SourceBreakdown { get; init; } = [];
     public IReadOnlyList<ReportBankAccountBreakdown> BankAccountBreakdown { get; init; } = [];
@@ -25,6 +27,7 @@ public sealed class ReportCategoryBreakdown
     public string CategoryName { get; init; } = string.Empty;
     public decimal Amount { get; init; }
     public decimal Percentage { get; init; }
+    public int TransactionCount { get; init; }
 }
 
 public sealed class ReportSourceBreakdown
@@ -32,6 +35,7 @@ public sealed class ReportSourceBreakdown
     public string SourceType { get; init; } = string.Empty;
     public decimal Amount { get; init; }
     public decimal Percentage { get; init; }
+    public int TransactionCount { get; init; }
 }
 
 public sealed class ReportBankAccountBreakdown
@@ -41,6 +45,7 @@ public sealed class ReportBankAccountBreakdown
     public string? BankName { get; init; }
     public decimal Amount { get; init; }
     public decimal Percentage { get; init; }
+    public int TransactionCount { get; init; }
 }
 
 public sealed class ReportCreditCardBreakdown
@@ -50,4 +55,5 @@ public sealed class ReportCreditCardBreakdown
     public string? BankName { get; init; }
     public decimal Amount { get; init; }
     public decimal Percentage { get; init; }
+    public int TransactionCount { get; init; }
 }

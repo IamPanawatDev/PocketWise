@@ -96,9 +96,9 @@
 | 5.5 | CreditCards CRUD + ผูก transaction (FR2.2 เต็ม) | ✅ | CRUD + picker ใน transaction form; records ที่ soft-delete ไม่แสดง/แก้ไข |
 | 5.6 | RecurringTransactions CRUD + กลไกสร้างตามรอบ (FR2.7) | ✅ | D26 HostedService interval `RecurringJob:IntervalMinutes`=60; soft-delete ถูกตัดออกและ schedule ที่หมดอายุถูกปิด |
 | 5.7 | จัดหมวดอัตโนมัติ — Merchants + CategoryRules (FR3.1.1, FR3.1.3) | ✅ | CRUD UI/API, suggestion endpoint, auto-apply ตอนสร้าง transaction และ auto-learn; API contract ตรง GET |
-| 5.8 | Reports/Dashboard aggregate APIs (FR4.6, FR6.1.x, FR6.2.x) | ✅ | Summary/trends แยก currency, category/source/bank/card, filters, timezone Asia/Bangkok และ weekly Sunday |
+| 5.8 | Reports/Dashboard aggregate APIs (FR4.6, FR6.1.x, FR6.2.x) | ✅ | Summary/trends แยก currency, category/source/bank/card, totalSlipExpense/totalCreditCardExpense, transaction counts, filters (รวม creditCardId และ sourceType), timezone Asia/Bangkok และ weekly Sunday |
 | 5.9 | (📦 optional) chart lib ฝั่ง FE | ✅ | D29: `recharts@3.10.1` ติดตั้งแล้ว |
-| 5.10 | FE: features (budgets, credit-cards, recurring, categorization, reports) + dashboard | ✅ | หน้าและ hooks ครบ; Reports เริ่ม 1 ม.ค. ถึง 31 ธ.ค. ปีปัจจุบัน (D36); transaction form ใช้ category suggestion และ credit-card selector |
+| 5.10 | FE: features (budgets, credit-cards, recurring, categorization, reports) + dashboard | ✅ | หน้าและ hooks ครบ; Reports เริ่ม 1 ม.ค. ถึง 31 ธ.ค. ปีปัจจุบัน (D36); UI ภาพรวมรายจ่ายสลิป vs. บัตรเครดิต (FR6.1.2) พร้อมสัดส่วน %, สถิติจำนวนรายการ, breakdown รายบัตร และลิงก์กรองรายการ/จัดการบัตร; transaction form ใช้ category suggestion และ credit-card selector |
 | 5.11 | Gate Phase 5: core implementation + สถานะอัปเดต + build/test ผ่าน | ✅ | Backend build 0 warnings/errors; backend tests 33/33; frontend lint/build ผ่าน; FR5.2.2 email alert delivery สำเร็จสมบูรณ์ |
 
 ## 7. Phase 5.5 — Settings & Profile ✅

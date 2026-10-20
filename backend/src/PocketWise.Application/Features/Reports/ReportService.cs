@@ -129,12 +129,22 @@ public sealed class ReportService : IReportService
             .ToList();
         var totalExpense = expenses.Sum(transaction => transaction.Amount);
 
+        var totalSlipExpense = expenses
+            .Where(transaction => transaction.SourceType == SourceType.Slip)
+            .Sum(transaction => transaction.Amount);
+
+        var totalCreditCardExpense = expenses
+            .Where(transaction => transaction.CreditCardId.HasValue || transaction.SourceType == SourceType.CardStatement)
+            .Sum(transaction => transaction.Amount);
+
         return new ReportCurrencySummary
         {
             CurrencyCode = transactions.Key,
             TotalIncome = income,
             TotalExpense = totalExpense,
             NetAmount = income - totalExpense,
+            TotalSlipExpense = totalSlipExpense,
+            TotalCreditCardExpense = totalCreditCardExpense,
             CategoryBreakdown = expenses
                 .GroupBy(transaction => new { transaction.CategoryId, transaction.CategoryName })
                 .Select(group => new ReportCategoryBreakdown
@@ -142,7 +152,8 @@ public sealed class ReportService : IReportService
                     CategoryId = group.Key.CategoryId,
                     CategoryName = group.Key.CategoryName ?? "ไม่ระบุหมวดหมู่",
                     Amount = group.Sum(transaction => transaction.Amount),
-                    Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense)
+                    Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense),
+                    TransactionCount = group.Count()
                 })
                 .OrderByDescending(item => item.Amount)
                 .ToList(),
@@ -152,7 +163,8 @@ public sealed class ReportService : IReportService
                 {
                     SourceType = ToCamelCase(group.Key.ToString()),
                     Amount = group.Sum(transaction => transaction.Amount),
-                    Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense)
+                    Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense),
+                    TransactionCount = group.Count()
                 })
                 .OrderByDescending(item => item.Amount)
                 .ToList(),
@@ -169,7 +181,8 @@ public sealed class ReportService : IReportService
                     AccountName = group.Key.AccountName ?? "ไม่ระบุบัญชี",
                     BankName = group.Key.BankName,
                     Amount = group.Sum(transaction => transaction.Amount),
-                    Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense)
+                    Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense),
+                    TransactionCount = group.Count()
                 })
                 .OrderByDescending(item => item.Amount)
                 .ToList(),
@@ -186,7 +199,8 @@ public sealed class ReportService : IReportService
                     CardName = group.Key.CardName ?? "ไม่ระบุบัตร",
                     BankName = group.Key.CreditCardBankName,
                     Amount = group.Sum(transaction => transaction.Amount),
-                    Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense)
+                    Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense),
+                    TransactionCount = group.Count()
                 })
                 .OrderByDescending(item => item.Amount)
                 .ToList()
