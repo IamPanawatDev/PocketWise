@@ -7,7 +7,8 @@ export const metadata: Metadata = {
   title: "PocketWise",
   description: "ระบบบันทึกรายรับรายจ่าย",
   icons: {
-    icon: "https://cdn-icons-png.flaticon.com/512/10384/10384161.png",
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
   },
 };
 

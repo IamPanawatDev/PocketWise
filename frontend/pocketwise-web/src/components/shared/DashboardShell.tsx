@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLogout } from "@/features/auth/hooks/useAuthMutations";
@@ -110,13 +111,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className={cn("mb-5 w-full", iconOnly && "md:hidden")}>
           <div className="flex w-full items-center justify-between rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)] px-3 py-2 text-base font-bold text-[var(--pw-on-primary)]">
             <div className="flex min-w-0 items-center gap-2">
-              <span
-                role="img"
-                aria-label="PocketWise money icon"
-                className="size-8 shrink-0 rounded-lg bg-white bg-contain bg-center bg-no-repeat"
-                style={{
-                  backgroundImage: "url(https://cdn-icons-png.flaticon.com/512/10384/10384161.png)",
-                }}
+              <Image
+                src="/app-icon.png"
+                alt="PocketWise icon"
+                width={32}
+                height={32}
+                priority
+                className="size-8 shrink-0 object-contain drop-shadow"
               />
               <span className="truncate">PocketWise</span>
             </div>
@@ -145,13 +146,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {iconOnly && (
           <div className="mb-5 hidden flex-col items-center gap-2 md:flex">
-            <div
-              role="img"
-              aria-label="PocketWise money icon"
-              className="size-10 shrink-0 rounded-xl bg-white bg-contain bg-center bg-no-repeat"
-              style={{
-                backgroundImage: "url(https://cdn-icons-png.flaticon.com/512/10384/10384161.png)",
-              }}
+            <Image
+              src="/app-icon.png"
+              alt="PocketWise icon"
+              width={40}
+              height={40}
+              priority
+              className="size-10 shrink-0 object-contain drop-shadow"
             />
             <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-white" />
           </div>
@@ -192,18 +193,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
         </TooltipProvider>
-
-        <a
-          href="https://www.flaticon.com/free-icon/money_10384161?term=money&related_id=10384161"
-          target="_blank"
-          rel="noreferrer"
-          className={cn(
-            "mt-2 px-3 text-xs text-[var(--pw-ink)]/50 underline-offset-2 hover:underline",
-            iconOnly && "md:hidden",
-          )}
-        >
-          Icon by Flaticon
-        </a>
 
         <div className="mt-auto border-t border-[var(--pw-hairline)] pt-3">
           <div className="hidden md:block">
