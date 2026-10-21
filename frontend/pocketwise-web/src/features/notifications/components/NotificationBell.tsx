@@ -14,6 +14,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { NotificationSkeleton } from "@/components/shared/Skeletons";
 import { cn, formatDateTime } from "@/lib/utils";
 import {
   useMarkAllNotificationsAsRead,
@@ -165,12 +166,9 @@ export function NotificationBell({ className }: { className?: string }) {
         </div>
 
         {/* Content list */}
-        <div className="overflow-y-auto max-h-96 divide-y divide-[var(--pw-hairline)]">
+        <div className="overflow-y-auto max-h-96">
           {isLoading ? (
-            <div className="flex items-center justify-center p-8 text-sm text-[var(--pw-ink)]/60">
-              <LoaderCircle className="size-5 animate-spin mr-2" />
-              กำลังโหลด...
-            </div>
+            <NotificationSkeleton count={4} />
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-sm text-[var(--pw-ink)]/60">
               <Inbox className="size-10 text-[var(--pw-ink)]/30 mb-2" />

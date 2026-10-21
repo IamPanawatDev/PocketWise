@@ -15,6 +15,7 @@ import { ApiError } from "@/lib/api-client";
 import { cn, formatPhoneNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
@@ -169,7 +170,24 @@ export function SettingsView() {
       </header>
 
       {loading ? (
-        <p role="status" className="text-[var(--pw-ink)]/70">กำลังโหลดข้อมูล...</p>
+        <div className="space-y-6">
+          <Card className="p-4 sm:p-6 space-y-4">
+            <Skeleton className="h-6 w-36" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-1.5"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+            </div>
+            <Skeleton className="h-10 w-28" />
+          </Card>
+          <Card className="p-4 sm:p-6 space-y-4">
+            <Skeleton className="h-6 w-36" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Skeleton className="h-4 w-20" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-1.5"><Skeleton className="h-4 w-20" /><Skeleton className="h-10 w-full" /></div>
+            </div>
+            <Skeleton className="h-10 w-28" />
+          </Card>
+        </div>
       ) : failed ? (
         <p role="alert" className="text-[var(--pw-expense)]">
           {settingsQuery.error instanceof ApiError

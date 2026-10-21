@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { TableSkeleton } from "@/components/shared/Skeletons";
 import {
   Select,
   SelectContent,
@@ -86,12 +87,7 @@ export function AuditLogTable({
   const fromItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const toItem = Math.min(page * pageSize, totalItems);
   if (isLoading) {
-    return (
-      <Card className="flex min-h-[300px] flex-col items-center justify-center p-8 text-[var(--pw-ink)]/60">
-        <Loader2 className="mb-3 size-8 animate-spin text-[var(--pw-primary)]" />
-        <p className="text-sm">กำลังโหลดประวัติการเปลี่ยนแปลง...</p>
-      </Card>
-    );
+    return <TableSkeleton rows={8} columns={6} />;
   }
 
   if (logs.length === 0) {

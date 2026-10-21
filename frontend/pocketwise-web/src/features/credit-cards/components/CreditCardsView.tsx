@@ -16,6 +16,7 @@ import { ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { FormField } from "@/components/ui/form-field";
@@ -177,7 +178,7 @@ export function CreditCardsView() {
 
       {/* Cards List */}
       {isLoading ? (
-        <p role="status" className="text-[var(--pw-ink)]/70">กำลังโหลดบัตร...</p>
+        <CardGridSkeleton count={4} columns="grid-cols-1 sm:grid-cols-2" type="creditCard" />
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดบัตรไม่สำเร็จ"}</p>
       ) : !data?.length ? (

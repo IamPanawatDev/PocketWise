@@ -26,6 +26,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import {
   Banknote,
   Landmark,
@@ -201,7 +202,7 @@ export function BankAccountsView() {
 
       {/* Accounts List */}
       {isLoading ? (
-        <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
+        <ListRowsSkeleton count={4} hasAvatar />
       ) : !data || data.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-8 text-center">
           <Landmark className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { formatDateTime } from "@/lib/utils";
@@ -88,9 +89,17 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
     >
       <div className="flex-1 space-y-6 overflow-y-auto px-5 py-4 sm:px-6">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[var(--pw-ink)]/60">
-            <LoaderCircle className="size-8 animate-spin text-[var(--pw-primary)]" />
-            <p className="mt-2 text-sm">กำลังโหลดการตั้งค่าระบบ...</p>
+          <div className="space-y-4 py-2">
+            <div className="rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] p-4 space-y-3">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+            <div className="rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] p-4 space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-9 w-32" />
+            </div>
           </div>
         ) : isError ? (
           <div className="rounded-[var(--pw-rounded-sm)] border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-400">

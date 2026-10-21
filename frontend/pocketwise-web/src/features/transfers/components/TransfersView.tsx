@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import { ArrowRightLeft, LoaderCircle, Plus, Send, X } from "lucide-react";
 
 export function TransfersView() {
@@ -198,7 +199,7 @@ export function TransfersView() {
 
       {/* Transfers History */}
       {isLoading ? (
-        <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
+        <CardGridSkeleton count={4} columns="grid-cols-1" />
       ) : !transfers || transfers.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-8 text-center">
           <ArrowRightLeft className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />

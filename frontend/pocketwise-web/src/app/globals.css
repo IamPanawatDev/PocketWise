@@ -192,3 +192,40 @@ html[data-theme="light"] .pw-ambient-bg::after,
 html.light .pw-ambient-bg::after {
   display: none;
 }
+
+/* Skeleton Shimmer Styling */
+@keyframes pw-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.pw-skeleton {
+  background: var(--pw-surface-onyx);
+  position: relative;
+  overflow: hidden;
+}
+
+.pw-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.09) 50%,
+    transparent 100%
+  );
+  animation: pw-shimmer 1.8s infinite;
+}
+
+html[data-theme="light"] .pw-skeleton::after,
+html.light .pw-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.05) 50%,
+    transparent 100%
+  );
+}

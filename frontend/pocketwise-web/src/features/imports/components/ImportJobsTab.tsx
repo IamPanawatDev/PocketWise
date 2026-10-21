@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -110,14 +111,18 @@ export function ImportJobsTab() {
             </thead>
             <tbody className="divide-y divide-[var(--pw-hairline)]">
               {isLoading ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="py-8 text-center text-[var(--pw-text-muted)]"
-                  >
-                    กำลังโหลดประวัติการนำเข้า...
-                  </td>
-                </tr>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="border-b border-[var(--pw-hairline)]">
+                    <td className="py-3 px-4"><Skeleton className="h-4 w-20" /></td>
+                    <td className="py-3 px-4"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                    <td className="py-3 px-4"><Skeleton className="h-4 w-32" /></td>
+                    <td className="py-3 px-4 text-center"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                    <td className="py-3 px-4 text-center"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                    <td className="py-3 px-4 text-center"><Skeleton className="h-4 w-8 mx-auto" /></td>
+                    <td className="py-3 px-4 text-center"><Skeleton className="h-5 w-16 mx-auto rounded-full" /></td>
+                    <td className="py-3 px-4 text-center"><Skeleton className="h-8 w-16 mx-auto rounded-md" /></td>
+                  </tr>
+                ))
               ) : jobs.length === 0 ? (
                 <tr>
                   <td

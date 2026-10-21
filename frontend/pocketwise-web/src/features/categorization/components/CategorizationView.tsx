@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import { LoaderCircle, Pencil, Plus, Save, Sparkles, Store, Trash2, X } from "lucide-react";
 
 const initialMerchant: MerchantFormValues = {
@@ -196,7 +197,7 @@ export function CategorizationView() {
           </form>
         </Card>
         {merchantsLoading ? (
-          <p role="status" className="text-[var(--pw-ink)]/70">กำลังโหลดร้านค้า...</p>
+          <ListRowsSkeleton count={4} />
         ) : merchantsError ? (
           <p role="alert" className="text-[var(--pw-expense)]">โหลดร้านค้าไม่สำเร็จ</p>
         ) : !merchants?.length ? (
@@ -306,7 +307,7 @@ export function CategorizationView() {
           </form>
         </Card>
         {rulesLoading ? (
-          <p role="status" className="text-[var(--pw-ink)]/70">กำลังโหลดกฎ...</p>
+          <ListRowsSkeleton count={4} />
         ) : rulesError ? (
           <p role="alert" className="text-[var(--pw-expense)]">โหลดกฎไม่สำเร็จ</p>
         ) : !rules?.length ? (

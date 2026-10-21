@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { TransactionCardsSkeleton } from "@/components/shared/Skeletons";
 import { TransactionForm } from "./TransactionForm";
 import {
   ArrowDownRight,
@@ -312,7 +313,7 @@ export function TransactionList({
       </Card>
 
       {isLoading ? (
-        <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
+        <TransactionCardsSkeleton count={6} />
       ) : !data || data.items.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-12 text-center text-[var(--pw-ink)]/65">
           <ReceiptText className="mb-3 size-12 opacity-35 text-[var(--pw-primary)]" />

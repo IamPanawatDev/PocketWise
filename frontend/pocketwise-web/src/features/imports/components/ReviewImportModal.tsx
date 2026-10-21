@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { FormField } from "@/components/ui/form-field";
@@ -139,9 +140,16 @@ function SlipReviewContent({
 
   if (isLoading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center text-sm text-[var(--pw-ink)]/60">
-        <LoaderCircle className="h-8 w-8 animate-spin mb-2 text-[var(--pw-primary)]" />
-        <p>กำลังโหลดข้อมูลสลิป...</p>
+      <div className="space-y-4 py-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5"><Skeleton className="h-4 w-20" /><Skeleton className="h-10 w-full" /></div>
+          <div className="space-y-1.5"><Skeleton className="h-4 w-20" /><Skeleton className="h-10 w-full" /></div>
+        </div>
+        <div className="space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-28" />
+        </div>
       </div>
     );
   }
@@ -370,9 +378,17 @@ function StatementReviewContent({
 
   if (isLoading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center text-sm text-[var(--pw-ink)]/60">
-        <LoaderCircle className="h-8 w-8 animate-spin mb-2 text-[var(--pw-primary)]" />
-        <p>กำลังโหลดข้อมูลใบแจ้งยอด...</p>
+      <div className="space-y-3 py-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30">
+            <Skeleton className="size-5 rounded" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+            <Skeleton className="h-5 w-20" />
+          </div>
+        ))}
       </div>
     );
   }

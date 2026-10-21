@@ -19,6 +19,7 @@ import { ApiError } from "@/lib/api-client";
 import { cn, formatCurrency, toThailandDateInputValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
@@ -342,7 +343,7 @@ export function BudgetsView() {
 
       {/* Main Content: Budgets List immediately visible */}
       {isLoading ? (
-        <p role="status" className="text-[var(--pw-ink)]/70">กำลังโหลดงบ...</p>
+        <CardGridSkeleton count={4} type="budget" />
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดงบไม่สำเร็จ"}</p>
       ) : !budgets?.length ? (

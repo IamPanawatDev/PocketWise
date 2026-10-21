@@ -54,6 +54,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -421,10 +422,7 @@ export function SystemCategoriesManager() {
 
       {/* Categories List */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16 text-[var(--pw-ink)]/70">
-          <LoaderCircle className="size-6 animate-spin mr-2" />
-          กำลังโหลดหมวดหมู่มาตรฐาน...
-        </div>
+        <ListRowsSkeleton count={8} />
       ) : filteredCategories.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed border-[var(--pw-hairline)]">
           <FolderTree className="size-12 text-[var(--pw-ink)]/30 mb-3" />

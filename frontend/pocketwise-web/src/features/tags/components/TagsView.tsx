@@ -20,6 +20,7 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import {
   ArrowDown,
   ArrowUp,
@@ -192,7 +193,7 @@ export function TagsView() {
 
       {/* Tags List */}
       {isLoading ? (
-        <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
+        <ListRowsSkeleton count={6} />
       ) : !data || data.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-8 text-center">
           <Tags className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />

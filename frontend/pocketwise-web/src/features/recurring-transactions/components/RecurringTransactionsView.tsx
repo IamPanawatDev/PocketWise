@@ -20,6 +20,7 @@ import { ApiError } from "@/lib/api-client";
 import { cn, formatCurrency, formatDate, formatDateTime, toThailandDateInputValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { DateInput } from "@/components/ui/date-input";
@@ -286,7 +287,7 @@ export function RecurringTransactionsView() {
 
       {/* Recurring Transactions List */}
       {isLoading ? (
-        <p role="status" className="text-[var(--pw-ink)]/70">กำลังโหลดรายการ...</p>
+        <CardGridSkeleton count={4} />
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดรายการไม่สำเร็จ"}</p>
       ) : !data?.length ? (
