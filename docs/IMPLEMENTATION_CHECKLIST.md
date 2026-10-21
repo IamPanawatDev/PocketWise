@@ -138,11 +138,17 @@
 | 7.7 | OCR (option ท้าย phase) — (📦 provider) — ผู้ใช้ review ก่อน save | ✅ | FR1.1–1.3: ติดตั้ง `Tesseract` 5.2.0 (`TesseractSlipOcrService`) พร้อม `tha`+`eng` trained data อ่านสลิปจริงภาษาไทยและ review & confirm form ก่อนบันทึก |
 | 7.8 | Gate: import ใช้งานจริง + สถานะ FR อัปเดต | ✅ | 28/28 unit tests backend ผ่าน 100%, FE lint & build ผ่าน 0 error, อัปเดต FR1.1–FR1.3, FR4.8, S2 |
 
-## 10. Phase 8 — Hardening & Deployment 🔁
+## 10. Phase 8 — Hardening, Polish & Maintenance 🔁
 
 | # | รายการ | สถานะ | Note |
 |:-:|---|:-:|---|
-| 8.1 | 📦 `Mvc.Testing` + integration tests ครบ | ⬜ | |
+| 8.0.1 | Maintenance Background Jobs (AuditLogCleanup & RefreshTokenCleanup) | ✅ | D45: AuditLogCleanupService รันทุกวัน 02:00 UTC ล้างประวัติตาม retention, RefreshTokenCleanupService รันทุกวันอาทิตย์ 03:00 UTC ล้าง token หมดอายุ |
+| 8.0.2 | Admin System Settings & Audit Log Setup Modal | ✅ | D45: ตาราง SystemSettings, AuditLogSettingsModal, สิทธิ์ Admin ในการเปิด/ปิดการบันทึกประวัติและสั่ง purge ข้อมูลเก่า |
+| 8.0.3 | Motion Animation System (motion) | ✅ | D46: ติดตั้ง motion (^14.5.0), สร้าง AnimatedList, AnimatedNumber, PageTransition, micro-interactions ปุ่มและ card ทั่วทุก 15+ views |
+| 8.0.4 | Standardized Unified Loading & Skeleton Architecture | ✅ | D47: สร้าง src/components/ui/skeleton.tsx, reusable presets ใน Skeletons.tsx, .pw-skeleton shimmer ใน globals.css ครอบคลุมทั้ง 32 routes |
+| 8.0.5 | Smooth Modal & BottomSheet Transition Standards | ✅ | D48: Custom CSS keyframes ซิงค์เวลาปิด 180ms เท่ากันระหว่าง Content และ Overlay, แก้ปัญหาจังหวะปิดค้าง/สะดุด (hanging glitch) |
+| 8.0.6 | Branding, Ambient Background & Responsive BottomSheet Layout | ✅ | D49: Ambient background (Light 0.75, Dark 0.15), จัดปุ่มยืนยันอยู่บนและปุ่มยกเลิกอยู่ล่างใน BottomSheet มือถือ, เปลี่ยน logo & favicon แบรนด์ PocketWise |
+| 8.1 | 📦 Mvc.Testing + integration tests ครบ | ⬜ | |
 | 8.2 | 📦 Playwright (FE E2E — เมื่อใช้) | ⬜ | |
 | 8.3 | Security review (rate limiting, upload guard, secrets ผ่านหมด) | ⬜ | Tech_Stack §8 |
 | 8.4 | CI (GitHub Actions — build + lint + test) | ⬜ | |

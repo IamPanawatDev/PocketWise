@@ -45,6 +45,7 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 | Icons | lucide-react | Consistent UI icons. |
 | Forms | React Hook Form + Zod | Form state and schema-based validation. Validate on both client and server. |
 | API client | Native fetch or a small typed API wrapper | Centralize base URL, headers, error handling, and credentials. Add TanStack Query if server-state caching/invalidation becomes useful. |
+| UI Animations | motion (framer-motion v14.5.0) | Fluid UI animations, staggered lists (AnimatedList), spring counters (AnimatedNumber), route transitions (PageTransition), and micro-interactions. |
 | Reports charts | Recharts | Responsive report charts; render amounts in separate currency series and use the project design tokens. |
 | SignalR client | @microsoft/signalr (^10.0.11 — ติดตั้งแล้วใน frontend/pocketwise-web) | Connect to the ASP.NET Core SignalR hub and handle reconnects/events. |
 | Database | Microsoft SQL Server | Relational storage for users, transactions, categories, budgets, cards, and audit records. |

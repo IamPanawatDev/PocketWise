@@ -27,7 +27,8 @@ SQL Server (Microsoft SQL Server 2025, database: PocketWiseDb)
 | Frontend | Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, ESLint 9 |
 | Backend | .NET 10 (ASP.NET Core Web API), EF Core 10.0.13, ASP.NET Core Identity (JWT + Refresh Token) |
 | Database | Microsoft SQL Server 2025 (localhost / `PocketWiseDb`) |
-| Real-time | ASP.NET Core SignalR (server) + `@microsoft/signalr` (client — จะติดตั้งเมื่อถึง Phase 6) |
+| Real-time | ASP.NET Core SignalR (server) + `@microsoft/signalr` (^10.0.11 client) |
+| UI/Animation | Tailwind CSS 4, shadcn/ui, `motion` (^14.5.0), `recharts` (^3.10.1) |
 | Testing | xUnit + WebApplicationFactory / Playwright (ตาม phase) |
 
 รายละเอียดเต็ม: [`docs/Tech_Stack.md`](docs/Tech_Stack.md)
@@ -79,4 +80,4 @@ if not exist .env.local copy .env.example .env.local     # Windows (Linux: cp �
 
 ## Status
 
-ดูตารางสถานะ Phase ได้ที่ [`docs/DEVELOPMENT_GUIDELINE.md` §3](docs/DEVELOPMENT_GUIDELINE.md) — ปัจจุบัน: Phase 2 (Data Model) พร้อมเริ่มโค้ด
+ดูตารางสถานะ Phase ได้ที่ [`docs/DEVELOPMENT_GUIDELINE.md` §3](docs/DEVELOPMENT_GUIDELINE.md) — ปัจจุบัน: Phases 0–7 เสร็จสมบูรณ์แล้ว, กำลังอยู่ในช่วง Phase 8 (Hardening, Polish & Maintenance)
