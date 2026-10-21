@@ -14,7 +14,7 @@ function AlertDialogOverlay({
   return (
     <AlertDialogPrimitive.Overlay
       className={cn(
-        "fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "fixed inset-0 z-50 bg-black/65 backdrop-blur-xs pw-dialog-overlay",
         className,
       )}
       {...props}
@@ -31,7 +31,7 @@ function AlertDialogContent({
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[var(--pw-rounded-lg)] bg-[var(--pw-surface-indigo)] p-6 text-[var(--pw-ink)]",
+          "fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[var(--pw-rounded-lg)] bg-[var(--pw-surface-indigo)] p-6 text-[var(--pw-ink)] shadow-2xl outline-none pw-dialog-content",
           className,
         )}
         {...props}

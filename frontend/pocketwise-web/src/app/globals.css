@@ -229,3 +229,113 @@ html.light .pw-skeleton::after {
     transparent 100%
   );
 }
+
+/* ==========================================================================
+   Smooth Modal & Bottom Sheet Transitions
+   ========================================================================== */
+
+@keyframes pw-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pw-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Mobile: Bottom Sheet slide up / down */
+@keyframes pw-sheet-slide-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pw-sheet-slide-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Desktop: Centered Modal scale & fade smoothly */
+@keyframes pw-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pw-modal-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
+/* Shared Overlay Backdrop */
+.pw-dialog-overlay[data-state="open"] {
+  animation: pw-fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pw-dialog-overlay[data-state="closed"] {
+  animation: pw-fade-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+/* Bottom Sheet (Mobile) */
+.pw-bottom-sheet-content[data-state="open"] {
+  animation: pw-sheet-slide-in 260ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.pw-bottom-sheet-content[data-state="closed"] {
+  animation: pw-sheet-slide-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+/* Desktop Centered Modal Dialog (sm+) */
+@media (min-width: 640px) {
+  .pw-bottom-sheet-content[data-state="open"] {
+    animation: pw-modal-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .pw-bottom-sheet-content[data-state="closed"] {
+    animation: pw-modal-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+    pointer-events: none;
+  }
+}
+
+/* AlertDialog & ConfirmDialog Content */
+.pw-dialog-content[data-state="open"] {
+  animation: pw-modal-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pw-dialog-content[data-state="closed"] {
+  animation: pw-modal-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
