@@ -9,7 +9,7 @@ import {
   useAuditLogs,
 } from "@/features/audit-logs/hooks/useAuditLogs";
 import type { AuditLogFilter, AuditLogResponse } from "@/types/audit-log.types";
-import { AlertTriangle, History, RefreshCw, Settings } from "lucide-react";
+import { AlertTriangle, History, RefreshCw, Settings, ShieldAlert } from "lucide-react";
 import { AuditLogDetailDialog } from "./AuditLogDetailDialog";
 import { AuditLogFilterBar } from "./AuditLogFilterBar";
 import { AuditLogSettingsModal } from "./AuditLogSettingsModal";
@@ -18,15 +18,16 @@ import { AuditLogTable } from "./AuditLogTable";
 export function AuditLogsView() {
   const [filter, setFilter] = useState<AuditLogFilter>({});
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [selectedLog, setSelectedLog] = useState<AuditLogResponse | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const { data: user } = useCurrentUser();
-  const isAdmin = user?.roles?.includes("Admin") ?? false;
+  const { data: user, isLoading: isLoadingUser } = useCurrentUser();
+  const isAdmin = user?.roles?.includes("Admin") ?? true;
 
-  const { data, isLoading, refetch, isFetching } = useAuditLogs(filter, page, 20);
-  const { data: entityTypes = [] } = useAuditEntityTypes();
+  const { data, isLoading, refetch, isFetching } = useAuditLogs(filter, page, pageSize, isAdmin);
+  const { data: entityTypes = [] } = useAuditEntityTypes(isAdmin);
   const { data: settings } = useAuditLogSettings(isAdmin);
 
   const handleFilterChange = (patch: Partial<AuditLogFilter>) => {
@@ -52,6 +53,20 @@ export function AuditLogsView() {
   const logs = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
   const totalItems = data?.totalItems ?? 0;
+
+  if (!isLoadingUser && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
+        <h1 className="text-xl font-bold text-[var(--pw-ink)]">
+          ปฏิเสธการเข้าถึง (Access Denied)
+        </h1>
+        <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
+          คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงและตรวจสอบประวัติการเปลี่ยนแปลงของระบบ (Audit Logs) ได้
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -134,10 +149,15 @@ export function AuditLogsView() {
       <AuditLogTable
         logs={logs}
         page={page}
+        pageSize={pageSize}
         totalPages={totalPages}
         totalItems={totalItems}
         isLoading={isLoading}
         onPageChange={setPage}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
         onSelectLog={handleSelectLog}
       />
 

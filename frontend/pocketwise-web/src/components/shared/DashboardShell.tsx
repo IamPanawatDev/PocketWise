@@ -52,7 +52,7 @@ const nav = [
   { href: "/tags", label: "แท็ก", icon: Tags },
   { href: "/bank-accounts", label: "บัญชี", icon: WalletCards },
   { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
-  { href: "/audit-logs", label: "ประวัติการใช้งาน", icon: History },
+  { href: "/audit-logs", label: "ประวัติการใช้งาน (Admin)", icon: History },
   { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog },
   { href: "/admin/permissions", label: "สิทธิ์และบทบาท (Admin)", icon: ShieldCheck },
   { href: "/admin/categories", label: "หมวดหมู่มาตรฐาน (Admin)", icon: FolderTree },
@@ -93,7 +93,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const closeNavigation = () => setIsMobileOpen(false);
   const iconOnly = isCollapsed;
   const visibleNav = nav.filter(
-    (item) => !item.href.startsWith("/admin") || !user?.roles || user.roles.includes("Admin")
+    (item) =>
+      (!item.href.startsWith("/admin") && item.href !== "/audit-logs") ||
+      !user?.roles ||
+      user.roles.includes("Admin")
   );
 
   return (

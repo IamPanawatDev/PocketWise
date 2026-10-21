@@ -23,5 +23,8 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
             .WithMany(u => u.AuditLogs)
             .HasForeignKey(e => e.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(e => new { e.OccurredAt, e.AuditLogId });
+        builder.HasIndex(e => new { e.EntityType, e.OccurredAt });
     }
 }

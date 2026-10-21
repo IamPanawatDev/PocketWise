@@ -33,58 +33,56 @@ public class AuditLogRepository : IAuditLogRepository
         if (pageSize < 1) pageSize = 20;
         if (pageSize > 100) pageSize = 100;
 
-        var query = _dbContext.AuditLogs
-            .AsNoTracking()
-            .Include(a => a.User)
-            .AsQueryable();
+        var baseQuery = _dbContext.AuditLogs.AsNoTracking();
 
         if (userId.HasValue)
         {
-            query = query.Where(a => a.UserId == userId.Value);
+            baseQuery = baseQuery.Where(a => a.UserId == userId.Value);
         }
         else if (filter.UserId.HasValue)
         {
-            query = query.Where(a => a.UserId == filter.UserId.Value);
+            baseQuery = baseQuery.Where(a => a.UserId == filter.UserId.Value);
         }
 
         if (filter.Action.HasValue)
         {
-            query = query.Where(a => a.Action == filter.Action.Value);
+            baseQuery = baseQuery.Where(a => a.Action == filter.Action.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(filter.EntityType))
         {
-            query = query.Where(a => a.EntityType == filter.EntityType);
+            baseQuery = baseQuery.Where(a => a.EntityType == filter.EntityType);
         }
 
         if (!string.IsNullOrWhiteSpace(filter.EntityId))
         {
-            query = query.Where(a => a.EntityId == filter.EntityId);
+            baseQuery = baseQuery.Where(a => a.EntityId == filter.EntityId);
         }
 
         if (filter.FromDate.HasValue)
         {
-            query = query.Where(a => a.OccurredAt >= filter.FromDate.Value);
+            baseQuery = baseQuery.Where(a => a.OccurredAt >= filter.FromDate.Value);
         }
 
         if (filter.ToDate.HasValue)
         {
-            query = query.Where(a => a.OccurredAt <= filter.ToDate.Value);
+            baseQuery = baseQuery.Where(a => a.OccurredAt <= filter.ToDate.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Q))
         {
             var search = filter.Q.Trim();
-            query = query.Where(a =>
+            baseQuery = baseQuery.Where(a =>
                 a.EntityType.Contains(search) ||
                 (a.EntityId != null && a.EntityId.Contains(search)) ||
                 (a.DetailsJson != null && a.DetailsJson.Contains(search)));
         }
 
-        var totalItems = await query.CountAsync(cancellationToken);
+        var totalItems = await baseQuery.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-        var items = await query
+        var items = await baseQuery
+            .Include(a => a.User)
             .OrderByDescending(a => a.OccurredAt)
             .ThenByDescending(a => a.AuditLogId)
             .Skip((page - 1) * pageSize)
@@ -132,22 +130,27 @@ public class AuditLogRepository : IAuditLogRepository
     public async Task<(DateTime? Oldest, DateTime? Latest)> GetDateRangeAsync(CancellationToken cancellationToken = default)
     {
         var hasAny = await _dbContext.AuditLogs.AnyAsync(cancellationToken);
-        if (!hasAny) return (null, null);
+        if (!hasAny)
+        {
+            return (null, null);
+        }
 
         var oldest = await _dbContext.AuditLogs.MinAsync(a => (DateTime?)a.OccurredAt, cancellationToken);
         var latest = await _dbContext.AuditLogs.MaxAsync(a => (DateTime?)a.OccurredAt, cancellationToken);
+
         return (oldest, latest);
     }
 
     public async Task<int> PurgeOlderThanAsync(DateTime? cutoffDate, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.AuditLogs.AsQueryable();
         if (cutoffDate.HasValue)
         {
-            query = query.Where(a => a.OccurredAt < cutoffDate.Value);
+            return await _dbContext.AuditLogs
+                .Where(a => a.OccurredAt < cutoffDate.Value)
+                .ExecuteDeleteAsync(cancellationToken);
         }
 
-        return await query.ExecuteDeleteAsync(cancellationToken);
+        return await _dbContext.AuditLogs.ExecuteDeleteAsync(cancellationToken);
     }
 
     public async Task<bool> IsAuditLogEnabledAsync(CancellationToken cancellationToken = default)
@@ -156,11 +159,11 @@ public class AuditLogRepository : IAuditLogRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);
 
-        if (setting == null) return true; // Default is enabled
-        return !bool.TryParse(setting.SettingValue, out var val) || val;
+        if (setting == null) return true;
+        return bool.TryParse(setting.SettingValue, out var val) ? val : true;
     }
 
-    public async Task SetAuditLogEnabledAsync(bool enabled, long? actorUserId, CancellationToken cancellationToken = default)
+    public async Task SetAuditLogEnabledAsync(bool enabled, long? updatedByUserId, CancellationToken cancellationToken = default)
     {
         var setting = await _dbContext.SystemSettings
             .FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);
@@ -173,7 +176,7 @@ public class AuditLogRepository : IAuditLogRepository
                 SettingValue = enabled.ToString().ToLowerInvariant(),
                 Description = "เปิด/ปิด การบันทึกประวัติการเปลี่ยนแปลง (Audit Logs) ทั้งระบบ",
                 UpdatedAt = DateTime.UtcNow,
-                UpdatedByUserId = actorUserId
+                UpdatedByUserId = updatedByUserId
             };
             _dbContext.SystemSettings.Add(setting);
         }
@@ -181,7 +184,7 @@ public class AuditLogRepository : IAuditLogRepository
         {
             setting.SettingValue = enabled.ToString().ToLowerInvariant();
             setting.UpdatedAt = DateTime.UtcNow;
-            setting.UpdatedByUserId = actorUserId;
+            setting.UpdatedByUserId = updatedByUserId;
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);

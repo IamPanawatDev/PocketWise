@@ -2,6 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatDateTime } from "@/lib/utils";
 import type { AuditLogResponse } from "@/types/audit-log.types";
 import { ChevronLeft, ChevronRight, Eye, FileText, Loader2 } from "lucide-react";
@@ -9,10 +16,12 @@ import { ChevronLeft, ChevronRight, Eye, FileText, Loader2 } from "lucide-react"
 interface AuditLogTableProps {
   logs: AuditLogResponse[];
   page: number;
+  pageSize?: number;
   totalPages: number;
   totalItems: number;
   isLoading: boolean;
   onPageChange: (newPage: number) => void;
+  onPageSizeChange?: (newSize: number) => void;
   onSelectLog: (log: AuditLogResponse) => void;
 }
 
@@ -50,12 +59,16 @@ function getActionBadge(action: string) {
 export function AuditLogTable({
   logs,
   page,
+  pageSize = 20,
   totalPages,
   totalItems,
   isLoading,
   onPageChange,
+  onPageSizeChange,
   onSelectLog,
 }: AuditLogTableProps) {
+  const fromItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const toItem = Math.min(page * pageSize, totalItems);
   if (isLoading) {
     return (
       <Card className="flex min-h-[300px] flex-col items-center justify-center p-8 text-[var(--pw-ink)]/60">
@@ -186,10 +199,33 @@ export function AuditLogTable({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex flex-col items-center justify-between gap-3 px-1 py-2 text-xs text-[var(--pw-ink)]/70 sm:flex-row sm:text-sm">
-        <div>
-          ทั้งหมด <span className="font-bold text-[var(--pw-ink)]">{totalItems.toLocaleString()}</span> รายการ
-          {" "}(หน้า {page} จาก {Math.max(1, totalPages)})
+      <div className="flex flex-col items-center justify-between gap-3 px-1 py-3 text-xs text-[var(--pw-ink)]/70 sm:flex-row sm:text-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <span>
+            แสดง <span className="font-semibold text-[var(--pw-ink)]">{fromItem} - {toItem}</span> จากทั้งหมด{" "}
+            <span className="font-bold text-[var(--pw-ink)]">{totalItems.toLocaleString()}</span> รายการ
+            {" "}(หน้า {page} จาก {Math.max(1, totalPages)})
+          </span>
+
+          {onPageSizeChange && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-[var(--pw-ink)]/50">ต่อหน้า:</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => onPageSizeChange(Number(val))}
+              >
+                <SelectTrigger className="h-7 w-24 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 / หน้า</SelectItem>
+                  <SelectItem value="20">20 / หน้า</SelectItem>
+                  <SelectItem value="50">50 / หน้า</SelectItem>
+                  <SelectItem value="100">100 / หน้า</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

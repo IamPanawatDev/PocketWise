@@ -10,7 +10,7 @@ namespace PocketWise.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/audit-logs")]
-[Authorize]
+[Authorize(Roles = "Admin")]
 public class AuditLogsController : ControllerBase
 {
     private readonly IAuditLogService _auditLogService;
@@ -33,6 +33,9 @@ public class AuditLogsController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var currentUserId = GetCurrentUserId();
         var isAdmin = User.IsInRole("Admin");
 

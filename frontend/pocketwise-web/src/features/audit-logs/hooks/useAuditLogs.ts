@@ -26,11 +26,12 @@ function buildAuditLogQuery(filter: AuditLogFilter, page = 1, pageSize = 20): st
   return `/api/v1/audit-logs?${params.toString()}`;
 }
 
-export function useAuditLogs(filter: AuditLogFilter, page = 1, pageSize = 20) {
+export function useAuditLogs(filter: AuditLogFilter, page = 1, pageSize = 20, enabled = true) {
   const url = buildAuditLogQuery(filter, page, pageSize);
   return useQuery({
     queryKey: ["audit-logs", filter, page, pageSize],
     queryFn: () => apiClient.get<PagedResult<AuditLogResponse>>(url),
+    enabled,
   });
 }
 
@@ -42,10 +43,11 @@ export function useAuditLogDetail(id: number | null) {
   });
 }
 
-export function useAuditEntityTypes() {
+export function useAuditEntityTypes(enabled = true) {
   return useQuery({
     queryKey: ["audit-logs", "entity-types"],
     queryFn: () => apiClient.get<string[]>("/api/v1/audit-logs/entity-types"),
+    enabled,
   });
 }
 

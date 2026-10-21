@@ -1002,9 +1002,9 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 
 | Method | Path | Summary | Auth |
 |---|---|---|---|
-| `GET` | `/api/v1/audit-logs` | ดึงรายการประวัติการเปลี่ยนแปลงแบบแบ่งหน้า (กรองตาม action, entityType, entityId, ช่วงเวลา, คำค้นหา, userId สำหรับ Admin) | `Member` / `Admin` |
-| `GET` | `/api/v1/audit-logs/entity-types` | ดึงรายการ EntityType ทั้งหมดที่มีการบันทึกประวัติ (สำหรับ dropdown filter) | `Member` / `Admin` |
-| `GET` | `/api/v1/audit-logs/{id}` | ดึงรายละเอียดประวัติการเปลี่ยนแปลงตาม Id พร้อม DetailsJson (before/after/payload) | `Member` / `Admin` |
+| `GET` | `/api/v1/audit-logs` | ดึงรายการประวัติการเปลี่ยนแปลงแบบแบ่งหน้า (กรองตาม action, entityType, entityId, ช่วงเวลา, คำค้นหา, userId สำหรับ Admin) | `Admin` |
+| `GET` | `/api/v1/audit-logs/entity-types` | ดึงรายการ EntityType ทั้งหมดที่มีการบันทึกประวัติ (สำหรับ dropdown filter) | `Admin` |
+| `GET` | `/api/v1/audit-logs/{id}` | ดึงรายละเอียดประวัติการเปลี่ยนแปลงตาม Id พร้อม DetailsJson (before/after/payload) | `Admin` |
 | `GET` | `/api/v1/audit-logs/settings` | ดึงสถานะการตั้งค่าการบันทึกและสถิติพื้นที่จัดเก็บของ Audit Log (จำนวนประวัติ, วันที่เก่าสุด/ล่าสุด) | `Admin` |
 | `PUT` | `/api/v1/audit-logs/settings` | เปิด/ปิดการบันทึกประวัติการเปลี่ยนแปลง Audit Log เพื่อป้องกันฐานข้อมูลบวม | `Admin` |
 | `POST` | `/api/v1/audit-logs/purge` | ล้างประวัติการเปลี่ยนแปลงเก่าตามจำนวนวัน (หรือลบทั้งหมด) เพื่อคืนพื้นที่ฐานข้อมูล | `Admin` |
@@ -1019,13 +1019,12 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 | `fromDate` | `DateTime` (ISO 8601) | No | - | วันที่เริ่มต้น (UTC) |
 | `toDate` | `DateTime` (ISO 8601) | No | - | วันที่สิ้นสุด (UTC) |
 | `q` | `string` | No | - | ค้นหาข้อความใน DetailsJson หรือ EntityId |
-| `userId` | `long` | No | - | กรองตาม UserId (เฉพาะผู้ใช้สิทธิ์ `Admin` เท่านั้น; ผู้ใช้ทั่วไปจะถูกบังคับให้ดูเฉพาะ UserId ของตนเองเสมอ) |
+| `userId` | `long` | No | - | กรองตาม UserId |
 | `page` | `int` | No | 1 | หน้าที่ต้องการ |
 | `pageSize` | `int` | No | 20 | จำนวนรายการต่อหน้า (สูงสุด 100) |
 
 ### Authorization Rule
-- **ผู้ใช้ทั่วไป (Member):** ดูได้เฉพาะประวัติที่ตนเองเป็น Actor (`UserId = currentUserId`) เท่านั้น หากพยายามเข้าถึงรายการของผู้อื่นผ่าน `GET /api/v1/audit-logs/{id}` จะได้รับ `404 Not Found`
-- **ผู้ดูแลระบบ (Admin):** สามารถดูประวัติของทุก User หรือระบุ query `userId` เพื่อเจาะจงรายบุคคลได้
+- **การจำกัดสิทธิ์ (Permission Lock):** หน้า `/audit-logs` และ API ทุกเส้นของ `/api/v1/audit-logs` ถูกล็อกให้เฉพาะผู้ใช้ที่มีบทบาทระดับ `Admin` (Permission: `AUDIT_LOGS_VIEW`) เท่านั้นที่สามารถเข้าถึงได้ หากผู้ใช้ทั่วไปพยายามเข้าถึงจะได้รับ `403 Forbidden` หรือหน้าแจ้งเตือนปฏิเสธการเข้าถึง (Access Denied)
 
 ### Data Sanitization
 - ทุกเหตุการณ์จะถูกทำ Sensitive Key Sanitization อัตโนมัติ (`password`, `token`, `secret`, `cvv`, `cardNumber` ฯลฯ จะถูกแปลงเป็น `***MASKED***` ก่อนบันทึกลงฐานข้อมูล)

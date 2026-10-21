@@ -88,12 +88,8 @@ END
     private static async Task SeedPermissionsAndRolesAsync(PocketWiseDbContext context, ILogger logger, CancellationToken cancellationToken)
     {
         // 1. Seed Permissions
-        if (!await context.Permissions.AnyAsync(cancellationToken))
+        var permissions = new List<Permission>
         {
-            logger.LogInformation("[DatabaseSeeder] Seeding default permissions...");
-
-            var permissions = new List<Permission>
-            {
                 // Transactions
                 new() { PermissionCode = "TRANSACTIONS_VIEW", PermissionName = "ดูรายการธุรกรรม", Module = "Transactions", Description = "เข้าถึงและดูประวัติรายการรายรับรายจ่าย", CreatedAt = DateTime.UtcNow },
                 new() { PermissionCode = "TRANSACTIONS_CREATE", PermissionName = "สร้างรายการธุรกรรม", Module = "Transactions", Description = "บันทึกรายการรายรับรายจ่ายใหม่", CreatedAt = DateTime.UtcNow },
@@ -120,12 +116,17 @@ END
                 new() { PermissionCode = "ROLES_VIEW", PermissionName = "ดูบทบาทและสิทธิ์", Module = "Admin", Description = "ดูรายการบทบาทและตารางสิทธิ์การเข้าถึง", CreatedAt = DateTime.UtcNow },
                 new() { PermissionCode = "ROLES_MANAGE", PermissionName = "จัดการบทบาทและกำหนดสิทธิ์", Module = "Admin", Description = "สร้าง แก้ไขบทบาท และกำหนดสิทธิ์ให้แต่ละบทบาท", CreatedAt = DateTime.UtcNow },
                 new() { PermissionCode = "USERS_MANAGE", PermissionName = "จัดการผู้ใช้และบทบาท", Module = "Admin", Description = "มอบหมายหรือเปลี่ยนแปลงบทบาทของผู้ใช้งาน", CreatedAt = DateTime.UtcNow },
+                new() { PermissionCode = "AUDIT_LOGS_VIEW", PermissionName = "ดูประวัติการเปลี่ยนแปลง (Audit Logs)", Module = "Admin", Description = "เข้าถึงและตรวจสอบประวัติการทำรายการ (Audit Logs) ทั้งระบบ", CreatedAt = DateTime.UtcNow },
             };
 
-            context.Permissions.AddRange(permissions);
-            await context.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("[DatabaseSeeder] {Count} permissions seeded.", permissions.Count);
-        }
+            var existingCodes = await context.Permissions.Select(p => p.PermissionCode).ToListAsync(cancellationToken);
+            var missingPerms = permissions.Where(p => !existingCodes.Contains(p.PermissionCode)).ToList();
+            if (missingPerms.Count > 0)
+            {
+                context.Permissions.AddRange(missingPerms);
+                await context.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("[DatabaseSeeder] {Count} new permissions seeded.", missingPerms.Count);
+            }
 
         // 2. Seed Roles
         var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.NormalizedName == "ADMIN", cancellationToken);
