@@ -73,7 +73,7 @@ export function TransactionForm({
   const defaultValues = useMemo<TransactionFormValues>(
     () => ({
       transactionType: (editing?.transactionType as TransactionFormValues["transactionType"]) ?? "expense",
-      amount: editing?.amount ?? 0,
+      amount: (editing ? editing.amount : "") as unknown as number,
       currencyCode: editing?.currencyCode ?? settings?.currencyCode ?? "THB",
       transactionDate: editing ? toThailandDateTimeInputValue(editing.transactionDate) : "",
       description: editing?.description ?? "",
@@ -227,7 +227,7 @@ export function TransactionForm({
           </FormField>
 
           <FormField label="จำนวนเงิน" htmlFor="transaction-amount" error={errors.amount?.message}>
-            <NumberInput id="transaction-amount" step="0.01" min="0.01" {...register("amount")} />
+            <NumberInput id="transaction-amount" step="0.01" min="0.01" placeholder="0" {...register("amount")} />
           </FormField>
 
           <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)" htmlFor="transaction-date" error={errors.transactionDate?.message}>

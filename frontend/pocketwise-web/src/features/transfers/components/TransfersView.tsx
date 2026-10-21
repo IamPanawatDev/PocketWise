@@ -55,7 +55,7 @@ export function TransfersView() {
   }, [setValue]);
 
   const closeForm = () => {
-    setValue("amount", 0);
+    setValue("amount", "" as unknown as number);
     setValue("reference", null);
     setIsFormOpen(false);
   };
@@ -158,7 +158,7 @@ export function TransfersView() {
                 />
               </FormField>
               <FormField label="จำนวนเงิน" htmlFor="transfer-amount" error={errors.amount?.message}>
-                <NumberInput id="transfer-amount" step="0.01" min="0.01" placeholder="0.00" {...register("amount")} />
+                <NumberInput id="transfer-amount" step="0.01" min="0.01" placeholder="0" {...register("amount")} />
               </FormField>
               <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)" htmlFor="transfer-date" error={errors.transferDate?.message}>
                 <Controller

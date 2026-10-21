@@ -369,7 +369,7 @@ export function SlipImportTab() {
                   <FormField label="จำนวนเงิน (บาท)">
                     <NumberInput
                       step={0.01}
-                      placeholder="0.00"
+                      placeholder="0"
                       value={amount}
                       disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
                       onChange={(e) => setAmount(e.target.value)}

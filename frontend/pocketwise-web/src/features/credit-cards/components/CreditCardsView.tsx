@@ -147,7 +147,7 @@ export function CreditCardsView() {
                 <Input id="credit-card-number" placeholder="**** **** **** 1234 หรือ 1234" {...register("cardNumberMasked")} />
               </FormField>
               <FormField label="วงเงิน (ไม่บังคับ)" htmlFor="credit-card-limit" error={errors.creditLimit?.message}>
-                <NumberInput id="credit-card-limit" min={0} step={0.01} placeholder="0.00" {...register("creditLimit")} />
+                <NumberInput id="credit-card-limit" min={0} step={0.01} placeholder="0" {...register("creditLimit")} />
               </FormField>
               <FormField label="วันสรุปยอด (1–31)" htmlFor="credit-card-billing" error={errors.billingDay?.message}>
                 <NumberInput id="credit-card-billing" min={1} max={31} step={1} placeholder="เช่น 25" {...register("billingDay")} />

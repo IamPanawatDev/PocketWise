@@ -3,7 +3,7 @@ import { isThailandDateTimeInput } from "@/lib/utils";
 
 export const transactionSchema = z.object({
   transactionType: z.enum(["income", "expense", "transfer"]),
-  amount: z.coerce.number().positive("จำนวนเงินต้องมากกว่า 0"),
+  amount: z.coerce.number({ message: "กรุณาระบุจำนวนเงิน" }).positive("จำนวนเงินต้องมากกว่า 0"),
   currencyCode: z.string().length(3, "รหัสสกุลเงินต้องเป็น 3 ตัวอักษร").default("THB"),
   transactionDate: z.string()
     .min(1, "ต้องระบุวันที่รายการ")
