@@ -26,7 +26,7 @@ export default function TermsPage() {
     >
       {/* 1. การยอมรับข้อกำหนด */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             1
           </span>
@@ -69,7 +69,7 @@ export default function TermsPage() {
 
       {/* 3. บัญชีผู้ใช้งานและความรับผิดชอบ */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             3
           </span>
@@ -90,7 +90,7 @@ export default function TermsPage() {
 
       {/* 4. ข้อห้ามและนโยบายการใช้งานที่ยอมรับได้ */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             4
           </span>
@@ -122,7 +122,7 @@ export default function TermsPage() {
 
       {/* 5. สิทธิ์ในทรัพย์สินทางปัญญาและข้อมูล */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             5
           </span>
@@ -140,7 +140,7 @@ export default function TermsPage() {
 
       {/* 6. ความพร้อมใช้งานและการสำรองข้อมูล */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             6
           </span>
@@ -159,7 +159,7 @@ export default function TermsPage() {
 
       {/* 7. ข้อจำกัดความรับผิด */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             7
           </span>
@@ -172,7 +172,7 @@ export default function TermsPage() {
 
       {/* 8. การสิ้นสุดการใช้งาน */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             8
           </span>
@@ -185,7 +185,7 @@ export default function TermsPage() {
 
       {/* 9. การเปลี่ยนแปลงข้อกำหนดและการติดต่อ */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             9
           </span>

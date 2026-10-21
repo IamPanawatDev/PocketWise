@@ -37,7 +37,7 @@ function getActionBadge(action: string) {
     default:
       return {
         label: action,
-        className: "bg-white/10 text-white/80 border border-white/20",
+        className: "bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/80 border border-[var(--pw-hairline)]",
       };
   }
 }
