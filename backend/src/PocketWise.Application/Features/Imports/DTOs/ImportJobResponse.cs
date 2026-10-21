@@ -13,4 +13,7 @@ public class ImportJobResponse
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+    public long? SlipId { get; set; }
+    public long? StatementId { get; set; }
+    public long? CreditCardId { get; set; }
 }

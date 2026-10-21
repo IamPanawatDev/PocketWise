@@ -24,6 +24,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import {
   Select,
   SelectContent,
@@ -71,6 +72,7 @@ export function RecurringTransactionsView() {
   const update = useUpdateRecurringTransaction();
   const remove = useDeleteRecurringTransaction();
   const [editing, setEditing] = useState<RecurringTransactionResponse | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const { register, control, handleSubmit, reset, formState: { errors } } =
     useForm<RecurringTransactionFormValues>({
       resolver: zodResolver(recurringTransactionSchema),
@@ -86,19 +88,30 @@ export function RecurringTransactionsView() {
     reset(initialValues(toThailandDateInputValue(new Date())));
   };
 
+  const closeForm = () => {
+    clearForm();
+    setIsFormOpen(false);
+  };
+
   const onSubmit = (values: RecurringTransactionFormValues) => {
     const payload = { ...values, description: values.description || null, endDate: values.endDate || null };
     if (editing) {
       update.mutate(
         { id: editing.recurringTransactionId, body: { ...payload, isActive: editing.isActive } },
         {
-          onSuccess: () => { clearForm(); toast.success("บันทึกรายการประจำแล้ว"); },
+          onSuccess: () => {
+            closeForm();
+            toast.success("บันทึกรายการประจำแล้ว");
+          },
           onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "บันทึกไม่สำเร็จ"),
         },
       );
     } else {
       create.mutate(payload, {
-        onSuccess: () => { clearForm(); toast.success("ตั้งรายการประจำแล้ว"); },
+        onSuccess: () => {
+          closeForm();
+          toast.success("ตั้งรายการประจำแล้ว");
+        },
         onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ตั้งรายการไม่สำเร็จ"),
       });
     }
@@ -116,176 +129,216 @@ export function RecurringTransactionsView() {
       startDate: item.startDate,
       endDate: item.endDate,
     });
+    setIsFormOpen(true);
   };
 
   const isSaving = create.isPending || update.isPending;
 
   return (
     <div>
-      <h1 className="mb-2 flex items-center gap-2 text-2xl font-bold">
-        <Repeat className="size-6 text-[var(--pw-primary)]" />
-        รายการประจำ
-      </h1>
-      <p className="mb-6 text-sm text-[var(--pw-ink)]/65">ระบบสร้างรายการรายรับหรือรายจ่ายเมื่อถึงกำหนดตามรอบที่ตั้งไว้</p>
+      {/* Header */}
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
+            <Repeat className="size-6 text-[var(--pw-primary)]" />
+            รายการประจำ
+          </h1>
+          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
+            ระบบสร้างรายการรายรับหรือรายจ่ายเมื่อถึงกำหนดตามรอบที่ตั้งไว้
+          </p>
+        </div>
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => {
+            clearForm();
+            setIsFormOpen(true);
+          }}
+        >
+          <Plus />
+          เพิ่มรายการประจำ
+        </Button>
+      </div>
 
-      <Card className="mb-6 p-4 sm:p-6">
-        <h2 className="mb-4 text-lg font-bold">{editing ? "แก้ไขรายการประจำ" : "ตั้งรายการประจำ"}</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="ประเภท" htmlFor="recurring-type" error={errors.transactionType?.message}>
-              <Controller
-                control={control}
-                name="transactionType"
-                render={({ field }) => (
-                  <div id="recurring-type" className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="ประเภทรายการประจำ">
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={field.value === "expense"}
-                      onClick={() => field.onChange("expense")}
-                      className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
-                        field.value === "expense"
-                          ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
-                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
-                      )}
-                    >
-                      <ArrowDownRight className="size-4" />
-                      รายจ่าย
-                    </button>
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={field.value === "income"}
-                      onClick={() => field.onChange("income")}
-                      className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
-                        field.value === "income"
-                          ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
-                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
-                      )}
-                    >
-                      <ArrowUpRight className="size-4" />
-                      รายรับ
-                    </button>
-                  </div>
+      {/* Form in BottomSheet */}
+      <BottomSheet
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          if (!open) closeForm();
+          else setIsFormOpen(true);
+        }}
+        title={editing ? "แก้ไขรายการประจำ" : "ตั้งรายการประจำใหม่"}
+        description="ตั้งค่ารายการที่เกิดขึ้นเป็นประจำ เช่น ค่าเช่า ค่าบริการรายเดือน หรือเงินเดือน"
+      >
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField label="ประเภท" htmlFor="recurring-type" error={errors.transactionType?.message}>
+                <Controller
+                  control={control}
+                  name="transactionType"
+                  render={({ field }) => (
+                    <div id="recurring-type" className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="ประเภทรายการประจำ">
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={field.value === "expense"}
+                        onClick={() => field.onChange("expense")}
+                        className={cn(
+                          "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                          field.value === "expense"
+                            ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
+                            : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
+                        )}
+                      >
+                        <ArrowDownRight className="size-4" />
+                        รายจ่าย
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={field.value === "income"}
+                        onClick={() => field.onChange("income")}
+                        className={cn(
+                          "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                          field.value === "income"
+                            ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
+                            : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
+                        )}
+                      >
+                        <ArrowUpRight className="size-4" />
+                        รายรับ
+                      </button>
+                    </div>
+                  )}
+                />
+              </FormField>
+              <FormField label="จำนวนเงิน" htmlFor="recurring-amount" error={errors.amount?.message}>
+                <NumberInput id="recurring-amount" min={0.01} step={0.01} placeholder="0.00" {...register("amount")} />
+              </FormField>
+              <FormField label="รายละเอียด" htmlFor="recurring-description" error={errors.description?.message}>
+                <Input id="recurring-description" placeholder="เช่น ค่าเช่าห้อง, Netflix, ค่าสมาชิกรายเดือน" {...register("description")} />
+              </FormField>
+              <FormField label="หมวดหมู่" htmlFor="recurring-category">
+                <Controller control={control} name="categoryId" render={({ field }) => (
+                  <Select
+                    value={field.value == null ? "none" : String(field.value)}
+                    onValueChange={(value) => field.onChange(value === "none" ? null : Number(value))}
+                  >
+                    <SelectTrigger id="recurring-category"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )} />
+              </FormField>
+              <FormField label="ความถี่" htmlFor="recurring-frequency">
+                <Controller control={control} name="frequency" render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="recurring-frequency"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">รายวัน</SelectItem>
+                      <SelectItem value="weekly">รายสัปดาห์</SelectItem>
+                      <SelectItem value="monthly">รายเดือน</SelectItem>
+                      <SelectItem value="quarterly">รายไตรมาส</SelectItem>
+                      <SelectItem value="yearly">รายปี</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )} />
+              </FormField>
+              <FormField label="ทุก ๆ (รอบ)" htmlFor="recurring-interval" error={errors.intervalValue?.message}>
+                <NumberInput id="recurring-interval" min={1} step={1} {...register("intervalValue")} />
+              </FormField>
+              <FormField label="วันเริ่มต้น" htmlFor="recurring-start" error={errors.startDate?.message}>
+                <Controller control={control} name="startDate" render={({ field }) => (
+                  <DateInput id="recurring-start" value={field.value} onChange={field.onChange} />
+                )} />
+              </FormField>
+              <FormField label="วันสิ้นสุด (ไม่บังคับ)" htmlFor="recurring-end" error={errors.endDate?.message}>
+                <Controller control={control} name="endDate" render={({ field }) => (
+                  <DateInput id="recurring-end" value={field.value ?? ""} onChange={(value) => field.onChange(value || null)} />
+                )} />
+              </FormField>
+            </div>
+            <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
+              <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
+                {isSaving ? (
+                  <LoaderCircle className="animate-spin size-4 mr-1.5" />
+                ) : editing ? (
+                  <Save className="size-4 mr-1.5" />
+                ) : (
+                  <Plus className="size-4 mr-1.5" />
                 )}
-              />
-            </FormField>
-            <FormField label="จำนวนเงิน" htmlFor="recurring-amount" error={errors.amount?.message}>
-              <NumberInput id="recurring-amount" min={0.01} step={0.01} {...register("amount")} />
-            </FormField>
-            <FormField label="รายละเอียด" htmlFor="recurring-description" error={errors.description?.message}>
-              <Input id="recurring-description" {...register("description")} />
-            </FormField>
-            <FormField label="หมวดหมู่" htmlFor="recurring-category">
-              <Controller control={control} name="categoryId" render={({ field }) => (
-                <Select
-                  value={field.value == null ? "none" : String(field.value)}
-                  onValueChange={(value) => field.onChange(value === "none" ? null : Number(value))}
-                >
-                  <SelectTrigger id="recurring-category"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                    {categories?.map((category) => (
-                      <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )} />
-            </FormField>
-            <FormField label="ความถี่" htmlFor="recurring-frequency" error={errors.frequency?.message}>
-              <Controller control={control} name="frequency" render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="recurring-frequency"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">วัน</SelectItem>
-                    <SelectItem value="weekly">สัปดาห์</SelectItem>
-                    <SelectItem value="monthly">เดือน</SelectItem>
-                    <SelectItem value="quarterly">ไตรมาส</SelectItem>
-                    <SelectItem value="yearly">ปี</SelectItem>
-                  </SelectContent>
-                </Select>
-              )} />
-            </FormField>
-            <FormField label="ทุกกี่หน่วย" htmlFor="recurring-interval" error={errors.intervalValue?.message}>
-              <NumberInput id="recurring-interval" min={1} step={1} {...register("intervalValue")} />
-            </FormField>
-            <FormField label="วันเริ่มต้น" htmlFor="recurring-start" error={errors.startDate?.message}>
-              <Controller control={control} name="startDate" render={({ field }) => (
-                <DateInput id="recurring-start" value={field.value} onChange={field.onChange} />
-              )} />
-            </FormField>
-            <FormField label="วันสิ้นสุด (ไม่บังคับ)" htmlFor="recurring-end" error={errors.endDate?.message}>
-              <Controller control={control} name="endDate" render={({ field }) => (
-                <DateInput id="recurring-end" value={field.value ?? ""} onChange={(value) => field.onChange(value || null)} />
-              )} />
-            </FormField>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
-              {isSaving ? <LoaderCircle className="animate-spin" /> : editing ? <Save /> : <Plus />}
-              {editing ? "บันทึก" : "ตั้งรายการ"}
-            </Button>
-            {editing && (
-              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearForm}>
-                <X />
+                {editing ? "บันทึกการแก้ไข" : "ตั้งรายการประจำ"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
+                <X className="size-4 mr-1.5" />
                 ยกเลิก
               </Button>
-            )}
-          </div>
-        </form>
-      </Card>
+            </div>
+          </form>
+        </div>
+      </BottomSheet>
 
+      {/* Recurring Transactions List */}
       {isLoading ? (
-        <p role="status" className="text-[var(--pw-ink)]/70">กำลังโหลดรายการประจำ...</p>
+        <p role="status" className="text-[var(--pw-ink)]/70">กำลังโหลดรายการ...</p>
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดรายการไม่สำเร็จ"}</p>
       ) : !data?.length ? (
         <Card className="flex flex-col items-center justify-center p-8 text-center">
           <Repeat className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
           <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีรายการประจำ</p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">ตั้งรายการรายรับหรือรายจ่ายที่เกิดขึ้นเป็นประจำเพื่อสร้างรายการอัตโนมัติ</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+            กดปุ่ม &quot;เพิ่มรายการประจำ&quot; ด้านบนเพื่อตั้งค่ารายการอัตโนมัติตามรอบเวลา
+          </p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {data.map((item) => (
-            <Card key={item.recurringTransactionId} className="space-y-3 p-4 sm:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${item.transactionType === "expense" ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-500"}`}>
-                    {item.transactionType === "expense" ? <ArrowDownRight className="size-4" /> : <ArrowUpRight className="size-4" />}
-                  </div>
+            <Card key={item.recurringTransactionId} className="flex flex-col justify-between gap-4 p-4 sm:p-5">
+              <div>
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <h2 className="break-words font-bold">{item.description || item.categoryName || "รายการประจำ"}</h2>
-                    <p className="mt-0.5 text-xs text-[var(--pw-ink)]/60">
-                      {item.transactionType === "expense" ? "รายจ่าย" : "รายรับ"} · ทุก {item.intervalValue} {frequencyLabels[item.frequency]}
-                    </p>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      item.transactionType === "expense"
+                        ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    }`}>
+                      {item.transactionType === "expense" ? <ArrowDownRight className="size-3" /> : <ArrowUpRight className="size-3" />}
+                      {item.transactionType === "expense" ? "รายจ่ายประจำ" : "รายรับประจำ"}
+                    </span>
+                    <h2 className="mt-2 break-words text-lg font-bold">
+                      {formatCurrency(item.amount)}
+                    </h2>
+                    <p className="text-sm text-[var(--pw-ink)]/70">{item.description || "— ไม่ระบุรายละเอียด —"}</p>
+                    {item.categoryName && <p className="text-xs text-[var(--pw-ink)]/50">หมวดหมู่: {item.categoryName}</p>}
                   </div>
+                  <span className="rounded-full bg-[var(--pw-surface-indigo)] px-3 py-1 text-xs font-medium">
+                    ทุก {item.intervalValue > 1 ? `${item.intervalValue} ` : ""}{frequencyLabels[item.frequency]}
+                  </span>
                 </div>
-                <span className="rounded-full bg-[var(--pw-surface-indigo)] px-3 py-1 text-xs font-medium">
-                  {item.isActive ? "เปิดใช้งาน" : "หยุดชั่วคราว"}
-                </span>
+                <div className="mt-4 flex flex-wrap gap-4 text-xs text-[var(--pw-ink)]/60">
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="size-3.5" />
+                    รอบถัดไป: {formatDate(item.nextRunAt)}
+                  </span>
+                </div>
               </div>
-              <p className={`text-lg font-bold ${item.transactionType === "expense" ? "text-[var(--pw-expense)]" : "text-[var(--pw-green)]"}`}>
-                {formatCurrency(item.amount)}
-              </p>
-              <p className="flex items-center gap-1.5 text-xs text-[var(--pw-ink)]/65">
-                <Clock className="size-3.5 text-[var(--pw-ink)]/50 shrink-0" />
-                เริ่ม {formatDate(item.startDate)} · ครั้งถัดไป {formatDateTime(item.nextRunAt)}
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Button size="sm" variant="secondary" onClick={() => startEdit(item)}><Pencil />แก้ไข</Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" className="flex-1 sm:flex-none" onClick={() => startEdit(item)}><Pencil />แก้ไข</Button>
                 <ConfirmDialog
                   title="ลบรายการประจำนี้?"
-                  description="ระบบจะไม่สร้างรายการตามกำหนดนี้อีก"
+                  description="รายการธุรกรรมที่เคยถูกสร้างไปแล้วจะไม่ได้รับผลกระทบ"
                   confirmLabel="ลบ"
                   pending={remove.isPending}
                   onConfirm={() => remove.mutate(item.recurringTransactionId, {
-                    onSuccess: () => toast.success("ลบรายการประจำแล้ว"),
+                    onSuccess: () => toast.success("ลบรายการแล้ว"),
                     onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ลบไม่สำเร็จ"),
                   })}
-                  trigger={<Button size="sm" variant="destructive" aria-label={`ลบ ${item.description ?? "รายการประจำ"}`}><Trash2 />ลบ</Button>}
+                  trigger={<Button size="sm" variant="destructive" className="flex-1 sm:flex-none"><Trash2 />ลบ</Button>}
                 />
               </div>
             </Card>

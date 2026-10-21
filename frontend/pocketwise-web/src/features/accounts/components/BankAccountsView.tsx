@@ -15,6 +15,7 @@ import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,7 @@ export function BankAccountsView() {
   const remove = useDeleteBankAccount();
 
   const [editing, setEditing] = useState<number | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const {
     register,
@@ -68,23 +70,34 @@ export function BankAccountsView() {
     reset(initialBankValues);
   };
 
+  const closeForm = () => {
+    clearForm();
+    setIsFormOpen(false);
+  };
+
   const onSubmit = (values: BankAccountFormValues) => {
     const payload = {
       ...values,
-      bankCode: values.bankCode ?? null,
-      accountNumberMasked: values.accountNumberMasked ?? null,
+      bankCode: values.bankCode?.trim().toUpperCase() || null,
+      accountNumberMasked: values.accountNumberMasked?.trim() || null,
     };
     if (editing !== null) {
       update.mutate(
         { id: editing, body: { ...payload, isActive: true } },
         {
-          onSuccess: () => { clearForm(); toast.success("บันทึกบัญชีแล้ว"); },
+          onSuccess: () => {
+            closeForm();
+            toast.success("บันทึกบัญชีแล้ว");
+          },
           onError: (e) => toast.error(e instanceof ApiError ? e.message : "บันทึกไม่สำเร็จ"),
         },
       );
     } else {
       create.mutate(payload, {
-        onSuccess: () => { clearForm(); toast.success("เพิ่มบัญชีแล้ว"); },
+        onSuccess: () => {
+          closeForm();
+          toast.success("เพิ่มบัญชีแล้ว");
+        },
         onError: (e) => toast.error(e instanceof ApiError ? e.message : "เพิ่มไม่สำเร็จ"),
       });
     }
@@ -99,73 +112,111 @@ export function BankAccountsView() {
 
   return (
     <div>
-      <h1 className="mb-6 flex items-center gap-2 text-2xl font-bold">
-        <Landmark className="size-6 text-[var(--pw-primary)]" />
-        บัญชี
-      </h1>
+      {/* Header */}
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
+            <Landmark className="size-6 text-[var(--pw-primary)]" />
+            บัญชี
+          </h1>
+          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
+            จัดการบัญชีเงินฝาก เงินสด และกระเป๋าเงินของคุณ
+          </p>
+        </div>
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => {
+            clearForm();
+            setIsFormOpen(true);
+          }}
+        >
+          <Plus />
+          เพิ่มบัญชี
+        </Button>
+      </div>
 
-      <Card className="mb-6 p-4 sm:p-6">
-        <h2 className="mb-4 text-lg font-bold">{editing !== null ? "แก้ไขบัญชี" : "เพิ่มบัญชี"}</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="ชื่อบัญชี" htmlFor="account-name" error={errors.accountName?.message}>
-              <Input id="account-name" {...register("accountName")} />
-            </FormField>
-            <FormField label="ชื่อธนาคาร" htmlFor="bank-name" error={errors.bankName?.message}>
-              <Input id="bank-name" {...register("bankName")} />
-            </FormField>
-            <FormField label="รหัสธนาคาร" htmlFor="bank-code">
-              <Input id="bank-code" {...register("bankCode")} />
-            </FormField>
-            <FormField label="ประเภท" htmlFor="account-type" error={errors.accountType?.message}>
-              <Controller
-                control={control}
-                name="accountType"
-                render={({ field }) => (
-                  <Select value={field.value || "bank"} onValueChange={field.onChange}>
-                    <SelectTrigger id="account-type"><SelectValue placeholder="เลือกประเภทบัญชี" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bank">ธนาคาร</SelectItem>
-                      <SelectItem value="cash">เงินสด</SelectItem>
-                      <SelectItem value="wallet">กระเป๋าเงิน</SelectItem>
-                      <SelectItem value="other">อื่น ๆ</SelectItem>
-                    </SelectContent>
-                  </Select>
+      {/* Form in BottomSheet */}
+      <BottomSheet
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          if (!open) closeForm();
+          else setIsFormOpen(true);
+        }}
+        title={editing !== null ? "แก้ไขบัญชี" : "เพิ่มบัญชีใหม่"}
+        description="ระบุรายละเอียดบัญชีสำหรับการบันทึกธุรกรรม"
+      >
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField label="ชื่อบัญชี" htmlFor="account-name" error={errors.accountName?.message}>
+                <Input id="account-name" placeholder="เช่น เงินเดือน, บัญชีหลัก" {...register("accountName")} />
+              </FormField>
+              <FormField label="ชื่อธนาคาร / ผู้ให้บริการ" htmlFor="bank-name" error={errors.bankName?.message}>
+                <Input id="bank-name" placeholder="เช่น กสิกรไทย, ไทยพาณิชย์, TrueMoney" {...register("bankName")} />
+              </FormField>
+              <FormField label="รหัสธนาคาร (เช่น 004 หรือ KBANK)" htmlFor="bank-code" error={errors.bankCode?.message}>
+                <Input id="bank-code" placeholder="เช่น 004 หรือ KBANK" {...register("bankCode")} />
+              </FormField>
+              <FormField label="ประเภท" htmlFor="account-type" error={errors.accountType?.message}>
+                <Controller
+                  control={control}
+                  name="accountType"
+                  render={({ field }) => (
+                    <Select value={field.value || "bank"} onValueChange={field.onChange}>
+                      <SelectTrigger id="account-type">
+                        <SelectValue placeholder="เลือกประเภทบัญชี" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bank">ธนาคาร</SelectItem>
+                        <SelectItem value="cash">เงินสด</SelectItem>
+                        <SelectItem value="wallet">กระเป๋าเงิน</SelectItem>
+                        <SelectItem value="other">อื่น ๆ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
+              <Button type="submit" disabled={create.isPending || update.isPending} className="w-full sm:w-auto">
+                {create.isPending || update.isPending ? (
+                  <LoaderCircle className="animate-spin size-4 mr-1.5" />
+                ) : editing !== null ? (
+                  <Save className="size-4 mr-1.5" />
+                ) : (
+                  <Plus className="size-4 mr-1.5" />
                 )}
-              />
-            </FormField>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending || update.isPending}>
-              {create.isPending || update.isPending
-                ? <LoaderCircle className="animate-spin" />
-                : editing !== null ? <Save /> : <Plus />}
-              {editing !== null ? "บันทึก" : "เพิ่ม"}
-            </Button>
-            {editing !== null && (
-              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearForm}>
-                <X />
+                {editing !== null ? "บันทึกการแก้ไข" : "เพิ่มบัญชี"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
+                <X className="size-4 mr-1.5" />
                 ยกเลิก
               </Button>
-            )}
-          </div>
-        </form>
-      </Card>
+            </div>
+          </form>
+        </div>
+      </BottomSheet>
 
+      {/* Accounts List */}
       {isLoading ? (
         <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
       ) : !data || data.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-8 text-center">
           <Landmark className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
           <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีบัญชี</p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">เพิ่มบัญชีธนาคาร เงินสด หรือกระเป๋าเงินจากฟอร์มด้านบน</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+            กดปุ่ม &quot;เพิ่มบัญชี&quot; ด้านบนเพื่อเพิ่มบัญชีธนาคาร เงินสด หรือกระเป๋าเงิน
+          </p>
         </Card>
       ) : (
-        <Card className="p-0">
+        <Card className="p-0 overflow-hidden">
           <ul>
             {data.map((a) => (
-              <li key={a.bankAccountId} className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+              <li
+                key={a.bankAccountId}
+                className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--pw-surface-sunken)]">
                     {getAccountIcon(a.accountType)}
@@ -174,6 +225,7 @@ export function BankAccountsView() {
                     <p className="font-medium text-[var(--pw-ink)] truncate">{a.accountName}</p>
                     <p className="text-xs text-[var(--pw-ink)]/50">
                       {a.bankName}
+                      {a.bankCode && ` [${a.bankCode}]`}
                       {a.accountNumberMasked && ` • ${a.accountNumberMasked}`}
                     </p>
                   </div>
@@ -192,6 +244,7 @@ export function BankAccountsView() {
                         accountNumberMasked: a.accountNumberMasked,
                         accountType: (a.accountType?.toLowerCase() as BankAccountFormValues["accountType"]) ?? "bank",
                       });
+                      setIsFormOpen(true);
                     }}
                   >
                     <Pencil />
@@ -208,7 +261,12 @@ export function BankAccountsView() {
                         onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
                       });
                     }}
-                    trigger={<Button size="sm" variant="destructive" className="min-h-10 flex-1 sm:flex-none"><Trash2 />ลบ</Button>}
+                    trigger={
+                      <Button size="sm" variant="destructive" className="min-h-10 flex-1 sm:flex-none">
+                        <Trash2 />
+                        ลบ
+                      </Button>
+                    }
                   />
                 </div>
               </li>

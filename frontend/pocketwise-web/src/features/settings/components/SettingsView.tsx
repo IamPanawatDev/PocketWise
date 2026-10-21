@@ -12,7 +12,7 @@ import { profileSchema, type ProfileFormValues } from "@/schemas/profile.schema"
 import { settingsSchema, type SettingsFormValues } from "@/schemas/settings.schema";
 import { zodResolver } from "@/lib/zod-resolver";
 import { ApiError } from "@/lib/api-client";
-import { cn } from "@/lib/utils";
+import { cn, formatPhoneNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -387,7 +387,20 @@ export function SettingsView() {
                   )}
                 </FormField>
                 <FormField label="เบอร์โทรศัพท์ (ไม่บังคับ)" htmlFor="profile-phone" error={profileForm.formState.errors.phoneNumber?.message}>
-                  <Input id="profile-phone" type="tel" autoComplete="tel" {...profileForm.register("phoneNumber")} />
+                  <Controller
+                    control={profileForm.control}
+                    name="phoneNumber"
+                    render={({ field }) => (
+                      <Input
+                        id="profile-phone"
+                        type="tel"
+                        autoComplete="tel"
+                        placeholder="0xx-xxx-xxxx"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(formatPhoneNumber(e.target.value))}
+                      />
+                    )}
+                  />
                 </FormField>
                 <FormField label="วันเกิด (ค.ศ.)" htmlFor="profile-birth-date" error={profileForm.formState.errors.birthDate?.message}>
                   <Controller

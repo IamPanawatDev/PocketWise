@@ -87,6 +87,46 @@ export function useStatement(creditCardId: number, statementId: number | null) {
   });
 }
 
+export function useStatementById(statementId: number | null) {
+  return useQuery({
+    queryKey: ["statement-by-id", statementId],
+    queryFn: () =>
+      apiClient.get<CreditCardStatementImportResponse>(
+        `/api/v1/credit-cards/statements/${statementId}`,
+      ),
+    enabled: !!statementId,
+  });
+}
+
+export function useSlip(slipId: number | null) {
+  return useQuery({
+    queryKey: ["slip", slipId],
+    queryFn: () =>
+      apiClient.get<SlipImportResponse>(`/api/v1/imports/slips/${slipId}`),
+    enabled: !!slipId,
+  });
+}
+
+export function useConfirmStatementItemsById(statementId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ConfirmStatementItemsRequest) =>
+      apiClient.post<BatchConfirmStatementItemsResponse>(
+        `/api/v1/credit-cards/statements/${statementId}/confirm-items`,
+        body,
+      ),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["statement-by-id", statementId] }),
+        qc.invalidateQueries({ queryKey: ["creditCards"] }),
+        qc.invalidateQueries({ queryKey: ["budgets"] }),
+        qc.invalidateQueries({ queryKey: ["reports"] }),
+        qc.invalidateQueries({ queryKey: ["importJobs"] }),
+      ]),
+  });
+}
+
 export function useCardStatements(creditCardId: number) {
   return useQuery({
     queryKey: ["statements", creditCardId],

@@ -92,4 +92,7 @@ export interface ImportJobResponse {
   startedAt?: string | null;
   completedAt?: string | null;
   createdAt: string;
+  slipId?: number | null;
+  statementId?: number | null;
+  creditCardId?: number | null;
 }

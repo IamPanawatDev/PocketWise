@@ -51,6 +51,9 @@ public class ImportJobService : IImportJobService
 
     private static ImportJobResponse MapToResponse(ImportJob job)
     {
+        var slip = job.SlipImportFiles?.FirstOrDefault();
+        var statement = job.CreditCardStatements?.FirstOrDefault();
+
         return new ImportJobResponse
         {
             ImportJobId = job.ImportJobId,
@@ -76,7 +79,10 @@ public class ImportJobService : IImportJobService
             ErrorMessage = job.ErrorMessage,
             StartedAt = job.StartedAt,
             CompletedAt = job.CompletedAt,
-            CreatedAt = job.CreatedAt
+            CreatedAt = job.CreatedAt,
+            SlipId = slip?.SlipImportFileId,
+            StatementId = statement?.StatementId,
+            CreditCardId = statement?.CreditCardId
         };
     }
 }

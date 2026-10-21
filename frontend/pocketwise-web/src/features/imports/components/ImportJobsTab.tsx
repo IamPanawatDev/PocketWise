@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,10 +23,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useImportJobs } from "@/features/imports/hooks/useImports";
+import type { ImportJobResponse } from "@/types/import.types";
+import { ReviewImportModal } from "./ReviewImportModal";
 
 export function ImportJobsTab() {
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [reviewingJob, setReviewingJob] = useState<ImportJobResponse | null>(null);
 
   const queryType = typeFilter === "all" ? undefined : typeFilter;
   const { data, isLoading } = useImportJobs(page, 15, queryType);
@@ -74,8 +78,12 @@ export function ImportJobsTab() {
               <SelectValue placeholder="กรองประเภทงาน" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="text-xs">ทั้งหมด</SelectItem>
-              <SelectItem value="slip" className="text-xs">สลิปโอนเงิน</SelectItem>
+              <SelectItem value="all" className="text-xs">
+                ทั้งหมด
+              </SelectItem>
+              <SelectItem value="slip" className="text-xs">
+                สลิปโอนเงิน
+              </SelectItem>
               <SelectItem value="creditCardStatement" className="text-xs">
                 ใบแจ้งยอดบัตรเครดิต
               </SelectItem>
@@ -97,18 +105,25 @@ export function ImportJobsTab() {
                 <th className="py-3 px-4 text-center">รายการนำเข้า</th>
                 <th className="py-3 px-4 text-center">รายการซ้ำ</th>
                 <th className="py-3 px-4 text-center">สถานะ</th>
+                <th className="py-3 px-4 text-center">การจัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--pw-hairline)]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-[var(--pw-text-muted)]">
+                  <td
+                    colSpan={8}
+                    className="py-8 text-center text-[var(--pw-text-muted)]"
+                  >
                     กำลังโหลดประวัติการนำเข้า...
                   </td>
                 </tr>
               ) : jobs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-[var(--pw-text-muted)]">
+                  <td
+                    colSpan={8}
+                    className="py-12 text-center text-[var(--pw-text-muted)]"
+                  >
                     <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     <p>ยังไม่มีประวัติการนำเข้าข้อมูล</p>
                   </td>
@@ -166,6 +181,22 @@ export function ImportJobsTab() {
                           </span>
                         )}
                       </td>
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        {statusLower === "needsreview" ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2.5 text-xs border-[var(--pw-primary)] text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/10"
+                            onClick={() => setReviewingJob(job)}
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            ตรวจสอบ
+                          </Button>
+                        ) : (
+                          <span className="text-[var(--pw-text-muted)]">-</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })
@@ -205,6 +236,12 @@ export function ImportJobsTab() {
           </div>
         )}
       </Card>
+
+      {/* Review Modal */}
+      <ReviewImportModal
+        job={reviewingJob}
+        onClose={() => setReviewingJob(null)}
+      />
     </div>
   );
 }

@@ -24,6 +24,8 @@ public class ImportRepository : IImportRepository
     public async Task<ImportJob?> GetImportJobByIdAsync(long userId, long jobId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.ImportJobs
+            .Include(j => j.SlipImportFiles)
+            .Include(j => j.CreditCardStatements)
             .FirstOrDefaultAsync(j => j.UserId == userId && j.ImportJobId == jobId, cancellationToken);
     }
 
@@ -36,6 +38,8 @@ public class ImportRepository : IImportRepository
     {
         var query = _dbContext.ImportJobs
             .AsNoTracking()
+            .Include(j => j.SlipImportFiles)
+            .Include(j => j.CreditCardStatements)
             .Where(j => j.UserId == userId);
 
         if (type.HasValue)
