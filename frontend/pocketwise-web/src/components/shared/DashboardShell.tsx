@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
 import { useLogout } from "@/features/auth/hooks/useAuthMutations";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useUserSettings } from "@/features/settings/hooks/useSettings";
@@ -243,9 +244,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </div>
 
                 {/* รายการเมนู Admin */}
-                <div className={cn("mt-1 space-y-1", !isAdminOpen && !iconOnly && "hidden md:hidden")}>
-                  {adminNav.map(renderNavItem)}
-                </div>
+                <AnimatePresence initial={false}>
+                  {(isAdminOpen || iconOnly) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-1 space-y-1">
+                        {adminNav.map(renderNavItem)}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </nav>
@@ -317,7 +330,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
           <NotificationBell />
         </header>
-        <div className="flex-1 p-3 pb-8 sm:p-6">{children}</div>
+        <div className="flex-1 p-3 pb-8 sm:p-6">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+          >
+            {children}
+          </motion.div>
+        </div>
         <footer className="border-t border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 backdrop-blur-xs px-3 py-4 text-xs text-[var(--pw-ink)]/55 sm:px-6">
           <div className="flex flex-col items-center justify-between gap-2 text-center sm:flex-row sm:text-left">
             <span>© 2026 PocketWise. สงวนลิขสิทธิ์ทุกประการ</span>

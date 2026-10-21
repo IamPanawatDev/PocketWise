@@ -16,9 +16,10 @@ import { budgetSchema, type BudgetFormValues } from "@/schemas/budget.schema";
 import type { BudgetResponse } from "@/types/budget.types";
 import { zodResolver } from "@/lib/zod-resolver";
 import { ApiError } from "@/lib/api-client";
-import { formatCurrency, toThailandDateInputValue } from "@/lib/utils";
+import { cn, formatCurrency, toThailandDateInputValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -351,64 +352,69 @@ export function BudgetsView() {
           <p className="mt-1 text-xs text-[var(--pw-ink)]/60">กดปุ่ม &quot;ตั้งงบประมาณใหม่&quot; ด้านบนเพื่อกำหนดเป้าหมายวงเงินเพื่อควบคุมค่าใช้จ่ายของคุณ</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {budgets.map((budget) => {
             const current = activeTracking.find((item) => item.budgetId === budget.budgetId);
             const percent = current?.percentageUsed ?? 0;
             return (
-              <Card key={budget.budgetId} className="space-y-4 p-4 sm:p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <h2 className="break-words font-bold">{budget.budgetName}</h2>
-                    <p className="mt-1 text-sm text-[var(--pw-ink)]/60">
-                      {scopeLabels[budget.scopeType]} · {periodLabels[budget.periodType]}
-                      {budget.categoryName ? ` · ${budget.categoryName}` : ""}
-                      {budget.tagName ? ` · #${budget.tagName}` : ""}
-                    </p>
+              <AnimatedListItem key={budget.budgetId}>
+                <Card className="space-y-4 p-4 sm:p-5 h-full">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h2 className="break-words font-bold">{budget.budgetName}</h2>
+                      <p className="mt-1 text-sm text-[var(--pw-ink)]/60">
+                        {scopeLabels[budget.scopeType]} · {periodLabels[budget.periodType]}
+                        {budget.categoryName ? ` · ${budget.categoryName}` : ""}
+                        {budget.tagName ? ` · #${budget.tagName}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => startEdit(budget)}><Pencil />แก้ไข</Button>
+                      <ConfirmDialog
+                        title="ลบงบนี้?"
+                        description="งบจะถูกซ่อนจากรายการที่ใช้งานอยู่"
+                        confirmLabel="ลบ"
+                        pending={remove.isPending}
+                        onConfirm={() => remove.mutate(budget.budgetId, {
+                          onSuccess: () => toast.success("ลบงบแล้ว"),
+                          onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ลบไม่สำเร็จ"),
+                        })}
+                        trigger={<Button size="sm" variant="destructive" aria-label={`ลบงบ ${budget.budgetName}`}><Trash2 />ลบ</Button>}
+                      />
+                    </div>
                   </div>
-                  <div className="flex shrink-0 gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => startEdit(budget)}><Pencil />แก้ไข</Button>
-                    <ConfirmDialog
-                      title="ลบงบนี้?"
-                      description="งบจะถูกซ่อนจากรายการที่ใช้งานอยู่"
-                      confirmLabel="ลบ"
-                      pending={remove.isPending}
-                      onConfirm={() => remove.mutate(budget.budgetId, {
-                        onSuccess: () => toast.success("ลบงบแล้ว"),
-                        onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ลบไม่สำเร็จ"),
-                      })}
-                      trigger={<Button size="sm" variant="destructive" aria-label={`ลบงบ ${budget.budgetName}`}><Trash2 />ลบ</Button>}
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                    <span>{formatCurrency(current?.spentAmount ?? 0, budget.currencyCode)} ใช้ไป</span>
+                    <span>จาก {formatCurrency(budget.amountLimit, budget.currencyCode)}</span>
+                  </div>
+                  <div
+                    role="progressbar"
+                    aria-label={`ใช้วงเงินงบ ${budget.budgetName}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.min(100, Math.max(0, percent))}
+                    className="h-3 overflow-hidden rounded-full bg-[var(--pw-hairline)]"
+                  >
+                    <div
+                      className={cn(
+                        "h-full transition-all duration-700 ease-out",
+                        current?.isOverLimit ? "bg-[var(--pw-expense)]" : "bg-[var(--pw-green)]"
+                      )}
+                      style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
                     />
                   </div>
-                </div>
-                <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                  <span>{formatCurrency(current?.spentAmount ?? 0, budget.currencyCode)} ใช้ไป</span>
-                  <span>จาก {formatCurrency(budget.amountLimit, budget.currencyCode)}</span>
-                </div>
-                <div
-                  role="progressbar"
-                  aria-label={`ใช้วงเงินงบ ${budget.budgetName}`}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.min(100, Math.max(0, percent))}
-                  className="h-3 overflow-hidden rounded-full bg-[var(--pw-hairline)]"
-                >
-                  <div
-                    className={current?.isOverLimit ? "h-full bg-[var(--pw-expense)]" : "h-full bg-[var(--pw-green)]"}
-                    style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
-                  />
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <span className={`inline-flex items-center gap-1.5 ${current?.isOverLimit ? "font-semibold text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/70"}`}>
-                    {current?.isOverLimit ? <AlertTriangle className="size-4 text-[var(--pw-expense)]" /> : <CheckCircle2 className="size-4 text-[var(--pw-green)]" />}
-                    {percent.toFixed(2)}% · {current?.isOverLimit ? "เกินงบ" : "คงเหลือ"}
-                  </span>
-                  <span>{formatCurrency(current?.remainingAmount ?? budget.amountLimit, budget.currencyCode)}</span>
-                </div>
-              </Card>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className={`inline-flex items-center gap-1.5 ${current?.isOverLimit ? "font-semibold text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/70"}`}>
+                      {current?.isOverLimit ? <AlertTriangle className="size-4 text-[var(--pw-expense)]" /> : <CheckCircle2 className="size-4 text-[var(--pw-green)]" />}
+                      {percent.toFixed(2)}% · {current?.isOverLimit ? "เกินงบ" : "คงเหลือ"}
+                    </span>
+                    <span>{formatCurrency(current?.remainingAmount ?? budget.amountLimit, budget.currencyCode)}</span>
+                  </div>
+                </Card>
+              </AnimatedListItem>
             );
           })}
-        </div>
+        </AnimatedList>
       )}
     </div>
   );

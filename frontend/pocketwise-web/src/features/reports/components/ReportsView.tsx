@@ -44,6 +44,7 @@ import { cn, formatCurrency, formatDate, thailandDateBoundaryToUtcIso } from "@/
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import {
@@ -327,7 +328,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 <ArrowUpRight className="size-4 text-[var(--pw-green)]" />
               </div>
               <p className="mt-2 break-words text-xl font-bold text-[var(--pw-green)]">
-                {formatCurrency(activeCurrency.totalIncome, activeCurrency.currencyCode)}
+                <AnimatedNumber value={activeCurrency.totalIncome} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
             <Card className="p-4 border-l-4 border-l-[var(--pw-expense)]">
@@ -336,7 +337,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 <ArrowDownRight className="size-4 text-[var(--pw-expense)]" />
               </div>
               <p className="mt-2 break-words text-xl font-bold text-[var(--pw-expense)]">
-                {formatCurrency(activeCurrency.totalExpense, activeCurrency.currencyCode)}
+                <AnimatedNumber value={activeCurrency.totalExpense} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
             <Card className="p-4 border-l-4 border-l-[var(--pw-link)]">
@@ -345,7 +346,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 <Scale className="size-4 text-[var(--pw-link)]" />
               </div>
               <p className="mt-2 break-words text-xl font-bold">
-                {formatCurrency(activeCurrency.netAmount, activeCurrency.currencyCode)}
+                <AnimatedNumber value={activeCurrency.netAmount} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
             <Card className="p-4 border-l-4 border-l-[var(--pw-primary)]">
@@ -354,7 +355,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 <Receipt className="size-4 text-[var(--pw-primary)]" />
               </div>
               <p className="mt-2 break-words text-xl font-bold text-[var(--pw-primary)]">
-                {formatCurrency(slipExpense, activeCurrency.currencyCode)}
+                <AnimatedNumber value={slipExpense} currencyCode={activeCurrency.currencyCode} />
               </p>
               <p className="mt-1 text-xs text-[var(--pw-ink)]/55">
                 {slipPercentage.toFixed(1)}% ของรายจ่ายรวม
@@ -366,7 +367,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 <CreditCard className="size-4 text-[var(--pw-magenta)]" />
               </div>
               <p className="mt-2 break-words text-xl font-bold text-[var(--pw-magenta)]">
-                {formatCurrency(creditCardExpense, activeCurrency.currencyCode)}
+                <AnimatedNumber value={creditCardExpense} currencyCode={activeCurrency.currencyCode} />
               </p>
               <p className="mt-1 text-xs text-[var(--pw-ink)]/55">
                 {creditCardPercentage.toFixed(1)}% ของรายจ่ายรวม
@@ -524,8 +525,24 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                       <YAxis tick={{ fill: "var(--pw-ink)", fontSize: 12 }} />
                       <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
                       <Legend />
-                      <Bar dataKey="income" name="รายรับ" fill="var(--pw-green)" radius={[5, 5, 0, 0]} />
-                      <Bar dataKey="expense" name="รายจ่าย" fill="var(--pw-expense)" radius={[5, 5, 0, 0]} />
+                      <Bar
+                        dataKey="income"
+                        name="รายรับ"
+                        fill="var(--pw-green)"
+                        radius={[5, 5, 0, 0]}
+                        isAnimationActive={true}
+                        animationDuration={850}
+                        animationEasing="ease-out"
+                      />
+                      <Bar
+                        dataKey="expense"
+                        name="รายจ่าย"
+                        fill="var(--pw-expense)"
+                        radius={[5, 5, 0, 0]}
+                        isAnimationActive={true}
+                        animationDuration={850}
+                        animationEasing="ease-out"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -548,6 +565,9 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                           innerRadius={50}
                           outerRadius={88}
                           paddingAngle={2}
+                          isAnimationActive={true}
+                          animationDuration={850}
+                          animationEasing="ease-out"
                         >
                           {activeCurrency.categoryBreakdown.map((item, index) => (
                             <Cell key={`${item.categoryId ?? "none"}-${item.categoryName}`} fill={colors[index % colors.length]} />

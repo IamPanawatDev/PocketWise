@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
 import { LoaderCircle, LogIn } from "lucide-react";
+import { motion } from "motion/react";
 
 export function LoginForm() {
   const router = useRouter();
@@ -38,17 +39,28 @@ export function LoginForm() {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-sm">
-        <div className="mb-3 flex justify-center">
-          <Image
-            src="/brand-logo.png"
-            alt="PocketWise brand"
-            width={72}
-            height={72}
-            priority
-            className="size-18 object-contain drop-shadow"
-          />
-        </div>
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-sm"
+      >
+        <Card className="w-full">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.35, delay: 0.06, ease: "easeOut" }}
+            className="mb-3 flex justify-center"
+          >
+            <Image
+              src="/brand-logo.png"
+              alt="PocketWise brand"
+              width={72}
+              height={72}
+              priority
+              className="size-18 object-contain drop-shadow"
+            />
+          </motion.div>
         <h1 className="mb-1 text-center text-2xl font-bold">เข้าสู่ระบบ</h1>
         <p className="mb-6 text-center text-sm text-[var(--pw-ink)]/70">
           ยินดีต้อนรับกลับมาที่ PocketWise
@@ -108,6 +120,7 @@ export function LoginForm() {
           </Link>
         </div>
       </Card>
-    </main>
+    </motion.div>
+  </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CreditCard, FileUp, History, Receipt } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { SlipImportTab } from "./SlipImportTab";
 import { StatementImportTab } from "./StatementImportTab";
 import { ImportJobsTab } from "./ImportJobsTab";
@@ -67,11 +68,19 @@ export function ImportsView() {
       </div>
 
       {/* Tab Panels */}
-      <div>
-        {activeTab === "slip" && <SlipImportTab />}
-        {activeTab === "statement" && <StatementImportTab />}
-        {activeTab === "jobs" && <ImportJobsTab />}
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+        >
+          {activeTab === "slip" && <SlipImportTab />}
+          {activeTab === "statement" && <StatementImportTab />}
+          {activeTab === "jobs" && <ImportJobsTab />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

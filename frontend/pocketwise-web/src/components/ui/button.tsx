@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { Slot } from "radix-ui"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[var(--pw-rounded-sm)] border border-transparent px-4 py-2.5 text-sm font-medium whitespace-nowrap text-center transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[var(--pw-rounded-sm)] border border-transparent px-4 py-2.5 text-sm font-medium whitespace-nowrap text-center transition-all duration-150 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {

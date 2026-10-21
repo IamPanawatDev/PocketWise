@@ -19,6 +19,7 @@ import { useTags } from "@/features/tags/hooks/useTags";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -320,9 +321,9 @@ export function TransactionList({
         </Card>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <AnimatedList key={`page-${page}-${sortBy}-${sortDesc}`} className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {data.items.map((t) => (
-              <div
+              <AnimatedListItem
                 key={t.transactionId}
                 className={cn(
                   "relative flex flex-col justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/40 p-4 transition hover:bg-[var(--pw-surface-raised)]/70 shadow-xs",
@@ -451,9 +452,9 @@ export function TransactionList({
                     }
                   />
                 </div>
-              </div>
+              </AnimatedListItem>
             ))}
-          </div>
+          </AnimatedList>
 
           {data.totalPages > 1 && (
             <div className="flex items-center justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/30 px-4 py-3">
