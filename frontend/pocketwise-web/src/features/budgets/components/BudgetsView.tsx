@@ -41,7 +41,7 @@ const initialValues = (startDate = ""): BudgetFormValues => ({
   scopeType: "total",
   categoryId: null,
   tagId: null,
-  amountLimit: 0,
+  amountLimit: "" as unknown as number,
   periodType: "monthly",
   startDate,
   endDate: null,
@@ -282,7 +282,7 @@ export function BudgetsView() {
               )}
 
               <FormField label="วงเงิน (สกุลเงินหลัก)" htmlFor="budget-amount" error={errors.amountLimit?.message}>
-                <NumberInput id="budget-amount" min={0.01} step={0.01} aria-invalid={!!errors.amountLimit} {...register("amountLimit")} />
+                <NumberInput id="budget-amount" min={0.01} step={0.01} placeholder="0" aria-invalid={!!errors.amountLimit} {...register("amountLimit")} />
               </FormField>
               <FormField label="รอบงบ" htmlFor="budget-period" error={errors.periodType?.message}>
                 <Controller

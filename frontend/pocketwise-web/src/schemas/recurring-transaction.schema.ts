@@ -3,7 +3,7 @@ import { isGregorianDateInput } from "@/lib/utils";
 
 export const recurringTransactionSchema = z.object({
   transactionType: z.enum(["income", "expense"]),
-  amount: z.coerce.number().positive("จำนวนเงินต้องมากกว่า 0"),
+  amount: z.coerce.number({ message: "กรุณาระบุจำนวนเงิน" }).positive("จำนวนเงินต้องมากกว่า 0"),
   description: z.string().trim().max(500).nullable(),
   categoryId: z.number().nullable(),
   frequency: z.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]),

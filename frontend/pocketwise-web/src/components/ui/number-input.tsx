@@ -66,6 +66,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       stepper = true,
       prefixNode,
       suffixNode,
+      placeholder = "0",
       ...props
     },
     ref
@@ -156,6 +157,8 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         <input
           ref={setRefs}
           type="number"
+          inputMode={props.inputMode ?? (step && String(step).includes(".") ? "decimal" : "numeric")}
+          placeholder={placeholder}
           step={step}
           min={min}
           max={max}

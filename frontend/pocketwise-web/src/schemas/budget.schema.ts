@@ -6,7 +6,7 @@ export const budgetSchema = z.object({
   scopeType: z.enum(["total", "category", "tag"]),
   categoryId: z.number().nullable(),
   tagId: z.number().nullable(),
-  amountLimit: z.coerce.number().positive("วงเงินต้องมากกว่า 0"),
+  amountLimit: z.coerce.number({ message: "กรุณาระบุวงเงิน" }).positive("วงเงินต้องมากกว่า 0"),
   periodType: z.enum(["weekly", "monthly", "quarterly", "yearly", "custom"]),
   startDate: z.string().refine(isGregorianDateInput, "กรุณาระบุวันที่เป็นปี ค.ศ."),
   endDate: z.string().nullable(),

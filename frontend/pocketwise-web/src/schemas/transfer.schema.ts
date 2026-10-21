@@ -5,7 +5,7 @@ export const transferSchema = z
   .object({
     fromBankAccountId: z.coerce.number().positive(),
     toBankAccountId: z.coerce.number().positive(),
-    amount: z.coerce.number().positive("จำนวนเงินต้องมากกว่า 0"),
+    amount: z.coerce.number({ message: "กรุณาระบุจำนวนเงิน" }).positive("จำนวนเงินต้องมากกว่า 0"),
     transferDate: z.string()
       .min(1, "ต้องระบุวันที่โอน")
       .refine(

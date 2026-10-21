@@ -51,7 +51,7 @@ import {
 
 const initialValues = (startDate = ""): RecurringTransactionFormValues => ({
   transactionType: "expense",
-  amount: 0,
+  amount: "" as unknown as number,
   description: "",
   categoryId: null,
   frequency: "monthly",
@@ -216,7 +216,7 @@ export function RecurringTransactionsView() {
                 />
               </FormField>
               <FormField label="จำนวนเงิน" htmlFor="recurring-amount" error={errors.amount?.message}>
-                <NumberInput id="recurring-amount" min={0.01} step={0.01} placeholder="0.00" {...register("amount")} />
+                <NumberInput id="recurring-amount" min={0.01} step={0.01} placeholder="0" {...register("amount")} />
               </FormField>
               <FormField label="รายละเอียด" htmlFor="recurring-description" error={errors.description?.message}>
                 <Input id="recurring-description" placeholder="เช่น ค่าเช่าห้อง, Netflix, ค่าสมาชิกรายเดือน" {...register("description")} />
