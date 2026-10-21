@@ -135,7 +135,7 @@ export function TransactionList({
                 "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
                 !filter.type
                   ? "border-[var(--pw-primary)] bg-[var(--pw-primary)] text-white shadow-sm"
-                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-primary)] hover:text-white",
+                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-primary)] hover:text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/10",
               )}
             >
               <Layers className="size-3.5" />
@@ -150,7 +150,7 @@ export function TransactionList({
                 "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
                 filter.type === "expense"
                   ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
-                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
+                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10",
               )}
             >
               <ArrowDownRight className="size-3.5" />
@@ -165,7 +165,7 @@ export function TransactionList({
                 "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
                 filter.type === "income"
                   ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
-                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
+                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)] hover:bg-[var(--pw-green)]/10",
               )}
             >
               <ArrowUpRight className="size-3.5" />
@@ -180,7 +180,7 @@ export function TransactionList({
                 "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
                 filter.type === "transfer"
                   ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
-                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
+                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)] hover:bg-[var(--pw-link)]/10",
               )}
             >
               <ArrowRightLeft className="size-3.5" />

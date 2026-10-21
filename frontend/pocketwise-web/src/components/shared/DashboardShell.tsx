@@ -94,6 +94,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     if (!settings) return;
     document.documentElement.dataset.theme = settings.theme;
     document.documentElement.lang = settings.locale;
+    try {
+      localStorage.setItem("pocketwise-theme", settings.theme);
+    } catch {}
   }, [settings]);
 
   const toggleNavigation = () => {
@@ -152,7 +155,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col overflow-y-auto border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-3 shadow-2xl transition-all duration-300 ease-in-out md:p-4 md:shadow-none",
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col overflow-y-auto border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl p-3 shadow-2xl transition-all duration-300 ease-in-out md:p-4 md:shadow-none",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           isCollapsed ? "md:w-20" : "md:w-72",
         )}
@@ -189,7 +192,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   : `Welcome, ${user.displayName}`
                 : "..."}
             </p>
-            <NotificationBell className="size-8 shrink-0 text-[var(--pw-ink)] hover:text-white" />
+            <NotificationBell className="size-8 shrink-0 text-[var(--pw-ink)] hover:text-[var(--pw-primary)]" />
           </div>
         </div>
 
@@ -203,7 +206,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               priority
               className="size-12 shrink-0 object-contain drop-shadow"
             />
-            <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-white" />
+            <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-[var(--pw-primary)]" />
           </div>
         )}
 
@@ -288,7 +291,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-300", isCollapsed ? "md:ml-20" : "md:ml-72")}>
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/95 px-3 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/85 px-3 backdrop-blur-md md:hidden">
           <div className="flex items-center gap-2.5">
             <Button
               type="button"
@@ -315,7 +318,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <NotificationBell />
         </header>
         <div className="flex-1 p-3 pb-8 sm:p-6">{children}</div>
-        <footer className="border-t border-[var(--pw-hairline)] px-3 py-4 text-xs text-[var(--pw-ink)]/55 sm:px-6">
+        <footer className="border-t border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 backdrop-blur-xs px-3 py-4 text-xs text-[var(--pw-ink)]/55 sm:px-6">
           <div className="flex flex-col items-center justify-between gap-2 text-center sm:flex-row sm:text-left">
             <span>© 2026 PocketWise. สงวนลิขสิทธิ์ทุกประการ</span>
             <div className="flex items-center gap-3">

@@ -10,13 +10,13 @@ const buttonVariants = cva(
       variant: {
         default: "bg-[var(--pw-primary)] text-[var(--pw-on-primary)] hover:brightness-110",
         outline:
-          "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]",
+          "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]",
         secondary:
           "bg-[var(--pw-link)] text-[var(--pw-ink-dark)] hover:brightness-110",
         ghost:
-          "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:brightness-125",
+          "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]",
         destructive:
-          "bg-[var(--pw-magenta)] text-[var(--pw-ink)] hover:brightness-110",
+          "bg-[var(--pw-magenta)] text-white hover:brightness-110",
         success:
           "bg-[var(--pw-green)] text-[var(--pw-ink-dark)] hover:brightness-110",
         link: "text-[var(--pw-link)] underline-offset-4 hover:underline",

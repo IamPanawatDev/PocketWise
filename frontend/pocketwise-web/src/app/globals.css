@@ -154,3 +154,41 @@ body {
     cursor: pointer;
   }
 }
+
+
+/* Ambient background styling */
+.pw-ambient-bg {
+  position: fixed;
+  inset: -24px;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("/bg-dark.jpg");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0.15;
+  filter: blur(2px) saturate(1.05);
+  transition: opacity 0.4s ease, background-image 0.4s ease;
+}
+
+.pw-ambient-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 15%, transparent 5%, var(--pw-canvas) 78%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+html[data-theme="light"] .pw-ambient-bg,
+html.light .pw-ambient-bg {
+  background-image: url("/bg-light.jpg");
+  opacity: 0.75;
+  filter: none;
+}
+
+html[data-theme="light"] .pw-ambient-bg::after,
+html.light .pw-ambient-bg::after {
+  display: none;
+}

@@ -121,7 +121,7 @@ export function NotificationBell({ className }: { className?: string }) {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 px-2 text-xs text-[var(--pw-link)] hover:text-white"
+              className="h-8 gap-1.5 px-2 text-xs text-[var(--pw-link)] hover:text-[var(--pw-link)]"
               onClick={() => markAllAsRead.mutate()}
               disabled={markAllAsRead.isPending}
             >
@@ -143,7 +143,7 @@ export function NotificationBell({ className }: { className?: string }) {
               "px-3 py-1 font-medium rounded-md transition",
               !unreadOnly
                 ? "bg-[var(--pw-primary)] text-white"
-                : "text-[var(--pw-ink)]/70 hover:text-white",
+                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]/50",
             )}
             onClick={() => setUnreadOnly(false)}
           >
@@ -155,7 +155,7 @@ export function NotificationBell({ className }: { className?: string }) {
               "ml-1 px-3 py-1 font-medium rounded-md transition",
               unreadOnly
                 ? "bg-[var(--pw-primary)] text-white"
-                : "text-[var(--pw-ink)]/70 hover:text-white",
+                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]/50",
             )}
             onClick={() => setUnreadOnly(true)}
           >

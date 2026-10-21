@@ -179,7 +179,7 @@ export function TransactionForm({
                       "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "expense"
                         ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
-                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
+                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10",
                     )}
                   >
                     <ArrowDownRight className="size-4" />
@@ -197,7 +197,7 @@ export function TransactionForm({
                       "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "income"
                         ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
-                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
+                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)] hover:bg-[var(--pw-green)]/10",
                     )}
                   >
                     <ArrowUpRight className="size-4" />
@@ -215,7 +215,7 @@ export function TransactionForm({
                       "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "transfer"
                         ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
-                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
+                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)] hover:bg-[var(--pw-link)]/10",
                     )}
                   >
                     <ArrowRightLeft className="size-4" />
