@@ -1,0 +1,563 @@
+using FluentValidation;
+using PocketWise.Application.DTOs.Budgets;
+using PocketWise.Application.Features.Notifications;
+using PocketWise.Application.Interfaces;
+using PocketWise.Domain.Entities;
+using PocketWise.Domain.Enums;
+using PocketWise.Domain.Rules;
+
+namespace PocketWise.Application.Features.Budgets;
+
+public class BudgetService : IBudgetService
+{
+    private static readonly TimeZoneInfo BangkokTimeZone =
+        TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+
+    private readonly IBudgetRepository _repository;
+    private readonly IValidator<CreateBudgetRequest> _createValidator;
+    private readonly IValidator<UpdateBudgetRequest> _updateValidator;
+    private readonly INotificationSender? _notificationSender;
+    private readonly IEmailService? _emailService;
+    private readonly IAuditLogService? _auditLogService;
+
+    public BudgetService(
+        IBudgetRepository repository,
+        IValidator<CreateBudgetRequest> createValidator,
+        IValidator<UpdateBudgetRequest> updateValidator,
+        INotificationSender? notificationSender = null,
+        IEmailService? emailService = null,
+        IAuditLogService? auditLogService = null)
+    {
+        _repository = repository;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
+        _notificationSender = notificationSender;
+        _emailService = emailService;
+        _auditLogService = auditLogService;
+    }
+
+    public async Task<IReadOnlyList<BudgetResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var entities = await _repository.GetAllAsync(userId, cancellationToken);
+        var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
+        return entities.Select(entity => Map(entity, currencyCode)).ToList();
+    }
+
+    public async Task<BudgetResponse?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default)
+    {
+        var entity = await _repository.GetByIdAsync(id, userId, cancellationToken);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
+        return Map(entity, currencyCode);
+    }
+
+    public async Task<IReadOnlyList<BudgetTrackingResponse>> GetTrackingAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var entities = await _repository.GetAllAsync(userId, cancellationToken);
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BangkokTimeZone));
+        var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
+        var (userEmail, emailAlertsEnabled) = await _repository.GetUserEmailAndAlertPreferenceAsync(userId, cancellationToken);
+
+        var result = new List<BudgetTrackingResponse>();
+        var newNotifications = new List<Notification>();
+        foreach (var entity in entities.Where(e => e.IsActive))
+        {
+            var period = BudgetPeriodCalculator.GetCurrentPeriod(entity.PeriodType, entity.StartDate, entity.EndDate, today);
+            if (period is null)
+            {
+                continue;
+            }
+
+            var spent = await _repository.GetSpentAmountAsync(
+                userId,
+                currencyCode,
+                entity.ScopeType,
+                entity.CategoryId,
+                entity.TagId,
+                BudgetPeriodCalculator.ToUtcStart(period.Value.From),
+                BudgetPeriodCalculator.ToUtcEndExclusive(period.Value.To),
+                cancellationToken);
+
+            result.Add(MapTracking(entity, spent, currencyCode));
+            await RecordThresholdNotificationAsync(
+                userId,
+                entity,
+                period.Value.From,
+                spent,
+                currencyCode,
+                newNotifications,
+                userEmail,
+                emailAlertsEnabled,
+                cancellationToken);
+            await RecordExceededNotificationAsync(
+                userId,
+                entity,
+                period.Value.From,
+                spent,
+                currencyCode,
+                newNotifications,
+                userEmail,
+                emailAlertsEnabled,
+                cancellationToken);
+        }
+
+        if (newNotifications.Count > 0)
+        {
+            await _repository.SaveChangesAsync(cancellationToken);
+
+            if (_notificationSender != null)
+            {
+                foreach (var notification in newNotifications.Where(n => n.Channel == NotificationChannel.InApp))
+                {
+                    await _notificationSender.SendNotificationToUserAsync(
+                        userId,
+                        NotificationService.MapToResponse(notification),
+                        cancellationToken);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public async Task<BudgetResponse> CreateAsync(long userId, CreateBudgetRequest request, CancellationToken cancellationToken = default)
+    {
+        await _createValidator.ValidateAndThrowAsync(request, cancellationToken);
+        await ValidateScopeAsync(userId, request.ScopeType, request.CategoryId, request.TagId, cancellationToken);
+
+        var entity = new Budget
+        {
+            UserId = userId,
+            BudgetName = request.BudgetName,
+            ScopeType = request.ScopeType,
+            CategoryId = request.CategoryId,
+            TagId = request.TagId,
+            AmountLimit = request.AmountLimit,
+            PeriodType = request.PeriodType,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            AlertThresholdPercent = request.AlertThresholdPercent,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _repository.AddAsync(entity, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Create,
+                "Budgets",
+                entity.BudgetId.ToString(),
+                new
+                {
+                    entity.BudgetName,
+                    entity.ScopeType,
+                    entity.CategoryId,
+                    entity.TagId,
+                    entity.AmountLimit,
+                    entity.PeriodType,
+                    entity.StartDate,
+                    entity.EndDate,
+                    entity.AlertThresholdPercent
+                },
+                cancellationToken);
+        }
+
+        var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
+        return Map(entity, currencyCode);
+    }
+
+    public async Task<BudgetResponse?> UpdateAsync(long id, long userId, UpdateBudgetRequest request, CancellationToken cancellationToken = default)
+    {
+        await _updateValidator.ValidateAndThrowAsync(request, cancellationToken);
+
+        var entity = await _repository.GetByIdAsync(id, userId, cancellationToken);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        await ValidateScopeAsync(userId, request.ScopeType, request.CategoryId, request.TagId, cancellationToken);
+
+        var beforeState = new
+        {
+            entity.BudgetName,
+            entity.ScopeType,
+            entity.CategoryId,
+            entity.TagId,
+            entity.AmountLimit,
+            entity.PeriodType,
+            entity.StartDate,
+            entity.EndDate,
+            entity.AlertThresholdPercent,
+            entity.IsActive
+        };
+
+        entity.BudgetName = request.BudgetName;
+        entity.ScopeType = request.ScopeType;
+        entity.CategoryId = request.CategoryId;
+        entity.TagId = request.TagId;
+        entity.AmountLimit = request.AmountLimit;
+        entity.PeriodType = request.PeriodType;
+        entity.StartDate = request.StartDate;
+        entity.EndDate = request.EndDate;
+        entity.AlertThresholdPercent = request.AlertThresholdPercent;
+        entity.IsActive = request.IsActive;
+
+        await _repository.UpdateAsync(entity, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Update,
+                "Budgets",
+                id.ToString(),
+                new
+                {
+                    Before = beforeState,
+                    After = new
+                    {
+                        request.BudgetName,
+                        request.ScopeType,
+                        request.CategoryId,
+                        request.TagId,
+                        request.AmountLimit,
+                        request.PeriodType,
+                        request.StartDate,
+                        request.EndDate,
+                        request.AlertThresholdPercent,
+                        request.IsActive
+                    }
+                },
+                cancellationToken);
+        }
+
+        var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
+        return Map(entity, currencyCode);
+    }
+
+    public async Task<bool> DeleteAsync(long id, long userId, CancellationToken cancellationToken = default)
+    {
+        var entity = await _repository.GetByIdAsync(id, userId, cancellationToken);
+        if (entity is null)
+        {
+            return false;
+        }
+
+        await _repository.SoftDeleteAsync(entity, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogService != null)
+        {
+            await _auditLogService.LogAsync(
+                userId,
+                AuditAction.Delete,
+                "Budgets",
+                id.ToString(),
+                new
+                {
+                    entity.BudgetName,
+                    entity.AmountLimit,
+                    IsDeleted = true
+                },
+                cancellationToken);
+        }
+
+        return true;
+    }
+
+    private async Task ValidateScopeAsync(long userId, BudgetScopeType scopeType, long? categoryId, long? tagId, CancellationToken cancellationToken)
+    {
+        switch (scopeType)
+        {
+            case BudgetScopeType.Category:
+                if (!categoryId.HasValue)
+                {
+                    throw new BusinessException("VALIDATION_ERROR", "งบแบบหมวดหมู่ต้องระบุ categoryId");
+                }
+                if (!await _repository.CategoryExistsAsync(userId, categoryId.Value, cancellationToken))
+                {
+                    throw new BusinessException("NOT_FOUND", "ไม่พบหมวดหมู่ที่ระบุ");
+                }
+                break;
+
+            case BudgetScopeType.Tag:
+                if (!tagId.HasValue)
+                {
+                    throw new BusinessException("VALIDATION_ERROR", "งบแบบแท็กต้องระบุ tagId");
+                }
+                if (!await _repository.TagExistsAsync(userId, tagId.Value, cancellationToken))
+                {
+                    throw new BusinessException("NOT_FOUND", "ไม่พบแท็กที่ระบุ");
+                }
+                break;
+
+            case BudgetScopeType.Total:
+            default:
+                break;
+        }
+    }
+
+    private static BudgetResponse Map(Budget entity, string currencyCode)
+    {
+        return new BudgetResponse
+        {
+            BudgetId = entity.BudgetId,
+            BudgetName = entity.BudgetName,
+            CurrencyCode = currencyCode,
+            ScopeType = entity.ScopeType,
+            CategoryId = entity.CategoryId,
+            CategoryName = entity.Category?.CategoryName,
+            TagId = entity.TagId,
+            TagName = entity.Tag?.TagName,
+            AmountLimit = entity.AmountLimit,
+            PeriodType = entity.PeriodType,
+            StartDate = entity.StartDate,
+            EndDate = entity.EndDate,
+            AlertThresholdPercent = entity.AlertThresholdPercent,
+            IsActive = entity.IsActive,
+            CreatedAt = entity.CreatedAt
+        };
+    }
+
+    private static BudgetTrackingResponse MapTracking(Budget entity, decimal spent, string currencyCode)
+    {
+        var remaining = entity.AmountLimit - spent;
+        var percentageUsed = entity.AmountLimit <= 0
+            ? 0m
+            : Math.Round(spent / entity.AmountLimit * 100m, 2);
+
+        return new BudgetTrackingResponse
+        {
+            BudgetId = entity.BudgetId,
+            BudgetName = entity.BudgetName,
+            CurrencyCode = currencyCode,
+            ScopeType = entity.ScopeType,
+            CategoryId = entity.CategoryId,
+            CategoryName = entity.Category?.CategoryName,
+            TagId = entity.TagId,
+            TagName = entity.Tag?.TagName,
+            AmountLimit = entity.AmountLimit,
+            PeriodType = entity.PeriodType,
+            StartDate = entity.StartDate,
+            EndDate = entity.EndDate,
+            AlertThresholdPercent = entity.AlertThresholdPercent,
+            IsActive = entity.IsActive,
+            SpentAmount = spent,
+            RemainingAmount = remaining,
+            PercentageUsed = percentageUsed,
+            IsOverLimit = spent > entity.AmountLimit,
+            CreatedAt = entity.CreatedAt
+        };
+    }
+
+    private async Task RecordThresholdNotificationAsync(
+        long userId,
+        Budget budget,
+        DateOnly periodStart,
+        decimal spent,
+        string currencyCode,
+        List<Notification> collectedNotifications,
+        string? userEmail,
+        bool emailAlertsEnabled,
+        CancellationToken cancellationToken)
+    {
+        var percentage = Math.Round(spent / budget.AmountLimit * 100m, 2);
+        if (percentage < budget.AlertThresholdPercent)
+        {
+            return;
+        }
+
+        // 1. In-App Notification (SignalR)
+        var notificationType = $"BUDGET_WARNING_{periodStart:yyyyMMdd}";
+        if (!await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, notificationType, cancellationToken))
+        {
+            var notification = new Notification
+            {
+                UserId = userId,
+                NotificationType = notificationType,
+                Title = $"งบ {budget.BudgetName} ใกล้ถึงขีดจำกัด",
+                Message = $"ใช้ไปแล้ว {spent:N2} {currencyCode} จาก {budget.AmountLimit:N2} {currencyCode} ({percentage:N2}%)",
+                Channel = NotificationChannel.InApp,
+                Status = NotificationStatus.Sent,
+                RelatedEntityType = "Budget",
+                RelatedEntityId = budget.BudgetId,
+                SentAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _repository.AddNotificationAsync(notification, cancellationToken);
+            collectedNotifications.Add(notification);
+        }
+
+        // 2. Email Notification (FR5.2.2)
+        if (emailAlertsEnabled && !string.IsNullOrWhiteSpace(userEmail) && _emailService != null)
+        {
+            var emailNotificationType = $"BUDGET_WARNING_EMAIL_{periodStart:yyyyMMdd}";
+            if (!await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, emailNotificationType, cancellationToken))
+            {
+                var remaining = Math.Max(0, budget.AmountLimit - spent);
+                var subject = $"[PocketWise] แจ้งเตือนงบประมาณ: ใกล้ถึงขีดจำกัดงบ {budget.BudgetName}";
+                var htmlBody = $"""
+                    <!DOCTYPE html>
+                    <html lang="th">
+                    <head>
+                      <meta charset="utf-8" />
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    </head>
+                    <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc;">
+                      <div style="max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
+                        <h2 style="color: #4f46e5; margin-top: 0;">PocketWise — แจ้งเตือนงบประมาณ</h2>
+                        <p>เรียน คุณผู้ใช้,</p>
+                        <p>งบประมาณ <strong>{budget.BudgetName}</strong> ของคุณ มีการใช้จ่ายใกล้ถึงขีดจำกัดที่ตั้งไว้ ({budget.AlertThresholdPercent}%) แล้ว:</p>
+                        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #64748b;">ยอดที่ใช้ไป:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; text-align: right;">{spent:N2} {currencyCode} ({percentage:N2}%)</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #64748b;">วงเงินงบประมาณ:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; text-align: right;">{budget.AmountLimit:N2} {currencyCode}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #64748b;">คงเหลือ:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; text-align: right; color: #16a34a;">{remaining:N2} {currencyCode}</td>
+                            </tr>
+                        </table>
+                        <p style="color: #64748b; font-size: 14px;">คุณสามารถเข้าสู่ระบบ PocketWise เพื่อตรวจสอบหรือปรับแต่งงบประมาณได้ตลอดเวลา</p>
+                      </div>
+                    </body>
+                    </html>
+                    """;
+
+                var sent = await _emailService.SendEmailAsync(userEmail, subject, htmlBody, cancellationToken);
+
+                var emailNotification = new Notification
+                {
+                    UserId = userId,
+                    NotificationType = emailNotificationType,
+                    Title = $"[Email] งบ {budget.BudgetName} ใกล้ถึงขีดจำกัด",
+                    Message = $"ส่งอีเมลแจ้งเตือนไปยัง {userEmail}: ใช้ไปแล้ว {spent:N2} {currencyCode} ({percentage:N2}%) จาก {budget.AmountLimit:N2} {currencyCode}",
+                    Channel = NotificationChannel.Email,
+                    Status = sent ? NotificationStatus.Sent : NotificationStatus.Failed,
+                    RelatedEntityType = "Budget",
+                    RelatedEntityId = budget.BudgetId,
+                    SentAt = sent ? DateTime.UtcNow : null,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _repository.AddNotificationAsync(emailNotification, cancellationToken);
+                collectedNotifications.Add(emailNotification);
+            }
+        }
+    }
+
+    private async Task RecordExceededNotificationAsync(
+        long userId,
+        Budget budget,
+        DateOnly periodStart,
+        decimal spent,
+        string currencyCode,
+        List<Notification> collectedNotifications,
+        string? userEmail,
+        bool emailAlertsEnabled,
+        CancellationToken cancellationToken)
+    {
+        if (spent <= budget.AmountLimit)
+        {
+            return;
+        }
+
+        // 1. In-App Notification (SignalR)
+        var notificationType = $"BUDGET_EXCEEDED_{periodStart:yyyyMMdd}";
+        if (!await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, notificationType, cancellationToken))
+        {
+            var notification = new Notification
+            {
+                UserId = userId,
+                NotificationType = notificationType,
+                Title = $"เกินงบ {budget.BudgetName}",
+                Message = $"ใช้ไปแล้ว {spent:N2} {currencyCode} จากงบ {budget.AmountLimit:N2} {currencyCode}",
+                Channel = NotificationChannel.InApp,
+                Status = NotificationStatus.Sent,
+                RelatedEntityType = "Budget",
+                RelatedEntityId = budget.BudgetId,
+                SentAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _repository.AddNotificationAsync(notification, cancellationToken);
+            collectedNotifications.Add(notification);
+        }
+
+        // 2. Email Notification (FR5.2.2)
+        if (emailAlertsEnabled && !string.IsNullOrWhiteSpace(userEmail) && _emailService != null)
+        {
+            var emailNotificationType = $"BUDGET_EXCEEDED_EMAIL_{periodStart:yyyyMMdd}";
+            if (!await _repository.HasBudgetNotificationAsync(userId, budget.BudgetId, emailNotificationType, cancellationToken))
+            {
+                var overSpent = spent - budget.AmountLimit;
+                var subject = $"[PocketWise] แจ้งเตือนด่วน: เกินขีดจำกัดงบประมาณ {budget.BudgetName}";
+                var htmlBody = $"""
+                    <!DOCTYPE html>
+                    <html lang="th">
+                    <head>
+                      <meta charset="utf-8" />
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    </head>
+                    <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #fef2f2;">
+                      <div style="max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #fee2e2; border-radius: 8px; background-color: #ffffff;">
+                        <h2 style="color: #dc2626; margin-top: 0;">PocketWise — แจ้งเตือนด่วน: เกินงบประมาณ!</h2>
+                        <p>เรียน คุณผู้ใช้,</p>
+                        <p>งบประมาณ <strong>{budget.BudgetName}</strong> ของคุณ มีการใช้จ่ายเกินวงเงินที่กำหนดแล้ว:</p>
+                        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; color: #64748b;">ยอดที่ใช้ไป:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; font-weight: bold; text-align: right; color: #dc2626;">{spent:N2} {currencyCode}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; color: #64748b;">วงเงินงบประมาณ:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; font-weight: bold; text-align: right;">{budget.AmountLimit:N2} {currencyCode}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; color: #64748b;">ยอดที่เกิน:</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #fee2e2; font-weight: bold; text-align: right; color: #dc2626;">{overSpent:N2} {currencyCode}</td>
+                            </tr>
+                        </table>
+                        <p style="color: #64748b; font-size: 14px;">คุณสามารถเข้าสู่ระบบ PocketWise เพื่อตรวจสอบหรือปรับแต่งงบประมาณได้ทันที</p>
+                      </div>
+                    </body>
+                    </html>
+                    """;
+
+                var sent = await _emailService.SendEmailAsync(userEmail, subject, htmlBody, cancellationToken);
+
+                var emailNotification = new Notification
+                {
+                    UserId = userId,
+                    NotificationType = emailNotificationType,
+                    Title = $"[Email] เกินงบ {budget.BudgetName}",
+                    Message = $"ส่งอีเมลแจ้งเตือนไปยัง {userEmail}: เกินงบแล้ว ใช้ไป {spent:N2} {currencyCode} จากงบ {budget.AmountLimit:N2} {currencyCode} (เกิน {overSpent:N2} {currencyCode})",
+                    Channel = NotificationChannel.Email,
+                    Status = sent ? NotificationStatus.Sent : NotificationStatus.Failed,
+                    RelatedEntityType = "Budget",
+                    RelatedEntityId = budget.BudgetId,
+                    SentAt = sent ? DateTime.UtcNow : null,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _repository.AddNotificationAsync(emailNotification, cancellationToken);
+                collectedNotifications.Add(emailNotification);
+            }
+        }
+    }
+}

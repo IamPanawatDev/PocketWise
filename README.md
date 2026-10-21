@@ -27,7 +27,8 @@ SQL Server (Microsoft SQL Server 2025, database: PocketWiseDb)
 | Frontend | Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, ESLint 9 |
 | Backend | .NET 10 (ASP.NET Core Web API), EF Core 10.0.13, ASP.NET Core Identity (JWT + Refresh Token) |
 | Database | Microsoft SQL Server 2025 (localhost / `PocketWiseDb`) |
-| Real-time | ASP.NET Core SignalR (server) + `@microsoft/signalr` (client — จะติดตั้งเมื่อถึง Phase 6) |
+| Real-time | ASP.NET Core SignalR (server) + `@microsoft/signalr` (^10.0.11 client) |
+| UI/Animation | Tailwind CSS 4, shadcn/ui, `motion` (^14.5.0), `recharts` (^3.10.1) |
 | Testing | xUnit + WebApplicationFactory / Playwright (ตาม phase) |
 
 รายละเอียดเต็ม: [`docs/Tech_Stack.md`](docs/Tech_Stack.md)
@@ -45,12 +46,15 @@ cd ../frontend/pocketwise-web
 npm install
 
 # 3) ตั้ง env ฝั่ง frontend
-copy .env.example .env.local     # Windows (Linux: cp)
+if not exist .env.local copy .env.example .env.local     # Windows (Linux: cp เฉพาะเมื่อยังไม่มีไฟล์)
 
-# 4) รันทั้งสองฝั่งพร้อมกัน (จาก repo root — ต้องมี Windows Terminal)
+# 4) รันทั้งสองฝั่งพร้อมกัน (จาก repo root — Windows Terminal เป็นทางเลือก)
 ..\..\run.cmd
+#    Swagger UI : http://localhost:5268/swagger
+#    OpenAPI JSON: http://localhost:5268/openapi/v1.json
+#    Frontend    : http://localhost:3000
 # หรือรันแยก:
-#   Backend : cd backend/src/PocketWiseApi && dotnet watch run   → https://localhost:7023
+#   Backend : cd backend/src/PocketWise.Api && dotnet watch run --launch-profile http
 #   Frontend: cd frontend/pocketwise-web && npm run dev          → http://localhost:3000
 ```
 
@@ -68,11 +72,12 @@ copy .env.example .env.local     # Windows (Linux: cp)
 - [`AGENTS.md`](AGENTS.md) — กฎเหล็กระดับ root + navigation
 - [`backend/AGENTS.md`](backend/AGENTS.md) / [`frontend/AGENTS.md`](frontend/AGENTS.md) — กฎต่อขอบเขต + ตำแหน่งไฟล์
 - [`docs/DEVELOPMENT_GUIDELINE.md`](docs/DEVELOPMENT_GUIDELINE.md) — Playbook ต่อ Phase + Decision Ledger
+- [`docs/IMPLEMENTATION_CHECKLIST.md`](docs/IMPLEMENTATION_CHECKLIST.md) — Checklist ติดตามงาน implement รายรายการ (อัปเดตทุกครั้งที่ implement เสร็จ)
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — Requirements (FR) + สถานะ
-- [`docs/DataDictionary.md`](docs/DataDictionary.md) — Schema (implement 20/25 ตาราง ตาม D12)
+- [`docs/DataDictionary.md`](docs/DataDictionary.md) — Schema (**25 ตาราง** ตาม D13)
 - [`docs/API_SPECIFICATION.md`](docs/API_SPECIFICATION.md) — สัญญา REST/SignalR
 - [`frontend/pocketwise-web/DESIGN.md`](frontend/pocketwise-web/DESIGN.md) — Design System (UI tokens)
 
 ## Status
 
-ดูตารางสถานะ Phase ได้ที่ [`docs/DEVELOPMENT_GUIDELINE.md` §3](docs/DEVELOPMENT_GUIDELINE.md) — ปัจจุบัน: Phase 2 (Data Model) พร้อมเริ่มโค้ด
+ดูตารางสถานะ Phase ได้ที่ [`docs/DEVELOPMENT_GUIDELINE.md` §3](docs/DEVELOPMENT_GUIDELINE.md) — ปัจจุบัน: Phases 0–7 เสร็จสมบูรณ์แล้ว, กำลังอยู่ในช่วง Phase 8 (Hardening, Polish & Maintenance)

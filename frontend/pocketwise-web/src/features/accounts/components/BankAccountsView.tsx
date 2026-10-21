@@ -1,0 +1,281 @@
+"use client";
+
+import { Controller, useForm } from "react-hook-form";
+import { useState } from "react";
+import { toast } from "sonner";
+import { bankAccountSchema, type BankAccountFormValues } from "@/schemas/bank-account.schema";
+import { zodResolver } from "@/lib/zod-resolver";
+import {
+  useBankAccounts,
+  useCreateBankAccount,
+  useDeleteBankAccount,
+  useUpdateBankAccount,
+} from "@/features/accounts/hooks/useBankAccounts";
+import { ApiError } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ListRowsSkeleton } from "@/components/shared/Skeletons";
+import {
+  Banknote,
+  Landmark,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  Save,
+  Smartphone,
+  Trash2,
+  X,
+} from "lucide-react";
+
+const initialBankValues: BankAccountFormValues = {
+  accountName: "",
+  bankName: "",
+  bankCode: null,
+  accountNumberMasked: null,
+  accountType: "bank",
+};
+
+export function BankAccountsView() {
+  const { data, isLoading } = useBankAccounts();
+  const create = useCreateBankAccount();
+  const update = useUpdateBankAccount();
+  const remove = useDeleteBankAccount();
+
+  const [editing, setEditing] = useState<number | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<BankAccountFormValues>({
+    resolver: zodResolver(bankAccountSchema),
+    defaultValues: initialBankValues,
+  });
+
+  const clearForm = () => {
+    setEditing(null);
+    reset(initialBankValues);
+  };
+
+  const closeForm = () => {
+    clearForm();
+    setIsFormOpen(false);
+  };
+
+  const onSubmit = (values: BankAccountFormValues) => {
+    const payload = {
+      ...values,
+      bankCode: values.bankCode?.trim().toUpperCase() || null,
+      accountNumberMasked: values.accountNumberMasked?.trim() || null,
+    };
+    if (editing !== null) {
+      update.mutate(
+        { id: editing, body: { ...payload, isActive: true } },
+        {
+          onSuccess: () => {
+            closeForm();
+            toast.success("บันทึกบัญชีแล้ว");
+          },
+          onError: (e) => toast.error(e instanceof ApiError ? e.message : "บันทึกไม่สำเร็จ"),
+        },
+      );
+    } else {
+      create.mutate(payload, {
+        onSuccess: () => {
+          closeForm();
+          toast.success("เพิ่มบัญชีแล้ว");
+        },
+        onError: (e) => toast.error(e instanceof ApiError ? e.message : "เพิ่มไม่สำเร็จ"),
+      });
+    }
+  };
+
+  const getAccountIcon = (type?: string | null) => {
+    const t = type?.toLowerCase();
+    if (t === "cash") return <Banknote className="size-4 text-emerald-500" />;
+    if (t === "wallet") return <Smartphone className="size-4 text-purple-500" />;
+    return <Landmark className="size-4 text-[var(--pw-primary)]" />;
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
+            <Landmark className="size-6 text-[var(--pw-primary)]" />
+            บัญชี
+          </h1>
+          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
+            จัดการบัญชีเงินฝาก เงินสด และกระเป๋าเงินของคุณ
+          </p>
+        </div>
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => {
+            clearForm();
+            setIsFormOpen(true);
+          }}
+        >
+          <Plus />
+          เพิ่มบัญชี
+        </Button>
+      </div>
+
+      {/* Form in BottomSheet */}
+      <BottomSheet
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          if (!open) closeForm();
+          else setIsFormOpen(true);
+        }}
+        title={editing !== null ? "แก้ไขบัญชี" : "เพิ่มบัญชีใหม่"}
+        description="ระบุรายละเอียดบัญชีสำหรับการบันทึกธุรกรรม"
+      >
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField label="ชื่อบัญชี" htmlFor="account-name" error={errors.accountName?.message}>
+                <Input id="account-name" placeholder="เช่น เงินเดือน, บัญชีหลัก" {...register("accountName")} />
+              </FormField>
+              <FormField label="ชื่อธนาคาร / ผู้ให้บริการ" htmlFor="bank-name" error={errors.bankName?.message}>
+                <Input id="bank-name" placeholder="เช่น กสิกรไทย, ไทยพาณิชย์, TrueMoney" {...register("bankName")} />
+              </FormField>
+              <FormField label="รหัสธนาคาร (เช่น 004 หรือ KBANK)" htmlFor="bank-code" error={errors.bankCode?.message}>
+                <Input id="bank-code" placeholder="เช่น 004 หรือ KBANK" {...register("bankCode")} />
+              </FormField>
+              <FormField label="ประเภท" htmlFor="account-type" error={errors.accountType?.message}>
+                <Controller
+                  control={control}
+                  name="accountType"
+                  render={({ field }) => (
+                    <Select value={field.value || "bank"} onValueChange={field.onChange}>
+                      <SelectTrigger id="account-type">
+                        <SelectValue placeholder="เลือกประเภทบัญชี" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bank">ธนาคาร</SelectItem>
+                        <SelectItem value="cash">เงินสด</SelectItem>
+                        <SelectItem value="wallet">กระเป๋าเงิน</SelectItem>
+                        <SelectItem value="other">อื่น ๆ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
+              <Button type="submit" disabled={create.isPending || update.isPending} className="w-full sm:w-auto">
+                {create.isPending || update.isPending ? (
+                  <LoaderCircle className="animate-spin size-4 mr-1.5" />
+                ) : editing !== null ? (
+                  <Save className="size-4 mr-1.5" />
+                ) : (
+                  <Plus className="size-4 mr-1.5" />
+                )}
+                {editing !== null ? "บันทึกการแก้ไข" : "เพิ่มบัญชี"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
+                <X className="size-4 mr-1.5" />
+                ยกเลิก
+              </Button>
+            </div>
+          </form>
+        </div>
+      </BottomSheet>
+
+      {/* Accounts List */}
+      {isLoading ? (
+        <ListRowsSkeleton count={4} hasAvatar />
+      ) : !data || data.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <Landmark className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีบัญชี</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+            กดปุ่ม &quot;เพิ่มบัญชี&quot; ด้านบนเพื่อเพิ่มบัญชีธนาคาร เงินสด หรือกระเป๋าเงิน
+          </p>
+        </Card>
+      ) : (
+        <Card className="p-0 overflow-hidden">
+          <AnimatedList>
+            {data.map((a) => (
+              <AnimatedListItem
+                key={a.bankAccountId}
+                className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--pw-surface-sunken)]">
+                    {getAccountIcon(a.accountType)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-[var(--pw-ink)] truncate">{a.accountName}</p>
+                    <p className="text-xs text-[var(--pw-ink)]/50">
+                      {a.bankName}
+                      {a.bankCode && ` [${a.bankCode}]`}
+                      {a.accountNumberMasked && ` • ${a.accountNumberMasked}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="min-h-10 flex-1 sm:flex-none"
+                    onClick={() => {
+                      setEditing(a.bankAccountId);
+                      reset({
+                        bankName: a.bankName,
+                        accountName: a.accountName,
+                        bankCode: a.bankCode,
+                        accountNumberMasked: a.accountNumberMasked,
+                        accountType: (a.accountType?.toLowerCase() as BankAccountFormValues["accountType"]) ?? "bank",
+                      });
+                      setIsFormOpen(true);
+                    }}
+                  >
+                    <Pencil />
+                    แก้ไข
+                  </Button>
+                  <ConfirmDialog
+                    title="ลบบัญชีนี้?"
+                    description="ไม่สามารถลบบัญชีที่มีรายการใช้งานอยู่ได้"
+                    confirmLabel="ลบ"
+                    pending={remove.isPending}
+                    onConfirm={() => {
+                      remove.mutate(a.bankAccountId, {
+                        onSuccess: () => toast.success("ลบบัญชีแล้ว"),
+                        onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
+                      });
+                    }}
+                    trigger={
+                      <Button size="sm" variant="destructive" className="min-h-10 flex-1 sm:flex-none">
+                        <Trash2 />
+                        ลบ
+                      </Button>
+                    }
+                  />
+                </div>
+              </AnimatedListItem>
+            ))}
+          </AnimatedList>
+        </Card>
+      )}
+    </div>
+  );
+}

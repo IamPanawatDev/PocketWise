@@ -1,7 +1,7 @@
 # PocketWise — Technology Stack & Development Tools
 
 > Project: PocketWise Personal Finance Management System  
-> Architecture: Next.js frontend + ASP.NET Core Web API + SignalR + SQL Server  
+> Architecture: Next.js frontend + ASP.NET Core Web API + SignalR + PostgreSQL (Supabase / Docker)  
 > Document status: Proposed baseline; confirm package versions against current stable releases before implementation.
 
 ## 1. Goals and Architecture
@@ -21,14 +21,14 @@ ASP.NET Core Web API  ◄────────►  SignalR Hubs
   │
   ├── Application / Domain logic
   ├── Authentication & Authorization
-  ├── EF Core
+  ├── EF Core (Npgsql)
   └── Background jobs (when needed)
   │
   ▼
-SQL Server
+PostgreSQL (Local Docker / Supabase)
 ```
 
-The frontend must never connect directly to SQL Server. All data access goes through the backend API. SignalR is for server-pushed events, not a replacement for REST endpoints or durable database storage.
+The frontend must never connect directly to PostgreSQL. All data access goes through the backend API. SignalR is for server-pushed events, not a replacement for REST endpoints or durable database storage.
 
 ## 2. Core Technology Stack
 
@@ -41,13 +41,15 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 | Frontend framework | Next.js (App Router) | Routing, layouts, server/client rendering, and application shell. |
 | Language | TypeScript with strict mode | Type safety across UI and API contracts. |
 | Styling | Tailwind CSS | Utility-first styling and responsive layouts. |
-| UI components | shadcn/ui + Radix UI | Accessible, customizable components; components are added to the codebase rather than consumed as a single opaque UI library. |
+| UI components | shadcn/ui CLI + Radix UI + react-day-picker | Components are added as source in `frontend/pocketwise-web/src/components/ui/`; installed components are themed with PocketWise `--pw-*` tokens. The app uses Input, Select, Button, AlertDialog, a Calendar/Popover date picker backed by `react-day-picker`, and a shared Select-based time picker. |
 | Icons | lucide-react | Consistent UI icons. |
 | Forms | React Hook Form + Zod | Form state and schema-based validation. Validate on both client and server. |
 | API client | Native fetch or a small typed API wrapper | Centralize base URL, headers, error handling, and credentials. Add TanStack Query if server-state caching/invalidation becomes useful. |
-| SignalR client | @microsoft/signalr | Connect to the ASP.NET Core SignalR hub and handle reconnects/events. |
-| Database | Microsoft SQL Server | Relational storage for users, transactions, categories, budgets, cards, and audit records. |
-| ORM / migrations | Entity Framework Core SQL Server provider | Database access, LINQ, entity mapping, and schema migrations. |
+| UI Animations | motion (framer-motion v14.5.0) | Fluid UI animations, staggered lists (AnimatedList), spring counters (AnimatedNumber), route transitions (PageTransition), and micro-interactions. |
+| Reports charts | Recharts | Responsive report charts; render amounts in separate currency series and use the project design tokens. |
+| SignalR client | @microsoft/signalr (^10.0.11 — ติดตั้งแล้วใน frontend/pocketwise-web) | Connect to the ASP.NET Core SignalR hub and handle reconnects/events. |
+| Database | PostgreSQL (Local Docker `postgres:16-alpine` / Cloud: Supabase) | Relational storage for users, transactions, categories, budgets, cards, and audit records. Zero-cost hosting friendly. |
+| ORM / migrations | Entity Framework Core PostgreSQL provider (`Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.0) | Database access, LINQ, entity mapping, and schema migrations. |
 | Authentication | ASP.NET Core Identity or a carefully designed external identity provider | Password hashing, account lifecycle, roles/claims, and secure sign-in. Decide cookie/BFF vs bearer-token architecture before implementation. |
 | Validation | FluentValidation (optional) + domain validation | Validate API inputs and enforce business rules server-side. Avoid duplicating rules without a clear source of truth. |
 | Logging | Microsoft.Extensions.Logging with structured logging; Serilog optional | Diagnostic logs with useful correlation IDs. Never log passwords, tokens, or full sensitive financial data. |
@@ -65,6 +67,9 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 - Prefer supported LTS releases for a new project, subject to deployment-host compatibility.
 - Do not mix incompatible major versions of Next.js, React, Tailwind CSS, shadcn/ui, or EF Core.
 - Re-check official release notes and support dates at project kickoff.
+- Recharts `^3.10.1` is installed as a runtime dependency in `frontend/pocketwise-web/` for Phase 5 reports; use it only for report visualizations.
+- Devart MCP Server for SQL Server (v1.1.0) ได้รับอนุมัติให้ใช้งานผ่าน stdio transport (Connection: `PocketWise`, DSN: `PocketWiseDb`) เพื่อให้ AI Agent สามารถตรวจสอบ schema และความถูกต้องของข้อมูลในฐานข้อมูลได้อย่างปลอดภัย
+- Frontend shadcn setup is present in `frontend/pocketwise-web/components.json` (Radix Nova, Tailwind CSS v4, `@/components` and `@/lib/utils` aliases). The `shadcn` CLI is a devDependency; runtime primitives use `radix-ui`, `@radix-ui/react-alert-dialog`, `class-variance-authority`, `tw-animate-css`, and `react-day-picker` (`^10.0.2`) for the shared Calendar UI. Date and date-time fields use `DateInput`/`DateTimeInput` in `src/components/ui/date-input.tsx`, backed by `Calendar` in `src/components/ui/calendar.tsx`; time selection uses shared shadcn `Select` components, not native browser date/time pickers. Use `npx shadcn add <component>` from the frontend app, then theme generated source against `DESIGN.md` without overwriting existing customized primitives.
 
 ## 3. Backend Project Structure
 
@@ -90,12 +95,23 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 
 Recommended setup:
 
-- Generate an OpenAPI document from ASP.NET Core endpoints/controllers.
-- Enable Swagger UI or an equivalent viewer in Development.
+- Generate the OpenAPI document with `Microsoft.AspNetCore.OpenApi` and expose it at `/openapi/v1.json`.
+- Serve the interactive Swagger UI with `NSwag.AspNetCore` at `/swagger` in Development only.
 - Document authentication requirements, request/response DTOs, validation errors, pagination, and common status codes.
 - Use the OpenAPI document to review contract changes; optionally generate TypeScript types/client code with a compatible generator.
 - Secure or disable interactive API documentation in production unless there is an explicit operational need.
 - OpenAPI documents the REST API; it does not fully describe SignalR hub events. Document hub names, event names, payloads, and authorization separately.
+
+PocketWise local development uses `http://localhost:5268` for the API and
+`http://localhost:5268/swagger` for Swagger UI. The `run.cmd` script explicitly
+starts the backend with the `http` launch profile so these URLs stay consistent.
+Current package versions are `Microsoft.AspNetCore.OpenApi` 10.0.13 and
+`NSwag.AspNetCore` 14.7.1.
+
+For the frontend CSS pipeline, Tailwind CSS v4 is compiled with
+`@tailwindcss/postcss`; its plugin is configured in
+`frontend/pocketwise-web/postcss.config.mjs`. Keep CSS processing and Tailwind
+configuration changes aligned with this PostCSS integration.
 
 Official resources:
 - OpenAPI Specification: https://spec.openapis.org/oas/latest.html
@@ -114,7 +130,7 @@ The core app does **not** need third-party APIs to record income and expenses. K
 
 | Capability | Possible provider / approach | Required? | Considerations |
 |---|---|---|---|
-| Receipt or transfer-slip OCR | Azure AI Document Intelligence or another vetted OCR service | Optional | May incur cost; compare Thai-language accuracy, supported layouts, privacy, retention, and quotas. Always let users review extracted data before saving. |
+| Receipt or transfer-slip OCR | Local `Tesseract` 5.2.0 (with `tha` + `eng` models) / Optional: Cloud Vision API | Installed (`Tesseract` 5.2.0 in Infrastructure) | Local offline OCR for Thai slips via `TesseractSlipOcrService` using `tessdata/{tha,eng}.traineddata`. Always lets users review extracted data before saving. |
 | Bank account aggregation | A licensed/open-banking provider available in the target country | Optional, only if supported | Availability and authorization vary by country and bank. Do not assume a universal public API exists. Never ask users to share online banking passwords. |
 | Exchange rates | A reputable exchange-rate API or official source | Optional | Needed only if supporting multi-currency transactions. Store rate, currency pair, source, and effective date used for conversion. |
 | Email delivery | SMTP provider or transactional email service | Optional | For verification, password reset, or reports; protect API keys and rate-limit sending. |

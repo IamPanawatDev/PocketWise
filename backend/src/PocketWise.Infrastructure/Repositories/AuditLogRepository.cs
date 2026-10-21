@@ -1,0 +1,192 @@
+using Microsoft.EntityFrameworkCore;
+using PocketWise.Application.DTOs;
+using PocketWise.Application.DTOs.AuditLogs;
+using PocketWise.Application.Interfaces;
+using PocketWise.Domain.Entities;
+using PocketWise.Infrastructure.Persistence;
+
+namespace PocketWise.Infrastructure.Repositories;
+
+public class AuditLogRepository : IAuditLogRepository
+{
+    private readonly PocketWiseDbContext _dbContext;
+
+    public AuditLogRepository(PocketWiseDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public async Task AddAsync(AuditLog log, CancellationToken cancellationToken = default)
+    {
+        _dbContext.AuditLogs.Add(log);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<AuditLog>> GetPagedAsync(
+        long? userId,
+        AuditLogFilter filter,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
+
+        var baseQuery = _dbContext.AuditLogs.AsNoTracking();
+
+        if (userId.HasValue)
+        {
+            baseQuery = baseQuery.Where(a => a.UserId == userId.Value);
+        }
+        else if (filter.UserId.HasValue)
+        {
+            baseQuery = baseQuery.Where(a => a.UserId == filter.UserId.Value);
+        }
+
+        if (filter.Action.HasValue)
+        {
+            baseQuery = baseQuery.Where(a => a.Action == filter.Action.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.EntityType))
+        {
+            baseQuery = baseQuery.Where(a => a.EntityType == filter.EntityType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.EntityId))
+        {
+            baseQuery = baseQuery.Where(a => a.EntityId == filter.EntityId);
+        }
+
+        if (filter.FromDate.HasValue)
+        {
+            baseQuery = baseQuery.Where(a => a.OccurredAt >= filter.FromDate.Value);
+        }
+
+        if (filter.ToDate.HasValue)
+        {
+            baseQuery = baseQuery.Where(a => a.OccurredAt <= filter.ToDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Q))
+        {
+            var search = filter.Q.Trim();
+            baseQuery = baseQuery.Where(a =>
+                a.EntityType.Contains(search) ||
+                (a.EntityId != null && a.EntityId.Contains(search)) ||
+                (a.DetailsJson != null && a.DetailsJson.Contains(search)));
+        }
+
+        var totalItems = await baseQuery.CountAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        var items = await baseQuery
+            .Include(a => a.User)
+            .OrderByDescending(a => a.OccurredAt)
+            .ThenByDescending(a => a.AuditLogId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<AuditLog>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalPages
+        };
+    }
+
+    public async Task<AuditLog?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.AuditLogs
+            .AsNoTracking()
+            .Include(a => a.User)
+            .FirstOrDefaultAsync(a => a.AuditLogId == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> GetEntityTypesAsync(long? userId, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.AuditLogs.AsNoTracking();
+        if (userId.HasValue)
+        {
+            query = query.Where(a => a.UserId == userId.Value);
+        }
+
+        return await query
+            .Select(a => a.EntityType)
+            .Distinct()
+            .OrderBy(e => e)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.AuditLogs.CountAsync(cancellationToken);
+    }
+
+    public async Task<(DateTime? Oldest, DateTime? Latest)> GetDateRangeAsync(CancellationToken cancellationToken = default)
+    {
+        var hasAny = await _dbContext.AuditLogs.AnyAsync(cancellationToken);
+        if (!hasAny)
+        {
+            return (null, null);
+        }
+
+        var oldest = await _dbContext.AuditLogs.MinAsync(a => (DateTime?)a.OccurredAt, cancellationToken);
+        var latest = await _dbContext.AuditLogs.MaxAsync(a => (DateTime?)a.OccurredAt, cancellationToken);
+
+        return (oldest, latest);
+    }
+
+    public async Task<int> PurgeOlderThanAsync(DateTime? cutoffDate, CancellationToken cancellationToken = default)
+    {
+        if (cutoffDate.HasValue)
+        {
+            return await _dbContext.AuditLogs
+                .Where(a => a.OccurredAt < cutoffDate.Value)
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        return await _dbContext.AuditLogs.ExecuteDeleteAsync(cancellationToken);
+    }
+
+    public async Task<bool> IsAuditLogEnabledAsync(CancellationToken cancellationToken = default)
+    {
+        var setting = await _dbContext.SystemSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);
+
+        if (setting == null) return true;
+        return bool.TryParse(setting.SettingValue, out var val) ? val : true;
+    }
+
+    public async Task SetAuditLogEnabledAsync(bool enabled, long? updatedByUserId, CancellationToken cancellationToken = default)
+    {
+        var setting = await _dbContext.SystemSettings
+            .FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);
+
+        if (setting == null)
+        {
+            setting = new SystemSetting
+            {
+                SettingKey = "AuditLog:Enabled",
+                SettingValue = enabled.ToString().ToLowerInvariant(),
+                Description = "เปิด/ปิด การบันทึกประวัติการเปลี่ยนแปลง (Audit Logs) ทั้งระบบ",
+                UpdatedAt = DateTime.UtcNow,
+                UpdatedByUserId = updatedByUserId
+            };
+            _dbContext.SystemSettings.Add(setting);
+        }
+        else
+        {
+            setting.SettingValue = enabled.ToString().ToLowerInvariant();
+            setting.UpdatedAt = DateTime.UtcNow;
+            setting.UpdatedByUserId = updatedByUserId;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+}

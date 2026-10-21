@@ -1,0 +1,486 @@
+"use client";
+
+import { useState, useRef } from "react";
+import {
+  UploadCloud,
+  FileCheck2,
+  AlertTriangle,
+  Check,
+  X,
+  RotateCcw,
+  Sparkles,
+  ArrowRight,
+  Receipt,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { FormField } from "@/components/ui/form-field";
+import { DateTimeInput } from "@/components/ui/date-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
+import { useCategories } from "@/features/categories/hooks/useCategories";
+import {
+  useUploadSlip,
+  useConfirmSlip,
+  useRejectSlip,
+} from "@/features/imports/hooks/useImports";
+import type { SlipImportResponse } from "@/types/import.types";
+import { toThailandDateTimeInputValue, thailandDateTimeInputToUtcIso } from "@/lib/utils";
+
+export function SlipImportTab() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadedSlip, setUploadedSlip] = useState<SlipImportResponse | null>(null);
+
+  // Review form state
+  const [amount, setAmount] = useState<string>("");
+  const [transactionDate, setTransactionDate] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [bankAccountId, setBankAccountId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("");
+  const [statusMessage, setStatusMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: categories = [] } = useCategories();
+
+  const uploadMutation = useUploadSlip();
+  const confirmMutation = useConfirmSlip();
+  const rejectMutation = useRejectSlip();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setStatusMessage(null);
+
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    } else {
+      setPreviewUrl(null);
+    }
+
+    // Automatically trigger upload
+    const formData = new FormData();
+    formData.append("file", file);
+
+    uploadMutation.mutate(formData, {
+      onSuccess: (data) => {
+        setUploadedSlip(data);
+        if (data.detectedAmount) {
+          setAmount(String(data.detectedAmount));
+        } else {
+          setAmount("");
+        }
+        if (data.detectedAt) {
+          try {
+            setTransactionDate(toThailandDateTimeInputValue(data.detectedAt));
+          } catch {
+            setTransactionDate(toThailandDateTimeInputValue(new Date()));
+          }
+        } else {
+          setTransactionDate(toThailandDateTimeInputValue(new Date()));
+        }
+        if (data.payeeName) {
+          setDescription(`โอนเงินให้ ${data.payeeName}`);
+        } else if (data.payerName) {
+          setDescription(`รับเงินจาก ${data.payerName}`);
+        } else {
+          setDescription("");
+        }
+        if (data.suggestedCategoryId) {
+          setCategoryId(String(data.suggestedCategoryId));
+        }
+        if (bankAccounts.length > 0 && !bankAccountId) {
+          setBankAccountId(String(bankAccounts[0].bankAccountId));
+        }
+      },
+      onError: (err) => {
+        setStatusMessage({
+          type: "error",
+          text: err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการอัปโหลดสลิป",
+        });
+      },
+    });
+  };
+
+  const handleConfirm = () => {
+    if (!uploadedSlip) return;
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      setStatusMessage({ type: "error", text: "กรุณาระบุจำนวนเงินให้ถูกต้อง" });
+      return;
+    }
+
+    let isoDate = new Date().toISOString();
+    if (transactionDate) {
+      try {
+        isoDate = thailandDateTimeInputToUtcIso(transactionDate);
+      } catch {
+        isoDate = new Date(transactionDate).toISOString();
+      }
+    }
+
+    confirmMutation.mutate(
+      {
+        slipImportFileId: uploadedSlip.slipImportFileId,
+        body: {
+          amount: numAmount,
+          transactionDate: isoDate,
+          description: description.trim() || "โอนเงินผ่านสลิป",
+          categoryId: categoryId ? Number(categoryId) : null,
+          bankAccountId: bankAccountId ? Number(bankAccountId) : null,
+          payeeName: uploadedSlip.payeeName,
+          payerName: uploadedSlip.payerName,
+          transactionReference: uploadedSlip.transactionReference,
+        },
+      },
+      {
+        onSuccess: () => {
+          setStatusMessage({
+            type: "success",
+            text: "ยืนยันและบันทึกรายการธุรกรรมเรียบร้อยแล้ว",
+          });
+          setUploadedSlip((prev) =>
+            prev ? { ...prev, reviewStatus: "confirmed" } : null,
+          );
+        },
+        onError: (err) => {
+          setStatusMessage({
+            type: "error",
+            text: err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกรายการ",
+          });
+        },
+      },
+    );
+  };
+
+  const handleReject = () => {
+    if (!uploadedSlip) return;
+    rejectMutation.mutate(uploadedSlip.slipImportFileId, {
+      onSuccess: () => {
+        setStatusMessage({
+          type: "success",
+          text: "ปฏิเสธสลิปรายการนี้เรียบร้อยแล้ว",
+        });
+        setUploadedSlip((prev) =>
+          prev ? { ...prev, reviewStatus: "rejected" } : null,
+        );
+      },
+      onError: (err) => {
+        setStatusMessage({
+          type: "error",
+          text: err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการปฏิเสธสลิป",
+        });
+      },
+    });
+  };
+
+  const handleReset = () => {
+    setPreviewUrl(null);
+    setUploadedSlip(null);
+    setAmount("");
+    setDescription("");
+    setStatusMessage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {statusMessage && (
+        <div
+          className={`flex items-center gap-2 rounded-lg p-3 text-sm font-medium ${
+            statusMessage.type === "success"
+              ? "bg-[var(--pw-accent-green)]/10 text-[var(--pw-accent-green)] border border-[var(--pw-accent-green)]/20"
+              : "bg-[var(--pw-accent-red)]/10 text-[var(--pw-accent-red)] border border-[var(--pw-accent-red)]/20"
+          }`}
+        >
+          {statusMessage.type === "success" ? (
+            <FileCheck2 className="h-5 w-5 shrink-0" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+          )}
+          <span>{statusMessage.text}</span>
+        </div>
+      )}
+
+      {!uploadedSlip ? (
+        <Card className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-8 text-center transition-colors hover:border-[var(--pw-accent-primary)]/50">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            className="hidden"
+            onChange={handleFileChange}
+            disabled={uploadMutation.isPending}
+          />
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)] mb-4">
+            <UploadCloud className="h-8 w-8" />
+          </div>
+          <h3 className="text-lg font-semibold text-[var(--pw-text-primary)]">
+            อัปโหลดสลิปโอนเงิน
+          </h3>
+          <p className="mt-1 max-w-sm text-sm text-[var(--pw-text-secondary)]">
+            ลากและวางรูปภาพสลิป หรือคลิกเพื่อเลือกไฟล์ รองรับ JPEG, PNG, WEBP หรือ PDF (สูงสุด 10 MB)
+          </p>
+          <Button
+            type="button"
+            className="mt-6 gap-2"
+            disabled={uploadMutation.isPending}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploadMutation.isPending ? "กำลังอ่านข้อมูลสลิป..." : "เลือกไฟล์สลิป"}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Card>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-12">
+          {/* Slip Preview Column */}
+          <div className="lg:col-span-5 space-y-4">
+            <Card className="p-4 bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)]">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--pw-hairline)]">
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--pw-text-primary)]">
+                  <Receipt className="h-4 w-4 text-[var(--pw-accent-primary)]" />
+                  <span>ตัวอย่างสลิป</span>
+                </div>
+                <span className="text-xs text-[var(--pw-text-muted)] truncate max-w-[180px]">
+                  {uploadedSlip.originalFileName}
+                </span>
+              </div>
+
+              {previewUrl ? (
+                <div className="mt-4 flex justify-center rounded-lg overflow-hidden bg-black/40 border border-[var(--pw-hairline)] max-h-[420px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewUrl}
+                    alt="Slip Preview"
+                    className="object-contain w-full max-h-[420px]"
+                  />
+                </div>
+              ) : (
+                <div className="mt-4 flex flex-col items-center justify-center py-12 text-center text-[var(--pw-text-muted)]">
+                  <Receipt className="h-12 w-12 mb-2 opacity-50" />
+                  <p className="text-sm">ไฟล์เอกสาร PDF หรือไม่มีตัวอย่างรูปภาพ</p>
+                </div>
+              )}
+
+              {uploadedSlip.isDuplicate && (
+                <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-[var(--pw-accent-yellow)]/10 border border-[var(--pw-accent-yellow)]/20 p-3 text-xs text-[var(--pw-accent-yellow)]">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold">ตรวจพบสลิปซ้ำในระบบ:</span>
+                    <p className="mt-0.5 text-[var(--pw-text-secondary)]">
+                      ไฟล์นี้มีค่าแฮช SHA-256 ตรงกับสลิปที่เคยนำเข้าแล้ว กรุณาตรวจสอบก่อนยืนยัน
+                    </p>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 text-[var(--pw-text-secondary)]"
+              onClick={handleReset}
+            >
+              <RotateCcw className="h-4 w-4" />
+              อัปโหลดสลิปอื่น
+            </Button>
+          </div>
+
+          {/* Form & Verification Column */}
+          <div className="lg:col-span-7">
+            <Card className="p-6 bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)] space-y-5">
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--pw-hairline)]">
+                <div>
+                  <h3 className="text-base font-semibold text-[var(--pw-text-primary)]">
+                    ตรวจสอบและยืนยันข้อมูลรายการ
+                  </h3>
+                  <p className="text-xs text-[var(--pw-text-secondary)]">
+                    ข้อมูลถูกอ่านอัตโนมัติจากไฟล์สลิป สามารถแก้ไขก่อนบันทึกได้
+                  </p>
+                </div>
+                <span
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    uploadedSlip.reviewStatus === "confirmed"
+                      ? "bg-[var(--pw-accent-green)]/10 text-[var(--pw-accent-green)]"
+                      : uploadedSlip.reviewStatus === "rejected"
+                      ? "bg-[var(--pw-accent-red)]/10 text-[var(--pw-accent-red)]"
+                      : uploadedSlip.isDuplicate
+                      ? "bg-[var(--pw-accent-yellow)]/10 text-[var(--pw-accent-yellow)]"
+                      : "bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)]"
+                  }`}
+                >
+                  {uploadedSlip.reviewStatus === "confirmed"
+                    ? "บันทึกแล้ว"
+                    : uploadedSlip.reviewStatus === "rejected"
+                    ? "ปฏิเสธแล้ว"
+                    : uploadedSlip.isDuplicate
+                    ? "ตรวจพบซ้ำ"
+                    : "รอตรวจสอบ"}
+                </span>
+              </div>
+
+              {/* Detected info pills */}
+              <div className="grid grid-cols-2 gap-3 text-xs bg-[var(--pw-surface-indigo)]/50 p-3 rounded-lg border border-[var(--pw-hairline)]">
+                <div>
+                  <span className="text-[var(--pw-text-muted)]">ผู้รับเงิน / ร้านค้า:</span>
+                  <div className="font-medium text-[var(--pw-text-primary)] truncate">
+                    {uploadedSlip.payeeName || "-"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[var(--pw-text-muted)]">ผู้โอนเงิน:</span>
+                  <div className="font-medium text-[var(--pw-text-primary)] truncate">
+                    {uploadedSlip.payerName || "-"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[var(--pw-text-muted)]">รหัสอ้างอิง:</span>
+                  <div className="font-medium text-[var(--pw-text-primary)] truncate">
+                    {uploadedSlip.transactionReference || "-"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[var(--pw-text-muted)]">ธนาคาร:</span>
+                  <div className="font-medium text-[var(--pw-text-primary)] truncate">
+                    {uploadedSlip.bankCode || "ตรวจจับอัตโนมัติ"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Edit Fields */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField label="จำนวนเงิน (บาท)">
+                    <NumberInput
+                      step={0.01}
+                      placeholder="0.00"
+                      value={amount}
+                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                      onChange={(e) => setAmount(e.target.value)}
+                    />
+                  </FormField>
+
+                  <FormField label="วันที่และเวลาทำรายการ">
+                    <DateTimeInput
+                      value={transactionDate}
+                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                      onChange={setTransactionDate}
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="รายละเอียดรายการ">
+                  <Input
+                    placeholder="เช่น ชำระค่าอาหาร, ค่ากาแฟ"
+                    value={description}
+                    disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </FormField>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField label="ตัดจากบัญชีธนาคาร">
+                    <Select
+                      value={bankAccountId}
+                      onValueChange={setBankAccountId}
+                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกบัญชีธนาคาร" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bankAccounts.map((acc) => (
+                          <SelectItem
+                            key={acc.bankAccountId}
+                            value={String(acc.bankAccountId)}
+                          >
+                            {acc.accountName} ({acc.bankName})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+
+                  <FormField
+                    label={
+                      <div className="flex items-center gap-1.5">
+                        <span>หมวดหมู่</span>
+                        {uploadedSlip.suggestedCategoryName && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--pw-accent-primary)] bg-[var(--pw-accent-primary)]/10 px-1.5 py-0.5 rounded">
+                            <Sparkles className="h-3 w-3" />
+                            แนะนำ
+                          </span>
+                        )}
+                      </div>
+                    }
+                  >
+                    <Select
+                      value={categoryId}
+                      onValueChange={setCategoryId}
+                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="เลือกหมวดหมู่" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.categoryId} value={String(cat.categoryId)}>
+                            {cat.categoryName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              {uploadedSlip.reviewStatus !== "confirmed" &&
+                uploadedSlip.reviewStatus !== "rejected" && (
+                  <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-[var(--pw-hairline)]">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="gap-2 text-[var(--pw-accent-red)] hover:bg-[var(--pw-accent-red)]/10"
+                      disabled={rejectMutation.isPending || confirmMutation.isPending}
+                      onClick={handleReject}
+                    >
+                      <X className="h-4 w-4" />
+                      ปฏิเสธสลิป
+                    </Button>
+                    <Button
+                      type="button"
+                      className="gap-2 bg-[var(--pw-accent-green)] text-black hover:bg-[var(--pw-accent-green)]/90"
+                      disabled={confirmMutation.isPending || rejectMutation.isPending}
+                      onClick={handleConfirm}
+                    >
+                      <Check className="h-4 w-4" />
+                      {confirmMutation.isPending
+                        ? "กำลังบันทึก..."
+                        : "ยืนยันและบันทึกรายการ"}
+                    </Button>
+                  </div>
+                )}
+            </Card>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
