@@ -43,16 +43,17 @@
                     │  ─ Configurations (EF Fluent API)            │
                     │  ─ Migrations / Repositories / Services      │
                     └───────────────┬──────────────────────────────┘
-                                    │ EF Core (SqlServer provider)
+                                    │ EF Core (Npgsql provider)
                         ┌───────────▼───────────────────┐
-                        │  SQL Server (localhost /      │
-                        │  database: PocketWiseDb - D4) │
+                        │  PostgreSQL (Local Docker /   │
+                        │  database: pocketwise_db)     │
+                        │  Production: Supabase (D50)   │
                         └───────────────────────────────┘
 ```
 
 **หลักที่ล็อกแล้ว (จาก AGENTS.md / decisions):**
 
-- Frontend **ห้าม**ติดต่อ SQL Server โดยตรง — ทุก data access ผ่าน Web API เสมอ
+- Frontend **ห้าม**ติดต่อ PostgreSQL โดยตรง — ทุก data access ผ่าน Web API เสมอ
 - SignalR มีไว้**เฉพาะ server-pushed events** — ห้ามใช้แทน REST หรือฐานข้อมูล
 - Backend เป็น Single Source of Truth ของ business logic, validation และ data contracts
 - Requirement ของฟีเจอร์ทุกชิ้นต้องมาจาก `/docs/REQUIREMENTS.md` (มี FR id รองรับ)
@@ -118,10 +119,10 @@ Response: wrapped envelope ทุก endpoint (D8)
 
 ## 4. SQL Server & EF Core
 
-- **Database engine:** SQL Server 2019+ ทำงานบน `localhost` — ชื่อ DB: **`PocketWiseDb`** (D4) — LocalDB/Developer สำหรับ dev
-- **ORM:** EF Core 10.0.13 + provider `Microsoft.EntityFrameworkCore.SqlServer` (`PocketWise.Infrastructure` เท่านั้น)
+- **Database engine:** PostgreSQL (Local Docker `postgres:16-alpine` บน `localhost:5432`, DB: **`pocketwise_db`**, Production: Supabase — D50)
+- **ORM:** EF Core 10.0 + provider `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.0 (`PocketWise.Infrastructure` เท่านั้น)
 - **ที่จัดเก็บโค้ด:** `Persistence/` (DbContext), `Configurations/` (Fluent API ต่อ entity), `Migrations/` (สร้างผ่าน `dotnet ef` จาก `backend/`)
-- **กฎการ map (จาก DataDictionary):** เก็บเวลาเป็น UTC (`datetime2`), จำนวนเงินเป็น `decimal` + precision/currency ตามตาราง, soft delete (`IsDeleted` + global query filter) **เฉพาะตารางกลุ่มการเงิน 9 ตาราง** (D5)
+- **กฎการ map (จาก DataDictionary):** เก็บเวลาเป็น UTC (`timestamptz`), จำนวนเงินเป็น `decimal` + precision/currency ตามตาราง, soft delete (`IsDeleted` + global query filter) **เฉพาะตารางกลุ่มการเงิน 9 ตาราง** (D5)
 - **Connection string:** dev ใช้ Trusted_Connection; เมื่อมี credential จริง → `.NET user-secrets` (ห้าม commit) เสมอ
 - **Repository pattern:** interface อยู่ `Application/Interfaces/`, implementation อยู่ `Infrastructure/Repositories/` — Application สั่งงานผ่าน interface เท่านั้น
 - ห้ามเขียน ADO.NET ตรง ๆ / stored proc ที่มี business logic เก็บใน DB — ทุก business rule อยู่ใน Domain/Application
@@ -141,7 +142,7 @@ Application
    │  - Access Token (JWT, อายุสั้น) ─┐
    │  - Refresh Token (อายุยาว)      ─┴─ บันทึกในตาราง UserRefreshTokens
    ▼
-UserRefreshTokens (SQL Server)
+UserRefreshTokens (PostgreSQL)
    │ เก็บ TokenHash = SHA-256(token) เสมอ — ห้ามเก็บ plain token
    │ rotation ทุก refresh; เก็บ ReplacedByTokenHash ตรวจ reuse
    │ พบ reuse → revoke ทุก session ของ user นั้น
@@ -153,8 +154,9 @@ Authentication middleware (Api/Authentication/)
    │ validate signature + expiry + issuer/audience → สร้าง ClaimsPrincipal (UserId)
    ▼
 Authorization
-   │ [Authorize] ระดับ controller/endpoint
-   │ Ownership: ทุก query/command ต้องกรองโดย UserId จาก claims — **ห้าม**รับ UserId จาก client
+   │ [Authorize] ระดับ controller/endpoint และ [Authorize(Roles = "Admin")] สำหรับ Admin APIs
+   │ Claims: UserId (ClaimTypes.NameIdentifier) + Roles (ClaimTypes.Role)
+   │ Ownership: ทุก query/command ทั่วไปต้องกรองโดย UserId จาก claims — **ห้าม**รับ UserId จาก client
    ▼
 SignalR (Phase 6): hub connection ใช้ JWT เดียวกัน + per-user groups อิง claims — ไม่รับ client-provided userId
 ```
@@ -170,7 +172,7 @@ SignalR (Phase 6): hub connection ใช้ JWT เดียวกัน + per-u
 - **Route:** `/hubs/notifications` (ไม่เปลี่ยน)
 - **ทำอะไร:** แจ้งเตือน in-app (budget threshold, import/OCR progress, สถานะประมวลผล, refresh hints เมื่อ session อื่นแก้ข้อมูล)
 - **ข้อมูล:** server เป็นผู้แนบ UserId จาก claims — จัด per-user groups ฝั่ง server เสมอ
-- **หลัก:** **บันทึกลง SQL Server (ตาราง `Notifications`) ก่อน broadcast เสมอ** — SignalR ไม่ใช่ storage
+- **หลัก:** **บันทึกลง PostgreSQL (ตาราง `Notifications`) ก่อน broadcast เสมอ** — SignalR ไม่ใช่ storage
 - **Contract:** เพราะ OpenAPI ไม่ครอบ SignalR — event/payload ของ hub อธิบายใน `/docs/API_SPECIFICATION.md` (section SignalR) และต้องกำหนด **ก่อนเริ่ม Phase 6** — ขณะนี้ยังเป็น open decision
 - FE ผูกผ่าน `src/lib/signalr.ts` — ต้องติดตั้ง `@microsoft/signalr` (📦 รออนุมัติ Phase 6)
 
@@ -180,7 +182,7 @@ SignalR (Phase 6): hub connection ใช้ JWT เดียวกัน + per-u
 
 1. **Frontend ↔ Backend** — REST (JSON, HTTPS) + SignalR — ห้าม SQL ตรง, ห้ามแชร์ DB credential
 2. **Api → Application → Domain** — orchestration อยู่ Application, โดเมนกรรมอยู่ Domain, Controllers เบา
-3. **Application → SQL Server** — ทุก read/write ผ่าน EF Core ผ่าน interface; ไม่มี direct SQL จาก Domain
+3. **Application → PostgreSQL** — ทุก read/write ผ่าน EF Core ผ่าน interface; ไม่มี direct SQL จาก Domain
 4. **ผัง token:** JWT ตรวจที่ Api, token hash จัดเก็บที่ Infrastructure/SQL, claims คือแหล่งเดียวของ identity
 5. **SignalR:** เกิดสถานะที่บันทึกแล้วแล้วแจ้งต่อ — แกนหลักคือ REST + DB เสมอ
 6. **ทุก request/response:** wrapped envelope (D8) และ traceId ครบเมื่อ error
@@ -194,7 +196,7 @@ SignalR (Phase 6): hub connection ใช้ JWT เดียวกัน + per-u
 ## อ่านเอกสารประกอบที่เกี่ยวข้อง
 
 - `/docs/API_SPECIFICATION.md` — สัญญา REST/SignalR (รายละเอียด endpoint/response)
-- `/docs/DataDictionary.md` — ตาราง/schema (implement เฉพาะ 20/25 ตาราง — ดู D12)
+- `/docs/DataDictionary.md` — ตาราง/schema (**25 ตาราง** ตาม D13)
 - `/docs/DEVELOPMENT_GUIDELINE.md` — Playbook + Decision Ledger
 - `/docs/Tech_Stack.md` — Stack baseline
 - `/docs/REQUIREMENTS.md` — รายการ requirement (FR)

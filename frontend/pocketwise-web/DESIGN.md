@@ -8,11 +8,14 @@ colors:
   on-primary: "#ffffff"
   green: "#35ed7e"
   magenta: "#ec48bd"
+  expense: "#ff4d4f"
   link: "#00b0f4"
   canvas: "#0a0d3a"
   surface-indigo: "#1e2353"
   surface-onyx: "#23272a"
   surface-black: "#000000"
+  input-surface: "#0a0d3a"
+  input-border: "#7d829a"
   ink: "#ffffff"
   ink-dark: "#000000"
   muted: "#333333"
@@ -136,6 +139,13 @@ components:
     typography: "{typography.link-sm}"
     rounded: "{rounded.xs}"
     padding: "{spacing.sm} {spacing.xxl}"
+  input:
+    backgroundColor: "{colors.input-surface}"
+    textColor: "{colors.ink}"
+    borderColor: "{colors.input-border}"
+    focusBorderColor: "{colors.primary}"
+    rounded: "{rounded.sm}"
+    padding: "{spacing.md}"
   hero:
     backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
@@ -304,6 +314,7 @@ Geometry is soft and generous. Everyday controls round at `{rounded.sm}` (12px) 
 - **Electric Green** (`{colors.green}` — #35ed7e): Reserved for the highest-intent CTA ("get started" / "download"), always paired with `{colors.ink-dark}` text.
 - **Vibrant Magenta** (`{colors.magenta}` — #ec48bd): The saturated pink that fills gradient feature panels, step cards, and badges — the playful counterweight to the cool indigo.
 - **Link Cyan** (`{colors.link}` — #00b0f4): Inline text-link colour on dark surfaces.
+- **Expense Red** (`{colors.expense}` — #ff4d4f): Semantic transaction amount colour for expenses; income uses green and transfers use link cyan. This financial-status exception does not add a brand accent.
 
 ### Surface
 - **Indigo Canvas** (`{colors.canvas}` — #0a0d3a): The deep-indigo page base, washed by the animated brand-gradient mesh.
@@ -380,6 +391,15 @@ Sections breathe through large vertical gaps of indigo, then collide with satura
 
 #### Collapsing Strategy
 The dark top nav (logo · links · Login · Download CTA) collapses to logo + hamburger below 768px. Two-column feature rows stack media-over-text; gradient and dark cards span full width. The nitro pricing table becomes horizontally scrollable; the trending-games ranked list keeps its row layout but drops secondary columns.
+
+#### PocketWise App Layout
+- Design the authenticated app mobile-first. Keep the sidebar fixed to the viewport (`100dvh`); use a hamburger-triggered drawer with a visible close control on mobile, and a collapsible fixed sidebar on desktop.
+- Put long-form content in the page/main scroll area rather than letting the sidebar grow with the document. Keep logout anchored at the bottom of the sidebar and accessible while the page scrolls.
+- Keep the authenticated app footer in `src/components/shared/DashboardShell.tsx`, after the page content; display `© 2026 PocketWise. All rights reserved.` and do not show it on Login/Register.
+- Use full-width single-column form controls and touch-friendly actions on phones. Prefer card/list rows instead of wide data tables below 768px; use a horizontally scrollable table only where a table is essential.
+- Keep content containers `min-width: 0` and allow long labels/values to wrap or truncate so they do not create horizontal page overflow.
+- Set the site icon through Next.js metadata. For the PocketWise money icon sourced from Flaticon, retain an attribution link to the source page.
+- Protect authenticated app routes in `src/proxy.ts` using the httpOnly access/refresh cookies; redirect requests without either session cookie to `/login` before rendering. API authorization remains authoritative.
 
 #### Image Behavior
 Product mockups and 3D character art sit inside rounded media frames (`{rounded.lg}`–`{rounded.xl}`) or bleed past card edges as decorative props. Media scales fluidly within its container and keeps its corner radius at every width.
@@ -468,7 +488,39 @@ Media is presented at soft-cornered rectangles (`{rounded.lg}`–`{rounded.xl}`)
 
 ### Inputs & Forms
 
-> Discord's marketing pages surface no standalone text inputs; forms route to the app. The kit-mirror `ex-*` form surfaces below model inputs against the brand's `{rounded.lg}` surfaces and `{colors.surface-indigo}` fills.
+> Discord's marketing pages surface no standalone text inputs; forms route to the app. PocketWise form controls follow the explicit input tokens and states below.
+
+PocketWise form controls use a recessed input surface so fields remain distinct inside raised-indigo cards:
+- Use `{colors.input-surface}` for text inputs, selects, and textareas; do not reuse the surrounding card's `{colors.surface-indigo}` fill.
+- Use `{colors.input-border}` for the default control outline and `{colors.primary}` for focus, with a visible focus ring. Keep entered text `{colors.ink}` and placeholders visibly muted.
+- Use `{rounded.sm}` (12px) corners and preserve the shared control sizing, padding, and state styles through the shared UI components. Do not add one-off field colors on individual pages.
+- Keep checkbox/radio controls semantically distinct; use `{colors.primary}` for their checked and focus states.
+
+### PocketWise UI implementation rules
+
+- Use the installed shadcn primitives in `src/components/ui/`: `Select` for dropdowns, `Input` for text/color, and `Calendar` from `src/components/ui/calendar.tsx` for date selection. Do not use native `<select>` controls or native browser date pickers in feature pages.
+- For date and date-time fields, use `DateInput` or `DateTimeInput` from `src/components/ui/date-input.tsx`; these use the themed shadcn Calendar/Popover UI and standardize Gregorian year display. Date-time controls use the shared shadcn `Select`-based time picker in `DateTimeInput`; do not use native `input[type=time]`.
+- Keep time-picker controls legible on the dark input surface with the shared high-contrast clock icon and `--pw-*` theme tokens.
+- The calendar is powered by the installed `react-day-picker` runtime dependency; keep its styles mapped to PocketWise tokens and use `Intl` Gregorian formatters rather than adding a date library.
+- Give Select triggers an explicit fixed width from the component or its layout container; dropdown content must match the trigger width and truncate long labels rather than resize based on option text.
+- Use `src/components/ui/form-field.tsx` (`FormField`) for labeled controls and validation feedback across auth pages, feature forms, and filters; it composes the shared `Label` and `FieldError`.
+- Keep shadcn component styles mapped to PocketWise `--pw-*` tokens in `src/app/globals.css` and the shared primitives. Do not leave generated preset colors, typography, radius, or surfaces in the UI.
+- Radix Select items cannot use an empty value; provide explicit options such as “ทั้งหมด” (`all`) or “ไม่ระบุ” (`none`) when a user needs to clear a selection.
+- Interpret user-entered dates and times as Gregorian year values in `Asia/Bangkok`. Validate the calendar date and wall-clock time before submission, rejecting values matching a modern Thai Buddhist year; convert valid values (including Thai day boundaries for filters) to UTC ISO before sending them to the API, and format UTC API values in `th-TH` with `calendar: "gregory"` and `timeZone: "Asia/Bangkok"` for display (Gregorian year, Thai local time UTC+7). Keep backend/API storage contracts in UTC.
+- Default `/transactions` date filters to the first day of the current Thai-local month through today; convert both calendar boundaries to UTC for the API while presenting Gregorian calendar dates.
+- Use the shared `Button` and a relevant `lucide-react` icon on action buttons; choose a colored variant by intent, preserve pointer/disabled states, and provide accessible labels for icon-only buttons.
+- Use a color picker for tag colors; never require users to know or type a HEX code. Maintain readable text contrast on the selected tag color.
+- In transaction forms, display every selectable tag as a badge using that tag's API color; use a contrasting text color and a visible selection ring.
+- Install additional shadcn source primitives from `frontend/pocketwise-web/` with `npx shadcn add <component>`, then review and theme the generated source before using it.
+
+### Data tables
+
+- Use shadcn/ui components themed with the tokens in this file for table UI, and use TanStack Table as the table engine; do not create a separate table implementation for each feature when a shared reusable component can serve it. TanStack Table is not yet installed; request approval before adding it as a dependency.
+- Every data table must provide distinct loading, empty, and error states. Do not present a failed request as an empty result; keep the error visible and provide the repository-standard recovery/action where appropriate.
+- Make tables responsive: use a readable mobile card/list layout or a contained horizontal scroll when columns need to remain visible. Do not silently drop important data or actions at narrow widths.
+- When an API manages a large list or owns its query semantics, use server-side pagination, filtering, and sorting, and keep the table state synchronized with the API contract. Use client-side operations only for a suitably small, fully loaded dataset.
+- Format monetary values with `Intl.NumberFormat` and the currency code supplied by the data contract; do not hardcode or infer a currency in a table component. If the contract does not identify the currency, resolve that requirement before implementation. Align monetary values consistently (normally right) and use tabular numerals.
+- Keep all table controls keyboard-operable. Use semantic table markup, visible focus styles, and accessible sort controls; expose the active sort direction (for example, with `aria-sort` on the sorted column header) and do not rely on color or icon alone.
 
 ### Navigation
 
@@ -527,6 +579,18 @@ Media is presented at soft-cornered rectangles (`{rounded.lg}`–`{rounded.xl}`)
 - Properties: `backgroundColor`, `rounded`, `padding`, `typography`
 
 
+## Feedback & Confirmation (Toast vs AlertDialog — กฎบังคับ)
+
+> ดูรายละเอียดเต็มที่ `/frontend/AGENTS.md` §5 — สรุปสำหรับงาน UI:
+
+| กลไก | Library | ใช้เมื่อ | ห้าม |
+|---|---|---|---|
+| **Toast** | `sonner` | แจ้งผลสำเร็จ/ล้มเหลว (ไม่ต้องให้ผู้ใช้ตอบ) | ใช้ยืนยันการทำลายข้อมูล |
+| **AlertDialog** | `@radix-ui/react-alert-dialog` (shadcn/ui) | ยืนยันการกระทำสำคัญ/กลับไม่ได้ (ลบ/ออกจากระบบ) | ใช้แจ้งผลเฉย ๆ |
+
+- ห้ามใช้ `alert()` / `confirm()` / `window.confirm()` / `window.location.reload()` แทนทั้งสองตัวนี้
+- `Toaster` ต่อใน root layout ครั้งเดียว; `ConfirmDialog` ที่ใช้ซ้ำอยู่ `src/components/shared/ConfirmDialog.tsx`
+
 ## Do's and Don'ts
 
 ### Do
@@ -544,3 +608,4 @@ Media is presented at soft-cornered rectangles (`{rounded.lg}`–`{rounded.xl}`)
 - Don't square off media or cards; the soft `{rounded.xl}`+ geometry is core to the playful tone.
 - Don't lean on drop shadows for depth; depth comes from colour, gradient, and overlapping art.
 - Don't introduce a fourth loud accent — Blurple, green, and magenta are the full chord.
+- Don't use brand accents in place of financial meaning: expense amounts are red, income amounts green, and transfer amounts cyan.

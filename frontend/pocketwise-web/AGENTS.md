@@ -94,3 +94,28 @@ frontend/pocketwise-web/
    - นำสิ่งที่ต้องการทำ ไปแมปกับตารางในข้อ 2
 3. **ตรวจสอบความชัดเจน**:
    - หากขาดข้อมูล เช่น สเปกของ UI, เงื่อนไข Business Logic, หรือ API endpoint ที่ยังไม่มี **ต้องถามผู้ใช้ทันทีก่อนลงมือ**
+
+---
+
+## 📦 4. รายการ Packages และมาตรฐาน UI/Animation ที่ได้รับอนุมัติแล้ว
+
+### รายการ Packages ที่ได้รับอนุมัติ:
+- `@microsoft/signalr` (^10.0.11) — เชื่อมต่อ SignalR Hub สำหรับ Real-time notifications
+- `recharts` (^3.10.1) — กราฟสรุปรายงานการเงินในหน้า `/reports`
+- `motion` (^14.5.0) — ฟังก์ชัน UI Animation และ Micro-interactions
+
+### มาตรฐาน Animation & Motion (`src/components/ui/`):
+- `AnimatedList`, `AnimatedListItem` (`animated-list.tsx`): ใช้แสดงรายการแบบ Staggered Fade-in
+- `AnimatedNumber` (`animated-number.tsx`): แสดงตัวเลขยอดเงินด้วย Smooth Spring Counter
+- `PageTransition` (`page-transition.tsx`): สลับหน้าจออย่างนุ่มนวล
+- Micro-interactions: ปุ่ม (`hover:scale-102 active:scale-98`), การ์ด (`hover:-translate-y-0.5 hover:shadow-md`)
+
+### มาตรฐาน Loading & Skeleton System:
+- ใช้ `src/components/ui/skeleton.tsx` และ reusable presets ใน `src/components/shared/Skeletons.tsx` (`ListRowsSkeleton`, `CardGridSkeleton`, `TransactionCardsSkeleton`, `ReportPageSkeleton`, `TableSkeleton`, `NotificationSkeleton`)
+- คลาส `.pw-skeleton` รองรับ Shimmer ทั้งใน Light และ Dark Mode
+- **ห้าม** แสดงข้อความ `<p>กำลังโหลด...</p>` หรือ lone spinner ลอยโดดเดี่ยวเด็ดขาด
+
+### มาตรฐาน Modal & BottomSheet Transition:
+- ทุก Modal และ BottomSheet ต้องใช้คลาส `pw-dialog-overlay` และ `pw-bottom-sheet-content` / `pw-dialog-content`
+- จังหวะปิดต้องซิงค์กันที่ 180ms เท่ากันระหว่าง Content และ Backdrop ป้องกันปัญหาการค้าง/สะดุด
+- บน Mobile ปุ่มยืนยันต้องอยู่ด้านบน และปุ่มยกเลิกอยู่ด้านล่างเสมอ ตามมาตรฐานหน้า `/transactions`

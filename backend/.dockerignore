@@ -1,0 +1,9 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/*.user
+**/*.suo
+**/node_modules
+initial_supabase_schema.sql
+supabase_schema_with_seed.sql

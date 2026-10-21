@@ -37,6 +37,25 @@ backend/
    - ก่อนจะสร้างหรือเปลี่ยน DTOs/Endpoints ต้องตรวจสอบว่าฝั่ง `frontend/` คาดหวังข้อมูลแบบใด และส่งผลกระทบต่อ TypeScript Type/Schema ของ Frontend หรือไม่
 4. **ต้อง Build ผ่าน 100% เสมอ**:
    - ทุกครั้งที่เขียนหรือแก้ไขโค้ดเสร็จ ต้องรัน `dotnet build` ตรวจสอบว่าไม่มี Build Error ก่อนส่งงาน
+5. **Swagger/OpenAPI ใช้เฉพาะ Development**:
+   - ใช้ `Microsoft.AspNetCore.OpenApi` สร้างเอกสารที่ `/openapi/v1.json` และ NSwag Swagger UI ที่ `/swagger` โดยเปิดให้บริการเฉพาะ Development ตาม `Program.cs`
+   - เมื่อแก้ API contract ให้ตรวจทั้ง OpenAPI JSON และ Swagger UI ให้ตรงกับ [`/docs/API_SPECIFICATION.md`](../docs/API_SPECIFICATION.md)
+6. **เพิ่ม Backend Tool/Package แล้วต้องอัปเดตกฎและคู่มือในงานเดียวกัน**
+   - หลังได้รับอนุมัติให้เพิ่ม NuGet dependency, .NET local/global tool, build/test/code-generation tool หรือ SDK ให้แก้ project/solution/tool manifest และ lock file ที่เกี่ยวข้อง พร้อมอัปเดต Root `AGENTS.md`/`GEMINI.md` ตาม Master Rule #4
+   - บันทึกในกฎ backend หรือเอกสาร Tech Stack/Playbook ว่าใช้ทำอะไร ติดตั้งหรือประกาศไว้ที่ใด เวอร์ชันที่เลือก คำสั่ง restore/run มาตรฐาน และข้อกำหนดการใช้ใน layer หรือ workflow ใด
+   - หาก tool สร้างหรือเปลี่ยน source code, migration, API/schema หรือขั้นตอน deploy ให้ปรับเอกสาร Source of Truth และคำสั่งที่เกี่ยวข้องพร้อมกัน; ถอดถอนแล้วให้เอาคำแนะนำที่เลิกใช้และรายการ package ออกจากเอกสารด้วย
+
+---
+
+7. **การจัดการฐานข้อมูล (PostgreSQL via Docker & Supabase)**:
+   - ฐานข้อมูลหลักของระบบเปลี่ยนเป็น **PostgreSQL** (Local พัฒนาและทดสอบผ่าน Docker container `pocketwise-postgres` พอร์ต `5432` ฐานข้อมูล `pocketwise_db`, Production รองรับ Supabase)
+   - ห้ามแก้ไขหรือ Drop ตาราง/คอลัมน์โดยตรงผ่านเครื่องมือภายนอก การเปลี่ยนแปลงสกีมาทั้งหมดต้องทำผ่าน EF Core Code-First Migrations (`Npgsql.EntityFrameworkCore.PostgreSQL`) ใน `PocketWise.Infrastructure` เท่านั้น
+
+---
+
+### 📦 รายการ Tools & Packages ที่ได้รับอนุมัติแล้ว:
+- `Npgsql.EntityFrameworkCore.PostgreSQL` (10.0.0) ใน `PocketWise.Infrastructure` — สำหรับเชื่อมต่อและจัดการฐานข้อมูล PostgreSQL
+- `Tesseract` (5.2.0) ใน `PocketWise.Infrastructure` — สำหรับ Local Offline OCR อ่านสลิปโอนเงินภาษาไทย/อังกฤษ ผ่าน `ISlipOcrService` ร่วมกับไฟล์โมเดล `tessdata/{tha,eng,osd}.traineddata`
 
 ---
 
@@ -74,7 +93,7 @@ backend/src/
     └── Program.cs                   # Application Entry point & Pipeline configuration
 ```
 
-> 🗺️ **ก่อนเริ่มงานทุกครั้ง** ให้อ่าน Playbook ต่อ Phase ที่ [`/docs/DEVELOPMENT_GUIDELINE.md`](file:///D:/Projects/PocketWise/docs/DEVELOPMENT_GUIDELINE.md) ร่วมด้วยเสมอ (ขั้นตอน, คำสั่ง, สถานะ Phase, Decision Points) — แตะ schema ใด ๆ ต้องอ้างอิง [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) และแตะ requirement ใด ๆ ต้องอ้างอิง [`/docs/REQUIREMENTS.md`](file:///D:/Projects/PocketWise/docs/REQUIREMENTS.md) (รายการ FR + สถานะ — Source of Truth ของ "ทำอะไร/ไม่ทำอะไร") — สัญญา REST/SignalR ระหว่าง Frontend–Backend อยู่ที่ [`/docs/API_SPECIFICATION.md`](file:///D:/Projects/PocketWise/docs/API_SPECIFICATION.md)
+> 🗺️ **ก่อนเริ่มงานทุกครั้ง** ให้อ่าน Playbook ต่อ Phase ที่ [`/docs/DEVELOPMENT_GUIDELINE.md`](file:///D:/Projects/PocketWise/docs/DEVELOPMENT_GUIDELINE.md) ร่วมด้วยเสมอ (ขั้นตอน, คำสั่ง, สถานะ Phase, Decision Points) — แตะ schema ใด ๆ ต้องอ้างอิง [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) และแตะ requirement ใด ๆ ต้องอ้างอิง [`/docs/REQUIREMENTS.md`](file:///D:/Projects/PocketWise/docs/REQUIREMENTS.md) (รายการ FR + สถานะ — Source of Truth ของ "ทำอะไร/ไม่ทำอะไร") — สัญญา REST/SignalR ระหว่าง Frontend–Backend อยู่ที่ [`/docs/API_SPECIFICATION.md`](file:///D:/Projects/PocketWise/docs/API_SPECIFICATION.md) — **จบงาน implement ต้องอัปเดตสถานะที่ [`/docs/IMPLEMENTATION_CHECKLIST.md`](file:///D:/Projects/PocketWise/docs/IMPLEMENTATION_CHECKLIST.md) ทุกครั้ง**
 
 ### ตารางจับคู่ประเภทงานกับโฟลเดอร์:
 
