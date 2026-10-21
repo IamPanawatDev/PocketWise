@@ -1,7 +1,7 @@
 # Data Dictionary — ระบบบันทึกรายรับรายจ่าย (PocketWise)
 
 > **วัตถุประสงค์:** อธิบายตารางและคอลัมน์ที่เสนอสำหรับระบบตาม Scope ในไฟล์ต้นทาง  
-> **หมายเหตุสำคัญ:** เป็นแบบจำลองเริ่มต้นสำหรับ SQL Server; ต้องยืนยัน business rules และปรับชื่อ/ชนิดข้อมูลก่อนสร้างฐานข้อมูลจริง  
+> **หมายเหตุสำคัญ:** ระบบใช้ฐานข้อมูล PostgreSQL (Docker `pocketwise_db` ใน Dev และ Supabase ใน Production — D50); โดย mapping ข้อมูลสอดคล้องกับ EF Core (`datetime2` -> `timestamptz`, `SYSUTCDATETIME()` -> `NOW()`, `tinyint` -> `smallint`, `nvarchar(max)` -> `text`)  
 > **วิธีอ่าน:** PK = Primary Key; FK = Foreign Key; Nullable = อนุญาต NULL; Constraint = เงื่อนไข/ค่าเริ่มต้นที่เสนอ  
 > **Google Sheets ต้นทาง:** [ระบบบันทึกรายรับรายจ่าย](https://docs.google.com/spreadsheets/d/11xfdjcAKEbh7a6l6B9u8y_1ksIM2il1xeDpOelm7KRw/edit) (ID: `11xfdjcAKEbh7a6l6B9u8y_1ksIM2il1xeDpOelm7KRw`)
 > **ขอบเขตการ implement (อัปเดตตาม D13):** สร้าง Entity/ตารางจริง **ครบทั้ง 25 ตาราง** — รายการ FR ที่ผูกตารางแต่ละตารางดู badge "ขอบเขตฟีเจอร์" ของแต่ละตาราง + `/docs/REQUIREMENTS.md` (F7/F8 ครอบ Roles/Permissions/UserRoles/RolePermissions/AuditLogs — เพิ่มโดยเจ้าของโปรเจค)

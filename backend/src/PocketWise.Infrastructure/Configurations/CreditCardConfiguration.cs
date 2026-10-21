@@ -16,12 +16,12 @@ public class CreditCardConfiguration : IEntityTypeConfiguration<CreditCard>
         builder.Property(e => e.BankName).IsRequired().HasMaxLength(100);
         builder.Property(e => e.CardName).IsRequired().HasMaxLength(100);
         builder.Property(e => e.CardNumberMasked).HasMaxLength(30);
-        builder.Property(e => e.BillingDay).HasColumnType("tinyint");
-        builder.Property(e => e.PaymentDueDay).HasColumnType("tinyint");
+        builder.Property(e => e.BillingDay).HasColumnType("smallint");
+        builder.Property(e => e.PaymentDueDay).HasColumnType("smallint");
         builder.Property(e => e.CreditLimit).HasPrecision(18, 2);
         builder.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
         builder.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasQueryFilter(e => !e.IsDeleted);
 

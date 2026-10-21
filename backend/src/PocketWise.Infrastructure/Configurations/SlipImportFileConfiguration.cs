@@ -23,12 +23,12 @@ public class SlipImportFileConfiguration : IEntityTypeConfiguration<SlipImportFi
         builder.Property(e => e.PayerName).HasMaxLength(200);
         builder.Property(e => e.PayeeName).HasMaxLength(200);
         builder.Property(e => e.DetectedAmount).HasPrecision(18, 2);
-        builder.Property(e => e.DetectedAt).HasColumnType("datetime2");
+        builder.Property(e => e.DetectedAt).HasColumnType("timestamptz");
         builder.Property(e => e.TransactionReference).HasMaxLength(150);
         builder.Property(e => e.FileHash).HasMaxLength(128);
         builder.HasIndex(e => e.FileHash);
         builder.Property(e => e.ReviewStatus).IsRequired().HasConversion<string>().HasMaxLength(20).HasDefaultValue(ReviewStatus.Pending);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasOne(e => e.User)
             .WithMany(u => u.SlipImportFiles)

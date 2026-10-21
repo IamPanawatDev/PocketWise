@@ -9,9 +9,9 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<PocketWise
     {
         var optionsBuilder = new DbContextOptionsBuilder<PocketWiseDbContext>();
 
-        optionsBuilder.UseSqlServer(
-            "Server=localhost;Database=PocketWiseDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True",
-            sqlOptions => sqlOptions.MigrationsAssembly(typeof(PocketWiseDbContext).Assembly.FullName));
+        optionsBuilder.UseNpgsql(
+            "Host=localhost;Port=5432;Database=pocketwise_db;Username=postgres;Password=postgres",
+            npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(PocketWiseDbContext).Assembly.FullName));
 
         return new PocketWiseDbContext(optionsBuilder.Options);
     }

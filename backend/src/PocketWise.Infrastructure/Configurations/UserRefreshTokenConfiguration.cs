@@ -15,11 +15,11 @@ public class UserRefreshTokenConfiguration : IEntityTypeConfiguration<UserRefres
         builder.Property(e => e.RefreshTokenId).UseIdentityColumn();
         builder.Property(e => e.TokenHash).IsRequired().HasMaxLength(128);
         builder.HasIndex(e => e.TokenHash).IsUnique();
-        builder.Property(e => e.ExpiresAt).IsRequired().HasColumnType("datetime2");
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.ExpiresAt).IsRequired().HasColumnType("timestamptz");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
         builder.Property(e => e.CreatedByIp).HasMaxLength(45);
         builder.Property(e => e.UserAgent).HasMaxLength(255);
-        builder.Property(e => e.RevokedAt).HasColumnType("datetime2");
+        builder.Property(e => e.RevokedAt).HasColumnType("timestamptz");
         builder.Property(e => e.RevokedByIp).HasMaxLength(45);
         builder.Property(e => e.ReplacedByTokenHash).HasMaxLength(128);
         builder.Property(e => e.ReasonRevoked)

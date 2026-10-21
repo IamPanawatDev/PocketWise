@@ -18,8 +18,8 @@ public class CategoryRuleConfiguration : IEntityTypeConfiguration<CategoryRule>
         builder.Property(e => e.MatchPattern).IsRequired().HasMaxLength(300);
         builder.Property(e => e.Priority).IsRequired().HasDefaultValue(100);
         builder.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
-        builder.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
+        builder.Property(e => e.UpdatedAt).HasColumnType("timestamptz");
 
         builder.HasOne(e => e.User)
             .WithMany(u => u.CategoryRules)

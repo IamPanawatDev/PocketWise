@@ -17,13 +17,13 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(e => e.TransactionType).IsRequired().HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.Amount).IsRequired().HasPrecision(18, 2);
         builder.Property(e => e.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("THB");
-        builder.Property(e => e.TransactionDate).IsRequired().HasColumnType("datetime2");
+        builder.Property(e => e.TransactionDate).IsRequired().HasColumnType("timestamptz");
         builder.Property(e => e.Description).HasMaxLength(500);
         builder.Property(e => e.SourceType).IsRequired().HasConversion<string>().HasMaxLength(30);
         builder.Property(e => e.Status).IsRequired().HasConversion<string>().HasMaxLength(20).HasDefaultValue(TransactionStatus.Confirmed);
         builder.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
-        builder.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
+        builder.Property(e => e.UpdatedAt).HasColumnType("timestamptz");
 
         builder.HasQueryFilter(e => !e.IsDeleted);
 

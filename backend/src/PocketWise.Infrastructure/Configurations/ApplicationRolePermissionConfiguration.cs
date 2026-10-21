@@ -12,7 +12,7 @@ public class ApplicationRolePermissionConfiguration : IEntityTypeConfiguration<A
 
         builder.HasKey(e => new { e.RoleId, e.PermissionId });
 
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasOne(e => e.Role)
             .WithMany(r => r.RolePermissions)

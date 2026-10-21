@@ -21,9 +21,9 @@ public class ImportJobConfiguration : IEntityTypeConfiguration<ImportJob>
         builder.Property(e => e.ImportedRecords).IsRequired().HasDefaultValue(0);
         builder.Property(e => e.DuplicateRecords).IsRequired().HasDefaultValue(0);
         builder.Property(e => e.ErrorMessage).HasMaxLength(2000);
-        builder.Property(e => e.StartedAt).HasColumnType("datetime2");
-        builder.Property(e => e.CompletedAt).HasColumnType("datetime2");
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.StartedAt).HasColumnType("timestamptz");
+        builder.Property(e => e.CompletedAt).HasColumnType("timestamptz");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasOne(e => e.User)
             .WithMany(u => u.ImportJobs)

@@ -20,16 +20,13 @@ public static class DatabaseSeeder
         try
         {
             await context.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SystemSettings')
-BEGIN
-    CREATE TABLE [SystemSettings] (
-        [SettingKey] NVARCHAR(100) NOT NULL PRIMARY KEY,
-        [SettingValue] NVARCHAR(500) NOT NULL,
-        [Description] NVARCHAR(500) NULL,
-        [UpdatedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-        [UpdatedByUserId] BIGINT NULL
-    );
-END
+CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
+    ""SettingKey"" VARCHAR(100) NOT NULL PRIMARY KEY,
+    ""SettingValue"" VARCHAR(500) NOT NULL,
+    ""Description"" VARCHAR(500) NULL,
+    ""UpdatedAt"" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ""UpdatedByUserId"" BIGINT NULL
+);
 ", cancellationToken);
 
             var setting = await context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);

@@ -15,11 +15,11 @@ public class TransferGroupConfiguration : IEntityTypeConfiguration<TransferGroup
 
         builder.Property(e => e.TransferGroupId).UseIdentityColumn();
         builder.Property(e => e.Amount).IsRequired().HasPrecision(18, 2);
-        builder.Property(e => e.TransferDate).IsRequired().HasColumnType("datetime2");
+        builder.Property(e => e.TransferDate).IsRequired().HasColumnType("timestamptz");
         builder.Property(e => e.Reference).HasMaxLength(150);
         builder.Property(e => e.Status).IsRequired().HasConversion<string>().HasMaxLength(20).HasDefaultValue(TransferGroupStatus.Pending);
         builder.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasQueryFilter(e => !e.IsDeleted);
 

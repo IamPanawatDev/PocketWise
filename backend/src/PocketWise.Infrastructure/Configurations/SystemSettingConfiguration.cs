@@ -13,6 +13,6 @@ public class SystemSettingConfiguration : IEntityTypeConfiguration<SystemSetting
         builder.Property(s => s.SettingKey).HasMaxLength(100);
         builder.Property(s => s.SettingValue).IsRequired().HasMaxLength(500);
         builder.Property(s => s.Description).HasMaxLength(500);
-        builder.Property(s => s.UpdatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(s => s.UpdatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
     }
 }

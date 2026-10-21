@@ -27,7 +27,7 @@ public class CreditCardStatementConfiguration : IEntityTypeConfiguration<CreditC
         builder.Property(e => e.TotalDue).IsRequired().HasPrecision(18, 2);
         builder.Property(e => e.Status).IsRequired().HasConversion<string>().HasMaxLength(20).HasDefaultValue(CreditCardStatementStatus.Imported);
         builder.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasQueryFilter(e => !e.IsDeleted);
 

@@ -10,6 +10,6 @@ public class ApplicationUserRoleConfiguration : IEntityTypeConfiguration<Applica
     {
         builder.ToTable("UserRoles");
 
-        builder.Property(e => e.AssignedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.AssignedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
     }
 }

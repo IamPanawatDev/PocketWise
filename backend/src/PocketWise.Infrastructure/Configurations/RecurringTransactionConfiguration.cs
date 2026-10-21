@@ -20,10 +20,10 @@ public class RecurringTransactionConfiguration : IEntityTypeConfiguration<Recurr
         builder.Property(e => e.IntervalValue).IsRequired().HasDefaultValue(1);
         builder.Property(e => e.StartDate).IsRequired().HasColumnType("date");
         builder.Property(e => e.EndDate).HasColumnType("date");
-        builder.Property(e => e.NextRunAt).IsRequired().HasColumnType("datetime2");
+        builder.Property(e => e.NextRunAt).IsRequired().HasColumnType("timestamptz");
         builder.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
         builder.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasQueryFilter(e => !e.IsDeleted);
 

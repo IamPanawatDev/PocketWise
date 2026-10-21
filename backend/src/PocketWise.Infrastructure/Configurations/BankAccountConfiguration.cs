@@ -19,7 +19,7 @@ public class BankAccountConfiguration : IEntityTypeConfiguration<BankAccount>
         builder.Property(e => e.AccountNumberMasked).HasMaxLength(30);
         builder.Property(e => e.AccountType).IsRequired().HasConversion<string>().HasMaxLength(30);
         builder.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasQueryFilter(e => !e.IsDeleted);
 

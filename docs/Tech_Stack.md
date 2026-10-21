@@ -1,7 +1,7 @@
 # PocketWise — Technology Stack & Development Tools
 
 > Project: PocketWise Personal Finance Management System  
-> Architecture: Next.js frontend + ASP.NET Core Web API + SignalR + SQL Server  
+> Architecture: Next.js frontend + ASP.NET Core Web API + SignalR + PostgreSQL (Supabase / Docker)  
 > Document status: Proposed baseline; confirm package versions against current stable releases before implementation.
 
 ## 1. Goals and Architecture
@@ -21,14 +21,14 @@ ASP.NET Core Web API  ◄────────►  SignalR Hubs
   │
   ├── Application / Domain logic
   ├── Authentication & Authorization
-  ├── EF Core
+  ├── EF Core (Npgsql)
   └── Background jobs (when needed)
   │
   ▼
-SQL Server
+PostgreSQL (Local Docker / Supabase)
 ```
 
-The frontend must never connect directly to SQL Server. All data access goes through the backend API. SignalR is for server-pushed events, not a replacement for REST endpoints or durable database storage.
+The frontend must never connect directly to PostgreSQL. All data access goes through the backend API. SignalR is for server-pushed events, not a replacement for REST endpoints or durable database storage.
 
 ## 2. Core Technology Stack
 
@@ -48,9 +48,8 @@ The frontend must never connect directly to SQL Server. All data access goes thr
 | UI Animations | motion (framer-motion v14.5.0) | Fluid UI animations, staggered lists (AnimatedList), spring counters (AnimatedNumber), route transitions (PageTransition), and micro-interactions. |
 | Reports charts | Recharts | Responsive report charts; render amounts in separate currency series and use the project design tokens. |
 | SignalR client | @microsoft/signalr (^10.0.11 — ติดตั้งแล้วใน frontend/pocketwise-web) | Connect to the ASP.NET Core SignalR hub and handle reconnects/events. |
-| Database | Microsoft SQL Server | Relational storage for users, transactions, categories, budgets, cards, and audit records. |
-| Database MCP Tool | Devart MCP Server for SQL Server (v1.1.0, Devart ODBC Driver for SQL Server STDIO) | ตรวจสอบ schema, ตรวจสอบข้อมูลในตาราง, และทดสอบ query กับฐานข้อมูล PocketWiseDb ผ่าน Model Context Protocol |
-| ORM / migrations | Entity Framework Core SQL Server provider | Database access, LINQ, entity mapping, and schema migrations. |
+| Database | PostgreSQL (Local Docker `postgres:16-alpine` / Cloud: Supabase) | Relational storage for users, transactions, categories, budgets, cards, and audit records. Zero-cost hosting friendly. |
+| ORM / migrations | Entity Framework Core PostgreSQL provider (`Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.0) | Database access, LINQ, entity mapping, and schema migrations. |
 | Authentication | ASP.NET Core Identity or a carefully designed external identity provider | Password hashing, account lifecycle, roles/claims, and secure sign-in. Decide cookie/BFF vs bearer-token architecture before implementation. |
 | Validation | FluentValidation (optional) + domain validation | Validate API inputs and enforce business rules server-side. Avoid duplicating rules without a clear source of truth. |
 | Logging | Microsoft.Extensions.Logging with structured logging; Serilog optional | Diagnostic logs with useful correlation IDs. Never log passwords, tokens, or full sensitive financial data. |

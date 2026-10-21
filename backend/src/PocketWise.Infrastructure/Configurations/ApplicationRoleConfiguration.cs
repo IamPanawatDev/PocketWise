@@ -12,8 +12,8 @@ public class ApplicationRoleConfiguration : IEntityTypeConfiguration<Application
 
         builder.Property(e => e.Description).HasMaxLength(255);
         builder.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
-        builder.Property(e => e.UpdatedAt).HasColumnType("datetime2");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
+        builder.Property(e => e.UpdatedAt).HasColumnType("timestamptz");
 
         builder.HasIndex(e => e.NormalizedName).IsUnique();
     }

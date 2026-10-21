@@ -18,9 +18,9 @@ public static class DependencyInjection
 
         services.AddDbContext<PocketWiseDbContext>(options =>
         {
-            options.UseSqlServer(connectionString, sqlOptions =>
+            options.UseNpgsql(connectionString, npgsqlOptions =>
             {
-                sqlOptions.MigrationsAssembly(typeof(PocketWiseDbContext).Assembly.FullName);
+                npgsqlOptions.MigrationsAssembly(typeof(PocketWiseDbContext).Assembly.FullName);
             });
         });
 

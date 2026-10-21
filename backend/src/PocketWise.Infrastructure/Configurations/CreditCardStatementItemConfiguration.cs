@@ -20,7 +20,7 @@ public class CreditCardStatementItemConfiguration : IEntityTypeConfiguration<Cre
         builder.Property(e => e.ExternalReference).HasMaxLength(150);
         builder.Property(e => e.IsDuplicate).IsRequired().HasDefaultValue(false);
         builder.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasQueryFilter(e => !e.IsDeleted);
 

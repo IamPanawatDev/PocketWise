@@ -47,15 +47,15 @@ backend/
 
 ---
 
-7. **การตรวจสอบฐานข้อมูลผ่าน Devart MCP Server for SQL Server**:
-   - เมื่อต้องการสืบค้นข้อมูล ตรวจสอบ schema ตาราง หรือตรวจสอบความถูกต้องของข้อมูลใน SQL Server (`PocketWiseDb`) ให้ใช้เครื่องมือ **Devart MCP Server for SQL Server** (Connection: `PocketWise`, Driver: `Devart ODBC Driver for SQL Server [STDIO]`, Version 1.1.0)
-   - ห้ามแก้ไขหรือ Drop ตาราง/คอลัมน์โดยตรงผ่านเครื่องมือภายนอก การเปลี่ยนแปลงสกีมาทั้งหมดต้องทำผ่าน EF Core Code-First Migrations ใน `PocketWise.Infrastructure` เท่านั้น
+7. **การจัดการฐานข้อมูล (PostgreSQL via Docker & Supabase)**:
+   - ฐานข้อมูลหลักของระบบเปลี่ยนเป็น **PostgreSQL** (Local พัฒนาและทดสอบผ่าน Docker container `pocketwise-postgres` พอร์ต `5432` ฐานข้อมูล `pocketwise_db`, Production รองรับ Supabase)
+   - ห้ามแก้ไขหรือ Drop ตาราง/คอลัมน์โดยตรงผ่านเครื่องมือภายนอก การเปลี่ยนแปลงสกีมาทั้งหมดต้องทำผ่าน EF Core Code-First Migrations (`Npgsql.EntityFrameworkCore.PostgreSQL`) ใน `PocketWise.Infrastructure` เท่านั้น
 
 ---
 
 ### 📦 รายการ Tools & Packages ที่ได้รับอนุมัติแล้ว:
+- `Npgsql.EntityFrameworkCore.PostgreSQL` (10.0.0) ใน `PocketWise.Infrastructure` — สำหรับเชื่อมต่อและจัดการฐานข้อมูล PostgreSQL
 - `Tesseract` (5.2.0) ใน `PocketWise.Infrastructure` — สำหรับ Local Offline OCR อ่านสลิปโอนเงินภาษาไทย/อังกฤษ ผ่าน `ISlipOcrService` ร่วมกับไฟล์โมเดล `tessdata/{tha,eng,osd}.traineddata`
-- `Devart MCP Server for SQL Server` (1.1.0) — เครื่องมือ Model Context Protocol (MCP) ผ่าน `Devart ODBC Driver for SQL Server [STDIO]` สำหรับตรวจสอบ schema, ตรวจสอบข้อมูลในตาราง และรันคิวรีทดสอบกับ `PocketWiseDb`
 
 ---
 

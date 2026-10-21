@@ -17,7 +17,7 @@ public class TagConfiguration : IEntityTypeConfiguration<Tag>
         builder.HasIndex(e => new { e.UserId, e.TagName }).IsUnique();
         builder.Property(e => e.Color).HasMaxLength(20);
         builder.Property(e => e.SortOrder).IsRequired().HasDefaultValue(0);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasOne(e => e.User)
             .WithMany(u => u.Tags)

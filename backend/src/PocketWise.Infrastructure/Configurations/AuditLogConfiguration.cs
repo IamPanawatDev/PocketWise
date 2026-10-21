@@ -16,8 +16,8 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(e => e.Action).IsRequired().HasConversion<string>().HasMaxLength(50);
         builder.Property(e => e.EntityType).IsRequired().HasMaxLength(100);
         builder.Property(e => e.EntityId).HasMaxLength(100);
-        builder.Property(e => e.OccurredAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
-        builder.Property(e => e.DetailsJson).HasColumnType("nvarchar(max)");
+        builder.Property(e => e.OccurredAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
+        builder.Property(e => e.DetailsJson).HasColumnType("text");
 
         builder.HasOne(e => e.User)
             .WithMany(u => u.AuditLogs)

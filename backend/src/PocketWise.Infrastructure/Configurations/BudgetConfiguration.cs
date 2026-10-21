@@ -19,10 +19,10 @@ public class BudgetConfiguration : IEntityTypeConfiguration<Budget>
         builder.Property(e => e.PeriodType).IsRequired().HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.StartDate).IsRequired().HasColumnType("date");
         builder.Property(e => e.EndDate).HasColumnType("date");
-        builder.Property(e => e.AlertThresholdPercent).IsRequired().HasColumnType("tinyint").HasDefaultValue(80);
+        builder.Property(e => e.AlertThresholdPercent).IsRequired().HasColumnType("smallint").HasDefaultValue(80);
         builder.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
         builder.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasQueryFilter(e => !e.IsDeleted);
 

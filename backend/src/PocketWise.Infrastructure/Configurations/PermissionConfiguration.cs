@@ -18,6 +18,6 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
         builder.Property(e => e.PermissionName).IsRequired().HasMaxLength(150);
         builder.Property(e => e.Module).IsRequired().HasMaxLength(100);
         builder.Property(e => e.Description).HasMaxLength(255);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
     }
 }

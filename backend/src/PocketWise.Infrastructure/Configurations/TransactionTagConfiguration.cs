@@ -12,7 +12,7 @@ public class TransactionTagConfiguration : IEntityTypeConfiguration<TransactionT
 
         builder.HasKey(e => new { e.TransactionId, e.TagId });
 
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasOne(e => e.Transaction)
             .WithMany(t => t.TransactionTags)

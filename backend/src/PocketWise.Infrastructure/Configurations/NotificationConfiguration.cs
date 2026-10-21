@@ -19,9 +19,9 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(e => e.Channel).IsRequired().HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.Status).IsRequired().HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.RelatedEntityType).HasMaxLength(50);
-        builder.Property(e => e.SentAt).HasColumnType("datetime2");
-        builder.Property(e => e.ReadAt).HasColumnType("datetime2");
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.SentAt).HasColumnType("timestamptz");
+        builder.Property(e => e.ReadAt).HasColumnType("timestamptz");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasOne(e => e.User)
             .WithMany(u => u.Notifications)

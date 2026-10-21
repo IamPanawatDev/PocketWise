@@ -21,7 +21,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(e => e.SortOrder).IsRequired().HasDefaultValue(0);
         builder.Property(e => e.IsSystem).IsRequired().HasDefaultValue(false);
         builder.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasOne(e => e.User)
             .WithMany(u => u.Categories)

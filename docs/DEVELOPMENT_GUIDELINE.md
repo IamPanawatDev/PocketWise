@@ -121,7 +121,7 @@ npm install                # จาก package.json (+ package-lock.json)
 
 ### Phase 2 — Data Model (EF Core + Migrations)
 
-**Prerequisite:** แพ็กเกจติดตั้งแล้ว: `Microsoft.EntityFrameworkCore.SqlServer` 10.0.13, `Microsoft.EntityFrameworkCore.Design` 10.0.13, `Microsoft.EntityFrameworkCore.Tools` 10.0.13 (ใน Infrastructure), `dotnet-ef` 10.0.13 (local tool)
+**Prerequisite:** แพ็กเกจติดตั้งแล้ว: `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.0, `Microsoft.EntityFrameworkCore.Design` 10.0.13, `Microsoft.EntityFrameworkCore.Tools` 10.0.13 (ใน Infrastructure), `dotnet-ef` 10.0.13 (global tool)
 
 **ขั้นตอน:**
 
@@ -129,21 +129,20 @@ npm install                # จาก package.json (+ package-lock.json)
    - ขอบเขต: สร้าง Entities ให้ตรงกับรายการ FR ใน REQUIREMENTS.md (F1–F8 ครอบทั้ง 25 ตาราง) — รายชื่อตารางปัจจุบันดู D13 ใน Appendix D
    - ❓ หากความสัมพันธ์ (1–many / many–many), ชนิด field หรือ constraint ไม่ชัดใน DataDictionary → **ถามก่อนเขียน**
 2. **สร้าง `PocketWiseDbContext`** → `src/PocketWise.Infrastructure/Persistence/`
-   - DbSet ต่อตารางที่สร้าง, ตามกฎระบบ: เก็บเวลาเป็น UTC (`datetime2`), soft delete (`IsDeleted` + global query filter) สำหรับข้อมูลการเงิน และ precision ของ `decimal` ที่เป็นจำนวนเงิน ตาม DataDictionary
+   - DbSet ต่อตารางที่สร้าง, ตามกฎระบบ: เก็บเวลาเป็น UTC (`timestamptz`), soft delete (`IsDeleted` + global query filter) สำหรับข้อมูลการเงิน และ precision ของ `decimal` ที่เป็นจำนวนเงิน ตาม DataDictionary
    - **คอลัมน์ `IsDeleted` ต้องมีใน configuration ของตารางการเงิน 9 ตาราง (D5)** — ตารางที่ DataDictionary ยังไม่มีคอลัมน์นี้ (Budgets, RecurringTransactions, CreditCards, TransferGroups, InstallmentPlans) ให้**เพิ่มคอลัมน์เข้าไปตอนสร้าง entity** และ**ยื่นแก้ DataDictionary ในงานเดียวกัน** (กติกา §5)
    - ❓ cascade delete policy — ยืนยันจากเจ้าของก่อนเขียน configurations
 3. **EF Configurations** → `src/PocketWise.Infrastructure/Configurations/<Entity>Configuration.cs` (แยกไฟล์ต่อ entity, Fluent API)
 4. **ลงทะเบียน DbContext** ผ่าน Infrastructure (เช่น extension method `AddInfrastructure`) แล้วเรียกใน `Program.cs` — อย่ากระจาย EF-specific service registration ยุบอยู่ใน Api layer เพียงบางส่วน
-5. **Connection string (✅ ล็อกแล้ว):** SQL Server ที่ localhost + database ชื่อ `PocketWiseDb` — เวอร์ชันที่ไม่มี password วางใน `appsettings.Development.json` ได้ เช่น `Server=localhost;Database=PocketWiseDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True` หากมี password/credential ใด ๆ ให้เก็บที่ user-secrets เสมอ (ดู Ledger D4; ตรวจสภาพแวดล้อมแล้ว — service MSSQLSERVER รันอยู่, DB มีอยู่แล้ว ONLINE)
+5. **Connection string (✅ ล็อกแล้ว D50):** PostgreSQL ที่ localhost (`pocketwise-postgres` Docker) พอร์ต 5432 + database ชื่อ `pocketwise_db` — ใน `appsettings.Development.json`: `Host=localhost;Port=5432;Database=pocketwise_db;Username=postgres;Password=postgres` และรองรับ Supabase บน Production ด้วย credential ใน user-secrets / environment variables
 6. **สร้าง Migration แรก — รวม `UserRefreshTokens` ด้วย (✅ ล็อกแล้ว D6):** phase นี้ต้องสร้าง Entity `UserRefreshToken` + configuration ครบตาม DataDictionary (SHA-256 `TokenHash`, rotation fields) แม้ flow auth จะเริ่มที่ Phase 3:
 
 ```bash
 cd backend
 dotnet tool restore
-dotnet ef migrations add InitialCreate \
+dotnet ef migrations add InitialPostgres \
   --project src/PocketWise.Infrastructure \
-  --startup-project src/PocketWise.Api \
-  --output-dir Migrations
+  --startup-project src/PocketWise.Api
 ```
 
 7. **ทบทวนไฟล์ migration ที่สร้างขึ้นก่อน apply เสมอ** (EF แปลเอาเองได้ ไม่ครบทุก constraint ของ DataDictionary)
@@ -153,7 +152,7 @@ dotnet ef migrations add InitialCreate \
 dotnet ef database update --project src/PocketWise.Infrastructure --startup-project src/PocketWise.Api
 ```
 
-9. **Gate:** `dotnet build` ผ่าน, migration apply สำเร็จบน `localhost/PocketWiseDb`, ER ตรง DataDictionary
+9. **Gate:** `dotnet build` ผ่าน, migration apply สำเร็จบน `localhost:5432/pocketwise_db` (Docker) / Supabase, ER ตรง DataDictionary
 
 **Decision Points ของ Phase 2:**
 - ❓ **cascade delete policy** — ข้อเดียวที่ยังเปิด (จะยื่นตอนเขียน configuration FK)
@@ -413,6 +412,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D47 | Standardized Unified Loading & Skeleton System | สร้างมาตรฐาน Skeleton Shimmer แทนที่การแสดง `<p>กำลังโหลด...</p>` และ lone spinners: สร้าง primitive `src/components/ui/skeleton.tsx` และ reusable presets ใน `src/components/shared/Skeletons.tsx` (`ListRowsSkeleton`, `CardGridSkeleton`, `TransactionCardsSkeleton`, `TransactionPageSkeleton`, `ReportPageSkeleton`, `TableSkeleton`, `NotificationSkeleton`) พร้อม `@keyframes pw-shimmer` ใน `globals.css` ครอบคลุมทั้ง Light และ Dark Mode ทั้ง 32 routes | เจ้าของโปรเจค | ✅ ล็อก |
 | D48 | Smooth Modal & BottomSheet Transitions | แก้ไขปัญหาจังหวะปิด Modal/BottomSheet สะดุดหรือค้าง (hanging glitch): กำหนด keyframes `pw-fade-in`, `pw-fade-out`, `pw-sheet-slide-in`, `pw-sheet-slide-out`, `pw-modal-in`, `pw-modal-out` โดยทั้ง Overlay และ Content ใช้เวลาปิด 180ms ซิงค์กันพอดี พร้อม `pointer-events: none` ในจังหวะ closed ป้องกันคลิกซ้ำ | เจ้าของโปรเจค | ✅ ล็อก |
 | D49 | Ambient Background & BottomSheet Responsive Button Layout | เพิ่มภาพพื้นหลัง Ambient (`/bg-dark.jpg` opacity 0.15 + radial blur, `/bg-light.jpg` opacity 0.75); จัดระเบียบปุ่มใน BottomSheet บน Mobile ให้ปุ่มยืนยันอยู่ด้านบนและปุ่มยกเลิกอยู่ด้านล่าง ตรงตามมาตรฐานหน้ารายการธุรกรรม | เจ้าของโปรเจค | ✅ ล็อก |
+| D50 | Database Provider Migration: MS SQL Server -> PostgreSQL | ย้ายฐานข้อมูลจาก MS SQL Server ไปยัง PostgreSQL เพื่อรองรับการ Deploy บนบริการฟรี (Supabase) สำหรับใช้งานกับเพื่อนไม่เกิน 10 คน: เปลี่ยน provider เป็น `Npgsql.EntityFrameworkCore.PostgreSQL` (10.0.0), ปรับ DbContext/EntityConfigurations ใช้ types ที่เข้ากันได้ (`timestamptz`, `smallint`, `text`, `NOW()`), รองรับ Local Docker container `pocketwise-postgres` (`postgres:16-alpine`, port 5432) และ Migration แรก `InitialPostgres` ผ่านการสร้างตารางและ Seed ข้อมูลครบ 100% | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 

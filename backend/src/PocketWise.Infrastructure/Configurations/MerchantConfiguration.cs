@@ -18,7 +18,7 @@ public class MerchantConfiguration : IEntityTypeConfiguration<Merchant>
         builder.HasIndex(e => e.NormalizedName);
         builder.Property(e => e.BankOrProvider).HasMaxLength(100);
         builder.Property(e => e.IsVerified).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+        builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
 
         builder.HasOne(e => e.DefaultCategory)
             .WithMany(c => c.Merchants)
