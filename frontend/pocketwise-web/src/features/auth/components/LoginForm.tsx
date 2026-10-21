@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/zod-resolver";
 import Link from "next/link";
 import { loginSchema, type LoginFormValues } from "@/schemas/auth.schema";
 import { useLogin } from "@/features/auth/hooks/useAuthMutations";
+import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +16,8 @@ import { Card } from "@/components/ui/card";
 import { LoaderCircle, LogIn } from "lucide-react";
 
 export function LoginForm() {
+  const router = useRouter();
+  const { data: user, isSuccess } = useCurrentUser();
   const login = useLogin();
   const {
     register,
@@ -21,6 +26,12 @@ export function LoginForm() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
+
+  useEffect(() => {
+    if (isSuccess && user) {
+      router.replace("/");
+    }
+  }, [isSuccess, user, router]);
 
   const onSubmit = (values: LoginFormValues) => login.mutate(values);
 
@@ -75,6 +86,16 @@ export function LoginForm() {
             สมัครสมาชิก
           </Link>
         </p>
+
+        <div className="mt-5 flex items-center justify-center gap-3 border-t border-[var(--pw-hairline)] pt-3 text-[11px] text-[var(--pw-ink)]/50">
+          <Link href="/privacy-policy" className="hover:underline">
+            นโยบายความเป็นส่วนตัว
+          </Link>
+          <span>•</span>
+          <Link href="/terms" className="hover:underline">
+            ข้อกำหนดการใช้งาน
+          </Link>
+        </div>
       </Card>
     </main>
   );

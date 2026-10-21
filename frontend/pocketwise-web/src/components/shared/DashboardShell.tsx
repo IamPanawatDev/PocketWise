@@ -305,8 +305,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <NotificationBell />
         </header>
         <div className="flex-1 p-3 pb-8 sm:p-6">{children}</div>
-        <footer className="border-t border-[var(--pw-hairline)] px-3 py-4 text-center text-xs text-[var(--pw-ink)]/55 sm:px-6">
-          © 2026 PocketWise. All rights reserved.
+        <footer className="border-t border-[var(--pw-hairline)] px-3 py-4 text-xs text-[var(--pw-ink)]/55 sm:px-6">
+          <div className="flex flex-col items-center justify-between gap-2 text-center sm:flex-row sm:text-left">
+            <span>© 2026 PocketWise. สงวนลิขสิทธิ์ทุกประการ</span>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/privacy-policy"
+                className="transition-colors hover:text-[var(--pw-ink)] hover:underline"
+              >
+                นโยบายความเป็นส่วนตัว
+              </Link>
+              <span>•</span>
+              <Link
+                href="/terms"
+                className="transition-colors hover:text-[var(--pw-ink)] hover:underline"
+              >
+                ข้อกำหนดการใช้งาน
+              </Link>
+            </div>
+          </div>
         </footer>
       </main>
     </div>

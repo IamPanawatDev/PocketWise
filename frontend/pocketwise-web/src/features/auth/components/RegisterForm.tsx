@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
 import { registerSchema, type RegisterFormValues } from "@/schemas/auth.schema";
 import { useRegister } from "@/features/auth/hooks/useAuthMutations";
+import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { ApiError } from "@/lib/api-client";
 import { zodResolver } from "@/lib/zod-resolver";
 import { Button } from "@/components/ui/button";
@@ -13,6 +16,8 @@ import { Card } from "@/components/ui/card";
 import { LoaderCircle, UserRoundPlus } from "lucide-react";
 
 export function RegisterForm() {
+  const router = useRouter();
+  const { data: user, isSuccess } = useCurrentUser();
   const registerMutation = useRegister();
   const {
     register,
@@ -21,6 +26,12 @@ export function RegisterForm() {
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
   });
+
+  useEffect(() => {
+    if (isSuccess && user) {
+      router.replace("/");
+    }
+  }, [isSuccess, user, router]);
 
   const onSubmit = (values: RegisterFormValues) =>
     registerMutation.mutate({
@@ -62,6 +73,25 @@ export function RegisterForm() {
             </p>
           )}
 
+          <p className="text-center text-[11px] leading-relaxed text-[var(--pw-ink)]/65">
+            การสร้างบัญชี ถือว่าคุณยอมรับ{" "}
+            <Link
+              href="/terms"
+              className="text-[var(--pw-link)] underline hover:opacity-80"
+              target="_blank"
+            >
+              ข้อกำหนดการใช้งาน
+            </Link>{" "}
+            และ{" "}
+            <Link
+              href="/privacy-policy"
+              className="text-[var(--pw-link)] underline hover:opacity-80"
+              target="_blank"
+            >
+              นโยบายความเป็นส่วนตัว
+            </Link>
+          </p>
+
           <Button
             type="submit"
             className="w-full"
@@ -80,6 +110,16 @@ export function RegisterForm() {
             เข้าสู่ระบบ
           </Link>
         </p>
+
+        <div className="mt-5 flex items-center justify-center gap-3 border-t border-[var(--pw-hairline)] pt-3 text-[11px] text-[var(--pw-ink)]/50">
+          <Link href="/privacy-policy" className="hover:underline">
+            นโยบายความเป็นส่วนตัว
+          </Link>
+          <span>•</span>
+          <Link href="/terms" className="hover:underline">
+            ข้อกำหนดการใช้งาน
+          </Link>
+        </div>
       </Card>
     </main>
   );
