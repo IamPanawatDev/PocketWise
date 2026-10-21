@@ -208,8 +208,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <Button
               type="button"
               size={iconOnly ? "icon" : "default"}
-              variant="ghost"
-              className="w-full"
+              variant="outline"
+              className={cn(
+                "w-full border border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] shadow-xs transition-colors hover:bg-[var(--pw-surface-onyx)]",
+                iconOnly && "md:px-0"
+              )}
               aria-label="ย่อ/ขยายเมนู"
               title={iconOnly ? "ขยายเมนู" : "ย่อเมนู"}
               onClick={toggleNavigation}
@@ -242,7 +245,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-300", isCollapsed ? "md:ml-20" : "md:ml-72")}>
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/95 px-3 backdrop-blur md:hidden">
           <div className="flex items-center gap-3">
-            <Button type="button" size="icon" variant="ghost" aria-label="เปิดเมนู" onClick={toggleNavigation}>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="border-[var(--pw-input-border)]/60 bg-[var(--pw-surface-indigo)] shadow-xs"
+              aria-label="เปิดเมนู"
+              onClick={toggleNavigation}
+            >
               <Menu />
             </Button>
             <span className="truncate text-base font-bold text-[var(--pw-on-primary)]">PocketWise</span>
