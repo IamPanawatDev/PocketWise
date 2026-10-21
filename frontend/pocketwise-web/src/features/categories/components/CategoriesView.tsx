@@ -19,7 +19,21 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowDownRight,
+  ArrowUp,
+  ArrowUpDown,
+  ArrowUpRight,
+  FolderTree,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  Save,
+  Shield,
+  Trash2,
+  X,
+} from "lucide-react";
 
 const initialCategoryValues: CategoryFormValues = {
   categoryName: "",
@@ -102,11 +116,40 @@ export function CategoriesView() {
     });
   };
 
+  const getCategoryTypeBadge = (type?: string) => {
+    const t = type?.toLowerCase();
+    if (t === "expense") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+          <ArrowDownRight className="size-3" />
+          รายจ่าย
+        </span>
+      );
+    }
+    if (t === "income") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+          <ArrowUpRight className="size-3" />
+          รายรับ
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+        <ArrowUpDown className="size-3" />
+        ทั้งคู่
+      </span>
+    );
+  };
+
   const reorderableCategories = data?.filter((category) => !category.isSystem) ?? [];
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">หมวดหมู่</h1>
+      <h1 className="mb-6 flex items-center gap-2 text-2xl font-bold">
+        <FolderTree className="size-6 text-[var(--pw-primary)]" />
+        หมวดหมู่
+      </h1>
 
       <Card className="mb-6 p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-bold">{editing ? "แก้ไขหมวดหมู่" : "เพิ่มหมวดหมู่"}</h2>
@@ -127,12 +170,13 @@ export function CategoriesView() {
                       aria-checked={field.value === "expense"}
                       onClick={() => field.onChange("expense")}
                       className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                         field.value === "expense"
                           ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
                           : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
                       )}
                     >
+                      <ArrowDownRight className="size-4" />
                       รายจ่าย
                     </button>
                     <button
@@ -141,12 +185,13 @@ export function CategoriesView() {
                       aria-checked={field.value === "income"}
                       onClick={() => field.onChange("income")}
                       className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                         field.value === "income"
                           ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
                           : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
                       )}
                     >
+                      <ArrowUpRight className="size-4" />
                       รายรับ
                     </button>
                     <button
@@ -155,12 +200,13 @@ export function CategoriesView() {
                       aria-checked={field.value === "both"}
                       onClick={() => field.onChange("both")}
                       className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                         field.value === "both"
                           ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
                           : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
                       )}
                     >
+                      <ArrowUpDown className="size-4" />
                       ทั้งคู่
                     </button>
                   </div>
@@ -188,20 +234,34 @@ export function CategoriesView() {
 
       {isLoading ? (
         <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
+      ) : !data || data.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <FolderTree className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีหมวดหมู่</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">เพิ่มหมวดหมู่จากฟอร์มด้านบนเพื่อจัดระเบียบรายรับรายจ่าย</p>
+        </Card>
       ) : (
         <Card className="p-0">
           <ul>
-            {data?.map((c) => {
+            {data.map((c) => {
               const reorderableIndex = reorderableCategories.findIndex(
                 (category) => category.categoryId === c.categoryId,
               );
 
               return (
                 <li key={c.categoryId} className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="min-w-0 break-words">
-                    {c.categoryName}
-                    {c.isSystem && <span className="ml-2 text-xs text-[var(--pw-ink)]/50">(ระบบ)</span>}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    <span className="font-medium text-[var(--pw-ink)] break-words">
+                      {c.categoryName}
+                    </span>
+                    {getCategoryTypeBadge(c.categoryType)}
+                    {c.isSystem && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-sunken)] px-2 py-0.5 text-[11px] text-[var(--pw-ink)]/60">
+                        <Shield className="size-3 text-[var(--pw-primary)]" />
+                        ระบบ
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap items-center gap-1">
                     {!c.isSystem && (
                       <>

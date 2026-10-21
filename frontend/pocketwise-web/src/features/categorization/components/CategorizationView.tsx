@@ -36,7 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { LoaderCircle, Pencil, Plus, Save, Sparkles, Store, Trash2, X } from "lucide-react";
 
 const initialMerchant: MerchantFormValues = {
   merchantName: "",
@@ -140,7 +140,10 @@ export function CategorizationView() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="mb-2 text-2xl font-bold">จัดหมวดหมู่อัตโนมัติ</h1>
+        <h1 className="mb-2 flex items-center gap-2 text-2xl font-bold">
+          <Sparkles className="size-6 text-[var(--pw-primary)]" />
+          จัดหมวดหมู่อัตโนมัติ
+        </h1>
         <p className="text-sm text-[var(--pw-ink)]/65">
           ระบบแนะนำหมวดจากกฎของคุณก่อน แล้วจึงตรวจชื่อร้านค้า; เมื่อเลือกรายการและหมวดเอง ระบบจะเรียนรู้กฎรายละเอียดให้
         </p>
@@ -148,7 +151,10 @@ export function CategorizationView() {
 
       <section>
         <Card className="mb-4 p-4 sm:p-6">
-          <h2 className="mb-4 text-lg font-bold">{editingMerchant ? "แก้ไขร้านค้า" : "เพิ่มร้านค้า"}</h2>
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
+            <Store className="size-5 text-[var(--pw-primary)]" />
+            {editingMerchant ? "แก้ไขร้านค้า" : "เพิ่มร้านค้า"}
+          </h2>
           <form onSubmit={merchantForm.handleSubmit(onMerchantSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="ชื่อร้านค้า" htmlFor="merchant-name" error={merchantForm.formState.errors.merchantName?.message}>
@@ -193,7 +199,11 @@ export function CategorizationView() {
         ) : merchantsError ? (
           <p role="alert" className="text-[var(--pw-expense)]">โหลดร้านค้าไม่สำเร็จ</p>
         ) : !merchants?.length ? (
-          <Card className="p-5 text-center text-[var(--pw-ink)]/65">ยังไม่มีร้านค้าเพิ่มเอง</Card>
+          <Card className="flex flex-col items-center justify-center p-8 text-center">
+            <Store className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+            <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีร้านค้าเพิ่มเอง</p>
+            <p className="mt-1 text-xs text-[var(--pw-ink)]/60">เพิ่มร้านค้าจากฟอร์มด้านบนเพื่อกำหนดหมวดหมู่เริ่มต้น</p>
+          </Card>
         ) : (
           <Card className="p-0">
             <ul>
@@ -236,7 +246,10 @@ export function CategorizationView() {
 
       <section>
         <Card className="mb-4 p-4 sm:p-6">
-          <h2 className="mb-2 text-lg font-bold">{editingRule ? "แก้ไขกฎ" : "เพิ่มกฎจัดหมวดหมู่"}</h2>
+          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold">
+            <Sparkles className="size-5 text-[var(--pw-primary)]" />
+            {editingRule ? "แก้ไขกฎ" : "เพิ่มกฎจัดหมวดหมู่"}
+          </h2>
           <p className="mb-4 text-xs text-[var(--pw-ink)]/60">
             กฎเลขอ้างอิงธนาคารเก็บไว้สำหรับข้อมูลนำเข้าใน Phase 7; transaction ที่บันทึกด้วยตนเองจับคู่จากรายละเอียดหรือชื่อร้านค้า
           </p>
@@ -296,7 +309,11 @@ export function CategorizationView() {
         ) : rulesError ? (
           <p role="alert" className="text-[var(--pw-expense)]">โหลดกฎไม่สำเร็จ</p>
         ) : !rules?.length ? (
-          <Card className="p-5 text-center text-[var(--pw-ink)]/65">ยังไม่มีกฎ · เมื่อเลือกหมวดให้รายการ ระบบจะเรียนรู้กฎรายละเอียดให้อัตโนมัติ</Card>
+          <Card className="flex flex-col items-center justify-center p-8 text-center">
+            <Sparkles className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+            <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีกฎจัดหมวดหมู่</p>
+            <p className="mt-1 text-xs text-[var(--pw-ink)]/60">เมื่อเลือกหมวดให้รายการ ระบบจะเรียนรู้กฎให้อัตโนมัติ หรือเพิ่มกฎเองด้านบน</p>
+          </Card>
         ) : (
           <Card className="p-0">
             <ul>

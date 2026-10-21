@@ -11,7 +11,17 @@ import {
 } from "@/components/ui/select";
 import { formatDateTime } from "@/lib/utils";
 import type { AuditLogResponse } from "@/types/audit-log.types";
-import { ChevronLeft, ChevronRight, Eye, FileText, Loader2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  FileText,
+  FileUp,
+  Loader2,
+  Pencil,
+  PlusCircle,
+  Trash2,
+} from "lucide-react";
 
 interface AuditLogTableProps {
   logs: AuditLogResponse[];
@@ -31,26 +41,31 @@ function getActionBadge(action: string) {
     case "create":
       return {
         label: "สร้าง",
+        icon: <PlusCircle className="mr-1 size-3 shrink-0" />,
         className: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
       };
     case "update":
       return {
         label: "แก้ไข",
+        icon: <Pencil className="mr-1 size-3 shrink-0" />,
         className: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
       };
     case "delete":
       return {
         label: "ลบ",
+        icon: <Trash2 className="mr-1 size-3 shrink-0" />,
         className: "bg-rose-500/15 text-rose-400 border border-rose-500/30",
       };
     case "import":
       return {
         label: "นำเข้า",
+        icon: <FileUp className="mr-1 size-3 shrink-0" />,
         className: "bg-sky-500/15 text-sky-400 border border-sky-500/30",
       };
     default:
       return {
         label: action,
+        icon: null,
         className: "bg-white/10 text-white/80 border border-white/20",
       };
   }
@@ -119,6 +134,7 @@ export function AuditLogTable({
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${badge.className}`}>
+                        {badge.icon}
                         {badge.label}
                       </span>
                     </td>
@@ -161,6 +177,7 @@ export function AuditLogTable({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badge.className}`}>
+                    {badge.icon}
                     {badge.label}
                   </span>
                   <span className="ml-2 font-semibold text-[var(--pw-link)]">{log.entityType}</span>

@@ -20,7 +20,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { Calendar, CreditCard, LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 
 const emptyValues: CreditCardFormValues = {
   bankName: "",
@@ -84,7 +84,10 @@ export function CreditCardsView() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold">บัตรเครดิต</h1>
+      <h1 className="mb-2 flex items-center gap-2 text-2xl font-bold">
+        <CreditCard className="size-6 text-[var(--pw-primary)]" />
+        บัตรเครดิต
+      </h1>
       <p className="mb-6 text-sm text-[var(--pw-ink)]/65">ลงทะเบียนบัตรเพื่อผูกกับรายการรายจ่ายและดูสรุปตามบัตร</p>
 
       <Card className="mb-6 p-4 sm:p-6">
@@ -130,25 +133,34 @@ export function CreditCardsView() {
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดบัตรไม่สำเร็จ"}</p>
       ) : !data?.length ? (
-        <Card className="p-6 text-center text-[var(--pw-ink)]/65">ยังไม่มีบัตรเครดิต</Card>
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <CreditCard className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีบัตรเครดิต</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">เพิ่มบัตรเครดิตของคุณจากฟอร์มด้านบนเพื่อเริ่มติดตามยอด</p>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {data.map((card) => (
             <Card key={card.creditCardId} className="space-y-4 p-4 sm:p-5">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="break-words font-bold">{card.cardName}</h2>
-                  <p className="text-sm text-[var(--pw-ink)]/65">{card.bankName}</p>
-                  {card.cardNumberMasked && <p className="mt-1 text-sm tracking-wider">{card.cardNumberMasked}</p>}
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--pw-surface-sunken)] text-[var(--pw-primary)] border border-[var(--pw-hairline)]">
+                    <CreditCard className="size-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="break-words font-bold">{card.cardName}</h2>
+                    <p className="text-sm text-[var(--pw-ink)]/65">{card.bankName}</p>
+                    {card.cardNumberMasked && <p className="mt-1 font-mono text-xs tracking-wider text-[var(--pw-ink)]/70">{card.cardNumberMasked}</p>}
+                  </div>
                 </div>
-                <span className="rounded-full bg-[var(--pw-surface-indigo)] px-3 py-1 text-xs">
+                <span className="rounded-full bg-[var(--pw-surface-indigo)] px-3 py-1 text-xs font-medium">
                   {card.isActive ? "ใช้งาน" : "ปิดใช้งาน"}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <p>วงเงิน: {card.creditLimit == null ? "—" : formatCurrency(card.creditLimit)}</p>
-                <p>วันสรุปยอด: {card.billingDay ?? "—"}</p>
-                <p>วันครบกำหนด: {card.paymentDueDay ?? "—"}</p>
+              <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm bg-[var(--pw-surface-sunken)] p-3 rounded-lg">
+                <p><span className="text-[var(--pw-ink)]/60">วงเงิน:</span> <span className="font-medium">{card.creditLimit == null ? "—" : formatCurrency(card.creditLimit)}</span></p>
+                <p className="flex items-center gap-1.5"><Calendar className="size-3.5 text-[var(--pw-ink)]/50" /><span className="text-[var(--pw-ink)]/60">สรุปยอด:</span> <span className="font-medium">{card.billingDay ? `วันที่ ${card.billingDay}` : "—"}</span></p>
+                <p className="flex items-center gap-1.5"><Calendar className="size-3.5 text-[var(--pw-ink)]/50" /><span className="text-[var(--pw-ink)]/60">ครบกำหนด:</span> <span className="font-medium">{card.paymentDueDay ? `วันที่ ${card.paymentDueDay}` : "—"}</span></p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" onClick={() => startEdit(card)}><Pencil />แก้ไข</Button>

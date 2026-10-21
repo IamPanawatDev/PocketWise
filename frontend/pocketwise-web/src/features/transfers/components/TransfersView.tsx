@@ -68,7 +68,10 @@ export function TransfersView() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold sm:mb-6 sm:text-2xl">โอนเงินระหว่างบัญชี</h1>
+      <h1 className="mb-4 flex items-center gap-2 text-xl font-bold sm:mb-6 sm:text-2xl">
+        <ArrowRightLeft className="size-6 text-[var(--pw-primary)]" />
+        โอนเงินระหว่างบัญชี
+      </h1>
 
       <Card className="mb-6 p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-bold">โอนเงิน</h2>
@@ -153,14 +156,27 @@ export function TransfersView() {
 
       {isLoading ? (
         <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
+      ) : !transfers || transfers.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <ArrowRightLeft className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีประวัติการโอนเงิน</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">โอนเงินระหว่างบัญชีจากฟอร์มด้านบนเพื่อเริ่มบันทึกประวัติ</p>
+        </Card>
       ) : (
         <Card className="p-0">
           <ul className="divide-y divide-[var(--pw-hairline)]">
-            {transfers?.map((t) => (
-              <li key={t.transferGroupId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3">
-                <span className="w-full text-xs text-[var(--pw-ink)]/60 sm:w-auto sm:text-sm">{formatDateTime(t.transferDate)} (เวลาไทย)</span>
-                <span className="min-w-0 flex-1 break-words text-sm text-[var(--pw-ink)]/70">{t.reference ?? "-"}</span>
-                <span className="shrink-0 font-semibold">{formatCurrency(t.amount)}</span>
+            {transfers.map((t) => (
+              <li key={t.transferGroupId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--pw-surface-sunken)] text-[var(--pw-link)]">
+                    <ArrowRightLeft className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-[var(--pw-ink)]/60 sm:text-sm">{formatDateTime(t.transferDate)}</p>
+                    <p className="text-xs text-[var(--pw-ink)]/50">{t.reference || "โอนระหว่างบัญชี"}</p>
+                  </div>
+                </div>
+                <span className="shrink-0 font-semibold text-[var(--pw-link)]">{formatCurrency(t.amount)}</span>
               </li>
             ))}
           </ul>

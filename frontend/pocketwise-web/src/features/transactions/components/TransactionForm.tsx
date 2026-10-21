@@ -32,7 +32,17 @@ import {
   thailandDateTimeInputToUtcIso,
   toThailandDateTimeInputValue,
 } from "@/lib/utils";
-import { LoaderCircle, Plus, Save, Sparkles, X } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowRightLeft,
+  ArrowUpRight,
+  Check,
+  LoaderCircle,
+  Plus,
+  Save,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 export function TransactionForm({
   onClose,
@@ -166,12 +176,13 @@ export function TransactionForm({
                     aria-checked={field.value === "expense"}
                     onClick={() => field.onChange("expense")}
                     className={cn(
-                      "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                      "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "expense"
                         ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
                         : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
                     )}
                   >
+                    <ArrowDownRight className="size-4" />
                     รายจ่าย
                   </button>
                   <button
@@ -183,12 +194,13 @@ export function TransactionForm({
                       setValue("creditCardId", null);
                     }}
                     className={cn(
-                      "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                      "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "income"
                         ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
                         : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
                     )}
                   >
+                    <ArrowUpRight className="size-4" />
                     รายรับ
                   </button>
                   <button
@@ -200,12 +212,13 @@ export function TransactionForm({
                       setValue("creditCardId", null);
                     }}
                     className={cn(
-                      "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                      "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "transfer"
                         ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
                         : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
                     )}
                   >
+                    <ArrowRightLeft className="size-4" />
                     โอน
                   </button>
                 </div>
@@ -325,41 +338,66 @@ export function TransactionForm({
           )}
 
           <FormField label="แท็ก" error={errors.tagIds?.message}>
-            <div className="flex flex-wrap gap-2">
-              {tags?.map((t) => {
-                const checked = selectedTagIds?.includes(t.tagId) ?? false;
-                const color = t.color ?? "#ec48bd";
-                return (
-                  <label
-                    key={t.tagId}
-                    className={cn(
-                      "inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-[var(--pw-rounded-pill)] border border-[var(--pw-ink)]/20 px-3 py-1.5 text-sm transition-opacity hover:opacity-90",
-                      checked &&
-                        "ring-2 ring-[var(--pw-link)] ring-offset-2 ring-offset-[var(--pw-surface-indigo)]",
-                    )}
-                    style={{
-                      backgroundColor: color,
-                      color: getReadableTextColor(color),
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={checked}
-                      aria-label={`เลือกแท็ก ${t.tagName}`}
-                      onChange={(e) => {
-                        const current = selectedTagIds ?? [];
-                        const next = e.target.checked
-                          ? [...current, t.tagId]
-                          : current.filter((id) => id !== t.tagId);
-                        setValue("tagIds", next);
+            {!tags || tags.length === 0 ? (
+              <p className="pt-1 text-xs text-[var(--pw-ink)]/55">
+                ยังไม่มีแท็ก สามารถเพิ่มแท็กใหม่ได้ที่เมนู แท็ก
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {tags.map((t) => {
+                  const checked = selectedTagIds?.includes(t.tagId) ?? false;
+                  const color = t.color ?? "#ec48bd";
+                  const textColor = getReadableTextColor(color);
+                  const isDarkText = textColor === "#000000";
+
+                  return (
+                    <label
+                      key={t.tagId}
+                      className={cn(
+                        "group inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs sm:text-sm font-medium transition-all select-none shadow-xs",
+                        checked
+                          ? "opacity-100 ring-2 ring-[var(--pw-link)] ring-offset-2 ring-offset-[var(--pw-canvas)] border-transparent"
+                          : "opacity-65 hover:opacity-90 border-transparent",
+                      )}
+                      style={{
+                        backgroundColor: color,
+                        color: textColor,
                       }}
-                    />
-                    <span>#{t.tagName}</span>
-                  </label>
-                );
-              })}
-            </div>
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={checked}
+                        aria-label={`เลือกแท็ก ${t.tagName}`}
+                        onChange={(e) => {
+                          const current = selectedTagIds ?? [];
+                          const next = e.target.checked
+                            ? [...current, t.tagId]
+                            : current.filter((id) => id !== t.tagId);
+                          setValue("tagIds", next);
+                        }}
+                      />
+                      {/* Checkbox box inside badge */}
+                      <span
+                        className={cn(
+                          "flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-all",
+                          checked
+                            ? isDarkText
+                              ? "bg-black text-white border-black"
+                              : "bg-white text-black border-white"
+                            : isDarkText
+                              ? "border-black/50 bg-black/10 group-hover:border-black/80"
+                              : "border-white/60 bg-white/15 group-hover:border-white",
+                        )}
+                      >
+                        {checked && <Check className="size-3 stroke-[3]" />}
+                      </span>
+                      <span>#{t.tagName}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </FormField>
         </div>
 

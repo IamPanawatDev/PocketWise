@@ -24,7 +24,17 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import {
+  Banknote,
+  Landmark,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  Save,
+  Smartphone,
+  Trash2,
+  X,
+} from "lucide-react";
 
 const initialBankValues: BankAccountFormValues = {
   accountName: "",
@@ -80,9 +90,19 @@ export function BankAccountsView() {
     }
   };
 
+  const getAccountIcon = (type?: string | null) => {
+    const t = type?.toLowerCase();
+    if (t === "cash") return <Banknote className="size-4 text-emerald-500" />;
+    if (t === "wallet") return <Smartphone className="size-4 text-purple-500" />;
+    return <Landmark className="size-4 text-[var(--pw-primary)]" />;
+  };
+
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">บัญชี</h1>
+      <h1 className="mb-6 flex items-center gap-2 text-2xl font-bold">
+        <Landmark className="size-6 text-[var(--pw-primary)]" />
+        บัญชี
+      </h1>
 
       <Card className="mb-6 p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-bold">{editing !== null ? "แก้ไขบัญชี" : "เพิ่มบัญชี"}</h2>
@@ -135,15 +155,29 @@ export function BankAccountsView() {
 
       {isLoading ? (
         <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
+      ) : !data || data.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <Landmark className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีบัญชี</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">เพิ่มบัญชีธนาคาร เงินสด หรือกระเป๋าเงินจากฟอร์มด้านบน</p>
+        </Card>
       ) : (
         <Card className="p-0">
           <ul>
-            {data?.map((a) => (
+            {data.map((a) => (
               <li key={a.bankAccountId} className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-                <span className="min-w-0 break-words">
-                  {a.accountName}
-                  <span className="mt-1 block text-xs text-[var(--pw-ink)]/50 sm:ml-2 sm:mt-0 sm:inline">{a.bankName}</span>
-                </span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--pw-surface-sunken)]">
+                    {getAccountIcon(a.accountType)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-[var(--pw-ink)] truncate">{a.accountName}</p>
+                    <p className="text-xs text-[var(--pw-ink)]/50">
+                      {a.bankName}
+                      {a.accountNumberMasked && ` • ${a.accountNumberMasked}`}
+                    </p>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button
                     size="sm"

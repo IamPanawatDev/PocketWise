@@ -418,6 +418,7 @@ public sealed class ReportService : IReportService
                 .OrderByDescending(item => item.Amount)
                 .ToList(),
             BankAccountBreakdown = expenses
+                .Where(transaction => transaction.BankAccountId.HasValue)
                 .GroupBy(transaction => new
                 {
                     transaction.BankAccountId,
@@ -427,7 +428,7 @@ public sealed class ReportService : IReportService
                 .Select(group => new ReportBankAccountBreakdown
                 {
                     BankAccountId = group.Key.BankAccountId,
-                    AccountName = group.Key.AccountName ?? "ไม่ระบุบัญชี",
+                    AccountName = group.Key.AccountName ?? "บัญชีธนาคาร",
                     BankName = group.Key.BankName,
                     Amount = group.Sum(transaction => transaction.Amount),
                     Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense),
@@ -436,6 +437,7 @@ public sealed class ReportService : IReportService
                 .OrderByDescending(item => item.Amount)
                 .ToList(),
             CreditCardBreakdown = expenses
+                .Where(transaction => transaction.CreditCardId.HasValue || transaction.SourceType == SourceType.CardStatement)
                 .GroupBy(transaction => new
                 {
                     transaction.CreditCardId,
@@ -445,7 +447,7 @@ public sealed class ReportService : IReportService
                 .Select(group => new ReportCreditCardBreakdown
                 {
                     CreditCardId = group.Key.CreditCardId,
-                    CardName = group.Key.CardName ?? "ไม่ระบุบัตร",
+                    CardName = group.Key.CardName ?? (group.Key.CreditCardId.HasValue ? "บัตรเครดิต" : "ใบแจ้งยอดบัตร"),
                     BankName = group.Key.CreditCardBankName,
                     Amount = group.Sum(transaction => transaction.Amount),
                     Percentage = CalculatePercentage(group.Sum(transaction => transaction.Amount), totalExpense),

@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Plus, Save, Tag, Tags, Trash2, X } from "lucide-react";
 
 export function TagsView() {
   const { data, isLoading } = useTags();
@@ -76,7 +76,10 @@ export function TagsView() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">แท็ก</h1>
+      <h1 className="mb-6 flex items-center gap-2 text-2xl font-bold">
+        <Tags className="size-6 text-[var(--pw-primary)]" />
+        แท็ก
+      </h1>
 
       <Card className="mb-6 p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-bold">{editing ? "แก้ไขแท็ก" : "เพิ่มแท็ก"}</h2>
@@ -128,18 +131,27 @@ export function TagsView() {
 
       {isLoading ? (
         <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
+      ) : !data || data.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <Tags className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีแท็ก</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">เพิ่มแท็กจากฟอร์มด้านบนเพื่อใช้ติดป้ายกำกับรายการ</p>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {data?.map((t) => (
+          {data.map((t) => (
             <span
               key={t.tagId}
-              className="flex min-w-0 flex-wrap items-center gap-2 rounded-[var(--pw-rounded-lg)] p-3 text-sm"
+              className="flex min-w-0 flex-wrap items-center gap-2 rounded-[var(--pw-rounded-lg)] p-3 text-sm shadow-sm"
               style={{
                 backgroundColor: t.color ?? "var(--pw-magenta)",
                 color: getReadableTextColor(t.color ?? "#ec48bd"),
               }}
             >
-              <span className="min-w-0 flex-1 break-words">#{t.tagName}</span>
+              <span className="flex min-w-0 flex-1 items-center gap-1.5 break-words font-medium">
+                <Tag className="size-3.5 shrink-0 opacity-80" />
+                {t.tagName}
+              </span>
               <Button
                 type="button"
                 size="sm"

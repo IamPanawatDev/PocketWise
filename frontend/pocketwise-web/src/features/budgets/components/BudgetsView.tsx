@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, LoaderCircle, Pencil, Plus, Save, Trash2, Wallet, X } from "lucide-react";
 
 const initialValues = (startDate = ""): BudgetFormValues => ({
   budgetName: "",
@@ -154,7 +154,10 @@ export function BudgetsView() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold">งบประมาณ</h1>
+      <h1 className="mb-2 flex items-center gap-2 text-2xl font-bold">
+        <Wallet className="size-6 text-[var(--pw-primary)]" />
+        งบประมาณ
+      </h1>
       <p className="mb-6 text-sm text-[var(--pw-ink)]/65">ติดตามรายจ่ายในสกุลเงินหลักของคุณ และรับการแจ้งเตือนเมื่อใกล้ถึงวงเงิน</p>
 
       <Card className="mb-6 p-4 sm:p-6">
@@ -286,7 +289,11 @@ export function BudgetsView() {
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดงบไม่สำเร็จ"}</p>
       ) : !budgets?.length ? (
-        <Card className="p-6 text-center text-[var(--pw-ink)]/65">ยังไม่มีงบประมาณ</Card>
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <Wallet className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีงบประมาณ</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">กำหนดเป้าหมายวงเงินเพื่อควบคุมค่าใช้จ่ายของคุณ</p>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {budgets.map((budget) => {
@@ -335,8 +342,9 @@ export function BudgetsView() {
                     style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
                   />
                 </div>
-                <div className="flex flex-wrap justify-between gap-2 text-sm">
-                  <span className={current?.isOverLimit ? "font-semibold text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/70"}>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className={`inline-flex items-center gap-1.5 ${current?.isOverLimit ? "font-semibold text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/70"}`}>
+                    {current?.isOverLimit ? <AlertTriangle className="size-4 text-[var(--pw-expense)]" /> : <CheckCircle2 className="size-4 text-[var(--pw-green)]" />}
                     {percent.toFixed(2)}% · {current?.isOverLimit ? "เกินงบ" : "คงเหลือ"}
                   </span>
                   <span>{formatCurrency(current?.remainingAmount ?? budget.amountLimit, budget.currencyCode)}</span>

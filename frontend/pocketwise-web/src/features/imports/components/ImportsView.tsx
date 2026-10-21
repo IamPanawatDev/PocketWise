@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Receipt, CreditCard, History } from "lucide-react";
+import { CreditCard, FileUp, History, Receipt } from "lucide-react";
 import { SlipImportTab } from "./SlipImportTab";
 import { StatementImportTab } from "./StatementImportTab";
 import { ImportJobsTab } from "./ImportJobsTab";
@@ -15,7 +15,8 @@ export function ImportsView() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--pw-text-primary)]">
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-[var(--pw-text-primary)]">
+          <FileUp className="size-6 text-[var(--pw-primary)]" />
           นำเข้าข้อมูล (Imports)
         </h1>
         <p className="mt-1 text-sm text-[var(--pw-text-secondary)]">

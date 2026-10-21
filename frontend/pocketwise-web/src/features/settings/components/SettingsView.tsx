@@ -37,7 +37,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { AlertCircle, CheckCircle2, LoaderCircle, Mail, Save, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  LoaderCircle,
+  Mail,
+  Save,
+  Settings2,
+  Sliders,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 
 export function SettingsView() {
   const queryClient = useQueryClient();
@@ -150,7 +161,10 @@ export function SettingsView() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="mb-2 text-2xl font-bold">ตั้งค่าและโปรไฟล์</h1>
+        <h1 className="mb-2 flex items-center gap-2 text-2xl font-bold">
+          <Settings2 className="size-6 text-[var(--pw-primary)]" />
+          ตั้งค่าและโปรไฟล์
+        </h1>
         <p className="text-sm text-[var(--pw-ink)]/65">จัดการค่าตั้งค่าส่วนบุคคลและข้อมูลโปรไฟล์</p>
       </header>
 
@@ -167,7 +181,10 @@ export function SettingsView() {
       ) : (
         <>
           <Card className="p-4 sm:p-6">
-            <h2 className="mb-4 text-lg font-bold">การตั้งค่าแอป</h2>
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
+              <Sliders className="size-5 text-[var(--pw-primary)]" />
+              การตั้งค่าแอป
+            </h2>
             <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="ธีม" htmlFor="settings-theme" error={settingsForm.formState.errors.theme?.message}>
@@ -318,7 +335,10 @@ export function SettingsView() {
           </Card>
 
           <Card className="p-4 sm:p-6">
-            <h2 className="mb-4 text-lg font-bold">ข้อมูลโปรไฟล์</h2>
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
+              <UserRound className="size-5 text-[var(--pw-primary)]" />
+              ข้อมูลโปรไฟล์
+            </h2>
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="ชื่อที่แสดง" htmlFor="profile-display-name" error={profileForm.formState.errors.displayName?.message}>
@@ -385,7 +405,10 @@ export function SettingsView() {
           </Card>
 
           <Card className="border border-[var(--pw-expense)]/60 p-4 sm:p-6">
-            <h2 className="mb-2 text-lg font-bold">ล้างข้อมูลการเงิน</h2>
+            <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-[var(--pw-expense)]">
+              <AlertTriangle className="size-5" />
+              ล้างข้อมูลการเงิน
+            </h2>
             <p className="mb-4 text-sm text-[var(--pw-ink)]/70">
               รายการ ธนาคาร บัตร งบ แผนผ่อน รายการประจำ และใบแจ้งยอดจะถูกซ่อนอย่างถาวรจากการใช้งาน
               พร้อมออกจากระบบทุกอุปกรณ์ ข้อมูลโปรไฟล์ การตั้งค่า หมวดหมู่ แท็ก และประวัติการแจ้งเตือน/นำเข้าจะยังคงอยู่

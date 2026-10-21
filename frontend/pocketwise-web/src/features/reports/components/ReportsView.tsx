@@ -16,13 +16,19 @@ import {
   YAxis,
 } from "recharts";
 import {
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
   CreditCard,
   Download,
   FileDown,
   FileJson,
   FileSpreadsheet,
+  Landmark,
+  Layers,
   LoaderCircle,
   Receipt,
+  Scale,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -189,7 +195,10 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 text-2xl font-bold">รายงานและภาพรวม</h1>
+          <h1 className="mb-2 flex items-center gap-2 text-2xl font-bold">
+            <BarChart3 className="size-6 text-[var(--pw-primary)]" />
+            รายงานและภาพรวม
+          </h1>
           <p className="text-sm text-[var(--pw-ink)]/65">
             สรุปรายรับ รายจ่าย ภาพรวมสลิป บัตรเครดิต และแนวโน้มจากรายการที่ยืนยันแล้ว
           </p>
@@ -312,20 +321,29 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
 
           {/* Top KPI Cards (รวมสรุปสลิปและบัตรเครดิต) */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <Card className="p-4">
-              <p className="text-sm text-[var(--pw-ink)]/60">รายรับทั้งหมด</p>
+            <Card className="p-4 border-l-4 border-l-[var(--pw-green)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-[var(--pw-ink)]/60">รายรับทั้งหมด</p>
+                <ArrowUpRight className="size-4 text-[var(--pw-green)]" />
+              </div>
               <p className="mt-2 break-words text-xl font-bold text-[var(--pw-green)]">
                 {formatCurrency(activeCurrency.totalIncome, activeCurrency.currencyCode)}
               </p>
             </Card>
-            <Card className="p-4">
-              <p className="text-sm text-[var(--pw-ink)]/60">รายจ่ายทั้งหมด</p>
+            <Card className="p-4 border-l-4 border-l-[var(--pw-expense)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-[var(--pw-ink)]/60">รายจ่ายทั้งหมด</p>
+                <ArrowDownRight className="size-4 text-[var(--pw-expense)]" />
+              </div>
               <p className="mt-2 break-words text-xl font-bold text-[var(--pw-expense)]">
                 {formatCurrency(activeCurrency.totalExpense, activeCurrency.currencyCode)}
               </p>
             </Card>
-            <Card className="p-4">
-              <p className="text-sm text-[var(--pw-ink)]/60">คงเหลือสุทธิ</p>
+            <Card className="p-4 border-l-4 border-l-[var(--pw-link)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-[var(--pw-ink)]/60">คงเหลือสุทธิ</p>
+                <Scale className="size-4 text-[var(--pw-link)]" />
+              </div>
               <p className="mt-2 break-words text-xl font-bold">
                 {formatCurrency(activeCurrency.netAmount, activeCurrency.currencyCode)}
               </p>
@@ -559,6 +577,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <BreakdownCard
               title="ตามแหล่งที่มา (Source Breakdown)"
+              icon={<Layers className="size-5 text-[var(--pw-primary)]" />}
               items={activeCurrency.sourceBreakdown.map((item) => ({
                 label: formatSourceTypeName(item.sourceType),
                 amount: item.amount,
@@ -566,26 +585,35 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 count: item.transactionCount,
               }))}
               currencyCode={activeCurrency.currencyCode}
+              emptyMessage="ไม่มีข้อมูลแหล่งที่มา"
             />
             <BreakdownCard
               title="ตามบัญชีธนาคาร"
-              items={activeCurrency.bankAccountBreakdown.map((item) => ({
-                label: item.bankName ? `${item.accountName} · ${item.bankName}` : item.accountName,
-                amount: item.amount,
-                percentage: item.percentage,
-                count: item.transactionCount,
-              }))}
+              icon={<Landmark className="size-5 text-[var(--pw-primary)]" />}
+              items={activeCurrency.bankAccountBreakdown
+                .filter((item) => item.bankAccountId != null)
+                .map((item) => ({
+                  label: item.bankName ? `${item.accountName} · ${item.bankName}` : item.accountName,
+                  amount: item.amount,
+                  percentage: item.percentage,
+                  count: item.transactionCount,
+                }))}
               currencyCode={activeCurrency.currencyCode}
+              emptyMessage="ไม่มีรายการที่จ่ายผ่านบัญชีธนาคาร"
             />
             <BreakdownCard
               title="ตามบัตรเครดิต"
-              items={activeCurrency.creditCardBreakdown.map((item) => ({
-                label: item.bankName ? `${item.cardName} · ${item.bankName}` : item.cardName,
-                amount: item.amount,
-                percentage: item.percentage,
-                count: item.transactionCount,
-              }))}
+              icon={<CreditCard className="size-5 text-[var(--pw-magenta)]" />}
+              items={activeCurrency.creditCardBreakdown
+                .filter((item) => item.creditCardId != null || (item.cardName && item.cardName !== "ไม่ระบุบัตร"))
+                .map((item) => ({
+                  label: item.bankName ? `${item.cardName} · ${item.bankName}` : item.cardName,
+                  amount: item.amount,
+                  percentage: item.percentage,
+                  count: item.transactionCount,
+                }))}
               currencyCode={activeCurrency.currencyCode}
+              emptyMessage="ไม่มีรายการใช้จ่ายผ่านบัตรเครดิต"
             />
           </div>
         </>
@@ -742,22 +770,29 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
 
 function BreakdownCard({
   title,
+  icon,
   items,
   currencyCode,
+  emptyMessage = "ไม่มีข้อมูล",
 }: {
   title: string;
+  icon?: React.ReactNode;
   items: { label: string; amount: number; percentage: number; count?: number }[];
   currencyCode: string;
+  emptyMessage?: string;
 }) {
   return (
     <Card className="p-4 sm:p-5">
-      <h2 className="mb-4 text-lg font-bold">{title}</h2>
+      <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
+        {icon}
+        {title}
+      </h2>
       {items.length ? (
         <ul className="space-y-3">
           {items.map((item, index) => (
             <li key={`${item.label}-${index}`} className="flex items-start justify-between gap-3 text-sm">
               <div className="min-w-0">
-                <span className="block break-words">{item.label}</span>
+                <span className="block break-words font-medium">{item.label}</span>
                 {item.count !== undefined && item.count > 0 && (
                   <span className="text-xs text-[var(--pw-ink)]/50">{item.count} รายการ</span>
                 )}
@@ -770,7 +805,9 @@ function BreakdownCard({
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-[var(--pw-ink)]/60">ไม่มีข้อมูล</p>
+        <div className="py-6 text-center text-sm text-[var(--pw-ink)]/55">
+          <p>{emptyMessage}</p>
+        </div>
       )}
     </Card>
   );

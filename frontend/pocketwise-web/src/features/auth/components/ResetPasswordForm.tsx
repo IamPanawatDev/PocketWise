@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/zod-resolver";
 import Link from "next/link";
@@ -12,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
 import {
-  KeyRound,
   CheckCircle2,
   XCircle,
   LoaderCircle,
@@ -101,9 +101,16 @@ export function ResetPasswordForm() {
           </div>
         ) : (
           <div>
-            <div className="mb-6 space-y-1">
-              <div className="mb-3 inline-flex size-10 items-center justify-center rounded-lg bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-                <KeyRound className="size-5" />
+            <div className="mb-6 space-y-1 text-center">
+              <div className="mb-3 flex justify-center">
+                <Image
+                  src="/brand-logo.png"
+                  alt="PocketWise brand"
+                  width={72}
+                  height={72}
+                  priority
+                  className="size-18 object-contain drop-shadow"
+                />
               </div>
               <h1 className="text-2xl font-bold">ตั้งรหัสผ่านใหม่</h1>
               <p className="text-sm text-[var(--pw-ink)]/70">

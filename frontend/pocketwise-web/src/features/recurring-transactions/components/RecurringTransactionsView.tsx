@@ -32,7 +32,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Clock,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  Repeat,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 
 const initialValues = (startDate = ""): RecurringTransactionFormValues => ({
   transactionType: "expense",
@@ -111,7 +122,10 @@ export function RecurringTransactionsView() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold">รายการประจำ</h1>
+      <h1 className="mb-2 flex items-center gap-2 text-2xl font-bold">
+        <Repeat className="size-6 text-[var(--pw-primary)]" />
+        รายการประจำ
+      </h1>
       <p className="mb-6 text-sm text-[var(--pw-ink)]/65">ระบบสร้างรายการรายรับหรือรายจ่ายเมื่อถึงกำหนดตามรอบที่ตั้งไว้</p>
 
       <Card className="mb-6 p-4 sm:p-6">
@@ -130,12 +144,13 @@ export function RecurringTransactionsView() {
                       aria-checked={field.value === "expense"}
                       onClick={() => field.onChange("expense")}
                       className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                         field.value === "expense"
                           ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
                           : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
                       )}
                     >
+                      <ArrowDownRight className="size-4" />
                       รายจ่าย
                     </button>
                     <button
@@ -144,12 +159,13 @@ export function RecurringTransactionsView() {
                       aria-checked={field.value === "income"}
                       onClick={() => field.onChange("income")}
                       className={cn(
-                        "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                        "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                         field.value === "income"
                           ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
                           : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
                       )}
                     >
+                      <ArrowUpRight className="size-4" />
                       รายรับ
                     </button>
                   </div>
@@ -226,27 +242,39 @@ export function RecurringTransactionsView() {
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดรายการไม่สำเร็จ"}</p>
       ) : !data?.length ? (
-        <Card className="p-6 text-center text-[var(--pw-ink)]/65">ยังไม่มีรายการประจำ</Card>
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <Repeat className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
+          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีรายการประจำ</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">ตั้งรายการรายรับหรือรายจ่ายที่เกิดขึ้นเป็นประจำเพื่อสร้างรายการอัตโนมัติ</p>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {data.map((item) => (
             <Card key={item.recurringTransactionId} className="space-y-3 p-4 sm:p-5">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="break-words font-bold">{item.description || item.categoryName || "รายการประจำ"}</h2>
-                  <p className="mt-1 text-sm text-[var(--pw-ink)]/60">
-                    {item.transactionType === "expense" ? "รายจ่าย" : "รายรับ"} · ทุก {item.intervalValue} {frequencyLabels[item.frequency]}
-                  </p>
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${item.transactionType === "expense" ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-500"}`}>
+                    {item.transactionType === "expense" ? <ArrowDownRight className="size-4" /> : <ArrowUpRight className="size-4" />}
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="break-words font-bold">{item.description || item.categoryName || "รายการประจำ"}</h2>
+                    <p className="mt-0.5 text-xs text-[var(--pw-ink)]/60">
+                      {item.transactionType === "expense" ? "รายจ่าย" : "รายรับ"} · ทุก {item.intervalValue} {frequencyLabels[item.frequency]}
+                    </p>
+                  </div>
                 </div>
-                <span className="rounded-full bg-[var(--pw-surface-indigo)] px-3 py-1 text-xs">
+                <span className="rounded-full bg-[var(--pw-surface-indigo)] px-3 py-1 text-xs font-medium">
                   {item.isActive ? "เปิดใช้งาน" : "หยุดชั่วคราว"}
                 </span>
               </div>
-              <p className="text-lg font-bold">{formatCurrency(item.amount)}</p>
-              <p className="text-sm text-[var(--pw-ink)]/65">
+              <p className={`text-lg font-bold ${item.transactionType === "expense" ? "text-[var(--pw-expense)]" : "text-[var(--pw-green)]"}`}>
+                {formatCurrency(item.amount)}
+              </p>
+              <p className="flex items-center gap-1.5 text-xs text-[var(--pw-ink)]/65">
+                <Clock className="size-3.5 text-[var(--pw-ink)]/50 shrink-0" />
                 เริ่ม {formatDate(item.startDate)} · ครั้งถัดไป {formatDateTime(item.nextRunAt)}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-1">
                 <Button size="sm" variant="secondary" onClick={() => startEdit(item)}><Pencil />แก้ไข</Button>
                 <ConfirmDialog
                   title="ลบรายการประจำนี้?"

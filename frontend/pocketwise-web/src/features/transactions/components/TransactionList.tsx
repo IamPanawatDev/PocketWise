@@ -32,7 +32,22 @@ import {
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TransactionForm } from "./TransactionForm";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowRightLeft,
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Landmark,
+  Layers,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Search,
+  Tag,
+  Trash2,
+} from "lucide-react";
 
 export function TransactionList({
   initialFilter,
@@ -63,7 +78,10 @@ export function TransactionList({
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-bold sm:text-2xl">รายการรายรับรายจ่าย</h1>
+        <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
+          <ReceiptText className="size-6 text-[var(--pw-primary)]" />
+          รายการรายรับรายจ่าย
+        </h1>
         <Button className="w-full sm:w-auto" onClick={() => { setEditing(null); setShowForm(true); }}>
           <Plus />
           เพิ่มรายการ
@@ -114,12 +132,13 @@ export function TransactionList({
               aria-checked={!filter.type}
               onClick={() => handleFilterChange({ type: undefined })}
               className={cn(
-                "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
                 !filter.type
                   ? "border-[var(--pw-primary)] bg-[var(--pw-primary)] text-white shadow-sm"
                   : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-primary)] hover:text-white",
               )}
             >
+              <Layers className="size-3.5" />
               ทั้งหมด
             </button>
             <button
@@ -128,12 +147,13 @@ export function TransactionList({
               aria-checked={filter.type === "expense"}
               onClick={() => handleFilterChange({ type: "expense" })}
               className={cn(
-                "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
                 filter.type === "expense"
                   ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
                   : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
               )}
             >
+              <ArrowDownRight className="size-3.5" />
               รายจ่าย
             </button>
             <button
@@ -142,12 +162,13 @@ export function TransactionList({
               aria-checked={filter.type === "income"}
               onClick={() => handleFilterChange({ type: "income" })}
               className={cn(
-                "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
                 filter.type === "income"
                   ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
                   : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
               )}
             >
+              <ArrowUpRight className="size-3.5" />
               รายรับ
             </button>
             <button
@@ -156,12 +177,13 @@ export function TransactionList({
               aria-checked={filter.type === "transfer"}
               onClick={() => handleFilterChange({ type: "transfer" })}
               className={cn(
-                "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
                 filter.type === "transfer"
                   ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
                   : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
               )}
             >
+              <ArrowRightLeft className="size-3.5" />
               โอน
             </button>
           </div>
@@ -291,8 +313,10 @@ export function TransactionList({
       {isLoading ? (
         <p className="text-[var(--pw-ink)]/70">กำลังโหลด...</p>
       ) : !data || data.items.length === 0 ? (
-        <Card className="text-center text-[var(--pw-ink)]/70">
-          ยังไม่มีรายการ
+        <Card className="flex flex-col items-center justify-center py-12 text-center text-[var(--pw-ink)]/65">
+          <ReceiptText className="mb-3 size-12 opacity-35 text-[var(--pw-primary)]" />
+          <p className="text-base font-semibold text-[var(--pw-ink)]">ยังไม่มีรายการธุรกรรม</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">กดปุ่ม &quot;เพิ่มรายการ&quot; ด้านบนเพื่อเริ่มต้นบันทึก</p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -359,13 +383,23 @@ export function TransactionList({
                       {t.categoryName ?? "ไม่มีหมวดหมู่"}
                     </span>
                     {Boolean(t.bankAccountId && bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName) && (
-                      <span className="rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
-                        🏦 {bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName}
+                      <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
+                        <Landmark className="mr-1 size-3 text-[var(--pw-link)]" />
+                        {bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName}
                       </span>
                     )}
                     {t.sourceType && t.sourceType !== "manual" && (
-                      <span className="rounded bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--pw-primary)]">
-                        {t.sourceType === "slip" ? "สลิป" : t.sourceType === "cardStatement" ? "บัตรเครดิต" : t.sourceType}
+                      <span className="inline-flex items-center rounded bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--pw-primary)]">
+                        {t.sourceType === "cardStatement" ? (
+                          <>
+                            <CreditCard className="mr-1 size-3" />
+                            บัตรเครดิต
+                          </>
+                        ) : t.sourceType === "slip" ? (
+                          "สลิป"
+                        ) : (
+                          t.sourceType
+                        )}
                       </span>
                     )}
                     {t.tags.length > 0 &&
@@ -374,10 +408,11 @@ export function TransactionList({
                         return (
                           <span
                             key={tag.tagId}
-                            className="rounded-full px-2 py-0.5 text-xs"
+                            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
                             style={{ backgroundColor: color, color: getReadableTextColor(color) }}
                           >
-                            #{tag.tagName}
+                            <Tag className="mr-1 size-2.5 opacity-80" />
+                            {tag.tagName}
                           </span>
                         );
                       })}
