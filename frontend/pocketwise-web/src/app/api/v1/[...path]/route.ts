@@ -101,7 +101,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
     const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "GET", emptyPayload, origin);
     if (retried) res = retried;
   }
-  return passthrough(res);
+  return await passthrough(res);
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   if (res.ok && path.join("/") === "users/me/data-reset") {
     await clearAuthCookies();
   }
-  return passthrough(res);
+  return await passthrough(res);
 }
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
@@ -130,7 +130,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: strin
     const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "PUT", payload, origin);
     if (retried) res = retried;
   }
-  return passthrough(res);
+  return await passthrough(res);
 }
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
@@ -143,9 +143,19 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: st
     const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "DELETE", emptyPayload, origin);
     if (retried) res = retried;
   }
-  return passthrough(res);
+  return await passthrough(res);
 }
 
-function passthrough(res: Response): Response {
-  return res;
+async function passthrough(res: Response): Promise<Response> {
+  const body = await res.arrayBuffer();
+  const headers = new Headers(res.headers);
+  // Remove content-encoding and content-length because fetch() automatically decompresses the body
+  headers.delete("content-encoding");
+  headers.delete("content-length");
+
+  return new Response(body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
+  });
 }
