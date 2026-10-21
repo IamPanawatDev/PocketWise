@@ -68,7 +68,7 @@ function getActionBadge(action: string) {
       return {
         label: action,
         icon: null,
-        className: "bg-white/10 text-white/80 border border-white/20",
+        className: "bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/80 border border-[var(--pw-hairline)]",
       };
   }
 }
@@ -150,7 +150,7 @@ export function AuditLogTable({
                         variant="ghost"
                         size="sm"
                         onClick={() => onSelectLog(log)}
-                        className="text-[var(--pw-link)] hover:text-white"
+                        className="text-[var(--pw-link)] hover:text-[var(--pw-ink)] hover:underline"
                         aria-label={`ดูรายละเอียดประวัติ #${log.auditLogId}`}
                       >
                         <Eye className="mr-1 size-4" />

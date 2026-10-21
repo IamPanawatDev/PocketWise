@@ -156,12 +156,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col overflow-y-auto border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl p-3 shadow-2xl transition-all duration-300 ease-in-out md:p-4 md:shadow-none",
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col overflow-hidden border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl p-3 shadow-2xl transition-all duration-300 ease-in-out md:p-4 md:shadow-none",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           isCollapsed ? "md:w-20" : "md:w-72",
         )}
       >
-        <div className={cn("mb-5 w-full", iconOnly && "md:hidden")}>
+        {/* Pinned Top Brand & Greeting (Locked, never scrolls) */}
+        <div className="shrink-0 mb-2">
+          <div className={cn("w-full", iconOnly && "md:hidden")}>
           <div className="flex w-full items-center justify-between rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)] px-3 py-2 text-base font-bold text-[var(--pw-on-primary)]">
             <div className="flex min-w-0 items-center gap-2.5">
               <Image
@@ -178,7 +180,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               type="button"
               size="icon-sm"
               variant="ghost"
-              className="size-7 shrink-0 text-white hover:bg-white/20 md:hidden"
+              className="size-7 shrink-0 !bg-transparent border-transparent text-white hover:!bg-white/20 active:scale-95 md:hidden"
               aria-label="ปิดเมนู"
               onClick={closeNavigation}
             >
@@ -211,6 +213,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
+        </div>
+
+        {/* Scrollable Navigation Area */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
         <TooltipProvider>
           <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
             {/* เมนูทั่วไป */}
@@ -264,7 +270,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </nav>
         </TooltipProvider>
 
-        <div className="mt-auto border-t border-[var(--pw-hairline)] pt-3">
+        </div>
+
+        {/* Pinned Bottom Actions (Locked, never scrolls) */}
+        <div className="shrink-0 mt-auto border-t border-[var(--pw-hairline)] pt-3">
           <div className="hidden md:block">
             <Button
               type="button"
@@ -314,7 +323,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               aria-label="เปิดเมนู"
               onClick={toggleNavigation}
             >
-              <Menu />
+              <Menu className="size-5 text-[var(--pw-ink)]" />
             </Button>
             <div className="flex items-center gap-2">
               <Image
@@ -325,7 +334,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 priority
                 className="size-9 shrink-0 object-contain drop-shadow"
               />
-              <span className="truncate text-base font-bold text-[var(--pw-on-primary)]">PocketWise</span>
+              <span className="truncate text-base font-bold text-[var(--pw-ink)]">PocketWise</span>
             </div>
           </div>
           <NotificationBell />

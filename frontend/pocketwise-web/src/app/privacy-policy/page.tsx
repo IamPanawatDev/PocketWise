@@ -30,7 +30,7 @@ export default function PrivacyPolicyPage() {
     >
       {/* 1. บทนำ */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             1
           </span>
@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
 
       {/* 2. ข้อมูลส่วนบุคคลที่เราจัดเก็บ */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             2
           </span>
@@ -96,7 +96,7 @@ export default function PrivacyPolicyPage() {
       {/* 3. นโยบายการใช้คุกกี้ (Cookies Notice) */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-primary)]/40 bg-[var(--pw-surface-indigo)]/70 p-5 shadow-sm sm:p-6">
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
             <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)] text-xs font-bold text-white">
               3
             </span>
@@ -139,7 +139,7 @@ export default function PrivacyPolicyPage() {
 
       {/* 4. วัตถุประสงค์และฐานทางกฎหมาย */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             4
           </span>
@@ -169,7 +169,7 @@ export default function PrivacyPolicyPage() {
 
       {/* 5. ระยะเวลาในการจัดเก็บข้อมูล */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             5
           </span>
@@ -193,7 +193,7 @@ export default function PrivacyPolicyPage() {
 
       {/* 6. สิทธิ์ของเจ้าของข้อมูลส่วนบุคคลตามกฎหมาย PDPA */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             6
           </span>
@@ -207,7 +207,7 @@ export default function PrivacyPolicyPage() {
           <div className="flex gap-3 rounded-[var(--pw-rounded-md)] border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-3.5">
             <FileSpreadsheet className="size-5 shrink-0 text-[var(--pw-green)]" />
             <div>
-              <h4 className="text-xs font-bold text-[var(--pw-on-primary)] sm:text-sm">สิทธิ์ในการเข้าถึงและโอนย้ายข้อมูล (Data Portability)</h4>
+              <h4 className="text-xs font-bold text-[var(--pw-ink)] sm:text-sm">สิทธิ์ในการเข้าถึงและโอนย้ายข้อมูล (Data Portability)</h4>
               <p className="mt-1 text-xs text-[var(--pw-ink)]/70">
                 คุณสามารถส่งออกและดาวน์โหลดสำเนาข้อมูลธุรกรรมทางการเงินทั้งหมดของคุณออกมาเป็นไฟล์ Excel หรือ CSV ได้ทุกเมื่อผ่านหน้าส่งออกข้อมูล (Export)
               </p>
@@ -217,7 +217,7 @@ export default function PrivacyPolicyPage() {
           <div className="flex gap-3 rounded-[var(--pw-rounded-md)] border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-3.5">
             <Trash2 className="size-5 shrink-0 text-[var(--pw-magenta)]" />
             <div>
-              <h4 className="text-xs font-bold text-[var(--pw-on-primary)] sm:text-sm">สิทธิ์ในการขอลบหรือล้างข้อมูล (Right to Erasure)</h4>
+              <h4 className="text-xs font-bold text-[var(--pw-ink)] sm:text-sm">สิทธิ์ในการขอลบหรือล้างข้อมูล (Right to Erasure)</h4>
               <p className="mt-1 text-xs text-[var(--pw-ink)]/70">
                 คุณสามารถใช้คำสั่ง &quot;ล้างข้อมูลทั้งหมด (Data Reset)&quot; ได้ด้วยตนเองผ่านเมนูการตั้งค่า เพื่อลบประวัติธุรกรรม บัญชี และงบประมาณทั้งหมดออกจากฐานข้อมูลทันที
               </p>
@@ -227,7 +227,7 @@ export default function PrivacyPolicyPage() {
           <div className="flex gap-3 rounded-[var(--pw-rounded-md)] border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-3.5">
             <UserCheck className="size-5 shrink-0 text-[var(--pw-link)]" />
             <div>
-              <h4 className="text-xs font-bold text-[var(--pw-on-primary)] sm:text-sm">สิทธิ์ในการแก้ไขข้อมูลให้ถูกต้อง (Right to Rectification)</h4>
+              <h4 className="text-xs font-bold text-[var(--pw-ink)] sm:text-sm">สิทธิ์ในการแก้ไขข้อมูลให้ถูกต้อง (Right to Rectification)</h4>
               <p className="mt-1 text-xs text-[var(--pw-ink)]/70">
                 คุณมีสิทธิ์แก้ไขชื่อที่แสดง ข้อมูลธุรกรรม หรือการตั้งค่าต่างๆ ให้ถูกต้องเป็นปัจจุบันได้ตลอดเวลา
               </p>
@@ -237,7 +237,7 @@ export default function PrivacyPolicyPage() {
           <div className="flex gap-3 rounded-[var(--pw-rounded-md)] border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-3.5">
             <Lock className="size-5 shrink-0 text-[var(--pw-primary)]" />
             <div>
-              <h4 className="text-xs font-bold text-[var(--pw-on-primary)] sm:text-sm">สิทธิ์ในการคัดค้านและจำกัดการประมวลผล</h4>
+              <h4 className="text-xs font-bold text-[var(--pw-ink)] sm:text-sm">สิทธิ์ในการคัดค้านและจำกัดการประมวลผล</h4>
               <p className="mt-1 text-xs text-[var(--pw-ink)]/70">
                 คุณสามารถขอจำกัดหรือคัดค้านการประมวลผลข้อมูลส่วนบุคคล หรือยื่นข้อร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.) หากพบการกระทำที่ไม่ชอบด้วยกฎหมาย
               </p>
@@ -248,7 +248,7 @@ export default function PrivacyPolicyPage() {
 
       {/* 7. มาตรการความปลอดภัย */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             7
           </span>
@@ -263,7 +263,7 @@ export default function PrivacyPolicyPage() {
 
       {/* 8. การติดต่อผู้ควบคุมข้อมูล */}
       <section className="rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-on-primary)] sm:text-xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
           <span className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-primary)]/20 text-xs font-bold text-[var(--pw-primary)]">
             8
           </span>

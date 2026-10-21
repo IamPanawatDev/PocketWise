@@ -55,7 +55,7 @@ export function LegalPageLayout({
               className="size-10.5 rounded-full drop-shadow"
             />
             <div className="flex flex-col">
-              <span className="text-base font-bold leading-tight tracking-tight text-[var(--pw-on-primary)]">
+              <span className="text-base font-bold leading-tight tracking-tight text-[var(--pw-ink)]">
                 PocketWise
               </span>
               <span className="text-[10px] text-[var(--pw-ink)]/55">
@@ -71,7 +71,7 @@ export function LegalPageLayout({
               className={cn(
                 "flex items-center gap-1.5 rounded-[var(--pw-rounded-sm)] px-3 py-1.5 text-xs font-medium transition-colors",
                 activeTab === "privacy"
-                  ? "border border-[var(--pw-primary)]/50 bg-[var(--pw-surface-indigo)] font-semibold text-[var(--pw-on-primary)] shadow-xs"
+                  ? "border border-[var(--pw-primary)]/50 bg-[var(--pw-surface-indigo)] font-semibold text-[var(--pw-ink)] shadow-xs"
                   : "text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-indigo)]/50 hover:text-[var(--pw-ink)]"
               )}
             >
@@ -84,7 +84,7 @@ export function LegalPageLayout({
               className={cn(
                 "flex items-center gap-1.5 rounded-[var(--pw-rounded-sm)] px-3 py-1.5 text-xs font-medium transition-colors",
                 activeTab === "terms"
-                  ? "border border-[var(--pw-primary)]/50 bg-[var(--pw-surface-indigo)] font-semibold text-[var(--pw-on-primary)] shadow-xs"
+                  ? "border border-[var(--pw-primary)]/50 bg-[var(--pw-surface-indigo)] font-semibold text-[var(--pw-ink)] shadow-xs"
                   : "text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-indigo)]/50 hover:text-[var(--pw-ink)]"
               )}
             >
@@ -135,7 +135,7 @@ export function LegalPageLayout({
             className={cn(
               "flex flex-1 items-center justify-center gap-1 rounded-[var(--pw-rounded-xs)] py-1.5 text-center text-xs font-medium",
               activeTab === "privacy"
-                ? "bg-[var(--pw-surface-indigo)] font-semibold text-[var(--pw-on-primary)] shadow-xs"
+                ? "bg-[var(--pw-surface-indigo)] font-semibold text-[var(--pw-ink)] shadow-xs"
                 : "text-[var(--pw-ink)]/65"
             )}
           >
@@ -147,7 +147,7 @@ export function LegalPageLayout({
             className={cn(
               "flex flex-1 items-center justify-center gap-1 rounded-[var(--pw-rounded-xs)] py-1.5 text-center text-xs font-medium",
               activeTab === "terms"
-                ? "bg-[var(--pw-surface-indigo)] font-semibold text-[var(--pw-on-primary)] shadow-xs"
+                ? "bg-[var(--pw-surface-indigo)] font-semibold text-[var(--pw-ink)] shadow-xs"
                 : "text-[var(--pw-ink)]/65"
             )}
           >
@@ -180,7 +180,7 @@ export function LegalPageLayout({
                   {lastUpdated}
                 </span>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--pw-on-primary)] sm:text-3xl">
+              <h1 className="text-2xl font-bold tracking-tight text-[var(--pw-ink)] sm:text-3xl">
                 {title}
               </h1>
               <p className="mt-1 text-sm text-[var(--pw-ink)]/70 sm:text-base">
@@ -197,7 +197,7 @@ export function LegalPageLayout({
 
         {/* Bottom Contact & Quick Navigation Box */}
         <div className="mt-12 rounded-[var(--pw-rounded-lg)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] p-5 text-center sm:p-6">
-          <h3 className="text-base font-semibold text-[var(--pw-on-primary)]">
+          <h3 className="text-base font-semibold text-[var(--pw-ink)]">
             มีข้อสงสัยเกี่ยวกับข้อมูลส่วนบุคคลหรือข้อกำหนด?
           </h3>
           <p className="mt-1 text-xs text-[var(--pw-ink)]/70 sm:text-sm">
