@@ -159,16 +159,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       >
         <div className={cn("mb-5 w-full", iconOnly && "md:hidden")}>
           <div className="flex w-full items-center justify-between rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)] px-3 py-2 text-base font-bold text-[var(--pw-on-primary)]">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2.5">
               <Image
-                src="/app-icon.png"
-                alt="PocketWise icon"
-                width={32}
-                height={32}
+                src="/brand-logo.png"
+                alt="PocketWise brand"
+                width={42}
+                height={42}
                 priority
-                className="size-8 shrink-0 object-contain drop-shadow"
+                className="size-10.5 shrink-0 object-contain drop-shadow"
               />
-              <span className="truncate">PocketWise</span>
+              <span className="truncate text-base font-bold">PocketWise</span>
             </div>
             <Button
               type="button"
@@ -196,12 +196,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {iconOnly && (
           <div className="mb-5 hidden flex-col items-center gap-2 md:flex">
             <Image
-              src="/app-icon.png"
-              alt="PocketWise icon"
-              width={40}
-              height={40}
+              src="/brand-logo.png"
+              alt="PocketWise brand"
+              width={48}
+              height={48}
               priority
-              className="size-10 shrink-0 object-contain drop-shadow"
+              className="size-12 shrink-0 object-contain drop-shadow"
             />
             <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-white" />
           </div>
@@ -289,7 +289,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-300", isCollapsed ? "md:ml-20" : "md:ml-72")}>
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/95 px-3 backdrop-blur md:hidden">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Button
               type="button"
               size="icon"
@@ -300,7 +300,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             >
               <Menu />
             </Button>
-            <span className="truncate text-base font-bold text-[var(--pw-on-primary)]">PocketWise</span>
+            <div className="flex items-center gap-2">
+              <Image
+                src="/brand-logo.png"
+                alt="PocketWise brand"
+                width={36}
+                height={36}
+                priority
+                className="size-9 shrink-0 object-contain drop-shadow"
+              />
+              <span className="truncate text-base font-bold text-[var(--pw-on-primary)]">PocketWise</span>
+            </div>
           </div>
           <NotificationBell />
         </header>

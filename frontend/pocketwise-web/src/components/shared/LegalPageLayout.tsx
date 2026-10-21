@@ -46,12 +46,12 @@ export function LegalPageLayout({
             className="flex items-center gap-2.5 transition-opacity hover:opacity-85"
           >
             <Image
-              src="/app-icon.png"
+              src="/brand-logo.png"
               alt="PocketWise"
-              width={34}
-              height={34}
+              width={42}
+              height={42}
               priority
-              className="size-8.5 rounded-lg drop-shadow"
+              className="size-10.5 rounded-full drop-shadow"
             />
             <div className="flex flex-col">
               <span className="text-base font-bold leading-tight tracking-tight text-[var(--pw-on-primary)]">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
@@ -43,8 +44,18 @@ export function RegisterForm() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
-        <h1 className="mb-2 text-2xl font-bold">สมัครสมาชิก</h1>
-        <p className="mb-6 text-sm text-[var(--pw-ink)]/70">
+        <div className="mb-3 flex justify-center">
+          <Image
+            src="/brand-logo.png"
+            alt="PocketWise brand"
+            width={72}
+            height={72}
+            priority
+            className="size-18 object-contain drop-shadow"
+          />
+        </div>
+        <h1 className="mb-1 text-center text-2xl font-bold">สมัครสมาชิก</h1>
+        <p className="mb-6 text-center text-sm text-[var(--pw-ink)]/70">
           เริ่มบันทึกรายรับรายจ่ายกับ PocketWise
         </p>
 
