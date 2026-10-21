@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import {
   ArrowDown,
@@ -202,9 +203,9 @@ export function TagsView() {
         </Card>
       ) : (
         <Card className="p-0 overflow-hidden">
-          <ul>
+          <AnimatedList>
             {data.map((t, index) => (
-              <li
+              <AnimatedListItem
                 key={t.tagId}
                 className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
               >
@@ -274,9 +275,9 @@ export function TagsView() {
                     }
                   />
                 </div>
-              </li>
+              </AnimatedListItem>
             ))}
-          </ul>
+          </AnimatedList>
         </Card>
       )}
     </div>

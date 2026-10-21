@@ -11,6 +11,7 @@ import {
 } from "../hooks/useAdminRoles";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,15 +140,15 @@ export function RolesManager() {
       </div>
 
       {/* Roles Cards / Table */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <AnimatedList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {roles.map((role) => {
           const isSystemRole = role.name.toUpperCase() === "ADMIN";
 
           return (
-            <Card
-              key={role.id}
-              className="flex flex-col justify-between border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-4"
-            >
+            <AnimatedListItem key={role.id}>
+              <Card
+                className="flex flex-col justify-between border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-4 h-full"
+              >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
@@ -223,9 +224,10 @@ export function RolesManager() {
                 )}
               </div>
             </Card>
+          </AnimatedListItem>
           );
         })}
-      </div>
+      </AnimatedList>
 
       {/* Create / Edit Role Modal */}
       {isDialogOpen && (

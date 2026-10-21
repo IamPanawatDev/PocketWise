@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import {
   Select,
   SelectContent,
@@ -169,51 +170,53 @@ export function AuditLogTable({
       </Card>
 
       {/* Mobile Card List View */}
-      <div className="space-y-3 md:hidden">
+      <AnimatedList className="space-y-3 md:hidden">
         {logs.map((log) => {
           const badge = getActionBadge(log.action);
           return (
-            <Card key={log.auditLogId} className="p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badge.className}`}>
-                    {badge.icon}
-                    {badge.label}
-                  </span>
-                  <span className="ml-2 font-semibold text-[var(--pw-link)]">{log.entityType}</span>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSelectLog(log)}
-                  className="h-7 px-2 text-xs"
-                >
-                  <Eye className="mr-1 size-3.5" />
-                  ดู
-                </Button>
-              </div>
-
-              <div className="mt-2.5 space-y-1 text-xs text-[var(--pw-ink)]/70">
-                {log.entityId && (
+            <AnimatedListItem key={log.auditLogId}>
+              <Card className="p-4">
+                <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[var(--pw-ink)]/40">Entity ID: </span>
-                    <span className="font-mono">{log.entityId}</span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badge.className}`}>
+                      {badge.icon}
+                      {badge.label}
+                    </span>
+                    <span className="ml-2 font-semibold text-[var(--pw-link)]">{log.entityType}</span>
                   </div>
-                )}
-                <div>
-                  <span className="text-[var(--pw-ink)]/40">โดย: </span>
-                  <span>{log.userDisplayName ?? (log.userId ? `User #${log.userId}` : "ระบบ")}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onSelectLog(log)}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <Eye className="mr-1 size-3.5" />
+                    ดู
+                  </Button>
                 </div>
-                <div>
-                  <span className="text-[var(--pw-ink)]/40">เมื่อ: </span>
-                  <span>{formatDateTime(log.occurredAt)}</span>
+
+                <div className="mt-2.5 space-y-1 text-xs text-[var(--pw-ink)]/70">
+                  {log.entityId && (
+                    <div>
+                      <span className="text-[var(--pw-ink)]/40">Entity ID: </span>
+                      <span className="font-mono">{log.entityId}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-[var(--pw-ink)]/40">โดย: </span>
+                    <span>{log.userDisplayName ?? (log.userId ? `User #${log.userId}` : "ระบบ")}</span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--pw-ink)]/40">เมื่อ: </span>
+                    <span>{formatDateTime(log.occurredAt)}</span>
+                  </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </AnimatedListItem>
           );
         })}
-      </div>
+      </AnimatedList>
 
       {/* Pagination Controls */}
       <div className="flex flex-col items-center justify-between gap-3 px-1 py-3 text-xs text-[var(--pw-ink)]/70 sm:flex-row sm:text-sm">

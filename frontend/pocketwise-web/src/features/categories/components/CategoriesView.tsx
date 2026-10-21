@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import {
   ArrowDown,
@@ -289,7 +290,7 @@ export function CategoriesView() {
         </Card>
       ) : (
         <Card className="p-0 overflow-hidden">
-          <ul>
+          <AnimatedList>
             {data.map((c) => {
               const reorderIndex = reorderableCategories.findIndex(
                 (category) => category.categoryId === c.categoryId,
@@ -299,7 +300,7 @@ export function CategoriesView() {
                 !c.isSystem && reorderIndex >= 0 && reorderIndex < reorderableCategories.length - 1;
 
               return (
-                <li
+                <AnimatedListItem
                   key={c.categoryId}
                   className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
                 >
@@ -382,10 +383,10 @@ export function CategoriesView() {
                       }
                     />
                   </div>
-                </li>
+                </AnimatedListItem>
               );
             })}
-          </ul>
+          </AnimatedList>
         </Card>
       )}
     </div>

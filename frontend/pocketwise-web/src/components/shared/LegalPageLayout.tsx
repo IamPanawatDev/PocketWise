@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import { ArrowLeft, Printer, ShieldCheck, FileText, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
@@ -158,7 +159,13 @@ export function LegalPageLayout({
 
       {/* Main Container */}
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-        {/* Document Header Hero */}
+        <motion.div
+          key={pathname}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+        >
+          {/* Document Header Hero */}
         <header className="mb-8 border-b border-[var(--pw-hairline)] pb-6">
           <div className="flex items-start gap-4">
             <div className="hidden size-12 shrink-0 items-center justify-center rounded-[var(--pw-rounded-md)] border border-[var(--pw-primary)]/40 bg-[var(--pw-surface-indigo)] sm:flex">
@@ -219,6 +226,7 @@ export function LegalPageLayout({
             </Link>
           </div>
         </div>
+        </motion.div>
       </main>
 
       {/* Global Public Footer */}

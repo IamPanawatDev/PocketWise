@@ -7,6 +7,7 @@ import { useVerifyEmail } from "@/features/auth/hooks/useEmailVerification";
 import { ApiError } from "@/lib/api-client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { motion } from "motion/react";
 import { CheckCircle2, XCircle, LoaderCircle, ArrowRight, Mail } from "lucide-react";
 
 export function VerifyEmailView() {
@@ -33,7 +34,13 @@ export function VerifyEmailView() {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-8">
-      <Card className="w-full max-w-md p-6 sm:p-8 text-center shadow-lg border-[var(--pw-border)]">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md"
+      >
+        <Card className="w-full p-6 sm:p-8 text-center shadow-lg border-[var(--pw-border)]">
         {isInvalidParams ? (
           <div className="space-y-4">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-red-500/10 text-red-500">
@@ -122,6 +129,7 @@ export function VerifyEmailView() {
           </div>
         )}
       </Card>
-    </main>
+    </motion.div>
+  </main>
   );
 }

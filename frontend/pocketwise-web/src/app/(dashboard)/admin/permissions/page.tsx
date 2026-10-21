@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { RolePermissionsMatrix } from "@/features/admin-permissions/components/RolePermissionsMatrix";
 import { RolesManager } from "@/features/admin-permissions/components/RolesManager";
@@ -91,11 +92,19 @@ export default function AdminPermissionsPage() {
       </div>
 
       {/* Tab Panels */}
-      <div>
-        {activeTab === "matrix" && <RolePermissionsMatrix />}
-        {activeTab === "roles" && <RolesManager />}
-        {activeTab === "users" && <UserRolesManager />}
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+        >
+          {activeTab === "matrix" && <RolePermissionsMatrix />}
+          {activeTab === "roles" && <RolesManager />}
+          {activeTab === "users" && <UserRolesManager />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { ArrowRightLeft, LoaderCircle, Plus, Send, X } from "lucide-react";
 
 export function TransfersView() {
@@ -206,40 +208,42 @@ export function TransfersView() {
           </p>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <AnimatedList className="space-y-4">
           {transfers.map((group) => {
             const fromAcc = accounts?.find((a) => a.bankAccountId === group.fromBankAccountId);
             const toAcc = accounts?.find((a) => a.bankAccountId === group.toBankAccountId);
             return (
-              <Card key={group.transferGroupId} className="p-4 sm:p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-base font-semibold sm:text-lg">
-                      {fromAcc ? `${fromAcc.accountName} (${fromAcc.bankName})` : "บัญชีต้นทาง"} →{" "}
-                      {toAcc ? `${toAcc.accountName} (${toAcc.bankName})` : "บัญชีปลายทาง"}
-                    </p>
-                    <p className="text-xs text-[var(--pw-ink)]/50">
-                      {formatDateTime(group.transferDate || group.createdAt)}
-                    </p>
-                    {group.reference && (
-                      <p className="mt-1 text-xs text-[var(--pw-ink)]/70">
-                        อ้างอิง: {group.reference}
+              <AnimatedListItem key={group.transferGroupId}>
+                <Card className="p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-base font-semibold sm:text-lg">
+                        {fromAcc ? `${fromAcc.accountName} (${fromAcc.bankName})` : "บัญชีต้นทาง"} →{" "}
+                        {toAcc ? `${toAcc.accountName} (${toAcc.bankName})` : "บัญชีปลายทาง"}
                       </p>
-                    )}
+                      <p className="text-xs text-[var(--pw-ink)]/50">
+                        {formatDateTime(group.transferDate || group.createdAt)}
+                      </p>
+                      {group.reference && (
+                        <p className="mt-1 text-xs text-[var(--pw-ink)]/70">
+                          อ้างอิง: {group.reference}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="text-base font-bold text-[var(--pw-ink)] sm:text-lg">
+                        <AnimatedNumber value={group.amount} />
+                      </p>
+                      <span className="inline-block mt-1 rounded-full bg-[var(--pw-surface-indigo)] px-2.5 py-0.5 text-[10px] text-[var(--pw-ink)]/70">
+                        {group.status === "confirmed" ? "สำเร็จ" : group.status}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-base font-bold text-[var(--pw-ink)] sm:text-lg">
-                      {formatCurrency(group.amount)}
-                    </p>
-                    <span className="inline-block mt-1 rounded-full bg-[var(--pw-surface-indigo)] px-2.5 py-0.5 text-[10px] text-[var(--pw-ink)]/70">
-                      {group.status === "confirmed" ? "สำเร็จ" : group.status}
-                    </span>
-                  </div>
-                </div>
-              </Card>
+                </Card>
+              </AnimatedListItem>
             );
           })}
-        </div>
+        </AnimatedList>
       )}
     </div>
   );

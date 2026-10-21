@@ -20,6 +20,8 @@ import { ApiError } from "@/lib/api-client";
 import { cn, formatCurrency, formatDate, formatDateTime, toThailandDateInputValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -296,9 +298,10 @@ export function RecurringTransactionsView() {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {data.map((item) => (
-            <Card key={item.recurringTransactionId} className="flex flex-col justify-between gap-4 p-4 sm:p-5">
+            <AnimatedListItem key={item.recurringTransactionId}>
+              <Card className="flex flex-col justify-between gap-4 p-4 sm:p-5 h-full">
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -311,7 +314,7 @@ export function RecurringTransactionsView() {
                       {item.transactionType === "expense" ? "รายจ่ายประจำ" : "รายรับประจำ"}
                     </span>
                     <h2 className="mt-2 break-words text-lg font-bold">
-                      {formatCurrency(item.amount)}
+                      <AnimatedNumber value={item.amount} />
                     </h2>
                     <p className="text-sm text-[var(--pw-ink)]/70">{item.description || "— ไม่ระบุรายละเอียด —"}</p>
                     {item.categoryName && <p className="text-xs text-[var(--pw-ink)]/50">หมวดหมู่: {item.categoryName}</p>}
@@ -342,8 +345,9 @@ export function RecurringTransactionsView() {
                 />
               </div>
             </Card>
+          </AnimatedListItem>
           ))}
-        </div>
+        </AnimatedList>
       )}
     </div>
   );

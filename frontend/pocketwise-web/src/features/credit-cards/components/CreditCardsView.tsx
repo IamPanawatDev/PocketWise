@@ -16,6 +16,8 @@ import { ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -187,9 +189,10 @@ export function CreditCardsView() {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <AnimatedList className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {data.map((card) => (
-            <Card key={card.creditCardId} className="flex flex-col justify-between gap-4 p-4 sm:p-5">
+            <AnimatedListItem key={card.creditCardId}>
+              <Card className="flex flex-col justify-between gap-4 p-4 sm:p-5 h-full">
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -198,7 +201,11 @@ export function CreditCardsView() {
                     {card.cardNumberMasked && <p className="mt-1 font-mono text-xs tracking-wider text-[var(--pw-ink)]/70">{card.cardNumberMasked}</p>}
                   </div>
                   <span className="rounded-full bg-[var(--pw-surface-indigo)] px-3 py-1 text-xs font-medium">
-                    {card.creditLimit != null ? `วงเงิน ${formatCurrency(card.creditLimit)}` : "ไม่จำกัดวงเงิน"}
+                    {card.creditLimit != null ? (
+                      <>วงเงิน <AnimatedNumber value={card.creditLimit} /></>
+                    ) : (
+                      "ไม่จำกัดวงเงิน"
+                    )}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 text-xs text-[var(--pw-ink)]/60">
@@ -224,8 +231,9 @@ export function CreditCardsView() {
                 />
               </div>
             </Card>
+          </AnimatedListItem>
           ))}
-        </div>
+        </AnimatedList>
       )}
     </div>
   );

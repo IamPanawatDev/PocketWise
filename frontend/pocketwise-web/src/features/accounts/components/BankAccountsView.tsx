@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import {
   Banknote,
@@ -211,9 +212,9 @@ export function BankAccountsView() {
         </Card>
       ) : (
         <Card className="p-0 overflow-hidden">
-          <ul>
+          <AnimatedList>
             {data.map((a) => (
-              <li
+              <AnimatedListItem
                 key={a.bankAccountId}
                 className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
               >
@@ -269,9 +270,9 @@ export function BankAccountsView() {
                     }
                   />
                 </div>
-              </li>
+              </AnimatedListItem>
             ))}
-          </ul>
+          </AnimatedList>
         </Card>
       )}
     </div>

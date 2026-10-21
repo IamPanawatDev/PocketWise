@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
 import { LoaderCircle, Mail, ArrowLeft, CheckCircle2, RotateCw } from "lucide-react";
+import { motion } from "motion/react";
 
 export function ForgotPasswordForm() {
   const [cooldown, setCooldown] = useState<number>(0);
@@ -63,7 +64,13 @@ export function ForgotPasswordForm() {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-8">
-      <Card className="w-full max-w-md p-6 sm:p-8 shadow-lg border-[var(--pw-border)]">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md"
+      >
+        <Card className="w-full p-6 sm:p-8 shadow-lg border-[var(--pw-border)]">
         {forgotMutation.isSuccess ? (
           <div className="space-y-5 text-center">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -175,6 +182,7 @@ export function ForgotPasswordForm() {
           </div>
         )}
       </Card>
-    </main>
+    </motion.div>
+  </main>
   );
 }

@@ -53,6 +53,7 @@ import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -448,20 +449,20 @@ export function SystemCategoriesManager() {
           )}
         </Card>
       ) : (
-        <div className="space-y-2">
+        <AnimatedList className="space-y-2">
           {filteredCategories.map((c, idx) => {
             const isExpense = c.categoryType?.toLowerCase() === "expense";
             const isFirst = idx === 0;
             const isLast = idx === filteredCategories.length - 1;
 
             return (
-              <Card
-                key={c.categoryId}
-                className={cn(
-                  "flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between transition-colors border-[var(--pw-hairline)]",
-                  !c.isActive && "opacity-60 bg-[var(--pw-surface-indigo)]/50"
-                )}
-              >
+              <AnimatedListItem key={c.categoryId}>
+                <Card
+                  className={cn(
+                    "flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between transition-colors border-[var(--pw-hairline)]",
+                    !c.isActive && "opacity-60 bg-[var(--pw-surface-indigo)]/50"
+                  )}
+                >
                 {/* Left: Reorder + Icon + Info */}
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Order control */}
@@ -573,9 +574,10 @@ export function SystemCategoriesManager() {
                   />
                 </div>
               </Card>
+            </AnimatedListItem>
             );
           })}
-        </div>
+        </AnimatedList>
       )}
 
       {/* Create / Edit Dialog */}

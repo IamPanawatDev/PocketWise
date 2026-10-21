@@ -10,6 +10,7 @@ import {
 } from "../hooks/useAdminRoles";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
@@ -124,11 +125,12 @@ export function UserRolesManager() {
             ไม่พบบัญชีผู้ใช้ที่ตรงกับคำค้นหา
           </div>
         ) : (
-          filteredUsers.map((u) => (
-            <Card
-              key={u.userId}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-4"
-            >
+          <AnimatedList className="space-y-3">
+            {filteredUsers.map((u) => (
+              <AnimatedListItem key={u.userId}>
+                <Card
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-4"
+                >
               <div className="flex items-start sm:items-center gap-3">
                 <div className="size-9 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] flex items-center justify-center shrink-0">
                   <User className="size-4 text-[var(--pw-primary)]" />
@@ -190,7 +192,9 @@ export function UserRolesManager() {
                 </Button>
               </div>
             </Card>
-          ))
+          </AnimatedListItem>
+          ))}
+        </AnimatedList>
         )}
       </div>
 

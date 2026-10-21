@@ -25,6 +25,7 @@ import { zodResolver } from "@/lib/zod-resolver";
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -206,9 +207,9 @@ export function CategorizationView() {
           </Card>
         ) : (
           <Card className="p-0">
-            <ul>
+            <AnimatedList>
               {merchants.map((merchant) => (
-                <li key={merchant.merchantId} className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                <AnimatedListItem key={merchant.merchantId} className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="break-words font-medium">{merchant.merchantName}</p>
                     <p className="text-sm text-[var(--pw-ink)]/60">
@@ -237,9 +238,9 @@ export function CategorizationView() {
                       trigger={<Button size="sm" variant="destructive" aria-label={`ลบร้านค้า ${merchant.merchantName}`}><Trash2 />ลบ</Button>}
                     />
                   </div>
-                </li>
+                </AnimatedListItem>
               ))}
-            </ul>
+            </AnimatedList>
           </Card>
         )}
       </section>
@@ -316,9 +317,9 @@ export function CategorizationView() {
           </Card>
         ) : (
           <Card className="p-0">
-            <ul>
+            <AnimatedList>
               {rules.map((rule) => (
-                <li key={rule.categoryRuleId} className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                <AnimatedListItem key={rule.categoryRuleId} className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="break-words font-medium">{rule.ruleName}{rule.isGlobal && <span className="ml-2 text-xs text-[var(--pw-ink)]/50">(ส่วนกลาง)</span>}</p>
                     <p className="break-words text-sm text-[var(--pw-ink)]/60">
@@ -350,9 +351,9 @@ export function CategorizationView() {
                       />
                     </div>
                   )}
-                </li>
+                </AnimatedListItem>
               ))}
-            </ul>
+            </AnimatedList>
           </Card>
         )}
       </section>

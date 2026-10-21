@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { cn, formatDateTime } from "@/lib/utils";
 import {
   useMarkAllNotificationsAsRead,
@@ -176,43 +177,46 @@ export function NotificationBell({ className }: { className?: string }) {
               <p>ไม่มีการแจ้งเตือน</p>
             </div>
           ) : (
-            notifications.map((item) => {
-              const isUnread = item.status !== "read";
-              return (
-                <button
-                  type="button"
-                  key={item.notificationId}
-                  onClick={() => handleNotificationClick(item)}
-                  className={cn(
-                    "w-full text-left p-3.5 transition flex items-start gap-3 hover:bg-[var(--pw-surface-indigo)]/60 cursor-pointer",
-                    isUnread && "bg-[var(--pw-surface-indigo)]/30",
-                  )}
-                >
-                  <div className="mt-0.5">{getNotificationIcon(item)}</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <p
-                        className={cn(
-                          "truncate text-sm font-medium",
-                          isUnread ? "text-[var(--pw-ink)] font-semibold" : "text-[var(--pw-ink)]/80",
-                        )}
-                      >
-                        {item.title}
-                      </p>
-                      {isUnread && (
-                        <span className="size-2 shrink-0 rounded-full bg-[var(--pw-primary)]" />
+            <AnimatedList>
+              {notifications.map((item) => {
+                const isUnread = item.status !== "read";
+                return (
+                  <AnimatedListItem key={item.notificationId}>
+                    <button
+                      type="button"
+                      onClick={() => handleNotificationClick(item)}
+                      className={cn(
+                        "w-full text-left p-3.5 transition flex items-start gap-3 hover:bg-[var(--pw-surface-indigo)]/60 cursor-pointer border-b border-[var(--pw-hairline)] last:border-b-0",
+                        isUnread && "bg-[var(--pw-surface-indigo)]/30",
                       )}
-                    </div>
-                    <p className="mt-0.5 text-xs text-[var(--pw-ink)]/70 line-clamp-2">
-                      {item.message}
-                    </p>
-                    <p className="mt-1.5 text-[11px] text-[var(--pw-ink)]/40">
-                      {formatRelativeTime(item.createdAt)}
-                    </p>
-                  </div>
-                </button>
-              );
-            })
+                    >
+                      <div className="mt-0.5">{getNotificationIcon(item)}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <p
+                            className={cn(
+                              "truncate text-sm font-medium",
+                              isUnread ? "text-[var(--pw-ink)] font-semibold" : "text-[var(--pw-ink)]/80",
+                            )}
+                          >
+                            {item.title}
+                          </p>
+                          {isUnread && (
+                            <span className="size-2 shrink-0 rounded-full bg-[var(--pw-primary)]" />
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-[var(--pw-ink)]/70 line-clamp-2">
+                          {item.message}
+                        </p>
+                        <p className="mt-1.5 text-[11px] text-[var(--pw-ink)]/40">
+                          {formatRelativeTime(item.createdAt)}
+                        </p>
+                      </div>
+                    </button>
+                  </AnimatedListItem>
+                );
+              })}
+            </AnimatedList>
           )}
         </div>
       </PopoverContent>
