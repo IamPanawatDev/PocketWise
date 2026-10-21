@@ -8,6 +8,13 @@ using NSwag.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Support dynamic port binding (e.g. Render passes PORT environment variable)
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://*:{port}");
+}
+
 // Configure logging (prevent Windows EventLog disposal/permission crashes on development)
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -37,7 +44,18 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(CorsPolicyName, policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrEmpty(origin)) return false;
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    return uri.Host == "localhost" ||
+                           uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase) ||
+                           (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
+                               .Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase));
+                }
+                return false;
+            })
             .AllowCredentials()
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -46,7 +64,17 @@ builder.Services.AddCors(options =>
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+                               Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Seed initial data (System categories, permissions, roles)
 using (var scope = app.Services.CreateScope())
@@ -57,7 +85,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableSwagger", true))
 {
     app.MapOpenApi();
     app.UseSwaggerUi(settings =>
@@ -67,7 +95,18 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// Health check endpoints for hosting platforms (Render, etc.)
+app.MapGet("/", () => Results.Ok(new { status = "healthy", service = "PocketWise API", timestamp = DateTime.UtcNow }));
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "PocketWise API", timestamp = DateTime.UtcNow }));
+
+if (!app.Environment.IsDevelopment())
+{
+    // In production behind reverse proxy, ForwardedHeaders handles HTTPS scheme
+}
+else
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors(CorsPolicyName);
 
