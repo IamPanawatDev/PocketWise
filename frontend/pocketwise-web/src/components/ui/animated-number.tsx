@@ -19,27 +19,27 @@ export function AnimatedNumber({
   prefix = "",
   duration = 0.65,
 }: AnimatedNumberProps) {
+  const safeValue = isNaN(value) ? 0 : value;
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    if (isNaN(value)) {
-      setDisplayValue(0);
+    if (safeValue === 0) {
       return;
     }
 
-    const controls = animate(0, value, {
+    const controls = animate(0, safeValue, {
       duration,
       ease: [0.16, 1, 0.3, 1], // easeOutExpo
       onUpdate: (latest) => setDisplayValue(latest),
     });
 
     return () => controls.stop();
-  }, [value, duration]);
+  }, [safeValue, duration]);
 
   return (
     <span className={className}>
       {prefix}
-      {formatCurrency(displayValue, currencyCode)}
+      {formatCurrency(safeValue === 0 ? 0 : displayValue, currencyCode)}
     </span>
   );
 }
