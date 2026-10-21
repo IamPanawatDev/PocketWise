@@ -15,6 +15,11 @@ if (!string.IsNullOrEmpty(port))
     builder.WebHost.UseUrls($"http://*:{port}");
 }
 
+// Support local override configurations (git-ignored, e.g. appsettings.Development.Local.json)
+builder.Configuration
+    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+
 // Configure logging (prevent Windows EventLog disposal/permission crashes on development)
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
