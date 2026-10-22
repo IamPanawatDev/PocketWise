@@ -128,8 +128,8 @@ public class TesseractSlipOcrService : ISlipOcrService
                 }
             }
 
-            _logger?.LogInformation("[TesseractSlipOcrService] Final Parsed: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
-                result.BankCode, result.DetectedAmount, result.PayerName, result.PayeeName, result.TransactionReference);
+            _logger?.LogInformation("[TesseractSlipOcrService] Final Parsed: Bank={Bank}, Amount={Amt}, Date={Date}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
+                result.BankCode, result.DetectedAmount, result.DetectedAt, result.PayerName, result.PayeeName, result.TransactionReference);
         }
         catch (Exception ex)
         {
@@ -205,22 +205,62 @@ public class TesseractSlipOcrService : ISlipOcrService
         }
 
         // 4. Date and Time Detection
-        var dateMatch = ThaiDateRegex.Match(text);
-        if (dateMatch.Success && int.TryParse(dateMatch.Groups[1].Value, out var day) && int.TryParse(dateMatch.Groups[3].Value, out var year))
+        // 4.1 Priority: Check specific lines containing date keywords or Thai month patterns
+        for (var i = 0; i < lines.Count; i++)
         {
-            var monthStr = dateMatch.Groups[2].Value;
-            var month = ParseThaiMonth(monthStr);
-
-            if (month > 0)
+            var line = lines[i];
+            if (line.Contains("วันที่") || line.Contains("ทำรายการ") || line.Contains("Date", StringComparison.OrdinalIgnoreCase))
             {
-                var hour = 0;
-                var minute = 0;
-                var second = 0;
-                if (dateMatch.Groups[4].Success && int.TryParse(dateMatch.Groups[4].Value, out var h)) hour = h;
-                if (dateMatch.Groups[5].Success && int.TryParse(dateMatch.Groups[5].Value, out var m)) minute = m;
-                if (dateMatch.Groups[6].Success && int.TryParse(dateMatch.Groups[6].Value, out var s)) second = s;
+                var searchContext = line;
+                if (i + 1 < lines.Count && Regex.IsMatch(lines[i + 1], @"\b[0-2]?\d[:.][0-5]\d\b"))
+                {
+                    searchContext += " " + lines[i + 1];
+                }
 
-                result.DetectedAt = CreateThailandUtcDateTime(year, month, day, hour, minute, second);
+                foreach (Match m in ThaiDateRegex.Matches(searchContext))
+                {
+                    if (int.TryParse(m.Groups[1].Value, out var d) && int.TryParse(m.Groups[3].Value, out var yr))
+                    {
+                        var mo = ParseThaiMonth(m.Groups[2].Value);
+                        if (mo > 0)
+                        {
+                            var h = 0;
+                            var min = 0;
+                            var s = 0;
+                            if (m.Groups[4].Success && int.TryParse(m.Groups[4].Value, out var parsedH)) h = parsedH;
+                            if (m.Groups[5].Success && int.TryParse(m.Groups[5].Value, out var parsedM)) min = parsedM;
+                            if (m.Groups[6].Success && int.TryParse(m.Groups[6].Value, out var parsedS)) s = parsedS;
+
+                            result.DetectedAt = CreateThailandUtcDateTime(yr, mo, d, h, min, s);
+                            break;
+                        }
+                    }
+                }
+                if (result.DetectedAt != null) break;
+            }
+        }
+
+        // 4.2 Global Thai Date Regex Match across entire text
+        if (result.DetectedAt == null)
+        {
+            foreach (Match m in ThaiDateRegex.Matches(text))
+            {
+                if (int.TryParse(m.Groups[1].Value, out var day) && int.TryParse(m.Groups[3].Value, out var year))
+                {
+                    var month = ParseThaiMonth(m.Groups[2].Value);
+                    if (month > 0)
+                    {
+                        var hour = 0;
+                        var minute = 0;
+                        var second = 0;
+                        if (m.Groups[4].Success && int.TryParse(m.Groups[4].Value, out var h)) hour = h;
+                        if (m.Groups[5].Success && int.TryParse(m.Groups[5].Value, out var min)) minute = min;
+                        if (m.Groups[6].Success && int.TryParse(m.Groups[6].Value, out var s)) second = s;
+
+                        result.DetectedAt = CreateThailandUtcDateTime(year, month, day, hour, minute, second);
+                        break;
+                    }
+                }
             }
         }
 

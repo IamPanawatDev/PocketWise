@@ -72,6 +72,8 @@ export function setAuthCookiesFromData(
 }
 
 export function clearAuthCookiesFrom(res: NextResponse): void {
+  res.cookies.set(ACCESS_COOKIE, "", { path: "/", maxAge: 0 });
+  res.cookies.set(REFRESH_COOKIE, "", { path: "/", maxAge: 0 });
   res.cookies.delete(ACCESS_COOKIE);
   res.cookies.delete(REFRESH_COOKIE);
 }

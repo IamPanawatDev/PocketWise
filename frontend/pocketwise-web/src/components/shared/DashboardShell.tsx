@@ -73,7 +73,7 @@ const adminNav: NavItem[] = [
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const logout = useLogout();
-  const { data: user } = useCurrentUser();
+  const { data: user, isError } = useCurrentUser();
   const { data: settings } = useUserSettings();
   useSignalRNotifications(Boolean(user));
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -81,6 +81,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isAdminOpen, setIsAdminOpen] = useState(true);
 
   const isAdmin = user?.roles?.includes("Admin") ?? false;
+
+  useEffect(() => {
+    if (isError) {
+      window.location.href = `/login?from=${encodeURIComponent(pathname)}`;
+    }
+  }, [isError, pathname]);
 
   useEffect(() => {
     if (!isMobileOpen) return;

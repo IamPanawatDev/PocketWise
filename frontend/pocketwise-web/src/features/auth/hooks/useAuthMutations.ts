@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import type { LoginRequest, RegisterRequest, UserProfileResponse } from "@/types/auth.types";
@@ -24,12 +24,16 @@ export function useRegister() {
 }
 
 export function useLogout() {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => apiClient.post<unknown>("/api/auth/logout"),
     onSuccess: () => {
-      router.push("/login");
-      router.refresh();
+      queryClient.clear();
+      window.location.href = "/login";
+    },
+    onError: () => {
+      queryClient.clear();
+      window.location.href = "/login";
     },
   });
 }

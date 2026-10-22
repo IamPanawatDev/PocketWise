@@ -49,6 +49,17 @@ async function request<T>(
   }
 
   if (!res.ok) {
+    if (
+      res.status === 401 &&
+      typeof window !== "undefined" &&
+      !window.location.pathname.startsWith("/login") &&
+      !window.location.pathname.startsWith("/register") &&
+      !window.location.pathname.startsWith("/forgot-password") &&
+      !window.location.pathname.startsWith("/reset-password")
+    ) {
+      window.location.href = `/login?from=${encodeURIComponent(window.location.pathname)}`;
+    }
+
     const error = json?.error;
     throw new ApiError(
       error?.code ?? "INTERNAL_ERROR",

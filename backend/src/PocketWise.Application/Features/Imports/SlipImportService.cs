@@ -95,8 +95,8 @@ public class SlipImportService : ISlipImportService
             extracted.BankCode = bankCode;
         }
 
-        _logger?.LogInformation("[SlipImportService] OCR extraction finished: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
-            extracted.BankCode, extracted.DetectedAmount, extracted.PayerName, extracted.PayeeName, extracted.TransactionReference);
+        _logger?.LogInformation("[SlipImportService] OCR extraction finished: Bank={Bank}, Amount={Amt}, Date={Date}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
+            extracted.BankCode, extracted.DetectedAmount, extracted.DetectedAt, extracted.PayerName, extracted.PayeeName, extracted.TransactionReference);
 
         // Suggest category
         var (suggestedCatId, suggestedCatName) = await _repository.SuggestCategoryAsync(

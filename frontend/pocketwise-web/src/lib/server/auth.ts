@@ -48,6 +48,8 @@ export async function setAuthCookies(auth: AuthTokens): Promise<void> {
 
 export async function clearAuthCookies(): Promise<void> {
   const store = await cookies();
+  store.set(ACCESS_COOKIE, "", { path: "/", maxAge: 0 });
+  store.set(REFRESH_COOKIE, "", { path: "/", maxAge: 0 });
   store.delete(ACCESS_COOKIE);
   store.delete(REFRESH_COOKIE);
 }
