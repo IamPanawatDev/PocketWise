@@ -12,16 +12,17 @@ function secondsUntil(iso: string): number {
   return Math.max(0, Math.floor(ms / 1000));
 }
 
+export interface AuthTokens {
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
+}
+
 export interface AuthEndpointResult {
   ok: boolean;
   status: number;
-  data: {
-    accessToken: string;
-    accessTokenExpiresAt: string;
-    refreshToken: string;
-    refreshTokenExpiresAt: string;
-    user: unknown;
-  } | null;
+  data: (AuthTokens & { user: unknown }) | null;
   error: unknown;
 }
 
@@ -50,9 +51,51 @@ export async function callAuthEndpoint(
   };
 }
 
+const inFlightRefreshes = new Map<string, Promise<AuthTokens | null>>();
+
+export async function refreshAuthTokens(
+  refreshToken: string,
+): Promise<AuthTokens | null> {
+  const existing = inFlightRefreshes.get(refreshToken);
+  if (existing) {
+    return existing;
+  }
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+        cache: "no-store",
+      });
+
+      if (!res.ok) return null;
+
+      const json = (await res.json()) as {
+        success?: boolean;
+        data?: AuthTokens;
+      };
+
+      if (!json.success || !json.data) return null;
+      return json.data;
+    } catch {
+      return null;
+    } finally {
+      // Keep cached for 5 seconds to gracefully deduplicate concurrent bursts of requests
+      setTimeout(() => {
+        inFlightRefreshes.delete(refreshToken);
+      }, 5000);
+    }
+  })();
+
+  inFlightRefreshes.set(refreshToken, promise);
+  return promise;
+}
+
 export function setAuthCookiesFromData(
   res: NextResponse,
-  data: NonNullable<AuthEndpointResult["data"]>,
+  data: AuthTokens,
 ): void {
   const base = {
     httpOnly: true,
