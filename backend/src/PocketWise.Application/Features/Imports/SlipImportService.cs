@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Microsoft.Extensions.Logging;
 using PocketWise.Application.DTOs.Transactions;
 using PocketWise.Application.Features.Imports.DTOs;
 using PocketWise.Application.Features.Notifications.DTOs;
@@ -27,19 +28,22 @@ public class SlipImportService : ISlipImportService
     private readonly ISlipOcrService _ocrService;
     private readonly INotificationSender? _notificationSender;
     private readonly IAuditLogService? _auditLogService;
+    private readonly ILogger<SlipImportService>? _logger;
 
     public SlipImportService(
         IImportRepository repository,
         IFileStorageService fileStorageService,
         ISlipOcrService ocrService,
         INotificationSender? notificationSender = null,
-        IAuditLogService? auditLogService = null)
+        IAuditLogService? auditLogService = null,
+        ILogger<SlipImportService>? logger = null)
     {
         _repository = repository;
         _fileStorageService = fileStorageService;
         _ocrService = ocrService;
         _notificationSender = notificationSender;
         _auditLogService = auditLogService;
+        _logger = logger;
     }
 
     public async Task<SlipImportResponse> UploadSlipAsync(
@@ -66,6 +70,8 @@ public class SlipImportService : ISlipImportService
             throw new BusinessException("VALIDATION_ERROR", "รองรับเฉพาะไฟล์รูปภาพ (JPEG, PNG, WEBP) หรือ PDF เท่านั้น");
         }
 
+        _logger?.LogInformation("[SlipImportService] Processing slip upload: FileName='{FileName}', Size={Size} bytes, Mime='{Mime}', UserId={UserId}", fileName, fileSize, contentType, userId);
+
         // Calculate SHA-256 Hash for duplicate file detection
         using var sha256 = SHA256.Create();
         fileStream.Seek(0, SeekOrigin.Begin);
@@ -88,6 +94,9 @@ public class SlipImportService : ISlipImportService
         {
             extracted.BankCode = bankCode;
         }
+
+        _logger?.LogInformation("[SlipImportService] OCR extraction finished: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
+            extracted.BankCode, extracted.DetectedAmount, extracted.PayerName, extracted.PayeeName, extracted.TransactionReference);
 
         // Suggest category
         var (suggestedCatId, suggestedCatName) = await _repository.SuggestCategoryAsync(
