@@ -178,12 +178,12 @@ public class ImportRepository : IImportRepository
 
         var normalized = text.Trim().ToLowerInvariant();
 
-        // 1. Check user & global CategoryRules (ordered by priority descending)
+        // 1. Check user & global CategoryRules (ordered by priority ascending - lower number first)
         var rules = await _dbContext.CategoryRules
             .Include(r => r.Category)
             .AsNoTracking()
             .Where(r => (r.UserId == userId || r.UserId == null) && r.IsActive)
-            .OrderByDescending(r => r.Priority)
+            .OrderBy(r => r.Priority)
             .ToListAsync(cancellationToken);
 
         foreach (var rule in rules)
