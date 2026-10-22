@@ -18,7 +18,7 @@ RUN dotnet publish "PocketWise.Api.csproj" -c Release -o /app/publish /p:UseAppH
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Install native Tesseract, Thai language data & Leptonica libraries required by Tesseract OCR on Linux (Ubuntu 24.04 base)
+# Install native Tesseract, Thai language data, Leptonica, GDI+ & graphic libraries on Linux
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     tesseract-ocr \
@@ -26,24 +26,23 @@ RUN apt-get update && \
     tesseract-ocr-eng \
     libtesseract-dev \
     libleptonica-dev \
+    libgdiplus \
     libc6-dev \
     libjpeg-dev \
     libpng-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Create x64 directory expected by charlesw/tesseract wrapper on Linux and symlink native libraries
-RUN mkdir -p /app/x64 && \
-    find /usr/lib -name "liblept.so*" -exec ln -sf {} /app/x64/libleptonica-1.82.0.so \; -quit && \
-    find /usr/lib -name "liblept.so*" -exec ln -sf {} /app/x64/libleptonica.so \; -quit && \
-    find /usr/lib -name "libtesseract.so*" -exec ln -sf {} /app/x64/libtesseract50.so \; -quit && \
-    find /usr/lib -name "libtesseract.so*" -exec ln -sf {} /app/x64/libtesseract.so \; -quit && \
-    ldconfig
-
 COPY --from=build /app/publish .
 
-# Ensure tessdata has Thai traineddata from either publish or system apt
-RUN mkdir -p /app/tessdata && \
-    cp -rn /usr/share/tesseract-ocr/*/tessdata/* /app/tessdata/ 2>/dev/null || true
+# Create x64 symlinks AFTER copying publish output so Linux native libraries override Windows DLLs
+RUN mkdir -p /app/x64 /app/tessdata && \
+    ln -sf /usr/lib/x86_64-linux-gnu/liblept.so* /app/x64/libleptonica-1.82.0.so && \
+    ln -sf /usr/lib/x86_64-linux-gnu/liblept.so* /app/x64/libleptonica.so && \
+    ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so* /app/x64/libtesseract50.so && \
+    ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so* /app/x64/libtesseract.so && \
+    ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so* /app/x64/libtesseract-5.so && \
+    cp -f /usr/share/tesseract-ocr/*/tessdata/* /app/tessdata/ 2>/dev/null || true && \
+    ldconfig
 
 # Default port for container (Render can override with PORT env variable)
 ENV ASPNETCORE_HTTP_PORTS=8080

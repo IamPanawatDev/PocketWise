@@ -59,15 +59,36 @@ public class TesseractSlipOcrService : ISlipOcrService
 
             if (Directory.Exists(tessDataPath) && File.Exists(Path.Combine(tessDataPath, "tha.traineddata")))
             {
-                using var engine = new TesseractEngine(tessDataPath, "tha+eng", EngineMode.Default);
-                using var pix = Pix.LoadFromMemory(imageBytes);
-                using var page = engine.Process(pix);
+                TesseractEngine? engine = null;
+                try
+                {
+                    engine = new TesseractEngine(tessDataPath, "tha+eng", EngineMode.Default);
+                }
+                catch (Exception exInit)
+                {
+                    _logger?.LogWarning(exInit, "[TesseractSlipOcrService] Failed to init 'tha+eng', falling back to 'tha'");
+                    try
+                    {
+                        engine = new TesseractEngine(tessDataPath, "tha", EngineMode.Default);
+                    }
+                    catch (Exception exTha)
+                    {
+                        _logger?.LogWarning(exTha, "[TesseractSlipOcrService] Failed to init 'tha', falling back to 'eng'");
+                        engine = new TesseractEngine(tessDataPath, "eng", EngineMode.Default);
+                    }
+                }
 
-                var ocrText = page.GetText() ?? string.Empty;
-                _logger?.LogInformation("[TesseractSlipOcrService] OCR text length: {Len}", ocrText.Length);
-                ParseSlipText(ocrText, result);
-                _logger?.LogInformation("[TesseractSlipOcrService] Parsed: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}",
-                    result.BankCode, result.DetectedAmount, result.PayerName, result.PayeeName);
+                using (engine)
+                {
+                    using var pix = Pix.LoadFromMemory(imageBytes);
+                    using var page = engine.Process(pix);
+
+                    var ocrText = page.GetText() ?? string.Empty;
+                    _logger?.LogInformation("[TesseractSlipOcrService] OCR text length: {Len}", ocrText.Length);
+                    ParseSlipText(ocrText, result);
+                    _logger?.LogInformation("[TesseractSlipOcrService] Parsed: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
+                        result.BankCode, result.DetectedAmount, result.PayerName, result.PayeeName, result.TransactionReference);
+                }
             }
             else
             {
@@ -99,6 +120,28 @@ public class TesseractSlipOcrService : ISlipOcrService
         if (refMatch.Success)
         {
             result.TransactionReference = refMatch.Groups[1].Value.Trim();
+        }
+
+        // 2.1 Fallback Reference Detection (e.g. Krungthai slips where ref is below "โอนเงินสำเร็จ" without prefix)
+        if (string.IsNullOrWhiteSpace(result.TransactionReference))
+        {
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+                if (line.Contains("โอนเงินสำเร็จ") || line.Contains("ทำรายการสำเร็จ") || line.Contains("บันทึกรายการสำเร็จ"))
+                {
+                    for (var j = 1; j <= 2 && i + j < lines.Count; j++)
+                    {
+                        var candidate = lines[i + j].Trim();
+                        if (Regex.IsMatch(candidate, @"^[a-zA-Z0-9]{12,35}$"))
+                        {
+                            result.TransactionReference = candidate;
+                            break;
+                        }
+                    }
+                    if (!string.IsNullOrWhiteSpace(result.TransactionReference)) break;
+                }
+            }
         }
 
         // 3. Amount Detection
@@ -204,6 +247,33 @@ public class TesseractSlipOcrService : ISlipOcrService
                 {
                     result.PayeeName = candidate;
                 }
+            }
+        }
+
+        // 5.1 Fallback Payer & Payee Detection (for slips without "จาก" / "ไปยัง" like Krungthai)
+        if (result.PayerName == null || result.PayeeName == null)
+        {
+            var candidates = new List<string>();
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+                if (i + 1 < lines.Count && (lines[i + 1].Contains("xxx-") || lines[i + 1].Contains("%%%-") || IsBankNameOrAccount(lines[i + 1])))
+                {
+                    var cleaned = CleanName(line);
+                    if (!string.IsNullOrWhiteSpace(cleaned) && !IsBankNameOrAccount(cleaned) && !cleaned.Contains("โอนเงิน") && !cleaned.Contains("สำเร็จ") && cleaned.Length >= 3)
+                    {
+                        candidates.Add(cleaned);
+                    }
+                }
+            }
+
+            if (result.PayerName == null && candidates.Count >= 1)
+            {
+                result.PayerName = candidates[0];
+            }
+            if (result.PayeeName == null && candidates.Count >= 2)
+            {
+                result.PayeeName = candidates[1];
             }
         }
     }
