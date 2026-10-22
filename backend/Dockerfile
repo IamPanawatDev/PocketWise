@@ -34,14 +34,26 @@ RUN apt-get update && \
 
 COPY --from=build /app/publish .
 
-# Create x64 symlinks AFTER copying publish output so Linux native libraries override Windows DLLs
+# Create runtime symlinks AFTER copying publish output so Linux native libraries override Windows DLLs
 RUN mkdir -p /app/x64 /app/tessdata && \
-    ln -sf /usr/lib/x86_64-linux-gnu/liblept.so* /app/x64/libleptonica-1.82.0.so && \
-    ln -sf /usr/lib/x86_64-linux-gnu/liblept.so* /app/x64/libleptonica.so && \
-    ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so* /app/x64/libtesseract50.so && \
-    ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so* /app/x64/libtesseract.so && \
-    ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so* /app/x64/libtesseract-5.so && \
-    cp -f /usr/share/tesseract-ocr/*/tessdata/* /app/tessdata/ 2>/dev/null || true && \
+    LEPT_SO=$(find /usr/lib -name "liblept.so*" 2>/dev/null | head -n 1) && \
+    TESS_SO=$(find /usr/lib -name "libtesseract.so*" 2>/dev/null | head -n 1) && \
+    echo "Using Leptonica: $LEPT_SO, Tesseract: $TESS_SO" && \
+    if [ -n "$LEPT_SO" ]; then \
+        ln -sf "$LEPT_SO" /app/x64/libleptonica-1.82.0.so && \
+        ln -sf "$LEPT_SO" /app/libleptonica-1.82.0.so && \
+        ln -sf "$LEPT_SO" /app/x64/libleptonica.so && \
+        ln -sf "$LEPT_SO" /app/libleptonica.so; \
+    fi && \
+    if [ -n "$TESS_SO" ]; then \
+        ln -sf "$TESS_SO" /app/x64/libtesseract50.so && \
+        ln -sf "$TESS_SO" /app/libtesseract50.so && \
+        ln -sf "$TESS_SO" /app/x64/libtesseract.so && \
+        ln -sf "$TESS_SO" /app/libtesseract.so && \
+        ln -sf "$TESS_SO" /app/x64/libtesseract-5.so && \
+        ln -sf "$TESS_SO" /app/libtesseract-5.so; \
+    fi && \
+    cp -rf /usr/share/tesseract-ocr/*/tessdata/* /app/tessdata/ 2>/dev/null || true && \
     ldconfig
 
 # Default port for container (Render can override with PORT env variable)

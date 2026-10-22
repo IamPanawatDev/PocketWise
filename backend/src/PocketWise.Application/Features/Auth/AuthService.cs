@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using FluentValidation;
 using PocketWise.Application.DTOs.Auth;
 using PocketWise.Application.Interfaces;
@@ -18,6 +19,7 @@ public class AuthService : IAuthService
     private readonly IValidator<UpdateUserProfileRequest> _profileValidator;
     private readonly IEmailService _emailService;
     private readonly IAuditLogService? _auditLogService;
+    private readonly ILogger<AuthService>? _logger;
 
     private static readonly ConcurrentDictionary<long, DateTime> _verificationCooldowns = new();
     private static readonly ConcurrentDictionary<string, DateTime> _passwordResetCooldowns = new(StringComparer.OrdinalIgnoreCase);
@@ -28,7 +30,8 @@ public class AuthService : IAuthService
         ITokenService tokenService,
         IValidator<UpdateUserProfileRequest> profileValidator,
         IEmailService emailService,
-        IAuditLogService? auditLogService = null)
+        IAuditLogService? auditLogService = null,
+        ILogger<AuthService>? logger = null)
     {
         _userManager = userManager;
         _refreshTokenRepository = refreshTokenRepository;
@@ -36,6 +39,7 @@ public class AuthService : IAuthService
         _profileValidator = profileValidator;
         _emailService = emailService;
         _auditLogService = auditLogService;
+        _logger = logger;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default)
@@ -333,11 +337,17 @@ public class AuthService : IAuthService
             </html>
             """;
 
-        await _emailService.SendEmailAsync(
+        var sent = await _emailService.SendEmailAsync(
             applicationUser.Email,
             "ยืนยันที่อยู่อีเมลของคุณ — PocketWise",
             bodyHtml,
             cancellationToken);
+
+        if (!sent)
+        {
+            _logger?.LogError("[AuthService] Failed to send verification email to {Email}", applicationUser.Email);
+            throw new AuthException("EMAIL_SEND_FAILED", "ไม่สามารถส่งอีเมลได้ในขณะนี้ กรุณาตรวจสอบการตั้งค่าผู้ให้บริการอีเมลหรือลองใหม่อีกครั้ง");
+        }
 
         _verificationCooldowns[userId] = DateTime.UtcNow;
 
@@ -430,7 +440,7 @@ public class AuthService : IAuthService
         // Anti-Email Enumeration: If user not found or inactive, pretend success and record cooldown
         if (user is null || !user.IsActive)
         {
-            _passwordResetCooldowns[normalizedEmail] = DateTime.UtcNow;
+        _passwordResetCooldowns[normalizedEmail] = DateTime.UtcNow;
             return new ForgotPasswordResponse(
                 true,
                 60,
@@ -477,11 +487,17 @@ public class AuthService : IAuthService
             </html>
             """;
 
-        await _emailService.SendEmailAsync(
+        var sent = await _emailService.SendEmailAsync(
             user.Email!,
             "คำขอตั้งรหัสผ่านใหม่ — PocketWise",
             bodyHtml,
             cancellationToken);
+
+        if (!sent)
+        {
+            _logger?.LogError("[AuthService] Failed to send password reset email to {Email}", user.Email);
+            throw new AuthException("EMAIL_SEND_FAILED", "ไม่สามารถส่งอีเมลได้ในขณะนี้ กรุณาตรวจสอบการตั้งค่าผู้ให้บริการอีเมลหรือลองใหม่อีกครั้ง");
+        }
 
         _passwordResetCooldowns[normalizedEmail] = DateTime.UtcNow;
 

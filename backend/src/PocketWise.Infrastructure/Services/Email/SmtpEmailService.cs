@@ -108,7 +108,14 @@ public class SmtpEmailService : IEmailService
     {
         try
         {
-            var fromAddress = string.IsNullOrWhiteSpace(_settings.FromEmail) || _settings.FromEmail.Contains("@pocketwise.local")
+            var isPublicOrLocalDomain = string.IsNullOrWhiteSpace(_settings.FromEmail)
+                || _settings.FromEmail.Contains("@pocketwise.local")
+                || _settings.FromEmail.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase)
+                || _settings.FromEmail.EndsWith("@yahoo.com", StringComparison.OrdinalIgnoreCase)
+                || _settings.FromEmail.EndsWith("@hotmail.com", StringComparison.OrdinalIgnoreCase)
+                || _settings.FromEmail.EndsWith("@outlook.com", StringComparison.OrdinalIgnoreCase);
+
+            var fromAddress = isPublicOrLocalDomain
                 ? "PocketWise <onboarding@resend.dev>"
                 : $"{_settings.FromDisplayName} <{_settings.FromEmail}>";
 

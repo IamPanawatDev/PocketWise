@@ -84,7 +84,15 @@ public class TesseractSlipOcrService : ISlipOcrService
                     using var page = engine.Process(pix);
 
                     var ocrText = page.GetText() ?? string.Empty;
-                    _logger?.LogInformation("[TesseractSlipOcrService] OCR text length: {Len}", ocrText.Length);
+                    if (ocrText.Length == 0)
+                    {
+                        _logger?.LogWarning("[TesseractSlipOcrService] OCR returned empty text for file {FileName}.", fileName);
+                    }
+                    else
+                    {
+                        var preview = ocrText.Length > 200 ? ocrText[..200].Replace("\r", " ").Replace("\n", " ") : ocrText.Replace("\r", " ").Replace("\n", " ");
+                        _logger?.LogInformation("[TesseractSlipOcrService] OCR text length: {Len}, Sample: {Preview}", ocrText.Length, preview);
+                    }
                     ParseSlipText(ocrText, result);
                     _logger?.LogInformation("[TesseractSlipOcrService] Parsed: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
                         result.BankCode, result.DetectedAmount, result.PayerName, result.PayeeName, result.TransactionReference);
