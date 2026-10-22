@@ -38,10 +38,8 @@ export function proxy(request: NextRequest) {
       return response;
     }
 
-    // Only redirect to /transactions if the user has an active access token.
-    // If they only have a refresh cookie without access token, allow access to auth page.
-    const hasActiveAccess = Boolean(access && access.trim());
-    if (hasActiveAccess) {
+    // If user has an active session (and not redirected with ?from), redirect to /transactions
+    if (hasSession) {
       return NextResponse.redirect(new URL("/transactions", request.url));
     }
 
