@@ -57,7 +57,7 @@ const initialRule: CategoryRuleFormValues = {
 const matchTypeLabels = {
   merchantName: "ชื่อร้านค้า",
   description: "รายละเอียดรายการ",
-  bankReference: "เลขอ้างอิงธนาคาร (Phase 7)",
+  bankReference: "เลขอ้างอิงธนาคาร",
 };
 
 export function CategorizationView() {
@@ -253,7 +253,7 @@ export function CategorizationView() {
             {editingRule ? "แก้ไขกฎ" : "เพิ่มกฎจัดหมวดหมู่"}
           </h2>
           <p className="mb-4 text-xs text-[var(--pw-ink)]/60">
-            กฎเลขอ้างอิงธนาคารเก็บไว้สำหรับข้อมูลนำเข้าใน Phase 7; transaction ที่บันทึกด้วยตนเองจับคู่จากรายละเอียดหรือชื่อร้านค้า
+            กฎเลขอ้างอิงธนาคารจะใช้จับคู่กับข้อมูลนำเข้า (สลิปหรือใบแจ้งยอด); รายการที่บันทึกด้วยตนเองจะจับคู่จากรายละเอียดหรือชื่อร้านค้า
           </p>
           <form onSubmit={ruleForm.handleSubmit(onRuleSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -267,7 +267,7 @@ export function CategorizationView() {
                     <SelectContent>
                       <SelectItem value="description">รายละเอียดรายการ</SelectItem>
                       <SelectItem value="merchantName">ชื่อร้านค้า</SelectItem>
-                      <SelectItem value="bankReference">เลขอ้างอิงธนาคาร (Phase 7)</SelectItem>
+                      <SelectItem value="bankReference">เลขอ้างอิงธนาคาร</SelectItem>
                     </SelectContent>
                   </Select>
                 )} />
