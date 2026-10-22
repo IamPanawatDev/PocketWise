@@ -13,6 +13,38 @@ namespace PocketWise.UnitTests;
 
 public class ImportServiceTests
 {
+    [Theory]
+    [InlineData("วันที่ทำรายการ 18 ต.ค. 2569 - 16:04", 2026, 10, 18, 9, 4)]
+    [InlineData("18 ต.ค. 2569 - 16:04", 2026, 10, 18, 9, 4)]
+    [InlineData("วันที่ทำรายการ 30 ก.ย. 2569 - 16:07", 2026, 9, 30, 9, 7)]
+    public void TestParsingSlipDateVariations(string line, int expectedYear, int expectedMonth, int expectedDay, int expectedUtcHour, int expectedUtcMin)
+    {
+        var sampleText = $"""
+        โอนเงินสำเร็จ
+        รหัสอ้างอิง Ad56e908925d945a1
+        จาก นายปนวัฒน์ ช***
+        กรุงไทย XXX-X-XX937-7
+        ไปยัง นาง พรคณา อัศวหน้าเมือง
+        พร้อมเพย์ XXX XXX 0810
+        จำนวนเงิน 1,040.00 บาท
+        ค่าธรรมเนียม 0.00 บาท
+        {line}
+        """;
+
+        var ocr = new TesseractSlipOcrService();
+        // Use reflection to call private static ParseSlipText
+        var method = typeof(TesseractSlipOcrService).GetMethod("ParseSlipText", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var result = new SlipExtractedData();
+        method.Invoke(null, new object[] { sampleText, result });
+
+        Assert.NotNull(result.DetectedAt);
+        Assert.Equal(expectedYear, result.DetectedAt.Value.Year);
+        Assert.Equal(expectedMonth, result.DetectedAt.Value.Month);
+        Assert.Equal(expectedDay, result.DetectedAt.Value.Day);
+        Assert.Equal(expectedUtcHour, result.DetectedAt.Value.Hour);
+        Assert.Equal(expectedUtcMin, result.DetectedAt.Value.Minute);
+    }
+
     #region Tesseract OCR Real Slip Test
 
     [Fact]
