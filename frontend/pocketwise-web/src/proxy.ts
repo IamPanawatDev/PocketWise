@@ -27,9 +27,25 @@ export function proxy(request: NextRequest) {
     (page) => pathname === page || pathname.startsWith(`${page}/`)
   );
 
-  // If already authenticated and trying to access auth pages, redirect to transactions
-  if (hasSession && isAuthPage) {
-    return NextResponse.redirect(new URL("/transactions", request.url));
+  // If trying to access auth pages:
+  if (isAuthPage) {
+    // If request has ?from=..., the user was sent to the auth page due to session expiry or logout.
+    // Allow access to login without redirecting back to /transactions, and clear any leftover cookies.
+    if (request.nextUrl.searchParams.has("from")) {
+      const response = NextResponse.next();
+      response.cookies.delete("pw_access");
+      response.cookies.delete("pw_refresh");
+      return response;
+    }
+
+    // Only redirect to /transactions if the user has an active access token.
+    // If they only have a refresh cookie without access token, allow access to auth page.
+    const hasActiveAccess = Boolean(access && access.trim());
+    if (hasActiveAccess) {
+      return NextResponse.redirect(new URL("/transactions", request.url));
+    }
+
+    return NextResponse.next();
   }
 
   // If not authenticated and trying to access protected routes, redirect to login

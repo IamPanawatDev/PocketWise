@@ -1,8 +1,8 @@
-import { NextRequest } from "next/server";
-
+import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
 import { clearAuthCookies, getAccessToken, getRefreshToken, setAuthCookies } from "@/lib/server/auth";
+import { clearAuthCookiesFrom } from "@/lib/server/auth-endpoints";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5268";
@@ -50,31 +50,35 @@ async function refreshAndRetry(
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
 
-  const refreshRes = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
-    cache: "no-store",
-  });
+  try {
+    const refreshRes = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+      cache: "no-store",
+    });
 
-  if (refreshRes.status !== 200) return null;
+    if (refreshRes.status !== 200) return null;
 
-  const json = (await refreshRes.json()) as {
-    success?: boolean;
-    data?: {
-      accessToken: string;
-      accessTokenExpiresAt: string;
-      refreshToken: string;
-      refreshTokenExpiresAt: string;
+    const json = (await refreshRes.json()) as {
+      success?: boolean;
+      data?: {
+        accessToken: string;
+        accessTokenExpiresAt: string;
+        refreshToken: string;
+        refreshTokenExpiresAt: string;
+      };
     };
-  };
 
-  const newTokens = json.data;
-  if (!newTokens) return null;
+    const newTokens = json.data;
+    if (!newTokens) return null;
 
-  await setAuthCookies(newTokens);
+    await setAuthCookies(newTokens);
 
-  return forward(path, search, method, payload, newTokens.accessToken, clientOrigin);
+    return forward(path, search, method, payload, newTokens.accessToken, clientOrigin);
+  } catch {
+    return null;
+  }
 }
 
 async function readBody(req: NextRequest): Promise<BodyPayload> {
@@ -100,11 +104,18 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
   const origin = req.headers.get("origin") ?? req.nextUrl.origin;
   const emptyPayload: BodyPayload = { body: null, contentType: null };
   let res = await forward(path, req.nextUrl.searchParams, "GET", emptyPayload, token, origin);
+  let shouldClearAuth = false;
+
   if (res.status === 401) {
     const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "GET", emptyPayload, origin);
-    if (retried) res = retried;
+    if (retried) {
+      res = retried;
+    } else {
+      shouldClearAuth = true;
+      await clearAuthCookies();
+    }
   }
-  return await passthrough(res);
+  return await passthrough(res, shouldClearAuth);
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
@@ -113,14 +124,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   const token = await getAccessToken();
   const origin = req.headers.get("origin") ?? req.nextUrl.origin;
   let res = await forward(path, req.nextUrl.searchParams, "POST", payload, token, origin);
+  let shouldClearAuth = false;
+
   if (res.status === 401) {
     const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "POST", payload, origin);
-    if (retried) res = retried;
+    if (retried) {
+      res = retried;
+    } else {
+      shouldClearAuth = true;
+      await clearAuthCookies();
+    }
   }
   if (res.ok && path.join("/") === "users/me/data-reset") {
+    shouldClearAuth = true;
     await clearAuthCookies();
   }
-  return await passthrough(res);
+  return await passthrough(res, shouldClearAuth);
 }
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
@@ -129,11 +148,18 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: strin
   const token = await getAccessToken();
   const origin = req.headers.get("origin") ?? req.nextUrl.origin;
   let res = await forward(path, req.nextUrl.searchParams, "PUT", payload, token, origin);
+  let shouldClearAuth = false;
+
   if (res.status === 401) {
     const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "PUT", payload, origin);
-    if (retried) res = retried;
+    if (retried) {
+      res = retried;
+    } else {
+      shouldClearAuth = true;
+      await clearAuthCookies();
+    }
   }
-  return await passthrough(res);
+  return await passthrough(res, shouldClearAuth);
 }
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
@@ -142,23 +168,36 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: st
   const origin = req.headers.get("origin") ?? req.nextUrl.origin;
   const emptyPayload: BodyPayload = { body: null, contentType: null };
   let res = await forward(path, req.nextUrl.searchParams, "DELETE", emptyPayload, token, origin);
+  let shouldClearAuth = false;
+
   if (res.status === 401) {
     const retried = await refreshAndRetry(path, req.nextUrl.searchParams, "DELETE", emptyPayload, origin);
-    if (retried) res = retried;
+    if (retried) {
+      res = retried;
+    } else {
+      shouldClearAuth = true;
+      await clearAuthCookies();
+    }
   }
-  return await passthrough(res);
+  return await passthrough(res, shouldClearAuth);
 }
 
-async function passthrough(res: Response): Promise<Response> {
+async function passthrough(res: Response, shouldClearAuth = false): Promise<NextResponse> {
   const body = await res.arrayBuffer();
   const headers = new Headers(res.headers);
   // Remove content-encoding and content-length because fetch() automatically decompresses the body
   headers.delete("content-encoding");
   headers.delete("content-length");
 
-  return new Response(body, {
+  const nextRes = new NextResponse(body, {
     status: res.status,
     statusText: res.statusText,
     headers,
   });
+
+  if (shouldClearAuth) {
+    clearAuthCookiesFrom(nextRes);
+  }
+
+  return nextRes;
 }

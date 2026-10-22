@@ -30,7 +30,8 @@ export function RegisterForm() {
   });
 
   useEffect(() => {
-    if (isSuccess && user) {
+    const hasFrom = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("from");
+    if (isSuccess && user && !hasFrom) {
       router.replace("/");
     }
   }, [isSuccess, user, router]);

@@ -22,6 +22,8 @@ export class ApiError extends Error {
   }
 }
 
+let isRedirecting = false;
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -52,11 +54,13 @@ async function request<T>(
     if (
       res.status === 401 &&
       typeof window !== "undefined" &&
+      !isRedirecting &&
       !window.location.pathname.startsWith("/login") &&
       !window.location.pathname.startsWith("/register") &&
       !window.location.pathname.startsWith("/forgot-password") &&
       !window.location.pathname.startsWith("/reset-password")
     ) {
+      isRedirecting = true;
       window.location.href = `/login?from=${encodeURIComponent(window.location.pathname)}`;
     }
 

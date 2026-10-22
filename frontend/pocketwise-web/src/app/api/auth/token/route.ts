@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAccessToken, getRefreshToken, setAuthCookies } from "@/lib/server/auth";
+import { clearAuthCookies, getAccessToken, getRefreshToken, setAuthCookies } from "@/lib/server/auth";
+import { clearAuthCookiesFrom } from "@/lib/server/auth-endpoints";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5268";
@@ -29,6 +30,11 @@ export async function GET() {
             });
             token = json.data.accessToken;
           }
+        } else if (refreshRes.status === 400 || refreshRes.status === 401) {
+          await clearAuthCookies();
+          const res = NextResponse.json({ accessToken: null }, { status: 401 });
+          clearAuthCookiesFrom(res);
+          return res;
         }
       } catch {
         // ignore refresh error
