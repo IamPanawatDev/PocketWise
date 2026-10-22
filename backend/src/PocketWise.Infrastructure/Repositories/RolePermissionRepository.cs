@@ -76,6 +76,17 @@ public class RolePermissionRepository : IRolePermissionRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<List<string>> GetPermissionCodesByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return await (from ur in _context.UserRoles
+                      where ur.UserId == userId
+                      join rp in _context.ApplicationRolePermissions on ur.RoleId equals rp.RoleId
+                      join p in _context.Permissions on rp.PermissionId equals p.PermissionId
+                      select p.PermissionCode)
+                      .Distinct()
+                      .ToListAsync(cancellationToken);
+    }
+
     public async Task<Dictionary<long, int>> GetRoleUserCountsAsync(CancellationToken cancellationToken = default)
     {
         return await _context.UserRoles

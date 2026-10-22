@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useTransactions, useDeleteTransaction } from "@/features/transactions/hooks/useTransactions";
 import type { TransactionFilter, TransactionResponse } from "@/types/transaction.types";
@@ -47,8 +47,10 @@ import {
   Plus,
   ReceiptText,
   Search,
+  SlidersHorizontal,
   Tag,
   Trash2,
+  X,
 } from "lucide-react";
 
 export function TransactionList({
@@ -61,6 +63,7 @@ export function TransactionList({
   const [sortBy, setSortBy] = useState<"transactionDate" | "amount">("transactionDate");
   const [sortDesc, setSortDesc] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [editing, setEditing] = useState<TransactionResponse | null>(null);
 
   const { data: categories } = useCategories();
@@ -74,6 +77,25 @@ export function TransactionList({
 
   const handleFilterChange = (patch: Partial<TransactionFilter>) => {
     setFilter((f) => ({ ...f, ...patch }));
+    setPage(1);
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filter.type) count++;
+    if (filter.categoryId !== undefined) count++;
+    if (filter.tagId !== undefined) count++;
+    if (filter.bankAccountId !== undefined) count++;
+    if (filter.fromDate) count++;
+    if (filter.toDate) count++;
+    if (sortBy !== "transactionDate" || !sortDesc) count++;
+    return count;
+  }, [filter, sortBy, sortDesc]);
+
+  const resetFilters = () => {
+    setFilter({});
+    setSortBy("transactionDate");
+    setSortDesc(true);
     setPage(1);
   };
 
@@ -112,205 +134,350 @@ export function TransactionList({
         />
       </BottomSheet>
 
-      <Card className="mb-4 grid grid-cols-1 items-end gap-3 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-4">
-        <FormField
-          label={<span className="inline-flex items-center gap-1"><Search className="size-4" />ค้นหา</span>}
-          htmlFor="transaction-search"
-          className="w-full min-w-0"
-        >
-          <Input
-            id="transaction-search"
-            className="px-3 py-2 text-sm"
-            placeholder="คำค้น..."
-            value={filter.q ?? ""}
-            onChange={(e) => handleFilterChange({ q: e.target.value || undefined })}
-          />
-        </FormField>
-        <FormField label="ประเภท" htmlFor="transaction-type-filter" className="w-full min-w-0">
-          <div id="transaction-type-filter" className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="กรองประเภทธุรกรรม">
+      {/* Search & Filter Trigger Bar */}
+      <div className="mb-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--pw-ink)]/50 pointer-events-none" />
+            <Input
+              id="transaction-search"
+              className="pl-9 pr-3 py-2 text-sm bg-[var(--pw-canvas)] w-full"
+              placeholder="ค้นหารายการ, ร้านค้า, หมายเหตุ..."
+              value={filter.q ?? ""}
+              onChange={(e) => handleFilterChange({ q: e.target.value || undefined })}
+            />
+          </div>
+          <Button
+            type="button"
+            variant={activeFilterCount > 0 ? "secondary" : "outline"}
+            className="shrink-0 relative gap-2"
+            onClick={() => setShowFilterSheet(true)}
+            aria-label="เปิดตัวกรองรายการ"
+          >
+            <SlidersHorizontal className="size-4" />
+            <span>ตัวกรอง</span>
+            {activeFilterCount > 0 && (
+              <span className="flex size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[11px] font-bold text-[var(--pw-on-primary)]">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+        </div>
+
+        {/* Active Filter Chips */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+            <span className="text-[var(--pw-ink)]/50 font-medium mr-1">ตัวกรองที่เลือก:</span>
+            {filter.type && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                {filter.type === "expense" ? "รายจ่าย" : filter.type === "income" ? "รายรับ" : "โอน"}
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ type: undefined })}
+                  className="hover:text-[var(--pw-expense)] ml-0.5"
+                  aria-label="ลบตัวกรองประเภท"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
+            {filter.categoryId !== undefined && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                หมวด: {categories?.find((c) => c.categoryId === filter.categoryId)?.categoryName ?? filter.categoryId}
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ categoryId: undefined })}
+                  className="hover:text-[var(--pw-expense)] ml-0.5"
+                  aria-label="ลบตัวกรองหมวดหมู่"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
+            {filter.tagId !== undefined && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                แท็ก: {tags?.find((t) => t.tagId === filter.tagId)?.tagName ?? filter.tagId}
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ tagId: undefined })}
+                  className="hover:text-[var(--pw-expense)] ml-0.5"
+                  aria-label="ลบตัวกรองแท็ก"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
+            {filter.bankAccountId !== undefined && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                บัญชี: {bankAccounts?.find((a) => a.bankAccountId === filter.bankAccountId)?.accountName ?? filter.bankAccountId}
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ bankAccountId: undefined })}
+                  className="hover:text-[var(--pw-expense)] ml-0.5"
+                  aria-label="ลบตัวกรองบัญชี"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
+            {(filter.fromDate || filter.toDate) && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                ช่วงวันที่
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ fromDate: undefined, toDate: undefined })}
+                  className="hover:text-[var(--pw-expense)] ml-0.5"
+                  aria-label="ลบตัวกรองวันที่"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
+            {(sortBy !== "transactionDate" || !sortDesc) && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                เรียงตาม{sortBy === "amount" ? "จำนวนเงิน" : "วันที่"}({sortDesc ? "มาก-น้อย" : "น้อย-มาก"})
+                <button
+                  type="button"
+                  onClick={() => { setSortBy("transactionDate"); setSortDesc(true); setPage(1); }}
+                  className="hover:text-[var(--pw-expense)] ml-0.5"
+                  aria-label="รีเซ็ตการเรียงลำดับ"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
             <button
               type="button"
-              role="radio"
-              aria-checked={!filter.type}
-              onClick={() => handleFilterChange({ type: undefined })}
-              className={cn(
-                "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
-                !filter.type
-                  ? "border-[var(--pw-primary)] bg-[var(--pw-primary)] text-white shadow-sm"
-                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-primary)] hover:text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/10",
-              )}
+              onClick={resetFilters}
+              className="text-xs text-[var(--pw-link)] hover:underline ml-1 font-medium"
             >
-              <Layers className="size-3.5" />
-              ทั้งหมด
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={filter.type === "expense"}
-              onClick={() => handleFilterChange({ type: "expense" })}
-              className={cn(
-                "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
-                filter.type === "expense"
-                  ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
-                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10",
-              )}
-            >
-              <ArrowDownRight className="size-3.5" />
-              รายจ่าย
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={filter.type === "income"}
-              onClick={() => handleFilterChange({ type: "income" })}
-              className={cn(
-                "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
-                filter.type === "income"
-                  ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
-                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)] hover:bg-[var(--pw-green)]/10",
-              )}
-            >
-              <ArrowUpRight className="size-3.5" />
-              รายรับ
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={filter.type === "transfer"}
-              onClick={() => handleFilterChange({ type: "transfer" })}
-              className={cn(
-                "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
-                filter.type === "transfer"
-                  ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
-                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)] hover:bg-[var(--pw-link)]/10",
-              )}
-            >
-              <ArrowRightLeft className="size-3.5" />
-              โอน
+              ล้างทั้งหมด
             </button>
           </div>
-        </FormField>
-        <FormField label="หมวดหมู่" htmlFor="transaction-category-filter" className="w-full min-w-0">
-          <Select
-            value={filter.categoryId === undefined ? "all" : String(filter.categoryId)}
-            onValueChange={(value) => handleFilterChange({
-              categoryId: value === "all" ? undefined : Number(value),
-            })}
-          >
-            <SelectTrigger id="transaction-category-filter">
-              <SelectValue placeholder="ทุกหมวดหมู่" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
-              {categories?.map((category) => (
-                <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormField>
-        <FormField label="แท็ก" htmlFor="transaction-tag-filter" className="w-full min-w-0">
-          <Select
-            value={filter.tagId === undefined ? "all" : String(filter.tagId)}
-            onValueChange={(value) => handleFilterChange({
-              tagId: value === "all" ? undefined : Number(value),
-            })}
-          >
-            <SelectTrigger id="transaction-tag-filter">
-              <SelectValue placeholder="ทุกแท็ก" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ทุกแท็ก</SelectItem>
-              {tags?.map((tag) => (
-                <SelectItem key={tag.tagId} value={String(tag.tagId)}>{tag.tagName}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormField>
-        <FormField label="บัญชี" htmlFor="transaction-account-filter" className="w-full min-w-0">
-          <Select
-            value={accountFilterId === undefined ? "all" : String(accountFilterId)}
-            onValueChange={(value) => handleFilterChange({
-              bankAccountId: value === "all" ? undefined : Number(value),
-            })}
-          >
-            <SelectTrigger id="transaction-account-filter">
-              <SelectValue placeholder="ทุกบัญชี" />
-            </SelectTrigger>
-            <SelectContent>
-              {bankAccounts?.length !== 1 && <SelectItem value="all">ทุกบัญชี</SelectItem>}
-              {bankAccounts?.map((account) => (
-                <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>{account.accountName}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormField>
-        <FormField label="ตั้งแต่วันที่ (ค.ศ.)" htmlFor="transaction-from-date" className="w-full min-w-0">
-          <DateInput
-            id="transaction-from-date"
-            className="px-3 py-2 text-sm"
-            value={filter.fromDate ? toThailandDateInputValue(filter.fromDate) : ""}
-            onChange={(value) => {
-              if (value && !isGregorianDateInput(value)) {
-                toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
-                return;
-              }
-              handleFilterChange({
-                fromDate: value ? thailandDateBoundaryToUtcIso(value) : undefined,
-              });
-            }}
-          />
-        </FormField>
-        <FormField label="ถึงวันที่ (ค.ศ.)" htmlFor="transaction-to-date" className="w-full min-w-0">
-          <DateInput
-            id="transaction-to-date"
-            className="px-3 py-2 text-sm"
-            value={filter.toDate ? toThailandDateInputValue(filter.toDate) : ""}
-            onChange={(value) => {
-              if (value && !isGregorianDateInput(value)) {
-                toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
-                return;
-              }
-              handleFilterChange({
-                toDate: value ? thailandDateBoundaryToUtcIso(value, true) : undefined,
-              });
-            }}
-          />
-        </FormField>
-        <FormField label="เรียงตาม" htmlFor="transaction-sort-by" className="w-full min-w-0">
-          <Select
-            value={sortBy}
-            onValueChange={(value) => {
-              setSortBy(value === "amount" ? "amount" : "transactionDate");
-              setPage(1);
-            }}
-          >
-            <SelectTrigger id="transaction-sort-by">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="transactionDate">วันที่</SelectItem>
-              <SelectItem value="amount">จำนวนเงิน</SelectItem>
-            </SelectContent>
-          </Select>
-        </FormField>
-        <FormField label="ลำดับ" htmlFor="transaction-sort-order" className="w-full min-w-0">
-          <Select
-            value={sortDesc ? "desc" : "asc"}
-            onValueChange={(value) => {
-              setSortDesc(value === "desc");
-              setPage(1);
-            }}
-          >
-            <SelectTrigger id="transaction-sort-order">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="desc">มากไปน้อย / ใหม่ไปเก่า</SelectItem>
-              <SelectItem value="asc">น้อยไปมาก / เก่าไปใหม่</SelectItem>
-            </SelectContent>
-          </Select>
-        </FormField>
-      </Card>
+        )}
+      </div>
+
+      <BottomSheet
+        open={showFilterSheet}
+        onOpenChange={setShowFilterSheet}
+        title="ตัวกรองและจัดเรียงรายการ"
+        description="เลือกเงื่อนไขเพื่อกรองและจัดเรียงรายการธุรกรรมตามต้องการ"
+      >
+        <div className="space-y-4 py-2">
+          <FormField label="ประเภทธุรกรรม" htmlFor="sheet-type-filter" className="w-full min-w-0">
+            <div id="sheet-type-filter" className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="กรองประเภทธุรกรรม">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!filter.type}
+                onClick={() => handleFilterChange({ type: undefined })}
+                className={cn(
+                  "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                  !filter.type
+                    ? "border-[var(--pw-primary)] bg-[var(--pw-primary)] text-white shadow-sm"
+                    : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-primary)] hover:text-[var(--pw-primary)]",
+                )}
+              >
+                <Layers className="size-3.5" />
+                ทั้งหมด
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={filter.type === "expense"}
+                onClick={() => handleFilterChange({ type: "expense" })}
+                className={cn(
+                  "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                  filter.type === "expense"
+                    ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
+                    : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
+                )}
+              >
+                <ArrowDownRight className="size-3.5" />
+                รายจ่าย
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={filter.type === "income"}
+                onClick={() => handleFilterChange({ type: "income" })}
+                className={cn(
+                  "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                  filter.type === "income"
+                    ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-[var(--pw-on-green)] font-semibold shadow-sm"
+                    : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
+                )}
+              >
+                <ArrowUpRight className="size-3.5" />
+                รายรับ
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={filter.type === "transfer"}
+                onClick={() => handleFilterChange({ type: "transfer" })}
+                className={cn(
+                  "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                  filter.type === "transfer"
+                    ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-[var(--pw-on-link)] font-semibold shadow-sm"
+                    : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
+                )}
+              >
+                <ArrowRightLeft className="size-3.5" />
+                โอน
+              </button>
+            </div>
+          </FormField>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="หมวดหมู่" htmlFor="sheet-category-filter" className="w-full min-w-0">
+              <Select
+                value={filter.categoryId === undefined ? "all" : String(filter.categoryId)}
+                onValueChange={(value) => handleFilterChange({
+                  categoryId: value === "all" ? undefined : Number(value),
+                })}
+              >
+                <SelectTrigger id="sheet-category-filter">
+                  <SelectValue placeholder="ทุกหมวดหมู่" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
+                  {categories?.map((category) => (
+                    <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+
+            <FormField label="แท็ก" htmlFor="sheet-tag-filter" className="w-full min-w-0">
+              <Select
+                value={filter.tagId === undefined ? "all" : String(filter.tagId)}
+                onValueChange={(value) => handleFilterChange({
+                  tagId: value === "all" ? undefined : Number(value),
+                })}
+              >
+                <SelectTrigger id="sheet-tag-filter">
+                  <SelectValue placeholder="ทุกแท็ก" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกแท็ก</SelectItem>
+                  {tags?.map((tag) => (
+                    <SelectItem key={tag.tagId} value={String(tag.tagId)}>{tag.tagName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+
+          <FormField label="บัญชี" htmlFor="sheet-account-filter" className="w-full min-w-0">
+            <Select
+              value={accountFilterId === undefined ? "all" : String(accountFilterId)}
+              onValueChange={(value) => handleFilterChange({
+                bankAccountId: value === "all" ? undefined : Number(value),
+              })}
+            >
+              <SelectTrigger id="sheet-account-filter">
+                <SelectValue placeholder="ทุกบัญชี" />
+              </SelectTrigger>
+              <SelectContent>
+                {bankAccounts?.length !== 1 && <SelectItem value="all">ทุกบัญชี</SelectItem>}
+                {bankAccounts?.map((account) => (
+                  <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>{account.accountName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="ตั้งแต่วันที่ (ค.ศ.)" htmlFor="sheet-from-date" className="w-full min-w-0">
+              <DateInput
+                id="sheet-from-date"
+                className="px-3 py-2 text-sm"
+                value={filter.fromDate ? toThailandDateInputValue(filter.fromDate) : ""}
+                onChange={(value) => {
+                  if (value && !isGregorianDateInput(value)) {
+                    toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
+                    return;
+                  }
+                  handleFilterChange({
+                    fromDate: value ? thailandDateBoundaryToUtcIso(value) : undefined,
+                  });
+                }}
+              />
+            </FormField>
+            <FormField label="ถึงวันที่ (ค.ศ.)" htmlFor="sheet-to-date" className="w-full min-w-0">
+              <DateInput
+                id="sheet-to-date"
+                className="px-3 py-2 text-sm"
+                value={filter.toDate ? toThailandDateInputValue(filter.toDate) : ""}
+                onChange={(value) => {
+                  if (value && !isGregorianDateInput(value)) {
+                    toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
+                    return;
+                  }
+                  handleFilterChange({
+                    toDate: value ? thailandDateBoundaryToUtcIso(value, true) : undefined,
+                  });
+                }}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="เรียงตาม" htmlFor="sheet-sort-by" className="w-full min-w-0">
+              <Select
+                value={sortBy}
+                onValueChange={(value) => {
+                  setSortBy(value === "amount" ? "amount" : "transactionDate");
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger id="sheet-sort-by">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="transactionDate">วันที่</SelectItem>
+                  <SelectItem value="amount">จำนวนเงิน</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="ลำดับ" htmlFor="sheet-sort-order" className="w-full min-w-0">
+              <Select
+                value={sortDesc ? "desc" : "asc"}
+                onValueChange={(value) => {
+                  setSortDesc(value === "desc");
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger id="sheet-sort-order">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">มากไปน้อย / ใหม่ไปเก่า</SelectItem>
+                  <SelectItem value="asc">น้อยไปมาก / เก่าไปใหม่</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 pt-4 border-t border-[var(--pw-hairline)]">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={resetFilters}
+              disabled={activeFilterCount === 0}
+            >
+              ล้างค่าทั้งหมด
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setShowFilterSheet(false)}
+            >
+              ดูรายการ ({data?.totalItems ?? 0})
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
 
       {isLoading ? (
         <TransactionCardsSkeleton count={6} />

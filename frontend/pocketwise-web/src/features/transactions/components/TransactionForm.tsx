@@ -196,7 +196,7 @@ export function TransactionForm({
                     className={cn(
                       "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "income"
-                        ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
+                        ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-[var(--pw-on-green)] font-semibold shadow-sm"
                         : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)] hover:bg-[var(--pw-green)]/10",
                     )}
                   >
@@ -214,7 +214,7 @@ export function TransactionForm({
                     className={cn(
                       "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "transfer"
-                        ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-black font-semibold shadow-sm"
+                        ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-[var(--pw-on-link)] font-semibold shadow-sm"
                         : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)] hover:bg-[var(--pw-link)]/10",
                     )}
                   >

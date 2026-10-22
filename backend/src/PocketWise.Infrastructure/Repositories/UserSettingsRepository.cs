@@ -24,7 +24,7 @@ public sealed class UserSettingsRepository : IUserSettingsRepository
             return settings;
         }
 
-        settings = new UserSettings { UserId = userId, UpdatedAt = DateTime.UtcNow };
+        settings = new UserSettings { UserId = userId, Theme = Theme.Dark, UpdatedAt = DateTime.UtcNow };
         await _context.UserSettings.AddAsync(settings, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return settings;

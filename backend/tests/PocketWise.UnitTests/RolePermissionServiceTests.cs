@@ -1,4 +1,4 @@
-using PocketWise.Application.DTOs.Roles;
+﻿using PocketWise.Application.DTOs.Roles;
 using PocketWise.Application.Features.Roles;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
@@ -66,6 +66,25 @@ public class RolePermissionServiceTests
             var permIds = RolePermissionMap.GetValueOrDefault(roleId, []);
             var result = Permissions.Where(p => permIds.Contains(p.PermissionId)).ToList();
             return Task.FromResult(result);
+        }
+
+        public Task<List<string>> GetPermissionCodesByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+        {
+            var roleNames = UserRoleMap.GetValueOrDefault(userId, []);
+            var matchingRoleIds = Roles
+                .Where(r => roleNames.Any(rn => string.Equals(rn, r.Name, StringComparison.OrdinalIgnoreCase)))
+                .Select(r => r.Id)
+                .ToList();
+            var permIds = matchingRoleIds
+                .SelectMany(rid => RolePermissionMap.GetValueOrDefault(rid, []))
+                .Distinct()
+                .ToList();
+            var codes = Permissions
+                .Where(p => permIds.Contains(p.PermissionId))
+                .Select(p => p.PermissionCode)
+                .Distinct()
+                .ToList();
+            return Task.FromResult(codes);
         }
 
         public Task<Dictionary<long, int>> GetRoleUserCountsAsync(CancellationToken cancellationToken = default)

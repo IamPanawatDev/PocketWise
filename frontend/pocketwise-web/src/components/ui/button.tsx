@@ -12,13 +12,13 @@ const buttonVariants = cva(
         outline:
           "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]",
         secondary:
-          "bg-[var(--pw-link)] text-[var(--pw-ink-dark)] hover:brightness-110",
+          "bg-[var(--pw-link)] text-[var(--pw-on-link)] hover:brightness-110",
         ghost:
           "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]",
         destructive:
           "bg-[var(--pw-magenta)] text-white hover:brightness-110",
         success:
-          "bg-[var(--pw-green)] text-[var(--pw-ink-dark)] hover:brightness-110",
+          "bg-[var(--pw-green)] text-[var(--pw-on-green)] hover:brightness-110",
         link: "text-[var(--pw-link)] underline-offset-4 hover:underline",
       },
       size: {

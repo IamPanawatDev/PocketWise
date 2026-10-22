@@ -108,12 +108,12 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th" suppressHydrationWarning>
+    <html lang="th" data-theme="dark" suppressHydrationWarning>
       <head>
         <script
           id="theme-init"
           dangerouslySetInnerHTML={{
-            __html: `try{const t=localStorage.getItem("pocketwise-theme");if(t){document.documentElement.dataset.theme=t;}}catch(e){}`,
+            __html: `try{const t=localStorage.getItem("pocketwise-theme")||"dark";document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme="dark";}`,
           }}
         />
         <script

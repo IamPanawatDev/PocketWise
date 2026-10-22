@@ -28,6 +28,7 @@ import {
   PieChart,
   Save,
   ShieldCheck,
+  Sparkles,
   Square,
   Wallet,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const MODULE_CONFIG: Record<
   Transactions: { label: "ธุรกรรมและการเงิน", icon: Wallet, color: "text-emerald-400" },
   Budgets: { label: "งบประมาณ", icon: Wallet, color: "text-amber-400" },
   Categories: { label: "หมวดหมู่และแท็ก", icon: FolderTree, color: "text-sky-400" },
+  Categorization: { label: "จัดหมวดหมู่อัตโนมัติ (Auto-Categorization)", icon: Sparkles, color: "text-pink-400" },
   Reports: { label: "รายงานและสถิติ", icon: PieChart, color: "text-indigo-400" },
   Imports: { label: "นำเข้าข้อมูลสลิป/สเตทเมนต์", icon: FileUp, color: "text-purple-400" },
   Admin: { label: "การจัดการระบบ (Admin)", icon: ShieldCheck, color: "text-rose-400" },

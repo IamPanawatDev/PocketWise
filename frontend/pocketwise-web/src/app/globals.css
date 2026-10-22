@@ -22,6 +22,10 @@
   --pw-ink-dark: #000000;
   --pw-muted: #333333;
   --pw-hairline: #23272a;
+  --pw-on-green: #000000;
+  --pw-on-link: #000000;
+  --pw-on-expense: #ffffff;
+  --pw-on-magenta: #ffffff;
 
   --pw-rounded-xs: 6px;
   --pw-rounded-sm: 12px;
@@ -81,7 +85,13 @@ html[data-theme="light"] {
   --pw-ink-dark: #111827;
   --pw-muted: #e9ebf2;
   --pw-hairline: #d7dae4;
+  --pw-on-green: #ffffff;
+  --pw-on-link: #ffffff;
+  --pw-on-expense: #ffffff;
+  --pw-on-magenta: #ffffff;
 
+  --secondary-foreground: #ffffff;
+  --accent-foreground: #ffffff;
   --muted-foreground: rgb(32 35 51 / 70%);
 }
 

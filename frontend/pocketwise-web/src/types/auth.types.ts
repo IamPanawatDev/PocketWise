@@ -23,6 +23,7 @@ export interface UserProfileResponse {
   birthDate: string | null;
   isEmailVerified: boolean;
   roles?: string[];
+  permissions?: string[];
 }
 
 export interface UpdateUserProfileRequest {

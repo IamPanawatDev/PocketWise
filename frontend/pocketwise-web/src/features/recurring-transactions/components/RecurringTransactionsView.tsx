@@ -204,7 +204,7 @@ export function RecurringTransactionsView() {
                         className={cn(
                           "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                           field.value === "income"
-                            ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black font-semibold shadow-sm"
+                            ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-[var(--pw-on-green)] font-semibold shadow-sm"
                             : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
                         )}
                       >

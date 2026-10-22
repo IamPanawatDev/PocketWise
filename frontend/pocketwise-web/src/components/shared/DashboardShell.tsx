@@ -47,6 +47,7 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   tooltip?: string;
+  permission?: string;
 }
 
 const mainNav: NavItem[] = [
@@ -55,7 +56,7 @@ const mainNav: NavItem[] = [
   { href: "/budgets", label: "งบประมาณ", icon: Wallet },
   { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard },
   { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat },
-  { href: "/categorization", label: "จัดหมวดอัตโนมัติ", icon: Sparkles },
+  { href: "/categorization", label: "จัดหมวดอัตโนมัติ", icon: Sparkles, permission: "CATEGORIZATION_VIEW" },
   { href: "/reports", label: "รายงาน", icon: PieChart },
   { href: "/categories", label: "หมวดหมู่", icon: FolderTree },
   { href: "/tags", label: "แท็ก", icon: Tags },
@@ -226,7 +227,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <TooltipProvider>
           <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
             {/* เมนูทั่วไป */}
-            {mainNav.map(renderNavItem)}
+            {mainNav
+              .filter((item) => !item.permission || isAdmin || user?.permissions?.includes(item.permission))
+              .map(renderNavItem)}
 
             {/* กลุ่มเมนู Admin */}
             {isAdmin && (

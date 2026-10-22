@@ -5,7 +5,7 @@ namespace PocketWise.Domain.Entities;
 public class UserSettings
 {
     public long UserId { get; set; }
-    public Theme Theme { get; set; } = Theme.Light;
+    public Theme Theme { get; set; } = Theme.Dark;
     public string CurrencyCode { get; set; } = "THB";
     public string Locale { get; set; } = "th-TH";
     public bool EmailBudgetAlertsEnabled { get; set; } = true;

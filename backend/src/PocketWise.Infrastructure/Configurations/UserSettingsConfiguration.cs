@@ -17,7 +17,7 @@ public class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
             .IsRequired()
             .HasConversion<string>()
             .HasMaxLength(10)
-            .HasDefaultValue(Theme.Light);
+            .HasDefaultValue(Theme.Dark);
 
         builder.Property(e => e.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("THB");
         builder.Property(e => e.Locale).IsRequired().HasMaxLength(10).HasDefaultValue("th-TH");
