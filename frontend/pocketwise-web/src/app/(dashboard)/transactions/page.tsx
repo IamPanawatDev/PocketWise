@@ -5,7 +5,10 @@ import { TransactionList } from "@/features/transactions/components/TransactionL
 import { TransactionPageSkeleton } from "@/components/shared/Skeletons";
 import { getCurrentThailandMonthFilter } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "รายการ — PocketWise" };
+export const metadata: Metadata = {
+  title: "รายการธุรกรรม รายรับ-รายจ่าย (Transactions)",
+  description: "จัดการและติดตามรายการรายรับ รายจ่าย ทั้งหมดของคุณอย่างละเอียด พร้อมตัวกรองและหมวดหมู่",
+};
 
 export default function TransactionsPage() {
   return (
