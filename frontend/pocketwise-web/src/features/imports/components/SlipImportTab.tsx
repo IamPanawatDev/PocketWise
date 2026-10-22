@@ -59,39 +59,43 @@ export function SlipImportTab() {
   const rejectMutation = useRejectSlip();
 
   async function prepareSlipFile(file: File): Promise<File> {
-    if (!file.type.startsWith("image/")) return file;
+    // Keep original high-resolution file for sharp OCR reading.
+    // Only downscale if the file is extremely massive (> 5MB)
+    if (!file.type.startsWith("image/") || file.size <= 5 * 1024 * 1024) return file;
+
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(url);
-        const maxDim = 1280;
+        const maxDim = 2400; // High resolution ceiling for massive files
         let { width, height } = img;
 
-        if (width <= maxDim && height <= maxDim && file.size <= 350 * 1024) {
+        if (width <= maxDim && height <= maxDim) {
           resolve(file);
           return;
         }
 
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
         }
+
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         if (!ctx) { resolve(file); return; }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob((blob) => {
           if (!blob) { resolve(file); return; }
           resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
-        }, "image/jpeg", 0.85);
+        }, "image/jpeg", 0.92);
       };
       img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
       img.src = url;
