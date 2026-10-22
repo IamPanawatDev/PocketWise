@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using PocketWise.Application.Features.Imports.DTOs;
 using PocketWise.Application.Interfaces;
 using Tesseract;
@@ -9,11 +10,11 @@ namespace PocketWise.Infrastructure.Services;
 public class TesseractSlipOcrService : ISlipOcrService
 {
     private static readonly Regex AmountRegex = new(
-        @"(?:จ[ำํา]นวนเงิน|ยอดเงิน|Amount|จำนวน)[:\s]*([0-9,]+(?:\.[0-9]{2})?)",
+        @"(?:จ[ำํา]นวนเงิน(?:รวม)?|ยอดเงิน(?:รวม)?|ยอดโอน|Amount|จำนวน)[:\s]*([0-9,]+(?:\.[0-9]{2})?)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex FallbackAmountRegex = new(
-        @"([0-9,]+\.[0-9]{2})\s*(?:บาท|THB)",
+        @"([0-9,]+\.[0-9]{2})\s*(?:บาท|THB|บ\.)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex ReferenceRegex = new(
@@ -27,6 +28,13 @@ public class TesseractSlipOcrService : ISlipOcrService
     private static readonly Regex SimpleDateRegex = new(
         @"((?:20\d{2}|25\d{2})[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))(?:[^\d]+([0-2]?\d)[:.]([0-5]\d))?",
         RegexOptions.Compiled);
+
+    private readonly ILogger<TesseractSlipOcrService>? _logger;
+
+    public TesseractSlipOcrService(ILogger<TesseractSlipOcrService>? logger = null)
+    {
+        _logger = logger;
+    }
 
     public async Task<SlipExtractedData> ExtractDataAsync(
         Stream fileStream,
@@ -47,6 +55,8 @@ public class TesseractSlipOcrService : ISlipOcrService
             var imageBytes = ms.ToArray();
 
             var tessDataPath = ResolveTessDataPath();
+            _logger?.LogInformation("[TesseractSlipOcrService] Resolved tessdata path: {Path}", tessDataPath);
+
             if (Directory.Exists(tessDataPath) && File.Exists(Path.Combine(tessDataPath, "tha.traineddata")))
             {
                 using var engine = new TesseractEngine(tessDataPath, "tha+eng", EngineMode.Default);
@@ -54,12 +64,19 @@ public class TesseractSlipOcrService : ISlipOcrService
                 using var page = engine.Process(pix);
 
                 var ocrText = page.GetText() ?? string.Empty;
+                _logger?.LogInformation("[TesseractSlipOcrService] OCR text length: {Len}", ocrText.Length);
                 ParseSlipText(ocrText, result);
+                _logger?.LogInformation("[TesseractSlipOcrService] Parsed: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}",
+                    result.BankCode, result.DetectedAmount, result.PayerName, result.PayeeName);
+            }
+            else
+            {
+                _logger?.LogWarning("[TesseractSlipOcrService] tessdata or tha.traineddata not found at {Path}", tessDataPath);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback: If OCR fails or file is not an image (e.g. PDF), return safe defaults
+            _logger?.LogError(ex, "[TesseractSlipOcrService] OCR extraction failed for file {FileName}.", fileName);
         }
 
         return result;
@@ -162,7 +179,6 @@ public class TesseractSlipOcrService : ISlipOcrService
             // Look for "จาก" (From)
             if (result.PayerName == null && (line.StartsWith("จาก") || line.StartsWith("จอาก") || line.Equals("from", StringComparison.OrdinalIgnoreCase)))
             {
-                // Name might be on same line or next line
                 var candidate = line.Replace("จาก", "").Replace("จอาก", "").Trim();
                 if (string.IsNullOrWhiteSpace(candidate) && i + 1 < lines.Count)
                 {
@@ -192,18 +208,13 @@ public class TesseractSlipOcrService : ISlipOcrService
         }
     }
 
-    private static string CleanName(string name)
+    private static string CleanName(string raw)
     {
-        if (string.IsNullOrWhiteSpace(name)) return string.Empty;
-
-        // Fix common Tesseract Thai artifacts
-        var cleaned = name
-            .Replace("บอก.", "บจก.")
-            .Replace("\"", "")
-            .Replace("'", "")
+        return Regex.Replace(raw, @"[0-9xX*#\-:.]+", " ")
+            .Replace("นาย", "")
+            .Replace("นางสาว", "")
+            .Replace("นาง", "")
             .Trim();
-
-        return cleaned;
     }
 
     private static bool IsBankNameOrAccount(string line)
@@ -257,6 +268,20 @@ public class TesseractSlipOcrService : ISlipOcrService
         if (Directory.Exists(local) && File.Exists(Path.Combine(local, "tha.traineddata")))
         {
             return Path.GetFullPath(local);
+        }
+
+        var linuxPaths = new[]
+        {
+            "/usr/share/tesseract-ocr/5/tessdata",
+            "/usr/share/tesseract-ocr/4.00/tessdata",
+            "/usr/share/tessdata"
+        };
+        foreach (var p in linuxPaths)
+        {
+            if (Directory.Exists(p) && File.Exists(Path.Combine(p, "tha.traineddata")))
+            {
+                return p;
+            }
         }
 
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

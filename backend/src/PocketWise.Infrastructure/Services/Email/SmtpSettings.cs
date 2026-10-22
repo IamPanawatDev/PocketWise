@@ -12,4 +12,5 @@ public class SmtpSettings
     public string Password { get; set; } = string.Empty;
     public string FromEmail { get; set; } = "noreply@pocketwise.local";
     public string FromDisplayName { get; set; } = "PocketWise";
+    public string? ResendApiKey { get; set; }
 }

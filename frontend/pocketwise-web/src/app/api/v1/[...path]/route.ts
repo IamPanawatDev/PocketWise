@@ -1,4 +1,7 @@
 import { NextRequest } from "next/server";
+
+
+export const maxDuration = 60;
 import { clearAuthCookies, getAccessToken, getRefreshToken, setAuthCookies } from "@/lib/server/auth";
 
 const API_BASE_URL =
