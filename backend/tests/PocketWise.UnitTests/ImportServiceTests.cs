@@ -33,7 +33,8 @@ public class ImportServiceTests
         Assert.Equal(2026, result.DetectedAt.Value.Year);
         Assert.Equal(9, result.DetectedAt.Value.Month);
         Assert.Equal(30, result.DetectedAt.Value.Day);
-        Assert.Equal(16, result.DetectedAt.Value.Hour);
+        // Stored as UTC: 16:07 Bangkok time (UTC+7) = 09:07 UTC
+        Assert.Equal(9, result.DetectedAt.Value.Hour);
         Assert.Equal(7, result.DetectedAt.Value.Minute);
     }
 
