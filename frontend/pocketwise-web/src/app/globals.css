@@ -339,3 +339,9 @@ html.light .pw-skeleton::after {
   animation: pw-modal-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
   pointer-events: none;
 }
+
+/* Prevent Radix body scroll lock from breaking mobile touch scrolling and causing layout jumps */
+body[data-scroll-locked] {
+  margin-right: 0 !important;
+  overflow: visible !important;
+}
