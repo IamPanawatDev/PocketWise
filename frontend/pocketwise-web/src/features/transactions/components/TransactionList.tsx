@@ -141,7 +141,7 @@ export function TransactionList({
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--pw-ink)]/50 pointer-events-none" />
             <Input
               id="transaction-search"
-              className="pl-9 pr-3 py-2 text-sm bg-[var(--pw-canvas)] w-full"
+              className="pl-9 pr-3 py-2 text-base md:text-sm bg-[var(--pw-canvas)] w-full"
               placeholder="ค้นหารายการ, ร้านค้า, หมายเหตุ..."
               value={filter.q ?? ""}
               onChange={(e) => handleFilterChange({ q: e.target.value || undefined })}
@@ -392,7 +392,7 @@ export function TransactionList({
             <FormField label="ตั้งแต่วันที่ (ค.ศ.)" htmlFor="sheet-from-date" className="w-full min-w-0">
               <DateInput
                 id="sheet-from-date"
-                className="px-3 py-2 text-sm"
+                className="px-3 py-2 text-base md:text-sm"
                 value={filter.fromDate ? toThailandDateInputValue(filter.fromDate) : ""}
                 onChange={(value) => {
                   if (value && !isGregorianDateInput(value)) {
@@ -408,7 +408,7 @@ export function TransactionList({
             <FormField label="ถึงวันที่ (ค.ศ.)" htmlFor="sheet-to-date" className="w-full min-w-0">
               <DateInput
                 id="sheet-to-date"
-                className="px-3 py-2 text-sm"
+                className="px-3 py-2 text-base md:text-sm"
                 value={filter.toDate ? toThailandDateInputValue(filter.toDate) : ""}
                 onChange={(value) => {
                   if (value && !isGregorianDateInput(value)) {

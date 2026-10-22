@@ -406,7 +406,7 @@ export function SystemCategoriesManager() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="ค้นหาหมวดหมู่..."
-            className="pl-9 h-9 text-xs"
+            className="pl-9 h-9 text-base md:text-xs"
           />
           {search && (
             <button
@@ -672,7 +672,7 @@ export function SystemCategoriesManager() {
                     type="text"
                     value={formColor}
                     onChange={(e) => setFormColor(e.target.value)}
-                    className="h-7 w-24 text-xs font-mono uppercase"
+                    className="h-7 w-24 text-base md:text-xs font-mono uppercase"
                     placeholder="#HEX"
                   />
                 </div>

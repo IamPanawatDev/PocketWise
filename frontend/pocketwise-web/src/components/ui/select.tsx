@@ -50,7 +50,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex h-11 w-full items-center justify-between gap-2 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-input-border)] bg-[var(--pw-input-surface)] px-4 text-left text-sm whitespace-nowrap text-[var(--pw-ink)] transition-colors outline-none focus-visible:border-[var(--pw-primary)] focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[var(--pw-magenta)] data-placeholder:text-[var(--pw-ink)]/55 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex h-11 w-full items-center justify-between gap-2 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-input-border)] bg-[var(--pw-input-surface)] px-4 text-left text-base md:text-sm whitespace-nowrap text-[var(--pw-ink)] transition-colors outline-none focus-visible:border-[var(--pw-primary)] focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[var(--pw-magenta)] data-placeholder:text-[var(--pw-ink)]/55 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
