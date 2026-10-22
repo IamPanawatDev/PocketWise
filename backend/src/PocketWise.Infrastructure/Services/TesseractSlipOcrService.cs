@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using PocketWise.Application.Features.Imports.DTOs;
@@ -57,6 +58,8 @@ public class TesseractSlipOcrService : ISlipOcrService
             var tessDataPath = ResolveTessDataPath();
             _logger?.LogInformation("[TesseractSlipOcrService] Resolved tessdata path: {Path}", tessDataPath);
 
+            EnsureLinuxNativeLibraries();
+
             if (Directory.Exists(tessDataPath) && File.Exists(Path.Combine(tessDataPath, "tha.traineddata")))
             {
                 TesseractEngine? engine = null;
@@ -66,14 +69,16 @@ public class TesseractSlipOcrService : ISlipOcrService
                 }
                 catch (Exception exInit)
                 {
-                    _logger?.LogWarning(exInit, "[TesseractSlipOcrService] Failed to init 'tha+eng', falling back to 'tha'");
+                    var msg = exInit.InnerException?.Message ?? exInit.Message;
+                    _logger?.LogWarning("[TesseractSlipOcrService] Failed to init 'tha+eng' ({Msg}), falling back to 'tha'", msg);
                     try
                     {
                         engine = new TesseractEngine(tessDataPath, "tha", EngineMode.Default);
                     }
                     catch (Exception exTha)
                     {
-                        _logger?.LogWarning(exTha, "[TesseractSlipOcrService] Failed to init 'tha', falling back to 'eng'");
+                        var msgTha = exTha.InnerException?.Message ?? exTha.Message;
+                        _logger?.LogWarning("[TesseractSlipOcrService] Failed to init 'tha' ({Msg}), falling back to 'eng'", msgTha);
                         engine = new TesseractEngine(tessDataPath, "eng", EngineMode.Default);
                     }
                 }
@@ -384,5 +389,82 @@ public class TesseractSlipOcrService : ISlipOcrService
         }
 
         return local;
+    }
+
+    private void EnsureLinuxNativeLibraries()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return;
+
+        try
+        {
+            var baseDir = AppContext.BaseDirectory;
+            var x64Dir = Path.Combine(baseDir, "x64");
+            Directory.CreateDirectory(x64Dir);
+
+            var leptTarget = Path.Combine(x64Dir, "libleptonica-1.82.0.so");
+            var tessTarget = Path.Combine(x64Dir, "libtesseract50.so");
+
+            if (!File.Exists(leptTarget) || new FileInfo(leptTarget).Length == 0)
+            {
+                var candidate = FindSystemLibrary("liblept.so");
+                if (candidate != null)
+                {
+                    File.Copy(candidate, leptTarget, true);
+                    File.Copy(candidate, Path.Combine(baseDir, "libleptonica-1.82.0.so"), true);
+                    _logger?.LogInformation("[TesseractSlipOcrService] Copied Leptonica from {Src} to {Dst}", candidate, leptTarget);
+                }
+            }
+
+            if (!File.Exists(tessTarget) || new FileInfo(tessTarget).Length == 0)
+            {
+                var candidate = FindSystemLibrary("libtesseract.so");
+                if (candidate != null)
+                {
+                    File.Copy(candidate, tessTarget, true);
+                    File.Copy(candidate, Path.Combine(baseDir, "libtesseract50.so"), true);
+                    _logger?.LogInformation("[TesseractSlipOcrService] Copied Tesseract from {Src} to {Dst}", candidate, tessTarget);
+                }
+            }
+
+            TesseractEnviornment.CustomSearchPath = baseDir;
+            _logger?.LogInformation("[TesseractSlipOcrService] CustomSearchPath set to: {Path}", baseDir);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "[TesseractSlipOcrService] Error while ensuring Linux native libraries.");
+        }
+    }
+
+    private static string? FindSystemLibrary(string prefix)
+    {
+        var searchDirs = new[]
+        {
+            "/usr/lib/x86_64-linux-gnu",
+            "/usr/lib",
+            "/usr/local/lib",
+            "/lib/x86_64-linux-gnu",
+            "/lib"
+        };
+
+        foreach (var dir in searchDirs)
+        {
+            if (!Directory.Exists(dir)) continue;
+
+            var files = Directory.GetFiles(dir, prefix + "*", SearchOption.TopDirectoryOnly);
+            foreach (var f in files)
+            {
+                try
+                {
+                    var fi = new FileInfo(f);
+                    if (fi.Length > 1000)
+                    {
+                        return f;
+                    }
+                }
+                catch { }
+            }
+        }
+
+        return null;
     }
 }
