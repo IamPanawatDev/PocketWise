@@ -25,11 +25,15 @@ public class TesseractSlipOcrService : ISlipOcrService
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex ThaiDateRegex = new(
-        @"([0-3]?\d)\s*([ก-๙\.]+)\s*(25\d{2}|20\d{2})(?:[^\d]+([0-2]?\d)[:.]([0-5]\d))?",
+        @"(?:วันที่(?:ทำรายการ)?[:\s]*)?([0-3]?\d)\s*([ก-๙a-zA-Z\.\s]{1,15}?)\s*(25\d{2}|20\d{2}|\b[56]\d\b)(?:[^\d\r\n]*([0-2]?\d)[:.]([0-5]\d)(?:[:.]([0-5]\d))?)?",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex NumericDateRegex = new(
+        @"([0-3]?\d)[-/](0?[1-9]|1[0-2])[-/](25\d{2}|20\d{2}|\b[56]\d\b)(?:[^\d\r\n]*([0-2]?\d)[:.]([0-5]\d)(?:[:.]([0-5]\d))?)?",
         RegexOptions.Compiled);
 
     private static readonly Regex SimpleDateRegex = new(
-        @"((?:20\d{2}|25\d{2})[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))(?:[^\d]+([0-2]?\d)[:.]([0-5]\d))?",
+        @"((?:20\d{2}|25\d{2})[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))(?:[^\d\r\n]*([0-2]?\d)[:.]([0-5]\d))?",
         RegexOptions.Compiled);
 
     private readonly ILogger<TesseractSlipOcrService>? _logger;
@@ -45,10 +49,7 @@ public class TesseractSlipOcrService : ISlipOcrService
         string contentType,
         CancellationToken cancellationToken = default)
     {
-        var result = new SlipExtractedData
-        {
-            DetectedAt = DateTime.UtcNow
-        };
+        var result = new SlipExtractedData();
 
         try
         {
@@ -205,38 +206,37 @@ public class TesseractSlipOcrService : ISlipOcrService
 
         // 4. Date and Time Detection
         var dateMatch = ThaiDateRegex.Match(text);
-        if (dateMatch.Success)
+        if (dateMatch.Success && int.TryParse(dateMatch.Groups[1].Value, out var day) && int.TryParse(dateMatch.Groups[3].Value, out var year))
         {
-            if (int.TryParse(dateMatch.Groups[1].Value, out var day) &&
-                int.TryParse(dateMatch.Groups[3].Value, out var year))
+            var monthStr = dateMatch.Groups[2].Value;
+            var month = ParseThaiMonth(monthStr);
+
+            if (month > 0)
             {
-                var monthStr = dateMatch.Groups[2].Value;
-                var month = ParseThaiMonth(monthStr);
+                var hour = 0;
+                var minute = 0;
+                var second = 0;
+                if (dateMatch.Groups[4].Success && int.TryParse(dateMatch.Groups[4].Value, out var h)) hour = h;
+                if (dateMatch.Groups[5].Success && int.TryParse(dateMatch.Groups[5].Value, out var m)) minute = m;
+                if (dateMatch.Groups[6].Success && int.TryParse(dateMatch.Groups[6].Value, out var s)) second = s;
 
-                if (month > 0)
-                {
-                    // Convert Buddhist Era to CE
-                    if (year >= 2500 && year <= 2600)
-                    {
-                        year -= 543;
-                    }
+                result.DetectedAt = CreateThailandUtcDateTime(year, month, day, hour, minute, second);
+            }
+        }
 
-                    var hour = 0;
-                    var minute = 0;
-                    if (dateMatch.Groups[4].Success && int.TryParse(dateMatch.Groups[4].Value, out var h))
-                    {
-                        hour = Math.Clamp(h, 0, 23);
-                    }
-                    if (dateMatch.Groups[5].Success && int.TryParse(dateMatch.Groups[5].Value, out var m))
-                    {
-                        minute = Math.Clamp(m, 0, 59);
-                    }
+        if (result.DetectedAt == null)
+        {
+            var numMatch = NumericDateRegex.Match(text);
+            if (numMatch.Success && int.TryParse(numMatch.Groups[1].Value, out var d) && int.TryParse(numMatch.Groups[2].Value, out var mo) && int.TryParse(numMatch.Groups[3].Value, out var y))
+            {
+                var hour = 0;
+                var minute = 0;
+                var second = 0;
+                if (numMatch.Groups[4].Success && int.TryParse(numMatch.Groups[4].Value, out var h)) hour = h;
+                if (numMatch.Groups[5].Success && int.TryParse(numMatch.Groups[5].Value, out var m)) minute = m;
+                if (numMatch.Groups[6].Success && int.TryParse(numMatch.Groups[6].Value, out var s)) second = s;
 
-                    if (day >= 1 && day <= DateTime.DaysInMonth(year, month))
-                    {
-                        result.DetectedAt = new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Utc);
-                    }
-                }
+                result.DetectedAt = CreateThailandUtcDateTime(y, mo, d, hour, minute, second);
             }
         }
 
@@ -245,7 +245,12 @@ public class TesseractSlipOcrService : ISlipOcrService
             var simpleDateMatch = SimpleDateRegex.Match(text);
             if (simpleDateMatch.Success && DateTime.TryParse(simpleDateMatch.Groups[1].Value, out var dt))
             {
-                result.DetectedAt = dt;
+                var hour = 0;
+                var minute = 0;
+                if (simpleDateMatch.Groups[2].Success && int.TryParse(simpleDateMatch.Groups[2].Value, out var h)) hour = h;
+                if (simpleDateMatch.Groups[3].Success && int.TryParse(simpleDateMatch.Groups[3].Value, out var m)) minute = m;
+
+                result.DetectedAt = CreateThailandUtcDateTime(dt.Year, dt.Month, dt.Day, hour, minute);
             }
         }
 
@@ -350,21 +355,48 @@ public class TesseractSlipOcrService : ISlipOcrService
 
     private static int ParseThaiMonth(string monthStr)
     {
-        var clean = monthStr.Replace(".", "").Replace(" ", "");
-        if (clean.Contains("มค") || clean.Contains("มกรา")) return 1;
-        if (clean.Contains("กพ") || clean.Contains("กุมภา")) return 2;
-        if (clean.Contains("มีค") || clean.Contains("มีนา")) return 3;
-        if (clean.Contains("เมย") || clean.Contains("เมษา")) return 4;
-        if (clean.Contains("พค") || clean.Contains("พฤษภา")) return 5;
-        if (clean.Contains("มิย") || clean.Contains("มิถุนา")) return 6;
-        if (clean.Contains("กค") || clean.Contains("กรกฎา")) return 7;
-        if (clean.Contains("สค") || clean.Contains("สิงหา")) return 8;
-        if (clean.Contains("กย") || clean.Contains("กทุย") || clean.Contains("กันยา")) return 9;
-        if (clean.Contains("ตค") || clean.Contains("ตุลา")) return 10;
-        if (clean.Contains("พย") || clean.Contains("พฤศจิกา")) return 11;
-        if (clean.Contains("ธค") || clean.Contains("ธันวา")) return 12;
+        var clean = monthStr.Replace(".", "").Replace(" ", "").ToLowerInvariant();
+        if (clean.Contains("มค") || clean.Contains("มกรา") || clean.StartsWith("jan")) return 1;
+        if (clean.Contains("กพ") || clean.Contains("กุมภา") || clean.StartsWith("feb")) return 2;
+        if (clean.Contains("มีค") || clean.Contains("มีนา") || clean.StartsWith("mar")) return 3;
+        if (clean.Contains("เมย") || clean.Contains("เมษา") || clean.StartsWith("apr")) return 4;
+        if (clean.Contains("พค") || clean.Contains("พฤษภา") || clean.StartsWith("may")) return 5;
+        if (clean.Contains("มิย") || clean.Contains("มิถุนา") || clean.StartsWith("jun")) return 6;
+        if (clean.Contains("กค") || clean.Contains("กรกฎา") || clean.StartsWith("jul")) return 7;
+        if (clean.Contains("สค") || clean.Contains("สิงหา") || clean.StartsWith("aug")) return 8;
+        if (clean.Contains("กย") || clean.Contains("กทุย") || clean.Contains("กันยา") || clean.StartsWith("sep")) return 9;
+        if (clean.Contains("ตค") || clean.Contains("ตุลา") || clean.StartsWith("oct")) return 10;
+        if (clean.Contains("พย") || clean.Contains("พฤศจิกา") || clean.StartsWith("nov")) return 11;
+        if (clean.Contains("ธค") || clean.Contains("ธันวา") || clean.StartsWith("dec")) return 12;
 
         return 0;
+    }
+
+    private static DateTime CreateThailandUtcDateTime(int year, int month, int day, int hour, int minute, int second = 0)
+    {
+        // 1. Normalize Buddhist Era to CE
+        if (year >= 2500 && year <= 2600)
+        {
+            year -= 543;
+        }
+        else if (year >= 50 && year <= 99)
+        {
+            year += 1957; // 2-digit Buddhist year (e.g. 69 -> 2569 -> 2026)
+        }
+        else if (year >= 20 && year <= 49)
+        {
+            year += 2000; // 2-digit CE year (e.g. 26 -> 2026)
+        }
+
+        month = Math.Clamp(month, 1, 12);
+        day = Math.Clamp(day, 1, DateTime.DaysInMonth(year, month));
+        hour = Math.Clamp(hour, 0, 23);
+        minute = Math.Clamp(minute, 0, 59);
+        second = Math.Clamp(second, 0, 59);
+
+        // Thai bank slips always display Thailand Local Time (Asia/Bangkok, UTC+7)
+        var dto = new DateTimeOffset(year, month, day, hour, minute, second, TimeSpan.FromHours(7));
+        return dto.UtcDateTime;
     }
 
     private static string ResolveTessDataPath()
