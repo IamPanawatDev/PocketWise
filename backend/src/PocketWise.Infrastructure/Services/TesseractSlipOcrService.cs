@@ -25,7 +25,7 @@ public class TesseractSlipOcrService : ISlipOcrService
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex ThaiDateRegex = new(
-        @"(?:(?:วัน(?:ที่)?|ทำรายการ|date)[:\s]*)?([0-3]?\d)\s*([ก-๙a-zA-Z\.\s,:-]{1,15}?)\s*(25\d{2}|20\d{2}|\b[56]\d\b)(?:[^\d\r\n]*([0-2]?\d)[:.]([0-5]\d)(?:[:.]([0-5]\d))?)?",
+        @"(?:(?:วัน(?:ที่)?|ทำรายการ|ทํารายการ|date)[:\s]*)?([0-3]?\d)\s*([ก-๙a-zA-Z\.\s,:-]{1,15}?)\s*(25\d{2}|20\d{2}|\b[56]\d\b)(?:[^\d\r\n]*([0-2]?\d)[:.]([0-5]\d)(?:[:.]([0-5]\d))?)?",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex NumericDateRegex = new(
@@ -142,6 +142,7 @@ public class TesseractSlipOcrService : ISlipOcrService
     private static void ParseSlipText(string text, SlipExtractedData result)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
+        result.RawText = text;
 
         var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries)
             .Select(l => l.Trim())
@@ -355,32 +356,47 @@ public class TesseractSlipOcrService : ISlipOcrService
             var line = lines[i];
 
             // Look for "จาก" (From)
-            if (result.PayerName == null && (line.StartsWith("จาก") || line.StartsWith("จอาก") || line.Equals("from", StringComparison.OrdinalIgnoreCase)))
+            if (result.PayerName == null)
             {
-                var candidate = line.Replace("จาก", "").Replace("จอาก", "").Trim();
-                if (string.IsNullOrWhiteSpace(candidate) && i + 1 < lines.Count)
+                var idx = line.IndexOf("จาก", StringComparison.Ordinal);
+                if (idx < 0) idx = line.IndexOf("จอาก", StringComparison.Ordinal);
+
+                if (idx >= 0 || line.Equals("from", StringComparison.OrdinalIgnoreCase) || Regex.IsMatch(line, @"\bfrom\b", RegexOptions.IgnoreCase))
                 {
-                    candidate = lines[i + 1];
-                }
-                candidate = CleanName(candidate);
-                if (!string.IsNullOrWhiteSpace(candidate) && !IsBankNameOrAccount(candidate))
-                {
-                    result.PayerName = candidate;
+                    var len = line.Contains("จอาก") ? 4 : 3;
+                    var candidate = idx >= 0 ? line.Substring(idx + len).Trim() : "";
+                    if (string.IsNullOrWhiteSpace(candidate) && i + 1 < lines.Count)
+                    {
+                        candidate = lines[i + 1];
+                    }
+                    candidate = CleanName(candidate);
+                    if (!string.IsNullOrWhiteSpace(candidate) && !IsBankNameOrAccount(candidate) && !candidate.Contains("โอนเงิน"))
+                    {
+                        result.PayerName = candidate;
+                    }
                 }
             }
 
             // Look for "ไปยัง" (To)
-            if (result.PayeeName == null && (line.StartsWith("ไปยัง") || line.StartsWith("ถึง") || line.Equals("to", StringComparison.OrdinalIgnoreCase)))
+            if (result.PayeeName == null)
             {
-                var candidate = line.Replace("ไปยัง", "").Replace("ถึง", "").Trim();
-                if (string.IsNullOrWhiteSpace(candidate) && i + 1 < lines.Count)
+                var idx = line.IndexOf("ไปยัง", StringComparison.Ordinal);
+                if (idx < 0) idx = line.IndexOf("ไปย้ง", StringComparison.Ordinal);
+                if (idx < 0) idx = line.IndexOf("ถึง", StringComparison.Ordinal);
+
+                if (idx >= 0 || line.Equals("to", StringComparison.OrdinalIgnoreCase) || Regex.IsMatch(line, @"\bto\b", RegexOptions.IgnoreCase))
                 {
-                    candidate = lines[i + 1];
-                }
-                candidate = CleanName(candidate);
-                if (!string.IsNullOrWhiteSpace(candidate) && !IsBankNameOrAccount(candidate))
-                {
-                    result.PayeeName = candidate;
+                    var len = line.Contains("ไปย้ง") ? 5 : (line.Contains("ไปยัง") ? 5 : 3);
+                    var candidate = idx >= 0 ? line.Substring(idx + len).Trim() : "";
+                    if (string.IsNullOrWhiteSpace(candidate) && i + 1 < lines.Count)
+                    {
+                        candidate = lines[i + 1];
+                    }
+                    candidate = CleanName(candidate);
+                    if (!string.IsNullOrWhiteSpace(candidate) && !IsBankNameOrAccount(candidate))
+                    {
+                        result.PayeeName = candidate;
+                    }
                 }
             }
         }
@@ -415,22 +431,44 @@ public class TesseractSlipOcrService : ISlipOcrService
 
     private static string CleanName(string raw)
     {
-        return Regex.Replace(raw, @"[0-9xX*#\-:.]+", " ")
-            .Replace("นาย", "")
-            .Replace("นางสาว", "")
-            .Replace("นาง", "")
-            .Trim();
+        // 1. Remove leading OCR noise, avatars, bullets, or symbols (e.g. "= นบ", "= ", "• ")
+        raw = Regex.Replace(raw, @"^[^a-zA-Zก-๙]+", "");
+        raw = Regex.Replace(raw, @"^(?:นบ|พบ)s*", "");
+        raw = Regex.Replace(raw, @"^บอก[.s]+", "");
+
+        // 2. Remove standard titles
+        raw = raw.Replace("นาย", "")
+                 .Replace("นางสาว", "")
+                 .Replace("นาง", "")
+                 .Replace("บจก.", "")
+                 .Replace("บจ.", "")
+                 .Replace("หจก.", "");
+
+        // 3. Remove digits, masking characters, quotes, and symbols
+        raw = Regex.Replace(raw, @"[0-9xX*#-:.\/'""()]+", " ");
+
+        return raw.Trim(' ', '=', '-', '*', '"', '\'', '.', ':', '_');
     }
 
     private static bool IsBankNameOrAccount(string line)
     {
         var lower = line.ToLowerInvariant();
         return lower.Contains("xxx-") ||
+               lower.Contains("xxx ") ||
                lower.Contains("%%%-") ||
+               lower.Contains("%%% ") ||
+               lower.Contains("พร้อมเพย์") ||
+               lower.Contains("promptpay") ||
                lower.Contains("กรุงไทย") ||
                lower.Contains("กสิกรไทย") ||
                lower.Contains("ไทยพาณิชย์") ||
-               lower.Contains("กรุงเทพ");
+               lower.Contains("กรุงเทพ") ||
+               lower.Contains("ทหารไทย") ||
+               lower.Contains("ttb") ||
+               lower.Contains("ออมสิน") ||
+               lower.Contains("กรุงศรี") ||
+               lower.Contains("ยูโอบี") ||
+               lower.Contains("uob");
     }
 
     private static string? DetectBank(string text)
@@ -460,7 +498,7 @@ public class TesseractSlipOcrService : ISlipOcrService
         if (clean.StartsWith("กค") || clean.Contains("กรกฎา") || clean.StartsWith("jul")) return 7;
         if (clean.StartsWith("ส") || clean.Contains("สค") || clean.Contains("สิงหา") || clean.StartsWith("aug")) return 8;
         if (clean.StartsWith("กย") || clean.Contains("กทุย") || clean.Contains("กันยา") || clean.StartsWith("sep")) return 9;
-        if (clean.StartsWith("ต") || clean.Contains("ตค") || clean.Contains("ตุลา") || clean.StartsWith("oct")) return 10;
+        if (clean.StartsWith("ต") || clean.Contains("ตค") || clean.Contains("ตุลา") || clean.StartsWith("oct") || clean == "aa" || clean == "da" || clean == "ad" || clean.Contains("aa") || clean.Contains("da")) return 10;
         if (clean.StartsWith("พย") || clean.Contains("พฤศจิกา") || clean.StartsWith("nov")) return 11;
         if (clean.StartsWith("ธ") || clean.Contains("ธค") || clean.Contains("ธันวา") || clean.StartsWith("dec")) return 12;
 

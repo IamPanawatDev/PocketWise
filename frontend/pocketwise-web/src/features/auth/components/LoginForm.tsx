@@ -38,7 +38,7 @@ export function LoginForm() {
   const onSubmit = (values: LoginFormValues) => login.mutate(values);
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
+    <main className="flex flex-1 items-center justify-center px-4 py-6">
       <motion.div
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
