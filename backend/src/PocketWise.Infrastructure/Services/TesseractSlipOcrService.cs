@@ -25,7 +25,7 @@ public class TesseractSlipOcrService : ISlipOcrService
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex ThaiDateRegex = new(
-        @"(?:วันที่(?:ทำรายการ)?[:\s]*)?([0-3]?\d)\s*([ก-๙a-zA-Z\.\s]{1,15}?)\s*(25\d{2}|20\d{2}|\b[56]\d\b)(?:[^\d\r\n]*([0-2]?\d)[:.]([0-5]\d)(?:[:.]([0-5]\d))?)?",
+        @"(?:(?:วัน(?:ที่)?|ทำรายการ|date)[:\s]*)?([0-3]?\d)\s*([ก-๙a-zA-Z\.\s,:-]{1,15}?)\s*(25\d{2}|20\d{2}|\b[56]\d\b)(?:[^\d\r\n]*([0-2]?\d)[:.]([0-5]\d)(?:[:.]([0-5]\d))?)?",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex NumericDateRegex = new(
@@ -205,42 +205,42 @@ public class TesseractSlipOcrService : ISlipOcrService
         }
 
         // 4. Date and Time Detection
-        // 4.1 Priority: Check specific lines containing date keywords or Thai month patterns
+        var matchedLineIdx = -1;
+        var capturedHour = 0;
+        var capturedMin = 0;
+        var capturedSec = 0;
+
+        // 4.1 Check lines for Thai Date patterns (checking every line so missing/typoed "วันที่" doesn't prevent matching)
         for (var i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            if (line.Contains("วันที่") || line.Contains("ทำรายการ") || line.Contains("Date", StringComparison.OrdinalIgnoreCase))
+            var searchContext = line;
+            if (i + 1 < lines.Count && Regex.IsMatch(lines[i + 1], @"\b[0-2]?\d[:.][0-5]\d\b"))
             {
-                var searchContext = line;
-                if (i + 1 < lines.Count && Regex.IsMatch(lines[i + 1], @"\b[0-2]?\d[:.][0-5]\d\b"))
-                {
-                    searchContext += " " + lines[i + 1];
-                }
+                searchContext += " " + lines[i + 1];
+            }
 
-                foreach (Match m in ThaiDateRegex.Matches(searchContext))
+            foreach (Match m in ThaiDateRegex.Matches(searchContext))
+            {
+                if (int.TryParse(m.Groups[1].Value, out var d) && int.TryParse(m.Groups[3].Value, out var yr))
                 {
-                    if (int.TryParse(m.Groups[1].Value, out var d) && int.TryParse(m.Groups[3].Value, out var yr))
+                    var mo = ParseThaiMonth(m.Groups[2].Value);
+                    if (mo > 0)
                     {
-                        var mo = ParseThaiMonth(m.Groups[2].Value);
-                        if (mo > 0)
-                        {
-                            var h = 0;
-                            var min = 0;
-                            var s = 0;
-                            if (m.Groups[4].Success && int.TryParse(m.Groups[4].Value, out var parsedH)) h = parsedH;
-                            if (m.Groups[5].Success && int.TryParse(m.Groups[5].Value, out var parsedM)) min = parsedM;
-                            if (m.Groups[6].Success && int.TryParse(m.Groups[6].Value, out var parsedS)) s = parsedS;
+                        matchedLineIdx = i;
+                        if (m.Groups[4].Success && int.TryParse(m.Groups[4].Value, out var parsedH)) capturedHour = parsedH;
+                        if (m.Groups[5].Success && int.TryParse(m.Groups[5].Value, out var parsedM)) capturedMin = parsedM;
+                        if (m.Groups[6].Success && int.TryParse(m.Groups[6].Value, out var parsedS)) capturedSec = parsedS;
 
-                            result.DetectedAt = CreateThailandUtcDateTime(yr, mo, d, h, min, s);
-                            break;
-                        }
+                        result.DetectedAt = CreateThailandUtcDateTime(yr, mo, d, capturedHour, capturedMin, capturedSec);
+                        break;
                     }
                 }
-                if (result.DetectedAt != null) break;
             }
+            if (result.DetectedAt != null) break;
         }
 
-        // 4.2 Global Thai Date Regex Match across entire text
+        // 4.2 Global Thai Date Regex Match fallback across entire text
         if (result.DetectedAt == null)
         {
             foreach (Match m in ThaiDateRegex.Matches(text))
@@ -250,16 +250,35 @@ public class TesseractSlipOcrService : ISlipOcrService
                     var month = ParseThaiMonth(m.Groups[2].Value);
                     if (month > 0)
                     {
-                        var hour = 0;
-                        var minute = 0;
-                        var second = 0;
-                        if (m.Groups[4].Success && int.TryParse(m.Groups[4].Value, out var h)) hour = h;
-                        if (m.Groups[5].Success && int.TryParse(m.Groups[5].Value, out var min)) minute = min;
-                        if (m.Groups[6].Success && int.TryParse(m.Groups[6].Value, out var s)) second = s;
+                        if (m.Groups[4].Success && int.TryParse(m.Groups[4].Value, out var h)) capturedHour = h;
+                        if (m.Groups[5].Success && int.TryParse(m.Groups[5].Value, out var min)) capturedMin = min;
+                        if (m.Groups[6].Success && int.TryParse(m.Groups[6].Value, out var s)) capturedSec = s;
 
-                        result.DetectedAt = CreateThailandUtcDateTime(year, month, day, hour, minute, second);
+                        result.DetectedAt = CreateThailandUtcDateTime(year, month, day, capturedHour, capturedMin, capturedSec);
                         break;
                     }
+                }
+            }
+        }
+
+        // 4.3 If date was found but time was 00:00, search adjacent lines for time pattern (e.g. "16:04" or "- 16:04")
+        if (result.DetectedAt != null && capturedHour == 0 && capturedMin == 0)
+        {
+            var searchLines = matchedLineIdx >= 0
+                ? lines.Skip(matchedLineIdx).Take(3)
+                : lines.Take(lines.Count);
+
+            foreach (var sLine in searchLines)
+            {
+                var timeMatch = Regex.Match(sLine, @"\b([0-2]?\d)[:.]([0-5]\d)(?:[:.]([0-5]\d))?\b");
+                if (timeMatch.Success && int.TryParse(timeMatch.Groups[1].Value, out var h) && int.TryParse(timeMatch.Groups[2].Value, out var m))
+                {
+                    var s = timeMatch.Groups[3].Success && int.TryParse(timeMatch.Groups[3].Value, out var parsedS) ? parsedS : 0;
+                    var prevUtc = result.DetectedAt.Value;
+                    // Compute new Thailand local time with captured hour/minute
+                    var dtLocal = prevUtc.AddHours(7);
+                    result.DetectedAt = CreateThailandUtcDateTime(dtLocal.Year, dtLocal.Month, dtLocal.Day, h, m, s);
+                    break;
                 }
             }
         }
@@ -395,19 +414,19 @@ public class TesseractSlipOcrService : ISlipOcrService
 
     private static int ParseThaiMonth(string monthStr)
     {
-        var clean = monthStr.Replace(".", "").Replace(" ", "").ToLowerInvariant();
-        if (clean.Contains("มค") || clean.Contains("มกรา") || clean.StartsWith("jan")) return 1;
-        if (clean.Contains("กพ") || clean.Contains("กุมภา") || clean.StartsWith("feb")) return 2;
-        if (clean.Contains("มีค") || clean.Contains("มีนา") || clean.StartsWith("mar")) return 3;
-        if (clean.Contains("เมย") || clean.Contains("เมษา") || clean.StartsWith("apr")) return 4;
-        if (clean.Contains("พค") || clean.Contains("พฤษภา") || clean.StartsWith("may")) return 5;
-        if (clean.Contains("มิย") || clean.Contains("มิถุนา") || clean.StartsWith("jun")) return 6;
-        if (clean.Contains("กค") || clean.Contains("กรกฎา") || clean.StartsWith("jul")) return 7;
-        if (clean.Contains("สค") || clean.Contains("สิงหา") || clean.StartsWith("aug")) return 8;
-        if (clean.Contains("กย") || clean.Contains("กทุย") || clean.Contains("กันยา") || clean.StartsWith("sep")) return 9;
-        if (clean.Contains("ตค") || clean.Contains("ตุลา") || clean.StartsWith("oct")) return 10;
-        if (clean.Contains("พย") || clean.Contains("พฤศจิกา") || clean.StartsWith("nov")) return 11;
-        if (clean.Contains("ธค") || clean.Contains("ธันวา") || clean.StartsWith("dec")) return 12;
+        var clean = Regex.Replace(monthStr, @"[\s\.\-_,:;#*]+", "").ToLowerInvariant();
+        if (clean.StartsWith("มค") || clean.Contains("มกรา") || clean.StartsWith("jan")) return 1;
+        if (clean.StartsWith("กพ") || clean.Contains("กุมภา") || clean.StartsWith("feb")) return 2;
+        if (clean.StartsWith("มีค") || clean.Contains("มีนา") || clean.StartsWith("mar")) return 3;
+        if (clean.StartsWith("เมย") || clean.Contains("เมษา") || clean.StartsWith("apr")) return 4;
+        if (clean.StartsWith("พค") || clean.Contains("พฤษภา") || clean.StartsWith("may")) return 5;
+        if (clean.StartsWith("มิย") || clean.Contains("มิถุนา") || clean.StartsWith("jun")) return 6;
+        if (clean.StartsWith("กค") || clean.Contains("กรกฎา") || clean.StartsWith("jul")) return 7;
+        if (clean.StartsWith("ส") || clean.Contains("สค") || clean.Contains("สิงหา") || clean.StartsWith("aug")) return 8;
+        if (clean.StartsWith("กย") || clean.Contains("กทุย") || clean.Contains("กันยา") || clean.StartsWith("sep")) return 9;
+        if (clean.StartsWith("ต") || clean.Contains("ตค") || clean.Contains("ตุลา") || clean.StartsWith("oct")) return 10;
+        if (clean.StartsWith("พย") || clean.Contains("พฤศจิกา") || clean.StartsWith("nov")) return 11;
+        if (clean.StartsWith("ธ") || clean.Contains("ธค") || clean.Contains("ธันวา") || clean.StartsWith("dec")) return 12;
 
         return 0;
     }
