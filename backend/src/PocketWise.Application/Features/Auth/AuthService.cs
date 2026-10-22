@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using FluentValidation;
 using PocketWise.Application.DTOs.Auth;
@@ -20,6 +20,7 @@ public class AuthService : IAuthService
     private readonly IEmailService _emailService;
     private readonly IAuditLogService? _auditLogService;
     private readonly ILogger<AuthService>? _logger;
+    private readonly IRolePermissionRepository? _rolePermissionRepository;
 
     private static readonly ConcurrentDictionary<long, DateTime> _verificationCooldowns = new();
     private static readonly ConcurrentDictionary<string, DateTime> _passwordResetCooldowns = new(StringComparer.OrdinalIgnoreCase);
@@ -31,7 +32,8 @@ public class AuthService : IAuthService
         IValidator<UpdateUserProfileRequest> profileValidator,
         IEmailService emailService,
         IAuditLogService? auditLogService = null,
-        ILogger<AuthService>? logger = null)
+        ILogger<AuthService>? logger = null,
+        IRolePermissionRepository? rolePermissionRepository = null)
     {
         _userManager = userManager;
         _refreshTokenRepository = refreshTokenRepository;
@@ -40,6 +42,7 @@ public class AuthService : IAuthService
         _emailService = emailService;
         _auditLogService = auditLogService;
         _logger = logger;
+        _rolePermissionRepository = rolePermissionRepository;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default)
@@ -181,6 +184,20 @@ public class AuthService : IAuthService
         var profile = MapToProfile(applicationUser);
         var roles = await _userManager.GetRolesAsync(applicationUser);
         profile.Roles = roles.ToList();
+
+        if (_rolePermissionRepository != null)
+        {
+            if (roles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
+            {
+                var allPermissions = await _rolePermissionRepository.GetAllPermissionsAsync(cancellationToken);
+                profile.Permissions = allPermissions.Select(p => p.PermissionCode).Distinct().ToList();
+            }
+            else
+            {
+                profile.Permissions = await _rolePermissionRepository.GetPermissionCodesByUserIdAsync(userId, cancellationToken);
+            }
+        }
+
         return profile;
     }
 
@@ -239,6 +256,19 @@ public class AuthService : IAuthService
         var updatedProfile = MapToProfile(applicationUser);
         var roles = await _userManager.GetRolesAsync(applicationUser);
         updatedProfile.Roles = roles.ToList();
+
+        if (_rolePermissionRepository != null && long.TryParse(userIdValue, out var parsedUserId))
+        {
+            if (roles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
+            {
+                var allPermissions = await _rolePermissionRepository.GetAllPermissionsAsync(cancellationToken);
+                updatedProfile.Permissions = allPermissions.Select(p => p.PermissionCode).Distinct().ToList();
+            }
+            else
+            {
+                updatedProfile.Permissions = await _rolePermissionRepository.GetPermissionCodesByUserIdAsync(parsedUserId, cancellationToken);
+            }
+        }
 
         if (_auditLogService != null && long.TryParse(userIdValue, out var uId))
         {

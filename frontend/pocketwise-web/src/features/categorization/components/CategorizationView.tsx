@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import {
   useCategoryRules,
@@ -61,6 +62,11 @@ const matchTypeLabels = {
 };
 
 export function CategorizationView() {
+  const { data: user, isLoading: userLoading } = useCurrentUser();
+  const isAdmin = user?.roles?.includes("Admin") ?? false;
+  const canView = isAdmin || (user?.permissions?.includes("CATEGORIZATION_VIEW") ?? false);
+  const canManage = isAdmin || (user?.permissions?.includes("CATEGORIZATION_MANAGE") ?? false);
+
   const { data: merchants, isLoading: merchantsLoading, isError: merchantsError } = useMerchants();
   const { data: rules, isLoading: rulesLoading, isError: rulesError } = useCategoryRules();
   const { data: categories } = useCategories();
@@ -139,6 +145,22 @@ export function CategorizationView() {
   const isSavingMerchant = createMerchant.isPending || updateMerchant.isPending;
   const isSavingRule = createRule.isPending || updateRule.isPending;
 
+  if (!userLoading && !canView) {
+    return (
+      <div className="space-y-8">
+        <Card className="p-8 text-center space-y-4">
+          <div className="inline-flex size-14 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 mx-auto">
+            <Sparkles className="size-8" />
+          </div>
+          <h2 className="text-xl font-bold">ไม่มีสิทธิ์เข้าถึงหน้านี้</h2>
+          <p className="text-sm text-[var(--pw-ink)]/70 max-w-md mx-auto">
+            คุณไม่ได้รับสิทธิ์ (CATEGORIZATION_VIEW) ในการเข้าถึงหน้าจัดหมวดหมู่อัตโนมัติ กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดสิทธิ์การใช้งาน
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <header>
@@ -152,6 +174,7 @@ export function CategorizationView() {
       </header>
 
       <section>
+        {canManage && (
         <Card className="mb-4 p-4 sm:p-6">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
             <Store className="size-5 text-[var(--pw-primary)]" />
@@ -196,6 +219,7 @@ export function CategorizationView() {
             </div>
           </form>
         </Card>
+        )}
         {merchantsLoading ? (
           <ListRowsSkeleton count={4} />
         ) : merchantsError ? (
@@ -218,6 +242,7 @@ export function CategorizationView() {
                       {merchant.defaultCategoryName ? ` · ${merchant.defaultCategoryName}` : ""}
                     </p>
                   </div>
+                  {canManage && (
                   <div className="flex gap-2">
                     <Button size="sm" variant="secondary" onClick={() => {
                       setEditingMerchant(merchant);
@@ -239,6 +264,7 @@ export function CategorizationView() {
                       trigger={<Button size="sm" variant="destructive" aria-label={`ลบร้านค้า ${merchant.merchantName}`}><Trash2 />ลบ</Button>}
                     />
                   </div>
+                  )}
                 </AnimatedListItem>
               ))}
             </AnimatedList>
@@ -247,6 +273,7 @@ export function CategorizationView() {
       </section>
 
       <section>
+        {canManage && (
         <Card className="mb-4 p-4 sm:p-6">
           <h2 className="mb-2 flex items-center gap-2 text-lg font-bold">
             <Sparkles className="size-5 text-[var(--pw-primary)]" />
@@ -306,6 +333,7 @@ export function CategorizationView() {
             </div>
           </form>
         </Card>
+        )}
         {rulesLoading ? (
           <ListRowsSkeleton count={4} />
         ) : rulesError ? (
@@ -327,7 +355,7 @@ export function CategorizationView() {
                       {matchTypeLabels[rule.matchType]}: “{rule.matchPattern}” · {rule.categoryName ?? "ไม่พบหมวด"}
                     </p>
                   </div>
-                  {!rule.isGlobal && (
+                  {!rule.isGlobal && canManage && (
                     <div className="flex gap-2">
                       <Button size="sm" variant="secondary" onClick={() => {
                         setEditingRule(rule);

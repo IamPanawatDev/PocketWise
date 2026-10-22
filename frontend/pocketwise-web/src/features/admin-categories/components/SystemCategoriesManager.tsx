@@ -635,7 +635,7 @@ export function SystemCategoriesManager() {
                     className={cn(
                       "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-semibold transition-colors",
                       formType === "income"
-                        ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-black shadow-xs"
+                        ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-[var(--pw-on-green)] shadow-xs"
                         : "border-[var(--pw-input-border)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)]"
                     )}
                   >

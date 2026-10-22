@@ -418,7 +418,7 @@ date,description,amount,type,ref
                 <Button
                   type="button"
                   size="sm"
-                  className="gap-2 bg-[var(--pw-accent-green)] text-black hover:bg-[var(--pw-accent-green)]/90"
+                  className="gap-2 bg-[var(--pw-green)] text-[var(--pw-on-green)] hover:brightness-110"
                   disabled={selectedItemIds.size === 0 || confirmMutation.isPending}
                   onClick={handleBatchConfirm}
                 >

@@ -13,6 +13,7 @@ public interface IRolePermissionRepository
 
     Task<List<Permission>> GetAllPermissionsAsync(CancellationToken cancellationToken = default);
     Task<List<Permission>> GetPermissionsByRoleIdAsync(long roleId, CancellationToken cancellationToken = default);
+    Task<List<string>> GetPermissionCodesByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<Dictionary<long, int>> GetRoleUserCountsAsync(CancellationToken cancellationToken = default);
     Task<Dictionary<long, int>> GetRolePermissionCountsAsync(CancellationToken cancellationToken = default);
 

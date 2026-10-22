@@ -53,7 +53,7 @@ export function BottomSheet({
               )}
             </div>
             <DialogPrimitive.Close
-              className="flex size-8 items-center justify-center rounded-full bg-white/5 text-[var(--pw-ink)]/70 transition-colors hover:bg-white/15 hover:text-[var(--pw-ink)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]"
+              className="flex size-8 items-center justify-center rounded-full bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/70 transition-colors hover:bg-[var(--pw-hairline)] hover:text-[var(--pw-ink)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]"
               aria-label="ปิด"
             >
               <X className="size-4" />

@@ -511,7 +511,7 @@ export function SlipImportTab() {
                     </Button>
                     <Button
                       type="button"
-                      className="gap-2 bg-[var(--pw-accent-green)] text-black hover:bg-[var(--pw-accent-green)]/90"
+                      className="gap-2 bg-[var(--pw-green)] text-[var(--pw-on-green)] hover:brightness-110"
                       disabled={confirmMutation.isPending || rejectMutation.isPending}
                       onClick={handleConfirm}
                     >

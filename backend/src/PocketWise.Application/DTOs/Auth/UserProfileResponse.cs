@@ -9,4 +9,5 @@ public class UserProfileResponse
     public DateOnly? BirthDate { get; set; }
     public bool IsEmailVerified { get; set; }
     public List<string> Roles { get; set; } = [];
+    public List<string> Permissions { get; set; } = [];
 }

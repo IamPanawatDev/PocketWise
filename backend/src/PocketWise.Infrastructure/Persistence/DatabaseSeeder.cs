@@ -102,6 +102,10 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
                 new() { PermissionCode = "CATEGORIES_MANAGE", PermissionName = "จัดการหมวดหมู่และแท็กส่วนตัว", Module = "Categories", Description = "สร้างและแก้ไขหมวดหมู่และแท็กของผู้ใช้", CreatedAt = DateTime.UtcNow },
                 new() { PermissionCode = "SYSTEM_CATEGORIES_MANAGE", PermissionName = "จัดการหมวดหมู่มาตรฐานของระบบ", Module = "Categories", Description = "เพิ่ม แก้ไข หรือนำเข้าหมวดหมู่มาตรฐานระบบ", CreatedAt = DateTime.UtcNow },
 
+                // Categorization
+                new() { PermissionCode = "CATEGORIZATION_VIEW", PermissionName = "ดูและเข้าถึงการจัดหมวดหมู่อัตโนมัติ", Module = "Categorization", Description = "เข้าถึงหน้ากฎและการแนะนำหมวดหมู่อัตโนมัติ", CreatedAt = DateTime.UtcNow },
+                new() { PermissionCode = "CATEGORIZATION_MANAGE", PermissionName = "จัดการกฎและร้านค้าจัดหมวดหมู่อัตโนมัติ", Module = "Categorization", Description = "สร้าง แก้ไข ลบกฎจัดหมวดหมู่และข้อมูลร้านค้า", CreatedAt = DateTime.UtcNow },
+
                 // Reports
                 new() { PermissionCode = "REPORTS_VIEW", PermissionName = "ดูรายงานและสถิติ", Module = "Reports", Description = "ดูรายงานสรุปรายรับรายจ่ายและกราฟวิเคราะห์", CreatedAt = DateTime.UtcNow },
                 new() { PermissionCode = "REPORTS_EXPORT", PermissionName = "ส่งออกข้อมูลรายงาน", Module = "Reports", Description = "ดาวน์โหลดหรือส่งออกรายงานทางการเงิน", CreatedAt = DateTime.UtcNow },
@@ -192,7 +196,7 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
         {
             "TRANSACTIONS_VIEW", "TRANSACTIONS_CREATE", "TRANSACTIONS_EDIT", "TRANSACTIONS_DELETE",
             "BUDGETS_VIEW", "BUDGETS_MANAGE",
-            "CATEGORIES_VIEW", "CATEGORIES_MANAGE",
+            "CATEGORIES_VIEW", "CATEGORIES_MANAGE", "CATEGORIZATION_VIEW", "CATEGORIZATION_MANAGE",
             "REPORTS_VIEW", "REPORTS_EXPORT", "IMPORTS_MANAGE"
         };
 
