@@ -14,6 +14,24 @@ namespace PocketWise.UnitTests;
 public class ImportServiceTests
 {
     [Theory]
+    [InlineData(@"C:\Users\Panawat\Desktop\PocketWise\SlipExam\slip_01.jpeg", "KTB", 1040.00, 2026, 10, 18, 9, 4, "ปนวัฒน์ช", "พรคณา อัศวหน้าเมือง")]
+    [InlineData(@"C:\Users\Panawat\Desktop\PocketWise\SlipExam\slip_01.jpg", "KTB", 160.00, 2026, 9, 30, 9, 7, "ปนวัฒน์ช", "ญาดา เกม เซ็นเตอร์")]
+    public async Task TestExamSlips(string path, string expectedBank, decimal expectedAmount, int year, int month, int day, int utcHour, int utcMin, string expectedPayer, string expectedPayee)
+    {
+        if (!File.Exists(path)) return;
+        using var stream = File.OpenRead(path);
+        var ocr = new TesseractSlipOcrService();
+        var result = await ocr.ExtractDataAsync(stream, Path.GetFileName(path), "image/jpeg");
+
+        Assert.Equal(expectedBank, result.BankCode);
+        Assert.Equal(expectedAmount, result.DetectedAmount);
+        Assert.NotNull(result.DetectedAt);
+        Assert.Equal(new DateTime(year, month, day, utcHour, utcMin, 0, DateTimeKind.Utc), result.DetectedAt);
+        Assert.Equal(expectedPayer, result.PayerName);
+        Assert.Equal(expectedPayee, result.PayeeName);
+    }
+
+    [Theory]
     [InlineData("วันที่ทำรายการ 18 ต.ค. 2569 - 16:04", 2026, 10, 18, 9, 4)]
     [InlineData("18 ต.ค. 2569 - 16:04", 2026, 10, 18, 9, 4)]
     [InlineData("วันที่ทำรายการ 30 ก.ย. 2569 - 16:07", 2026, 9, 30, 9, 7)]

@@ -8,4 +8,5 @@ public class SlipExtractedData
     public decimal? DetectedAmount { get; set; }
     public DateTime? DetectedAt { get; set; }
     public string? TransactionReference { get; set; }
+    public string? RawText { get; set; }
 }
