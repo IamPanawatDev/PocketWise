@@ -21,7 +21,7 @@ public class TesseractSlipOcrService : ISlipOcrService
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex ReferenceRegex = new(
-        @"(?:รหัสอ้างอิง|เลขที่รายการ|Ref(?:erence)?|Txn(?:ID)?)[.:\s]*([a-zA-Z0-9]{8,35})",
+        @"(?:(?:รหัส|หมายเลข|เลขที่)?อ้างอิง|เลขที่รายการ|Ref(?:erence)?|Txn(?:ID)?)[.:\s]*([a-zA-Z0-9]{8,35})",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex ThaiDateRegex = new(
@@ -158,7 +158,24 @@ public class TesseractSlipOcrService : ISlipOcrService
             result.TransactionReference = refMatch.Groups[1].Value.Trim();
         }
 
-        // 2.1 Fallback Reference Detection (e.g. Krungthai slips where ref is below "โอนเงินสำเร็จ" without prefix)
+        // 2.1 Line-based detection: check lines containing "อ้างอิง" or "Ref" or "Txn"
+        if (string.IsNullOrWhiteSpace(result.TransactionReference))
+        {
+            foreach (var line in lines)
+            {
+                if (line.Contains("อ้างอิง") || line.Contains("Ref", StringComparison.OrdinalIgnoreCase) || line.Contains("Txn", StringComparison.OrdinalIgnoreCase))
+                {
+                    var tokenMatch = Regex.Match(line, @"([a-zA-Z0-9]{12,35})");
+                    if (tokenMatch.Success)
+                    {
+                        result.TransactionReference = tokenMatch.Value.Trim();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 2.2 Fallback Reference Detection (lines following "โอนเงินสำเร็จ" / "ทำรายการสำเร็จ")
         if (string.IsNullOrWhiteSpace(result.TransactionReference))
         {
             for (var i = 0; i < lines.Count; i++)
@@ -166,16 +183,35 @@ public class TesseractSlipOcrService : ISlipOcrService
                 var line = lines[i];
                 if (line.Contains("โอนเงินสำเร็จ") || line.Contains("ทำรายการสำเร็จ") || line.Contains("บันทึกรายการสำเร็จ"))
                 {
-                    for (var j = 1; j <= 2 && i + j < lines.Count; j++)
+                    for (var j = 1; j <= 3 && i + j < lines.Count; j++)
                     {
                         var candidate = lines[i + j].Trim();
-                        if (Regex.IsMatch(candidate, @"^[a-zA-Z0-9]{12,35}$"))
+                        var tokenMatch = Regex.Match(candidate, @"([a-zA-Z0-9]{12,35})");
+                        if (tokenMatch.Success && !tokenMatch.Value.All(char.IsDigit))
                         {
-                            result.TransactionReference = candidate;
+                            result.TransactionReference = tokenMatch.Value.Trim();
                             break;
                         }
                     }
                     if (!string.IsNullOrWhiteSpace(result.TransactionReference)) break;
+                }
+            }
+        }
+
+        // 2.3 Standalone reference hash search (16-35 characters with both letters & digits, e.g. Ac78eddbe8bd24076)
+        if (string.IsNullOrWhiteSpace(result.TransactionReference))
+        {
+            foreach (var line in lines)
+            {
+                var match = Regex.Match(line, @"\b([a-zA-Z0-9]{16,35})\b");
+                if (match.Success)
+                {
+                    var val = match.Groups[1].Value;
+                    if (val.Any(char.IsLetter) && val.Any(char.IsDigit) && !val.Contains("xxx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.TransactionReference = val;
+                        break;
+                    }
                 }
             }
         }
