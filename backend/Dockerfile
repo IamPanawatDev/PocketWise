@@ -51,6 +51,16 @@ RUN mkdir -p /app/x64 /app/tessdata && \
         cp -L "$REAL_TESS" /app/x64/libtesseract.so && \
         cp -L "$REAL_TESS" /app/libtesseract.so; \
     fi && \
+    if [ -f /lib/x86_64-linux-gnu/libdl.so.2 ]; then \
+        ln -sf /lib/x86_64-linux-gnu/libdl.so.2 /lib/x86_64-linux-gnu/libdl.so && \
+        ln -sf /lib/x86_64-linux-gnu/libdl.so.2 /usr/lib/x86_64-linux-gnu/libdl.so && \
+        ln -sf /lib/x86_64-linux-gnu/libdl.so.2 /app/libdl.so && \
+        ln -sf /lib/x86_64-linux-gnu/libdl.so.2 /app/x64/libdl.so; \
+    elif [ -f /usr/lib/x86_64-linux-gnu/libdl.so.2 ]; then \
+        ln -sf /usr/lib/x86_64-linux-gnu/libdl.so.2 /usr/lib/x86_64-linux-gnu/libdl.so && \
+        ln -sf /usr/lib/x86_64-linux-gnu/libdl.so.2 /app/libdl.so && \
+        ln -sf /usr/lib/x86_64-linux-gnu/libdl.so.2 /app/x64/libdl.so; \
+    fi && \
     cp -rf /usr/share/tesseract-ocr/*/tessdata/* /app/tessdata/ 2>/dev/null || true && \
     ldconfig
 

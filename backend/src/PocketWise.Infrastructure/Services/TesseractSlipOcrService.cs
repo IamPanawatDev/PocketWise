@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using PocketWise.Application.Features.Imports.DTOs;
@@ -60,53 +62,73 @@ public class TesseractSlipOcrService : ISlipOcrService
 
             EnsureLinuxNativeLibraries();
 
+            var ocrSuccess = false;
+
             if (Directory.Exists(tessDataPath) && File.Exists(Path.Combine(tessDataPath, "tha.traineddata")))
             {
-                TesseractEngine? engine = null;
                 try
                 {
-                    engine = new TesseractEngine(tessDataPath, "tha+eng", EngineMode.Default);
-                }
-                catch (Exception exInit)
-                {
-                    var msg = exInit.InnerException?.Message ?? exInit.Message;
-                    _logger?.LogWarning("[TesseractSlipOcrService] Failed to init 'tha+eng' ({Msg}), falling back to 'tha'", msg);
+                    TesseractEngine? engine = null;
                     try
                     {
-                        engine = new TesseractEngine(tessDataPath, "tha", EngineMode.Default);
+                        engine = new TesseractEngine(tessDataPath, "tha+eng", EngineMode.Default);
                     }
-                    catch (Exception exTha)
+                    catch (Exception exInit)
                     {
-                        var msgTha = exTha.InnerException?.Message ?? exTha.Message;
-                        _logger?.LogWarning("[TesseractSlipOcrService] Failed to init 'tha' ({Msg}), falling back to 'eng'", msgTha);
-                        engine = new TesseractEngine(tessDataPath, "eng", EngineMode.Default);
+                        var msg = exInit.InnerException?.Message ?? exInit.Message;
+                        _logger?.LogWarning("[TesseractSlipOcrService] Failed to init 'tha+eng' ({Msg}), falling back to 'tha'", msg);
+                        try
+                        {
+                            engine = new TesseractEngine(tessDataPath, "tha", EngineMode.Default);
+                        }
+                        catch (Exception exTha)
+                        {
+                            var msgTha = exTha.InnerException?.Message ?? exTha.Message;
+                            _logger?.LogWarning("[TesseractSlipOcrService] Failed to init 'tha' ({Msg}), falling back to 'eng'", msgTha);
+                            engine = new TesseractEngine(tessDataPath, "eng", EngineMode.Default);
+                        }
+                    }
+
+                    using (engine)
+                    {
+                        using var pix = Pix.LoadFromMemory(imageBytes);
+                        using var page = engine.Process(pix);
+
+                        var ocrText = page.GetText() ?? string.Empty;
+                        if (!string.IsNullOrWhiteSpace(ocrText))
+                        {
+                            var preview = ocrText.Length > 200 ? ocrText[..200].Replace("\r", " ").Replace("\n", " ") : ocrText.Replace("\r", " ").Replace("\n", " ");
+                            _logger?.LogInformation("[TesseractSlipOcrService] In-process OCR text length: {Len}, Sample: {Preview}", ocrText.Length, preview);
+                            ParseSlipText(ocrText, result);
+                            ocrSuccess = true;
+                        }
                     }
                 }
-
-                using (engine)
+                catch (Exception exInProcess)
                 {
-                    using var pix = Pix.LoadFromMemory(imageBytes);
-                    using var page = engine.Process(pix);
-
-                    var ocrText = page.GetText() ?? string.Empty;
-                    if (ocrText.Length == 0)
-                    {
-                        _logger?.LogWarning("[TesseractSlipOcrService] OCR returned empty text for file {FileName}.", fileName);
-                    }
-                    else
-                    {
-                        var preview = ocrText.Length > 200 ? ocrText[..200].Replace("\r", " ").Replace("\n", " ") : ocrText.Replace("\r", " ").Replace("\n", " ");
-                        _logger?.LogInformation("[TesseractSlipOcrService] OCR text length: {Len}, Sample: {Preview}", ocrText.Length, preview);
-                    }
-                    ParseSlipText(ocrText, result);
-                    _logger?.LogInformation("[TesseractSlipOcrService] Parsed: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
-                        result.BankCode, result.DetectedAmount, result.PayerName, result.PayeeName, result.TransactionReference);
+                    _logger?.LogWarning(exInProcess, "[TesseractSlipOcrService] In-process TesseractEngine failed, trying CLI fallback...");
                 }
             }
             else
             {
                 _logger?.LogWarning("[TesseractSlipOcrService] tessdata or tha.traineddata not found at {Path}", tessDataPath);
             }
+
+            // Fallback to native system CLI (works 100% reliably in Linux containers without P/Invoke or libdl issues)
+            if (!ocrSuccess || result.DetectedAmount == null)
+            {
+                _logger?.LogInformation("[TesseractSlipOcrService] Running Tesseract CLI fallback for {FileName}...", fileName);
+                var cliText = await RunTesseractCliFallbackAsync(imageBytes, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(cliText))
+                {
+                    var preview = cliText.Length > 200 ? cliText[..200].Replace("\r", " ").Replace("\n", " ") : cliText.Replace("\r", " ").Replace("\n", " ");
+                    _logger?.LogInformation("[TesseractSlipOcrService] CLI fallback OCR text length: {Len}, Sample: {Preview}", cliText.Length, preview);
+                    ParseSlipText(cliText, result);
+                }
+            }
+
+            _logger?.LogInformation("[TesseractSlipOcrService] Final Parsed: Bank={Bank}, Amount={Amt}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
+                result.BankCode, result.DetectedAmount, result.PayerName, result.PayeeName, result.TransactionReference);
         }
         catch (Exception ex)
         {
@@ -403,6 +425,18 @@ public class TesseractSlipOcrService : ISlipOcrService
 
             var leptTarget = Path.Combine(x64Dir, "libleptonica-1.82.0.so");
             var tessTarget = Path.Combine(x64Dir, "libtesseract50.so");
+            var libdlTarget = Path.Combine(baseDir, "libdl.so");
+
+            if (!File.Exists(libdlTarget))
+            {
+                var candidate = FindSystemLibrary("libdl.so") ?? FindSystemLibrary("libc.so");
+                if (candidate != null)
+                {
+                    File.Copy(candidate, libdlTarget, true);
+                    File.Copy(candidate, Path.Combine(x64Dir, "libdl.so"), true);
+                    _logger?.LogInformation("[TesseractSlipOcrService] Copied libdl from {Src} to {Dst}", candidate, libdlTarget);
+                }
+            }
 
             if (!File.Exists(leptTarget) || new FileInfo(leptTarget).Length == 0)
             {
@@ -466,5 +500,57 @@ public class TesseractSlipOcrService : ISlipOcrService
         }
 
         return null;
+    }
+
+    private async Task<string> RunTesseractCliFallbackAsync(byte[] imageBytes, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var tempFile = Path.Combine(Path.GetTempPath(), $"slip_{Guid.NewGuid():N}.jpg");
+            await File.WriteAllBytesAsync(tempFile, imageBytes, cancellationToken);
+
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "tesseract",
+                    Arguments = $"\"{tempFile}\" stdout -l tha+eng --psm 3",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = Encoding.UTF8
+                };
+
+                using var process = Process.Start(psi);
+                if (process == null) return string.Empty;
+
+                var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+                var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+                await process.WaitForExitAsync(cancellationToken);
+                var text = await stdoutTask;
+                var err = await stderrTask;
+
+                if (!string.IsNullOrWhiteSpace(err))
+                {
+                    _logger?.LogInformation("[TesseractSlipOcrService - CLI] stderr: {Err}", err);
+                }
+
+                return text;
+            }
+            finally
+            {
+                if (File.Exists(tempFile))
+                {
+                    try { File.Delete(tempFile); } catch { }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "[TesseractSlipOcrService] CLI fallback execution failed.");
+            return string.Empty;
+        }
     }
 }
