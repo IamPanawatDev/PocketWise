@@ -21,6 +21,7 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString, npgsqlOptions =>
             {
                 npgsqlOptions.MigrationsAssembly(typeof(PocketWiseDbContext).Assembly.FullName);
+                npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
             });
         });
 
