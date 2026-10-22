@@ -113,7 +113,7 @@ export function UserRolesManager() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ค้นหาชื่อ, อีเมล หรือบทบาท..."
-            className="pl-9 h-9 text-xs"
+            className="pl-9 h-9 text-base md:text-xs"
           />
         </div>
       </div>
