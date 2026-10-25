@@ -17,6 +17,7 @@ import {
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTags } from "@/features/tags/hooks/useTags";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
+import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
@@ -69,10 +70,8 @@ export function TransactionList({
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
   const { data: bankAccounts } = useBankAccounts();
-  const accountFilterId = filter.bankAccountId ??
-    (bankAccounts?.length === 1 ? bankAccounts[0].bankAccountId : undefined);
-  const effectiveFilter = { ...filter, bankAccountId: accountFilterId };
-  const { data, isLoading } = useTransactions(effectiveFilter, page, sortBy, sortDesc);
+  const { data: creditCards } = useCreditCards();
+  const { data, isLoading } = useTransactions(filter, page, sortBy, sortDesc);
   const remove = useDeleteTransaction();
 
   const handleFilterChange = (patch: Partial<TransactionFilter>) => {
@@ -86,6 +85,7 @@ export function TransactionList({
     if (filter.categoryId !== undefined) count++;
     if (filter.tagId !== undefined) count++;
     if (filter.bankAccountId !== undefined) count++;
+    if (filter.creditCardId !== undefined) count++;
     if (filter.fromDate) count++;
     if (filter.toDate) count++;
     if (sortBy !== "transactionDate" || !sortDesc) count++;
@@ -215,6 +215,19 @@ export function TransactionList({
                   onClick={() => handleFilterChange({ bankAccountId: undefined })}
                   className="hover:text-[var(--pw-expense)] ml-0.5"
                   aria-label="ลบตัวกรองบัญชี"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
+            {filter.creditCardId !== undefined && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                บัตรเครดิต: {creditCards?.find((c) => c.creditCardId === filter.creditCardId)?.cardName ?? filter.creditCardId}
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ creditCardId: undefined })}
+                  className="hover:text-[var(--pw-expense)] ml-0.5"
+                  aria-label="ลบตัวกรองบัตรเครดิต"
                 >
                   <X className="size-3" />
                 </button>
@@ -369,24 +382,45 @@ export function TransactionList({
             </FormField>
           </div>
 
-          <FormField label="บัญชี" htmlFor="sheet-account-filter" className="w-full min-w-0">
-            <Select
-              value={accountFilterId === undefined ? "all" : String(accountFilterId)}
-              onValueChange={(value) => handleFilterChange({
-                bankAccountId: value === "all" ? undefined : Number(value),
-              })}
-            >
-              <SelectTrigger id="sheet-account-filter">
-                <SelectValue placeholder="ทุกบัญชี" />
-              </SelectTrigger>
-              <SelectContent>
-                {bankAccounts?.length !== 1 && <SelectItem value="all">ทุกบัญชี</SelectItem>}
-                {bankAccounts?.map((account) => (
-                  <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>{account.accountName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="บัญชีธนาคาร" htmlFor="sheet-account-filter" className="w-full min-w-0">
+              <Select
+                value={filter.bankAccountId === undefined ? "all" : String(filter.bankAccountId)}
+                onValueChange={(value) => handleFilterChange({
+                  bankAccountId: value === "all" ? undefined : Number(value),
+                })}
+              >
+                <SelectTrigger id="sheet-account-filter">
+                  <SelectValue placeholder="ทุกบัญชี" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกบัญชี</SelectItem>
+                  {bankAccounts?.map((account) => (
+                    <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>{account.accountName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+
+            <FormField label="บัตรเครดิต" htmlFor="sheet-credit-card-filter" className="w-full min-w-0">
+              <Select
+                value={filter.creditCardId === undefined ? "all" : String(filter.creditCardId)}
+                onValueChange={(value) => handleFilterChange({
+                  creditCardId: value === "all" ? undefined : Number(value),
+                })}
+              >
+                <SelectTrigger id="sheet-credit-card-filter">
+                  <SelectValue placeholder="ทุกบัตรเครดิต" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกบัตรเครดิต</SelectItem>
+                  {creditCards?.map((card) => (
+                    <SelectItem key={card.creditCardId} value={String(card.creditCardId)}>{card.cardName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label="ตั้งแต่วันที่ (ค.ศ.)" htmlFor="sheet-from-date" className="w-full min-w-0">
@@ -551,10 +585,16 @@ export function TransactionList({
                     <span className="rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)]">
                       {t.categoryName ?? "ไม่มีหมวดหมู่"}
                     </span>
-                    {Boolean(t.bankAccountId && bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName) && (
+                    {Boolean(t.bankAccountId && (t.bankAccountName ?? bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName)) && (
                       <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
                         <Landmark className="mr-1 size-3 text-[var(--pw-link)]" />
-                        {bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName}
+                        {t.bankAccountName ?? bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName}
+                      </span>
+                    )}
+                    {Boolean(t.creditCardId && (t.creditCardName ?? creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName)) && (
+                      <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
+                        <CreditCard className="mr-1 size-3 text-[var(--pw-accent)]" />
+                        {t.creditCardName ?? creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName}
                       </span>
                     )}
                     {t.sourceType && t.sourceType !== "manual" && (

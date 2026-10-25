@@ -10,4 +10,5 @@ public class ConfirmSlipRequest
     public string? PayeeName { get; set; }
     public string? PayerName { get; set; }
     public string? TransactionReference { get; set; }
+    public List<long>? TagIds { get; set; }
 }

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { clearAuthCookies, getAccessToken, getRefreshToken, setAuthCookies } from "@/lib/server/auth";
 import {
   clearAuthCookiesFrom,
@@ -6,10 +6,11 @@ import {
   setAuthCookiesFromData,
 } from "@/lib/server/auth-endpoints";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const forceRefresh = req.nextUrl.searchParams.get("refresh") === "true";
   let token = await getAccessToken();
 
-  if (!token) {
+  if (!token || forceRefresh) {
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
       const newTokens = await refreshAuthTokens(refreshToken);
@@ -19,7 +20,7 @@ export async function GET() {
         const res = NextResponse.json({ accessToken: token });
         setAuthCookiesFromData(res, newTokens);
         return res;
-      } else {
+      } else if (!token) {
         await clearAuthCookies();
         const res = NextResponse.json({ accessToken: null }, { status: 401 });
         clearAuthCookiesFrom(res);

@@ -26,6 +26,7 @@ export interface ConfirmSlipRequest {
   payeeName?: string | null;
   payerName?: string | null;
   transactionReference?: string | null;
+  tagIds?: number[];
 }
 
 export interface StatementItemResponse {
