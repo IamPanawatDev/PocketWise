@@ -34,6 +34,7 @@ import {
   useRejectSlip,
 } from "@/features/imports/hooks/useImports";
 import type { SlipImportResponse } from "@/types/import.types";
+import { toast } from "sonner";
 import { cn, getReadableTextColor, toThailandDateTimeInputValue, thailandDateTimeInputToUtcIso } from "@/lib/utils";
 
 export function SlipImportTab() {
@@ -197,13 +198,12 @@ export function SlipImportTab() {
       },
       {
         onSuccess: () => {
+          toast.success("ยืนยันและบันทึกรายการธุรกรรมเรียบร้อยแล้ว");
           setStatusMessage({
             type: "success",
             text: "ยืนยันและบันทึกรายการธุรกรรมเรียบร้อยแล้ว",
           });
-          setUploadedSlip((prev) =>
-            prev ? { ...prev, reviewStatus: "confirmed" } : null,
-          );
+          handleReset(true);
         },
         onError: (err) => {
           setStatusMessage({
@@ -219,13 +219,12 @@ export function SlipImportTab() {
     if (!uploadedSlip) return;
     rejectMutation.mutate(uploadedSlip.slipImportFileId, {
       onSuccess: () => {
+        toast.info("ปฏิเสธสลิปรายการนี้เรียบร้อยแล้ว");
         setStatusMessage({
           type: "success",
           text: "ปฏิเสธสลิปรายการนี้เรียบร้อยแล้ว",
         });
-        setUploadedSlip((prev) =>
-          prev ? { ...prev, reviewStatus: "rejected" } : null,
-        );
+        handleReset(true);
       },
       onError: (err) => {
         setStatusMessage({
@@ -236,13 +235,20 @@ export function SlipImportTab() {
     });
   };
 
-  const handleReset = () => {
+  const handleReset = (keepStatusMessage = false) => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(null);
     setUploadedSlip(null);
     setAmount("");
     setDescription("");
+    setCategoryId("");
+    setTransactionDate("");
     setSelectedTagIds([]);
-    setStatusMessage(null);
+    if (!keepStatusMessage) {
+      setStatusMessage(null);
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -345,7 +351,7 @@ export function SlipImportTab() {
               variant="outline"
               size="sm"
               className="w-full gap-2 text-[var(--pw-text-secondary)]"
-              onClick={handleReset}
+              onClick={() => handleReset(false)}
             >
               <RotateCcw className="h-4 w-4" />
               อัปโหลดสลิปอื่น
