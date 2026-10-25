@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using FluentValidation;
 using PocketWise.Application.DTOs.Auth;
@@ -120,7 +120,7 @@ public class AuthService : IAuthService
         var tokenHash = _tokenService.HashToken(request.RefreshToken);
         var storedToken = await _refreshTokenRepository.GetByHashAsync(tokenHash, cancellationToken);
 
-        if (storedToken is null || storedToken.ExpiresAt <= DateTime.UtcNow || storedToken.RevokedAt is not null)
+        if (storedToken is null || storedToken.ExpiresAt <= DateTime.UtcNow)
         {
             return null;
         }
@@ -128,6 +128,17 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(storedToken.UserId.ToString());
         if (user is null || !user.IsActive)
         {
+            return null;
+        }
+
+        if (storedToken.RevokedAt is not null)
+        {
+            if (storedToken.ReasonRevoked == RevokeReason.Rotated &&
+                storedToken.RevokedAt > DateTime.UtcNow.AddSeconds(-60))
+            {
+                return await GenerateTokenPairAndSaveAsync(user, ipAddress, userAgent, cancellationToken);
+            }
+
             return null;
         }
 

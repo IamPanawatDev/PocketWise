@@ -301,6 +301,14 @@ public class SlipImportService : ISlipImportService
             CreatedAt = DateTime.UtcNow
         };
 
+        if (request.TagIds is { Count: > 0 })
+        {
+            transaction.TransactionTags = request.TagIds
+                .Distinct()
+                .Select(tagId => new TransactionTag { TagId = tagId })
+                .ToList();
+        }
+
         await _repository.AddTransactionAsync(transaction, cancellationToken);
 
         // Update slip and job
@@ -366,6 +374,9 @@ public class SlipImportService : ISlipImportService
             BankAccountId = transaction.BankAccountId,
             CreditCardId = null,
             Description = transaction.Description,
+            Tags = transaction.TransactionTags
+                .Select(t => new TagRef { TagId = t.TagId, TagName = string.Empty })
+                .ToList(),
             SourceType = SourceType.Slip,
             Status = TransactionStatus.Confirmed,
             CreatedAt = transaction.CreatedAt

@@ -13,7 +13,9 @@ public class TransactionResponse
     public long? CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public long? BankAccountId { get; set; }
+    public string? BankAccountName { get; set; }
     public long? CreditCardId { get; set; }
+    public string? CreditCardName { get; set; }
     public SourceType SourceType { get; set; }
     public long? TransferGroupId { get; set; }
     public long? RecurringTransactionId { get; set; }

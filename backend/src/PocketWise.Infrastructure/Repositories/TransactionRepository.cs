@@ -21,6 +21,8 @@ public class TransactionRepository : ITransactionRepository
     {
         return await _context.Transactions
             .Include(t => t.Category)
+            .Include(t => t.BankAccount)
+            .Include(t => t.CreditCard)
             .Include(t => t.TransactionTags)
                 .ThenInclude(tt => tt.Tag)
             .FirstOrDefaultAsync(t => t.TransactionId == id && t.UserId == userId && !t.IsDeleted, cancellationToken);
@@ -31,6 +33,8 @@ public class TransactionRepository : ITransactionRepository
         var query = _context.Transactions
             .AsNoTracking()
             .Include(t => t.Category)
+            .Include(t => t.BankAccount)
+            .Include(t => t.CreditCard)
             .Include(t => t.TransactionTags)
                 .ThenInclude(tt => tt.Tag)
             .Where(t => t.UserId == userId && !t.IsDeleted);

@@ -23,6 +23,31 @@ export class ApiError extends Error {
 }
 
 let isRedirecting = false;
+let clientRefreshPromise: Promise<boolean> | null = null;
+
+async function attemptClientRefresh(): Promise<boolean> {
+  if (clientRefreshPromise) return clientRefreshPromise;
+
+  clientRefreshPromise = (async () => {
+    try {
+      const res = await fetch("/api/auth/token?refresh=true", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      return Boolean(data?.accessToken);
+    } catch {
+      return false;
+    } finally {
+      setTimeout(() => {
+        clientRefreshPromise = null;
+      }, 3000);
+    }
+  })();
+
+  return clientRefreshPromise;
+}
 
 async function request<T>(
   path: string,
@@ -36,12 +61,25 @@ async function request<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(path, {
+  let res = await fetch(path, {
     ...options,
     credentials: "include",
     headers,
     cache: "no-store",
   });
+
+  // If 401 and not an auth route itself, try one token refresh and retry
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
+    const refreshed = await attemptClientRefresh();
+    if (refreshed) {
+      res = await fetch(path, {
+        ...options,
+        credentials: "include",
+        headers,
+        cache: "no-store",
+      });
+    }
+  }
 
   let json: ApiResponse<T> | null = null;
   try {

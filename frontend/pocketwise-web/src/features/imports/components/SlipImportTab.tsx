@@ -27,13 +27,14 @@ import {
 } from "@/components/ui/select";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { useCategories } from "@/features/categories/hooks/useCategories";
+import { useTags } from "@/features/tags/hooks/useTags";
 import {
   useUploadSlip,
   useConfirmSlip,
   useRejectSlip,
 } from "@/features/imports/hooks/useImports";
 import type { SlipImportResponse } from "@/types/import.types";
-import { toThailandDateTimeInputValue, thailandDateTimeInputToUtcIso } from "@/lib/utils";
+import { cn, getReadableTextColor, toThailandDateTimeInputValue, thailandDateTimeInputToUtcIso } from "@/lib/utils";
 
 export function SlipImportTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +54,8 @@ export function SlipImportTab() {
 
   const { data: bankAccounts = [] } = useBankAccounts();
   const { data: categories = [] } = useCategories();
+  const { data: tags = [] } = useTags();
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const uploadMutation = useUploadSlip();
   const confirmMutation = useConfirmSlip();
@@ -189,6 +192,7 @@ export function SlipImportTab() {
           payeeName: uploadedSlip.payeeName,
           payerName: uploadedSlip.payerName,
           transactionReference: uploadedSlip.transactionReference,
+          tagIds: selectedTagIds,
         },
       },
       {
@@ -237,6 +241,7 @@ export function SlipImportTab() {
     setUploadedSlip(null);
     setAmount("");
     setDescription("");
+    setSelectedTagIds([]);
     setStatusMessage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -493,6 +498,69 @@ export function SlipImportTab() {
                     </Select>
                   </FormField>
                 </div>
+
+                <FormField label="แท็ก">
+                  {!tags || tags.length === 0 ? (
+                    <p className="pt-1 text-xs text-[var(--pw-ink)]/55">
+                      ยังไม่มีแท็ก สามารถเพิ่มแท็กใหม่ได้ที่เมนู แท็ก
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {tags.map((t) => {
+                        const checked = selectedTagIds.includes(t.tagId);
+                        const color = t.color ?? "#ec48bd";
+                        const textColor = getReadableTextColor(color);
+                        const isDarkText = textColor === "#000000";
+
+                        return (
+                          <label
+                            key={t.tagId}
+                            className={cn(
+                              "group inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs sm:text-sm font-medium transition-all select-none shadow-xs",
+                              checked
+                                ? "opacity-100 ring-2 ring-[var(--pw-link)] ring-offset-2 ring-offset-[var(--pw-canvas)] border-transparent"
+                                : "opacity-65 hover:opacity-90 border-transparent",
+                              (uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate) && "pointer-events-none opacity-40",
+                            )}
+                            style={{
+                              backgroundColor: color,
+                              color: textColor,
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={checked}
+                              disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                              aria-label={`เลือกแท็ก ${t.tagName}`}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? [...selectedTagIds, t.tagId]
+                                  : selectedTagIds.filter((id) => id !== t.tagId);
+                                setSelectedTagIds(next);
+                              }}
+                            />
+                            <span
+                              className={cn(
+                                "flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-all",
+                                checked
+                                  ? isDarkText
+                                    ? "bg-black text-white border-black"
+                                    : "bg-white text-black border-white"
+                                  : isDarkText
+                                    ? "border-black/50 bg-black/10 group-hover:border-black/80"
+                                    : "border-white/60 bg-white/15 group-hover:border-white",
+                              )}
+                            >
+                              {checked && <Check className="size-3 stroke-[3]" />}
+                            </span>
+                            <span>#{t.tagName}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </FormField>
               </div>
 
               {/* Action Buttons */}

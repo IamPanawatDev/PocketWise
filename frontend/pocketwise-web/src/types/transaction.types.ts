@@ -19,7 +19,9 @@ export interface TransactionResponse {
   categoryId: number | null;
   categoryName: string | null;
   bankAccountId: number | null;
+  bankAccountName?: string | null;
   creditCardId: number | null;
+  creditCardName?: string | null;
   sourceType: SourceType;
   transferGroupId: number | null;
   recurringTransactionId: number | null;
