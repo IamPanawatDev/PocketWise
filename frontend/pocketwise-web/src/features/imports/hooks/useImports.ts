@@ -19,7 +19,10 @@ export function useUploadSlip() {
     mutationFn: (formData: FormData) =>
       apiClient.post<SlipImportResponse>("/api/v1/imports/slips", formData),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["importJobs"] });
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ["importJobs"] }),
+        qc.invalidateQueries({ queryKey: ["slip"] }),
+      ]);
     },
   });
 }
@@ -45,6 +48,7 @@ export function useConfirmSlip() {
         qc.invalidateQueries({ queryKey: ["reports"] }),
         qc.invalidateQueries({ queryKey: ["importJobs"] }),
         qc.invalidateQueries({ queryKey: ["bankAccounts"] }),
+        qc.invalidateQueries({ queryKey: ["slip"] }),
       ]),
   });
 }
@@ -55,7 +59,10 @@ export function useRejectSlip() {
     mutationFn: (slipImportFileId: number) =>
       apiClient.post<void>(`/api/v1/imports/slips/${slipImportFileId}/reject`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["importJobs"] });
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ["importJobs"] }),
+        qc.invalidateQueries({ queryKey: ["slip"] }),
+      ]);
     },
   });
 }
