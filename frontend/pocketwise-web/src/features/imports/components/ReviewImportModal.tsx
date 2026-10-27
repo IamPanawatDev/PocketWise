@@ -7,9 +7,11 @@ import {
   CreditCard,
   CheckCircle2,
   AlertTriangle,
+  Check,
   X,
   LoaderCircle,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
@@ -27,8 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
+import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTags } from "@/features/tags/hooks/useTags";
+import { useCategorySuggestion } from "@/features/categorization/hooks/useCategorization";
 import {
   useSlip,
   useConfirmSlip,
@@ -103,6 +107,7 @@ function SlipReviewContent({
 }) {
   const { data: slip, isLoading } = useSlip(slipId);
   const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: creditCards = [] } = useCreditCards();
   const { data: categories = [] } = useCategories();
   const { data: tags = [] } = useTags();
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
@@ -113,8 +118,21 @@ function SlipReviewContent({
   const [amount, setAmount] = useState<string>("");
   const [transactionDate, setTransactionDate] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [payeeName, setPayeeName] = useState<string>("");
   const [bankAccountId, setBankAccountId] = useState<string>("");
+  const [creditCardId, setCreditCardId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
+  const [debouncedDescription, setDebouncedDescription] = useState("");
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedDescription(description ?? ""), 300);
+    return () => window.clearTimeout(timeout);
+  }, [description]);
+
+  const { data: categorySuggestion } = useCategorySuggestion(
+    debouncedDescription,
+    Boolean(debouncedDescription && debouncedDescription.trim().length >= 2),
+  );
 
   useEffect(() => {
     if (slip) {
@@ -130,6 +148,8 @@ function SlipReviewContent({
       } else {
         setTransactionDate(toThailandDateTimeInputValue(new Date()));
       }
+      setPayeeName(slip.payeeName ?? "");
+      setCreditCardId("");
       if (slip.payeeName) {
         setDescription(`โอนเงินให้ ${slip.payeeName}`);
       } else if (slip.payerName) {
@@ -140,8 +160,11 @@ function SlipReviewContent({
       if (slip.suggestedCategoryId) {
         setCategoryId(String(slip.suggestedCategoryId));
       }
+      if (bankAccounts.length > 0 && !bankAccountId) {
+        setBankAccountId(String(bankAccounts[0].bankAccountId));
+      }
     }
-  }, [slip]);
+  }, [slip, bankAccounts]);
 
   if (isLoading) {
     return (
@@ -188,10 +211,11 @@ function SlipReviewContent({
         body: {
           amount: numericAmount,
           transactionDate: isoDate,
-          description: description || "รายการจากสลิป",
+          description: description.trim() || (payeeName.trim() ? `ชำระเงินให้ ${payeeName.trim()}` : "รายการจากสลิป"),
           categoryId: categoryId ? Number(categoryId) : null,
           bankAccountId: bankAccountId ? Number(bankAccountId) : null,
-          payeeName: slip.payeeName,
+          creditCardId: creditCardId ? Number(creditCardId) : null,
+          payeeName: payeeName.trim() || slip.payeeName,
           payerName: slip.payerName,
           transactionReference: slip.transactionReference,
           tagIds: selectedTagIds,
@@ -247,43 +271,53 @@ function SlipReviewContent({
           </p>
         </div>
 
-        {/* Details & Form */}
+        {/* Details & Form - matching TransactionForm for expenses */}
         <div className="space-y-3">
-          <FormField label="จำนวนเงิน (บาท)" htmlFor="review-amount">
-            <NumberInput
-              id="review-amount"
-              min={0.01}
-              step={0.01}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0"
-            />
-          </FormField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="จำนวนเงิน (บาท)" htmlFor="review-amount">
+              <NumberInput
+                id="review-amount"
+                min={0.01}
+                step={0.01}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0"
+              />
+            </FormField>
 
-          <FormField label="วันที่และเวลา" htmlFor="review-date">
-            <DateTimeInput
-              id="review-date"
-              value={transactionDate}
-              onChange={setTransactionDate}
-            />
-          </FormField>
-
-          <FormField label="คำอธิบาย / รายละเอียด" htmlFor="review-desc">
-            <Input
-              id="review-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="เช่น ซื้อของเซเว่น, โอนให้เพื่อน"
-            />
-          </FormField>
+            <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)" htmlFor="review-date">
+              <DateTimeInput
+                id="review-date"
+                value={transactionDate}
+                onChange={setTransactionDate}
+              />
+            </FormField>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="หมวดหมู่" htmlFor="review-category">
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger id="review-category">
-                  <SelectValue placeholder="เลือกหมวดหมู่" />
+            <FormField
+              label={
+                <div className="flex items-center gap-1.5">
+                  <span>หมวดหมู่</span>
+                  {slip.suggestedCategoryName && (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-[var(--pw-accent-primary)] bg-[var(--pw-accent-primary)]/10 px-1.5 py-0.5 rounded">
+                      <Sparkles className="h-3 w-3" />
+                      แนะนำจากสลิป
+                    </span>
+                  )}
+                </div>
+              }
+              htmlFor="review-category"
+            >
+              <Select
+                value={categoryId || "none"}
+                onValueChange={(val) => setCategoryId(val === "none" ? "" : val)}
+              >
+                <SelectTrigger id="review-category" className="w-full">
+                  <SelectValue placeholder="— ไม่ระบุ —" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">— ไม่ระบุ —</SelectItem>
                   {categories.map((c) => (
                     <SelectItem key={c.categoryId} value={String(c.categoryId)}>
                       {c.categoryName}
@@ -291,14 +325,34 @@ function SlipReviewContent({
                   ))}
                 </SelectContent>
               </Select>
+              {categorySuggestion && String(categorySuggestion.categoryId) !== categoryId && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs text-[var(--pw-accent-primary)] hover:text-[var(--pw-accent-primary)]/80 mt-1.5 flex items-center gap-1.5 px-2 py-1 h-auto"
+                  onClick={() => setCategoryId(String(categorySuggestion.categoryId))}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>ใช้คำแนะนำจากรายละเอียด: <strong>{categorySuggestion.categoryName ?? "หมวดหมู่"}</strong></span>
+                </Button>
+              )}
             </FormField>
 
-            <FormField label="ตัดจากบัญชีธนาคาร" htmlFor="review-bank">
-              <Select value={bankAccountId} onValueChange={setBankAccountId}>
-                <SelectTrigger id="review-bank">
-                  <SelectValue placeholder="เลือกบัญชี" />
+            <FormField label="บัญชี" htmlFor="review-bank">
+              <Select
+                value={bankAccountId || "none"}
+                onValueChange={(val) => {
+                  const nextVal = val === "none" ? "" : val;
+                  setBankAccountId(nextVal);
+                  if (nextVal) setCreditCardId("");
+                }}
+              >
+                <SelectTrigger id="review-bank" className="w-full">
+                  <SelectValue placeholder="— ไม่ระบุ —" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">— ไม่ระบุ —</SelectItem>
                   {bankAccounts.map((b) => (
                     <SelectItem key={b.bankAccountId} value={String(b.bankAccountId)}>
                       {b.accountName} ({b.bankName})
@@ -306,6 +360,45 @@ function SlipReviewContent({
                   ))}
                 </SelectContent>
               </Select>
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="บัตรเครดิต" htmlFor="review-credit-card">
+              <Select
+                value={creditCardId || "none"}
+                onValueChange={(val) => {
+                  const nextVal = val === "none" ? "" : val;
+                  setCreditCardId(nextVal);
+                  if (nextVal) setBankAccountId("");
+                }}
+              >
+                <SelectTrigger id="review-credit-card" className="w-full">
+                  <SelectValue placeholder="— ไม่ระบุ —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                  {creditCards
+                    .filter((card) => card.isActive)
+                    .map((card) => (
+                      <SelectItem
+                        key={card.creditCardId}
+                        value={String(card.creditCardId)}
+                      >
+                        {card.cardName} · {card.bankName}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+
+            <FormField label="ผู้รับเงิน / ร้านค้า" htmlFor="review-payee">
+              <Input
+                id="review-payee"
+                value={payeeName}
+                onChange={(e) => setPayeeName(e.target.value)}
+                placeholder="เช่น บจก. ซีพี ออลล์, ร้านกาแฟ"
+              />
             </FormField>
           </div>
 
@@ -360,7 +453,7 @@ function SlipReviewContent({
                               : "border-white/60 bg-white/15 group-hover:border-white",
                         )}
                       >
-                        {checked && <CheckCircle2 className="size-3 stroke-[3]" />}
+                        {checked && <Check className="size-3 stroke-[3]" />}
                       </span>
                       <span>#{t.tagName}</span>
                     </label>
@@ -368,6 +461,15 @@ function SlipReviewContent({
                 })}
               </div>
             )}
+          </FormField>
+
+          <FormField label="รายละเอียด" htmlFor="review-desc">
+            <Input
+              id="review-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="เช่น ซื้อของเซเว่น, โอนให้เพื่อน"
+            />
           </FormField>
         </div>
       </div>
@@ -378,12 +480,12 @@ function SlipReviewContent({
           type="button"
           onClick={handleConfirm}
           disabled={confirmMutation.isPending || rejectMutation.isPending}
-          className="w-full sm:w-auto bg-[var(--pw-primary)] text-[var(--pw-primary-foreground)] hover:opacity-90"
+          className="w-full sm:w-auto bg-[var(--pw-green)] text-[var(--pw-on-green)] hover:brightness-110"
         >
           {confirmMutation.isPending ? (
             <LoaderCircle className="h-4 w-4 animate-spin" />
           ) : (
-            <CheckCircle2 className="h-4 w-4" />
+            <Check className="h-4 w-4" />
           )}
           ยืนยันและบันทึกรายการ
         </Button>
@@ -448,10 +550,10 @@ function StatementReviewContent({
       <div className="space-y-3 py-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30">
-            <Skeleton className="size-5 rounded" />
-            <div className="space-y-1.5 flex-1">
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-3 w-1/4" />
+            <Skeleton className="h-5 w-5 rounded" />
+            <div className="flex-1 space-y-1">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-24" />
             </div>
             <Skeleton className="h-5 w-20" />
           </div>
@@ -470,153 +572,127 @@ function StatementReviewContent({
 
   const items = statement.items || [];
   const selectableItems = items.filter((i) => !i.isLinked);
+  const isAllSelected =
+    selectableItems.length > 0 &&
+    selectableItems.every((i) => selectedItemIds.has(i.statementItemId));
 
   const toggleSelectAll = () => {
-    if (selectedItemIds.size === selectableItems.length) {
+    if (isAllSelected) {
       setSelectedItemIds(new Set());
     } else {
-      setSelectedItemIds(new Set(selectableItems.map((i) => i.statementItemId)));
+      const all = new Set<number>();
+      selectableItems.forEach((i) => all.add(i.statementItemId));
+      setSelectedItemIds(all);
     }
   };
 
-  const toggleItem = (itemId: number) => {
-    const next = new Set(selectedItemIds);
-    if (next.has(itemId)) {
-      next.delete(itemId);
-    } else {
-      next.add(itemId);
-    }
-    setSelectedItemIds(next);
+  const toggleSelectItem = (id: number) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const handleConfirm = () => {
     if (selectedItemIds.size === 0) {
-      toast.error("กรุณาเลือกรายการอย่างน้อย 1 รายการเพื่อบันทึก");
+      toast.error("กรุณาเลือกอย่างน้อย 1 รายการเพื่อบันทึก");
       return;
     }
 
-    const payloadItems = Array.from(selectedItemIds).map((id) => ({
-      statementItemId: id,
-      categoryId: itemCategories[id] ?? null,
-      description: itemDescriptions[id] ?? null,
-    }));
+    const payload = {
+      items: Array.from(selectedItemIds).map((id) => ({
+        statementItemId: id,
+        categoryId: itemCategories[id] ? Number(itemCategories[id]) : null,
+        description: itemDescriptions[id],
+      })),
+    };
 
-    confirmMutation.mutate(
-      { items: payloadItems },
-      {
-        onSuccess: (data) => {
-          toast.success(
-            `ยืนยันเรียบร้อยแล้ว บันทึกธุรกรรมใหม่จำนวน ${data.confirmedCount} รายการ`,
-          );
-          onClose();
-        },
-        onError: (err) => {
-          toast.error(
-            err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการยืนยันรายการ",
-          );
-        },
+    confirmMutation.mutate(payload, {
+      onSuccess: (res) => {
+        toast.success(`บันทึกรายการสำเร็จ ${res.confirmedCount} รายการ`);
+        onClose();
       },
-    );
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกรายการ");
+      },
+    });
   };
 
   return (
     <div className="space-y-4">
-      {/* Statement Summary Card */}
-      <div className="p-3.5 rounded-2xl bg-[var(--pw-surface-indigo)]/50 border border-[var(--pw-hairline)] flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div>
-          <span className="text-[var(--pw-ink)]/60">บัตร: </span>
-          <span className="font-semibold">{statement.cardName || "บัตรเครดิต"}</span>
-        </div>
-        <div>
-          <span className="text-[var(--pw-ink)]/60">รอบบัญชี: </span>
-          <span>{formatDate(statement.statementPeriodStart)} - {formatDate(statement.statementPeriodEnd)}</span>
-        </div>
-        <div>
-          <span className="text-[var(--pw-ink)]/60">ยอดรวม: </span>
-          <span className="font-semibold text-[var(--pw-primary)]">
-            {formatCurrency(statement.totalDue)}
-          </span>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center justify-between text-xs pt-1">
-        <label className="flex items-center gap-2 cursor-pointer">
+      {/* Header controls */}
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--pw-hairline)] text-xs text-[var(--pw-text-muted)]">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
           <Checkbox
-            checked={
-              selectableItems.length > 0 &&
-              selectedItemIds.size === selectableItems.length
-            }
+            checked={isAllSelected}
             onCheckedChange={toggleSelectAll}
+            disabled={selectableItems.length === 0}
           />
-          <span className="font-medium">
-            เลือกทั้งหมด ({selectedItemIds.size}/{selectableItems.length})
-          </span>
+          <span>เลือกทั้งหมดที่ยังไม่ได้นำเข้า ({selectableItems.length} รายการ)</span>
         </label>
+        <span>
+          เลือกแล้ว <strong className="text-[var(--pw-primary)]">{selectedItemIds.size}</strong> รายการ
+        </span>
       </div>
 
       {/* Items list */}
-      <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+      <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
         {items.length === 0 ? (
-          <p className="py-6 text-center text-xs text-[var(--pw-ink)]/50">
-            ไม่มีรายการในใบแจ้งยอดนี้
+          <p className="py-8 text-center text-xs text-[var(--pw-text-muted)]">
+            ไม่พบรายการในใบแจ้งยอดนี้
           </p>
         ) : (
           items.map((item) => {
             const isSelected = selectedItemIds.has(item.statementItemId);
-            const isPayment =
-              item.itemType === "payment" || item.itemType === "cashback";
 
             return (
               <div
                 key={item.statementItemId}
-                className={`p-3 rounded-xl border text-xs transition-colors ${
+                className={cn(
+                  "p-3 rounded-xl border text-xs transition-colors",
                   item.isLinked
-                    ? "bg-black/10 border-[var(--pw-hairline)]/40 opacity-50"
+                    ? "bg-[var(--pw-surface-indigo)]/10 border-[var(--pw-hairline)] opacity-60"
+                    : item.isDuplicate
+                    ? "bg-amber-500/5 border-amber-500/20"
                     : isSelected
-                    ? "bg-[var(--pw-primary)]/10 border-[var(--pw-primary)]/30"
-                    : "bg-[var(--pw-surface-indigo)]/30 border-[var(--pw-hairline)]"
-                }`}
+                    ? "bg-[var(--pw-primary)]/5 border-[var(--pw-primary)]/40"
+                    : "bg-[var(--pw-surface-indigo)]/30 border-[var(--pw-hairline)] hover:border-[var(--pw-primary)]/30"
+                )}
               >
                 <div className="flex items-start gap-3">
-                  <div className="pt-0.5">
-                    <Checkbox
-                      checked={isSelected}
-                      disabled={item.isLinked}
-                      onCheckedChange={() => toggleItem(item.statementItemId)}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <input
-                          type="text"
-                          value={itemDescriptions[item.statementItemId] ?? item.description}
-                          onChange={(e) =>
-                            setItemDescriptions((prev) => ({
-                              ...prev,
-                              [item.statementItemId]: e.target.value,
-                            }))
-                          }
-                          disabled={item.isLinked}
-                          className="bg-transparent border-b border-transparent hover:border-[var(--pw-hairline)] focus:border-[var(--pw-primary)] focus:outline-none w-full font-medium truncate"
-                        />
-                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-[var(--pw-ink)]/60">
+                  <Checkbox
+                    checked={isSelected}
+                    disabled={item.isLinked}
+                    onCheckedChange={() => toggleSelectItem(item.statementItemId)}
+                    className="mt-0.5"
+                  />
+
+                  <div className="flex-1 space-y-1.5 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-[var(--pw-text-primary)] truncate max-w-sm">
+                          {item.description}
+                        </p>
+                        <div className="flex items-center gap-2 text-[11px] text-[var(--pw-text-muted)]">
                           <span>{formatDate(item.transactionDate)}</span>
-                          {item.isDuplicate && (
-                            <span className="text-amber-500 font-medium">● รายการซ้ำ</span>
-                          )}
-                          {item.isLinked && (
-                            <span className="text-emerald-400 font-medium">✓ บันทึกแล้ว</span>
-                          )}
+                          {item.isLinked ? (
+                            <span className="text-[var(--pw-accent-green)] font-medium">
+                              (บันทึกแล้ว)
+                            </span>
+                          ) : item.isDuplicate ? (
+                            <span className="text-amber-500 font-medium">
+                              (อาจซ้ำในระบบ)
+                            </span>
+                          ) : null}
                         </div>
                       </div>
-                      <span
-                        className={`font-semibold shrink-0 ${
-                          isPayment ? "text-emerald-400" : "text-[var(--pw-ink)]"
-                        }`}
-                      >
-                        {isPayment ? "-" : "+"}
+
+                      <span className="font-semibold text-sm text-[var(--pw-text-primary)] shrink-0">
                         {formatCurrency(item.amount)}
                       </span>
                     </div>

@@ -12,10 +12,13 @@ import {
   ChevronRight,
   Filter,
   Eye,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { FormField } from "@/components/ui/form-field";
 import {
   Select,
   SelectContent,
@@ -30,6 +33,7 @@ import { ReviewImportModal } from "./ReviewImportModal";
 export function ImportJobsTab() {
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [reviewingJob, setReviewingJob] = useState<ImportJobResponse | null>(null);
 
   const queryType = typeFilter === "all" ? undefined : typeFilter;
@@ -37,6 +41,8 @@ export function ImportJobsTab() {
 
   const jobs = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
+
+  const activeFilterCount = typeFilter !== "all" ? 1 : 0;
 
   const formatDate = (isoStr?: string | null) => {
     if (!isoStr) return "-";
@@ -53,6 +59,11 @@ export function ImportJobsTab() {
     }
   };
 
+  const handleResetFilter = () => {
+    setTypeFilter("all");
+    setPage(1);
+  };
+
   return (
     <div className="space-y-6">
       {/* Filter header */}
@@ -66,32 +77,49 @@ export function ImportJobsTab() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-[var(--pw-text-muted)]" />
-          <Select
-            value={typeFilter}
-            onValueChange={(val) => {
-              setTypeFilter(val);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-44 h-8 text-xs">
-              <SelectValue placeholder="กรองประเภทงาน" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">
-                ทั้งหมด
-              </SelectItem>
-              <SelectItem value="slip" className="text-xs">
-                สลิปโอนเงิน
-              </SelectItem>
-              <SelectItem value="creditCardStatement" className="text-xs">
-                ใบแจ้งยอดบัตรเครดิต
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsFilterSheetOpen(true)}
+          className="relative gap-2 cursor-pointer border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 hover:bg-[var(--pw-surface-indigo)]"
+        >
+          <Filter className="h-4 w-4" />
+          <span>ตัวกรอง</span>
+          {activeFilterCount > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--pw-link)] px-1.5 text-[11px] font-semibold text-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </Button>
       </div>
+
+      {/* Active filter chips */}
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <span className="text-xs text-[var(--pw-text-muted)]">ตัวกรองที่ใช้งาน:</span>
+          {typeFilter !== "all" && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-link)]/30 bg-[var(--pw-link)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-link)]">
+              ประเภท: {typeFilter === "slip" ? "สลิปโอนเงิน" : "ใบแจ้งยอดบัตรเครดิต"}
+              <button
+                type="button"
+                onClick={handleResetFilter}
+                className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-link)]/20 cursor-pointer"
+                aria-label="ลบตัวกรองประเภทงาน"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleResetFilter}
+            className="text-xs text-[var(--pw-link)] underline hover:text-[var(--pw-link)]/80 ml-1 cursor-pointer"
+          >
+            ล้างตัวกรอง
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <Card className="p-0 bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)] overflow-hidden">
@@ -192,7 +220,7 @@ export function ImportJobsTab() {
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="h-7 px-2.5 text-xs border-[var(--pw-primary)] text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/10"
+                            className="h-7 px-2.5 text-xs border-[var(--pw-primary)] text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/10 cursor-pointer"
                             onClick={() => setReviewingJob(job)}
                           >
                             <Eye className="h-3.5 w-3.5 mr-1" />
@@ -223,7 +251,7 @@ export function ImportJobsTab() {
                 size="sm"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="h-7 w-7 p-0"
+                className="h-7 w-7 p-0 cursor-pointer"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
@@ -233,7 +261,7 @@ export function ImportJobsTab() {
                 size="sm"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="h-7 w-7 p-0"
+                className="h-7 w-7 p-0 cursor-pointer"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
               </Button>
@@ -241,6 +269,56 @@ export function ImportJobsTab() {
           </div>
         )}
       </Card>
+
+      {/* Filter BottomSheet */}
+      <BottomSheet
+        open={isFilterSheetOpen}
+        onOpenChange={setIsFilterSheetOpen}
+        title="ตัวกรองประวัติการนำเข้า"
+        description="กรองประวัติตามประเภทงานนำเข้า เช่น สลิปโอนเงิน หรือใบแจ้งยอดบัตรเครดิต"
+      >
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] space-y-4">
+          <FormField label="ประเภทงานนำเข้า">
+            <Select
+              value={typeFilter}
+              onValueChange={(val) => {
+                setTypeFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="เลือกประเภทงาน" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทั้งหมด (ทุกประเภท)</SelectItem>
+                <SelectItem value="slip">สลิปโอนเงิน</SelectItem>
+                <SelectItem value="creditCardStatement">ใบแจ้งยอดบัตรเครดิต</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                handleResetFilter();
+                setIsFilterSheetOpen(false);
+              }}
+              className="w-full sm:w-auto cursor-pointer"
+            >
+              ล้างตัวกรอง
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setIsFilterSheetOpen(false)}
+              className="w-full sm:w-auto bg-[var(--pw-link)] text-white hover:brightness-110 cursor-pointer"
+            >
+              เสร็จสิ้น
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Review Modal */}
       <ReviewImportModal
