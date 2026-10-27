@@ -60,6 +60,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import type { CategoryResponse, CategoryType } from "@/types/category.types";
 
 const AVAILABLE_ICONS = [
@@ -578,25 +579,23 @@ export function SystemCategoriesManager() {
         </AnimatedList>
       )}
 
-      {/* Create / Edit Dialog */}
-      {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
-          <div className="w-full max-w-lg rounded-[var(--pw-rounded-lg)] bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--pw-hairline)]">
-              <h3 className="text-base font-semibold text-[var(--pw-ink)]">
-                {editingCategory ? `แก้ไขหมวดหมู่มาตรฐาน: ${editingCategory.categoryName}` : "เพิ่มหมวดหมู่มาตรฐานใหม่"}
-              </h3>
-              <Button type="button" variant="ghost" size="icon" onClick={closeDialog}>
-                <X className="size-4" />
-              </Button>
+      {/* Create / Edit BottomSheet */}
+      <BottomSheet
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+          else setIsDialogOpen(true);
+        }}
+        title={editingCategory ? `แก้ไขหมวดหมู่มาตรฐาน: ${editingCategory.categoryName}` : "เพิ่มหมวดหมู่มาตรฐานใหม่"}
+        description="กำหนดชื่อ ประเภท ไอคอน และสีของหมวดหมู่มาตรฐานสำหรับผู้ใช้ทุกคน"
+      >
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] space-y-4">
+          {formError && (
+            <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
+              <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
+              <span>{formError}</span>
             </div>
-
-            {formError && (
-              <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
-                <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
-                <span>{formError}</span>
-              </div>
-            )}
+          )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Category Name */}
@@ -742,9 +741,8 @@ export function SystemCategoriesManager() {
                 </Button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </BottomSheet>
     </div>
   );
 }

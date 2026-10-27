@@ -22,7 +22,8 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> RegisterAsync([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
-        var result = await _authService.RegisterAsync(request, GetIpAddress(), GetUserAgent(), cancellationToken);
+        var originUrl = Request.Headers["Origin"].FirstOrDefault() ?? Request.Headers["Referer"].FirstOrDefault();
+        var result = await _authService.RegisterAsync(request, GetIpAddress(), GetUserAgent(), originUrl, cancellationToken);
         return Ok(ApiResponse<AuthResponse>.Ok(result));
     }
 

@@ -29,6 +29,8 @@ public class SlipImportService : ISlipImportService
     private readonly INotificationSender? _notificationSender;
     private readonly IAuditLogService? _auditLogService;
     private readonly ILogger<SlipImportService>? _logger;
+    private readonly ICategoryRuleService? _categoryRuleService;
+    private readonly IMerchantRepository? _merchantRepository;
 
     public SlipImportService(
         IImportRepository repository,
@@ -36,7 +38,9 @@ public class SlipImportService : ISlipImportService
         ISlipOcrService ocrService,
         INotificationSender? notificationSender = null,
         IAuditLogService? auditLogService = null,
-        ILogger<SlipImportService>? logger = null)
+        ILogger<SlipImportService>? logger = null,
+        ICategoryRuleService? categoryRuleService = null,
+        IMerchantRepository? merchantRepository = null)
     {
         _repository = repository;
         _fileStorageService = fileStorageService;
@@ -44,6 +48,8 @@ public class SlipImportService : ISlipImportService
         _notificationSender = notificationSender;
         _auditLogService = auditLogService;
         _logger = logger;
+        _categoryRuleService = categoryRuleService;
+        _merchantRepository = merchantRepository;
     }
 
     public async Task<SlipImportResponse> UploadSlipAsync(
@@ -282,6 +288,45 @@ public class SlipImportService : ISlipImportService
             categoryId = suggestedId;
         }
 
+        long? merchantId = null;
+        var payee = !string.IsNullOrWhiteSpace(request.PayeeName) ? request.PayeeName.Trim() : slip.PayeeName?.Trim();
+        if (!string.IsNullOrWhiteSpace(payee) && _merchantRepository != null)
+        {
+            try
+            {
+                var normalized = new string(payee.ToLowerInvariant().Where(c => !char.IsWhiteSpace(c)).ToArray());
+                var matches = await _merchantRepository.SearchByNameAsync(normalized, cancellationToken);
+                var existingMerchant = matches.FirstOrDefault(m => m.NormalizedName == normalized);
+                if (existingMerchant != null)
+                {
+                    merchantId = existingMerchant.MerchantId;
+                    if (!existingMerchant.DefaultCategoryId.HasValue && categoryId.HasValue)
+                    {
+                        existingMerchant.DefaultCategoryId = categoryId;
+                        await _merchantRepository.UpdateAsync(existingMerchant, cancellationToken);
+                    }
+                }
+                else
+                {
+                    var newMerchant = new Merchant
+                    {
+                        MerchantName = payee,
+                        NormalizedName = normalized,
+                        DefaultCategoryId = categoryId,
+                        BankOrProvider = slip.BankCode,
+                        IsVerified = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _merchantRepository.AddAsync(newMerchant, cancellationToken);
+                    merchantId = newMerchant.MerchantId;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to register merchant for payee '{Payee}'", payee);
+            }
+        }
+
         var transaction = new Transaction
         {
             UserId = userId,
@@ -291,6 +336,7 @@ public class SlipImportService : ISlipImportService
             TransactionDate = request.TransactionDate != default ? request.TransactionDate : DateTime.UtcNow,
             CategoryId = categoryId,
             BankAccountId = request.BankAccountId,
+            MerchantId = merchantId,
             Description = string.IsNullOrWhiteSpace(request.Description)
                 ? (slip.PayeeName ?? "โอนเงินจากสลิป")
                 : request.Description,
@@ -330,6 +376,35 @@ public class SlipImportService : ISlipImportService
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
+
+        // Auto-learn categorization rule (Items 3 & 9)
+        if (_categoryRuleService != null && categoryId.HasValue)
+        {
+            var pattern = !string.IsNullOrWhiteSpace(transaction.Description) ? transaction.Description : payee;
+            if (!string.IsNullOrWhiteSpace(pattern))
+            {
+                try
+                {
+                    await _categoryRuleService.LearnFromManualAsync(userId, pattern, categoryId.Value, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to learn auto-categorization rule for pattern '{Pattern}'", pattern);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(payee) && !string.Equals(payee, pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    await _categoryRuleService.LearnFromManualAsync(userId, payee, categoryId.Value, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to learn auto-categorization rule for payee '{Payee}'", payee);
+                }
+            }
+        }
 
         if (_auditLogService != null)
         {

@@ -45,7 +45,7 @@ public class AuthService : IAuthService
         _rolePermissionRepository = rolePermissionRepository;
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default)
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress = null, string? userAgent = null, string? originUrl = null, CancellationToken cancellationToken = default)
     {
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser is not null)
@@ -82,6 +82,15 @@ public class AuthService : IAuthService
                 user.Id.ToString(),
                 new { user.Email, user.DisplayName, Role = "Member" },
                 cancellationToken);
+        }
+
+        try
+        {
+            await SendVerificationEmailInternalAsync(user, originUrl, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to send automatic verification email on registration for user {UserId}", user.Id);
         }
 
         return await GenerateTokenPairAndSaveAsync(user, ipAddress, userAgent, cancellationToken);
@@ -338,6 +347,14 @@ public class AuthService : IAuthService
             }
         }
 
+        return await SendVerificationEmailInternalAsync(applicationUser, originUrl, cancellationToken);
+    }
+
+    private async Task<SendVerificationEmailResponse> SendVerificationEmailInternalAsync(
+        ApplicationUser applicationUser,
+        string? originUrl,
+        CancellationToken cancellationToken)
+    {
         var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(applicationUser);
         var encodedToken = Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
@@ -390,7 +407,7 @@ public class AuthService : IAuthService
             throw new AuthException("EMAIL_SEND_FAILED", "ไม่สามารถส่งอีเมลได้ในขณะนี้ กรุณาตรวจสอบการตั้งค่าผู้ให้บริการอีเมลหรือลองใหม่อีกครั้ง");
         }
 
-        _verificationCooldowns[userId] = DateTime.UtcNow;
+        _verificationCooldowns[applicationUser.Id] = DateTime.UtcNow;
 
         return new SendVerificationEmailResponse(
             true,

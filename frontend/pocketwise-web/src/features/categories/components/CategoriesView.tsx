@@ -123,9 +123,12 @@ export function CategoriesView() {
     const target = index + offset;
     if (index < 0 || target < 0 || target >= reorderable.length) return;
 
-    [reorderable[index], reorderable[target]] = [reorderable[target], reorderable[index]];
+    const newReorderable = [...reorderable];
+    const [moved] = newReorderable.splice(index, 1);
+    newReorderable.splice(target, 0, moved);
+
     reorder.mutate({
-      items: reorderable.map((category, sortOrder) => ({
+      items: newReorderable.map((category, sortOrder) => ({
         categoryId: category.categoryId,
         sortOrder,
       })),

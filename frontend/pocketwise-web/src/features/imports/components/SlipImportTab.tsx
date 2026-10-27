@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   UploadCloud,
   FileCheck2,
@@ -28,6 +28,7 @@ import {
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTags } from "@/features/tags/hooks/useTags";
+import { useCategorySuggestion } from "@/features/categorization/hooks/useCategorization";
 import {
   useUploadSlip,
   useConfirmSlip,
@@ -48,6 +49,7 @@ export function SlipImportTab() {
   const [description, setDescription] = useState<string>("");
   const [bankAccountId, setBankAccountId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
+  const [debouncedDescription, setDebouncedDescription] = useState("");
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -61,6 +63,16 @@ export function SlipImportTab() {
   const uploadMutation = useUploadSlip();
   const confirmMutation = useConfirmSlip();
   const rejectMutation = useRejectSlip();
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedDescription(description ?? ""), 300);
+    return () => window.clearTimeout(timeout);
+  }, [description]);
+
+  const { data: categorySuggestion } = useCategorySuggestion(
+    debouncedDescription,
+    Boolean(debouncedDescription && debouncedDescription.trim().length >= 2),
+  );
 
   async function prepareSlipFile(file: File): Promise<File> {
     // Keep original high-resolution file for sharp OCR reading.
@@ -480,7 +492,7 @@ export function SlipImportTab() {
                         {uploadedSlip.suggestedCategoryName && (
                           <span className="inline-flex items-center gap-1 text-[10px] text-[var(--pw-accent-primary)] bg-[var(--pw-accent-primary)]/10 px-1.5 py-0.5 rounded">
                             <Sparkles className="h-3 w-3" />
-                            แนะนำ
+                            แนะนำจากสลิป
                           </span>
                         )}
                       </div>
@@ -502,6 +514,18 @@ export function SlipImportTab() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {categorySuggestion && String(categorySuggestion.categoryId) !== categoryId && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs text-[var(--pw-accent-primary)] hover:text-[var(--pw-accent-primary)]/80 mt-1.5 flex items-center gap-1.5 px-2 py-1 h-auto"
+                        onClick={() => setCategoryId(String(categorySuggestion.categoryId))}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>ใช้คำแนะนำจากรายละเอียด: <strong>{categorySuggestion.categoryName ?? "หมวดหมู่"}</strong></span>
+                      </Button>
+                    )}
                   </FormField>
                 </div>
 

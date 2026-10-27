@@ -24,6 +24,7 @@ import {
   FileDown,
   FileJson,
   FileSpreadsheet,
+  Filter,
   Landmark,
   Layers,
   LoaderCircle,
@@ -39,6 +40,7 @@ import {
   useReportSummary,
   useReportTrends,
 } from "@/features/reports/hooks/useReports";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import type { ReportPeriod } from "@/types/report.types";
 import { cn, formatCurrency, formatDate, thailandDateBoundaryToUtcIso } from "@/lib/utils";
 import { ApiError } from "@/lib/api-client";
@@ -161,6 +163,32 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
       0,
     ) ?? 0;
 
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+
+  const selectedCategoryName = useMemo(() => {
+    if (categoryId == null) return null;
+    return categories?.find((c) => c.categoryId === categoryId)?.categoryName ?? null;
+  }, [categoryId, categories]);
+
+  const selectedTagName = useMemo(() => {
+    if (tagId == null) return null;
+    return tags?.find((t) => t.tagId === tagId)?.tagName ?? null;
+  }, [tagId, tags]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (categoryId != null) count++;
+    if (tagId != null) count++;
+    if (period !== "monthly") count++;
+    return count;
+  }, [categoryId, tagId, period]);
+
+  const resetFilters = () => {
+    setCategoryId(undefined);
+    setTagId(undefined);
+    setPeriod("monthly");
+  };
+
   // Export State & Handler
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<"csv" | "json">("csv");
@@ -204,7 +232,23 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             สรุปรายรับ รายจ่าย ภาพรวมสลิป บัตรเครดิต และแนวโน้มจากรายการที่ยืนยันแล้ว
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant={activeFilterCount > 0 ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setShowFilterSheet(true)}
+            className="relative gap-2 min-h-10 text-xs sm:text-sm font-medium border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)] shadow-xs"
+          >
+            <Filter className="size-4 text-[var(--pw-primary)]" />
+            <span>ตัวกรอง</span>
+            {activeFilterCount > 0 && (
+              <span className="flex size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[10px] font-bold text-[var(--pw-primary-foreground)]">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+
           <Button
             type="button"
             variant="outline"
@@ -219,74 +263,161 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         </div>
       </header>
 
-      <Card className="p-4 sm:p-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <FormField label="ตั้งแต่วันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-from-date">
-            <DateInput id="report-from-date" value={fromDate} onChange={setFromDate} />
-          </FormField>
-          <FormField label="ถึงวันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-to-date">
-            <DateInput id="report-to-date" value={toDate} onChange={setToDate} />
-          </FormField>
-          <FormField label="ช่วงกราฟ" htmlFor="report-period">
-            <Select value={period} onValueChange={(value) => setPeriod(value as ReportPeriod)}>
-              <SelectTrigger id="report-period"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weekly">รายสัปดาห์ (เริ่มวันอาทิตย์)</SelectItem>
-                <SelectItem value="monthly">รายเดือน</SelectItem>
-                <SelectItem value="quarterly">รายไตรมาส</SelectItem>
-                <SelectItem value="yearly">รายปี</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
-          {summary && summary.currencies.length > 1 && (
-            <FormField label="สกุลเงิน" htmlFor="report-currency">
-              <Select value={activeCurrency?.currencyCode ?? ""} onValueChange={setCurrencyCode}>
-                <SelectTrigger id="report-currency"><SelectValue /></SelectTrigger>
+      {/* Active Filter Chips & Summary */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 px-3 py-1 text-xs text-[var(--pw-ink)]">
+          <span>ช่วงเวลา: <strong>{fromDate}</strong> ถึง <strong>{toDate}</strong></span>
+        </div>
+
+        {selectedCategoryName && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
+            หมวดหมู่: {selectedCategoryName}
+            <button
+              type="button"
+              onClick={() => setCategoryId(undefined)}
+              className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
+              aria-label="ลบตัวกรองหมวดหมู่"
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        )}
+
+        {selectedTagName && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
+            แท็ก: #{selectedTagName}
+            <button
+              type="button"
+              onClick={() => setTagId(undefined)}
+              className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
+              aria-label="ลบตัวกรองแท็ก"
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        )}
+
+        {period !== "monthly" && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
+            ช่วงกราฟ: {period === "weekly" ? "รายสัปดาห์" : period === "quarterly" ? "รายไตรมาส" : "รายปี"}
+            <button
+              type="button"
+              onClick={() => setPeriod("monthly")}
+              className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
+              aria-label="รีเซ็ตช่วงกราฟ"
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        )}
+
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="text-xs text-[var(--pw-primary)] underline hover:text-[var(--pw-primary)]/80 ml-1"
+          >
+            ล้างตัวกรอง
+          </button>
+        )}
+      </div>
+
+      {rangeMessage && <p role="alert" className="text-sm text-[var(--pw-expense)]">{rangeMessage}</p>}
+
+      {/* Filter BottomSheet */}
+      <BottomSheet
+        open={showFilterSheet}
+        onOpenChange={setShowFilterSheet}
+        title="ตัวกรองรายงาน"
+        description="เลือกช่วงวันที่ หมวดหมู่ แท็ก และช่วงกราฟที่ต้องการวิเคราะห์"
+      >
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField label="ตั้งแต่วันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-from-date">
+              <DateInput id="report-from-date" value={fromDate} onChange={setFromDate} />
+            </FormField>
+            <FormField label="ถึงวันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-to-date">
+              <DateInput id="report-to-date" value={toDate} onChange={setToDate} />
+            </FormField>
+            <FormField label="ช่วงกราฟ" htmlFor="report-period">
+              <Select value={period} onValueChange={(value) => setPeriod(value as ReportPeriod)}>
+                <SelectTrigger id="report-period"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {summary.currencies.map((currency) => (
-                    <SelectItem key={currency.currencyCode} value={currency.currencyCode}>
-                      {currency.currencyCode}
+                  <SelectItem value="weekly">รายสัปดาห์ (เริ่มวันอาทิตย์)</SelectItem>
+                  <SelectItem value="monthly">รายเดือน</SelectItem>
+                  <SelectItem value="quarterly">รายไตรมาส</SelectItem>
+                  <SelectItem value="yearly">รายปี</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+            {summary && summary.currencies.length > 1 && (
+              <FormField label="สกุลเงิน" htmlFor="report-currency">
+                <Select value={activeCurrency?.currencyCode ?? ""} onValueChange={setCurrencyCode}>
+                  <SelectTrigger id="report-currency"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {summary.currencies.map((currency) => (
+                      <SelectItem key={currency.currencyCode} value={currency.currencyCode}>
+                        {currency.currencyCode}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            )}
+            <FormField label="กรองหมวดหมู่" htmlFor="report-category">
+              <Select
+                value={categoryId == null ? "all" : String(categoryId)}
+                onValueChange={(value) => setCategoryId(value === "all" ? undefined : Number(value))}
+              >
+                <SelectTrigger id="report-category"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
+                  {categories?.map((category) => (
+                    <SelectItem key={category.categoryId} value={String(category.categoryId)}>
+                      {category.categoryName}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </FormField>
-          )}
-          <FormField label="กรองหมวดหมู่" htmlFor="report-category">
-            <Select
-              value={categoryId == null ? "all" : String(categoryId)}
-              onValueChange={(value) => setCategoryId(value === "all" ? undefined : Number(value))}
+            <FormField label="กรองแท็ก" htmlFor="report-tag">
+              <Select
+                value={tagId == null ? "all" : String(tagId)}
+                onValueChange={(value) => setTagId(value === "all" ? undefined : Number(value))}
+              >
+                <SelectTrigger id="report-tag"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกแท็ก</SelectItem>
+                  {tags?.map((tag) => (
+                    <SelectItem key={tag.tagId} value={String(tag.tagId)}>
+                      #{tag.tagName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={resetFilters}
+              disabled={activeFilterCount === 0}
             >
-              <SelectTrigger id="report-category"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
-                {categories?.map((category) => (
-                  <SelectItem key={category.categoryId} value={String(category.categoryId)}>
-                    {category.categoryName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="กรองแท็ก" htmlFor="report-tag">
-            <Select
-              value={tagId == null ? "all" : String(tagId)}
-              onValueChange={(value) => setTagId(value === "all" ? undefined : Number(value))}
+              ล้างตัวกรอง
+            </Button>
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              onClick={() => setShowFilterSheet(false)}
             >
-              <SelectTrigger id="report-tag"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกแท็ก</SelectItem>
-                {tags?.map((tag) => (
-                  <SelectItem key={tag.tagId} value={String(tag.tagId)}>
-                    #{tag.tagName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
+              ดูผลลัพธ์
+            </Button>
+          </div>
         </div>
-        {rangeMessage && <p role="alert" className="mt-3 text-sm text-[var(--pw-expense)]">{rangeMessage}</p>}
-      </Card>
+      </BottomSheet>
 
       {summaryQuery.isLoading || trendQuery.isLoading ? (
         <p role="status" className="text-[var(--pw-ink)]/70">กำลังคำนวณรายงาน...</p>

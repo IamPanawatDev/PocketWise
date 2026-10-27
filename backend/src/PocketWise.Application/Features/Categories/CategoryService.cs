@@ -47,6 +47,9 @@ public class CategoryService : ICategoryService
             throw new BusinessException("CONFLICT", "มีหมวดหมู่ชื่อนี้อยู่แล้ว");
         }
 
+        var existing = await _repository.GetAllAsync(userId, cancellationToken);
+        var maxSort = existing.Where(c => !c.IsSystem).Select(c => (int?)c.SortOrder).Max() ?? 0;
+
         var entity = new Category
         {
             UserId = userId,
@@ -54,7 +57,7 @@ public class CategoryService : ICategoryService
             CategoryType = request.CategoryType,
             Icon = request.Icon,
             Color = request.Color,
-            SortOrder = 0,
+            SortOrder = maxSort + 1,
             IsSystem = false,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
