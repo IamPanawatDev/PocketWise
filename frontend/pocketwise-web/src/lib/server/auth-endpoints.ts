@@ -107,10 +107,12 @@ export function setAuthCookiesFromData(
   res.cookies.set(ACCESS_COOKIE, data.accessToken, {
     ...base,
     maxAge: secondsUntil(data.accessTokenExpiresAt),
+    expires: new Date(data.accessTokenExpiresAt),
   });
   res.cookies.set(REFRESH_COOKIE, data.refreshToken, {
     ...base,
     maxAge: secondsUntil(data.refreshTokenExpiresAt),
+    expires: new Date(data.refreshTokenExpiresAt),
   });
 }
 

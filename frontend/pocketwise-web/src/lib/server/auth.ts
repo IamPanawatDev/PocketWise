@@ -39,10 +39,12 @@ export async function setAuthCookies(auth: AuthTokens): Promise<void> {
   store.set(ACCESS_COOKIE, auth.accessToken, {
     ...base,
     maxAge: secondsUntil(auth.accessTokenExpiresAt),
+    expires: new Date(auth.accessTokenExpiresAt),
   });
   store.set(REFRESH_COOKIE, auth.refreshToken, {
     ...base,
     maxAge: secondsUntil(auth.refreshTokenExpiresAt),
+    expires: new Date(auth.refreshTokenExpiresAt),
   });
 }
 

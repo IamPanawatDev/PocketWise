@@ -336,6 +336,7 @@ public class SlipImportService : ISlipImportService
             TransactionDate = request.TransactionDate != default ? request.TransactionDate : DateTime.UtcNow,
             CategoryId = categoryId,
             BankAccountId = request.BankAccountId,
+            CreditCardId = request.CreditCardId,
             MerchantId = merchantId,
             Description = string.IsNullOrWhiteSpace(request.Description)
                 ? (slip.PayeeName ?? "โอนเงินจากสลิป")
@@ -422,6 +423,7 @@ public class SlipImportService : ISlipImportService
                     transaction.Description,
                     transaction.CategoryId,
                     transaction.BankAccountId,
+                    transaction.CreditCardId,
                     Source = "SlipImport"
                 },
                 cancellationToken);
@@ -447,7 +449,7 @@ public class SlipImportService : ISlipImportService
             TransactionDate = transaction.TransactionDate,
             CategoryId = transaction.CategoryId,
             BankAccountId = transaction.BankAccountId,
-            CreditCardId = null,
+            CreditCardId = transaction.CreditCardId,
             Description = transaction.Description,
             Tags = transaction.TransactionTags
                 .Select(t => new TagRef { TagId = t.TagId, TagName = string.Empty })
@@ -494,3 +496,4 @@ public class SlipImportService : ISlipImportService
         return true;
     }
 }
+
