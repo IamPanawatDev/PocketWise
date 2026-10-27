@@ -1,5 +1,6 @@
 using System.Text;
 using PocketWise.Application.DTOs;
+using PocketWise.Application.DTOs.CategoryRules;
 using PocketWise.Application.Features.Imports;
 using PocketWise.Application.Features.Imports.DTOs;
 using PocketWise.Application.Interfaces;
@@ -175,6 +176,61 @@ public class ImportServiceTests
 
     #endregion
 
+    private class FakeMerchantRepository : IMerchantRepository
+    {
+        public List<Merchant> Merchants { get; } = new();
+
+        public Task<Merchant?> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Merchants.FirstOrDefault(m => m.MerchantId == id));
+
+        public Task<IReadOnlyList<Merchant>> GetAllAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Merchant>>(Merchants);
+
+        public Task<IReadOnlyList<Merchant>> SearchByNameAsync(string normalizedName, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Merchant>>(Merchants.Where(m => m.NormalizedName == normalizedName).ToList());
+
+        public Task AddAsync(Merchant merchant, CancellationToken cancellationToken = default)
+        {
+            merchant.MerchantId = Merchants.Count + 1;
+            Merchants.Add(merchant);
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> CategoryExistsAsync(long categoryId, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task UpdateAsync(Merchant merchant, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task DeleteAsync(Merchant merchant, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private class FakeCategoryRuleService : ICategoryRuleService
+    {
+        public List<(long UserId, string Pattern, long CategoryId)> LearnedRules { get; } = new();
+
+        public Task<IReadOnlyList<CategoryRuleResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<CategoryRuleResponse>>(Array.Empty<CategoryRuleResponse>());
+
+        public Task<CategoryRuleResponse?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<CategoryRuleResponse?>(null);
+
+        public Task<CategoryRuleResponse> CreateAsync(long userId, CreateCategoryRuleRequest request, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<CategoryRuleResponse?> UpdateAsync(long id, long userId, UpdateCategoryRuleRequest request, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<bool> DeleteAsync(long id, long userId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<CategorySuggestionResponse?> SuggestCategoryAsync(long userId, string description, CancellationToken cancellationToken = default) =>
+            Task.FromResult<CategorySuggestionResponse?>(null);
+
+        public Task LearnFromManualAsync(long userId, string description, long categoryId, CancellationToken cancellationToken = default)
+        {
+            LearnedRules.Add((userId, description, categoryId));
+            return Task.CompletedTask;
+        }
+    }
+
     #region SlipImportService Tests
 
     [Fact]
@@ -231,6 +287,50 @@ public class ImportServiceTests
 
         var slip = repo.Slips.First(s => s.SlipImportFileId == uploadRes.SlipImportFileId);
         Assert.Equal(ReviewStatus.Confirmed, slip.ReviewStatus);
+    }
+
+    [Fact]
+    public async Task SlipImport_ConfirmSlip_RegistersMerchantAndLearnsCategoryRule()
+    {
+        var repo = new FakeImportRepository();
+        var storage = new FakeFileStorageService();
+        var ocr = new FakeSlipOcrService();
+        var merchantRepo = new FakeMerchantRepository();
+        var categoryRuleService = new FakeCategoryRuleService();
+
+        var service = new SlipImportService(
+            repo,
+            storage,
+            ocr,
+            null,
+            null,
+            null,
+            categoryRuleService,
+            merchantRepo);
+
+        var bytes = Encoding.UTF8.GetBytes("slip content");
+        using var stream = new MemoryStream(bytes);
+        var uploadRes = await service.UploadSlipAsync(1, stream, "slip.png", "image/png", bytes.Length);
+
+        var confirmRequest = new ConfirmSlipRequest
+        {
+            BankAccountId = 10,
+            CategoryId = 7,
+            Amount = 500.00m,
+            TransactionDate = DateTime.UtcNow,
+            PayeeName = "Cafe Amazon PTT",
+            Description = "ซื้อกาแฟอเมซอน"
+        };
+
+        var txn = await service.ConfirmSlipAsync(1, uploadRes.SlipImportFileId, confirmRequest);
+
+        Assert.NotNull(txn);
+        Assert.Single(merchantRepo.Merchants);
+        Assert.Equal("Cafe Amazon PTT", merchantRepo.Merchants[0].MerchantName);
+        Assert.Equal(7, merchantRepo.Merchants[0].DefaultCategoryId);
+
+        Assert.NotEmpty(categoryRuleService.LearnedRules);
+        Assert.Contains(categoryRuleService.LearnedRules, r => r.UserId == 1 && r.CategoryId == 7);
     }
 
     [Fact]

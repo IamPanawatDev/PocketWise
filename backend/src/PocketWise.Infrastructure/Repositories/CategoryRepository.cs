@@ -25,7 +25,8 @@ public class CategoryRepository : ICategoryRepository
         return await _context.Categories
             .AsNoTracking()
             .Where(c => c.UserId == userId || c.IsSystem)
-            .OrderBy(c => c.SortOrder)
+            .OrderBy(c => c.IsSystem ? 0 : 1)
+            .ThenBy(c => c.SortOrder)
             .ThenBy(c => c.CategoryName)
             .ToListAsync(cancellationToken);
     }

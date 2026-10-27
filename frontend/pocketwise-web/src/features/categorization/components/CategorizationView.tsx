@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import { LoaderCircle, Pencil, Plus, Save, Sparkles, Store, Trash2, X } from "lucide-react";
 
@@ -78,6 +79,40 @@ export function CategorizationView() {
   const deleteRule = useDeleteCategoryRule();
   const [editingMerchant, setEditingMerchant] = useState<MerchantResponse | null>(null);
   const [editingRule, setEditingRule] = useState<CategoryRuleResponse | null>(null);
+  const [isMerchantSheetOpen, setIsMerchantSheetOpen] = useState(false);
+  const [isRuleSheetOpen, setIsRuleSheetOpen] = useState(false);
+
+  const openCreateMerchant = () => {
+    clearMerchantForm();
+    setIsMerchantSheetOpen(true);
+  };
+
+  const openEditMerchant = (merchant: MerchantResponse) => {
+    setEditingMerchant(merchant);
+    merchantForm.reset({
+      merchantName: merchant.merchantName,
+      defaultCategoryId: merchant.defaultCategoryId,
+      bankOrProvider: merchant.bankOrProvider,
+    });
+    setIsMerchantSheetOpen(true);
+  };
+
+  const openCreateRule = () => {
+    clearRuleForm();
+    setIsRuleSheetOpen(true);
+  };
+
+  const openEditRule = (rule: CategoryRuleResponse) => {
+    setEditingRule(rule);
+    ruleForm.reset({
+      ruleName: rule.ruleName,
+      matchType: rule.matchType,
+      matchPattern: rule.matchPattern,
+      categoryId: rule.categoryId,
+      priority: rule.priority,
+    });
+    setIsRuleSheetOpen(true);
+  };
 
   const merchantForm = useForm<MerchantFormValues>({
     resolver: zodResolver(merchantSchema),
@@ -110,13 +145,13 @@ export function CategorizationView() {
           body: { ...payload, isVerified: editingMerchant.isVerified },
         },
         {
-          onSuccess: () => { clearMerchantForm(); toast.success("บันทึกร้านค้าแล้ว"); },
+          onSuccess: () => { clearMerchantForm(); setIsMerchantSheetOpen(false); toast.success("บันทึกร้านค้าแล้ว"); },
           onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "บันทึกไม่สำเร็จ"),
         },
       );
     } else {
       createMerchant.mutate(payload, {
-        onSuccess: () => { clearMerchantForm(); toast.success("เพิ่มร้านค้าแล้ว"); },
+        onSuccess: () => { clearMerchantForm(); setIsMerchantSheetOpen(false); toast.success("เพิ่มร้านค้าแล้ว"); },
         onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "เพิ่มไม่สำเร็จ"),
       });
     }
@@ -130,13 +165,13 @@ export function CategorizationView() {
           body: { ...values, isActive: editingRule.isActive },
         },
         {
-          onSuccess: () => { clearRuleForm(); toast.success("บันทึกกฎแล้ว"); },
+          onSuccess: () => { clearRuleForm(); setIsRuleSheetOpen(false); toast.success("บันทึกกฎแล้ว"); },
           onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "บันทึกไม่สำเร็จ"),
         },
       );
     } else {
       createRule.mutate(values, {
-        onSuccess: () => { clearRuleForm(); toast.success("เพิ่มกฎแล้ว"); },
+        onSuccess: () => { clearRuleForm(); setIsRuleSheetOpen(false); toast.success("เพิ่มกฎแล้ว"); },
         onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "เพิ่มกฎไม่สำเร็จ"),
       });
     }
@@ -173,52 +208,73 @@ export function CategorizationView() {
         </p>
       </header>
 
-      <section>
+      <section className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold">
+              <Store className="size-5 text-[var(--pw-primary)]" />
+              ร้านค้า (Merchants)
+            </h2>
+            <p className="text-xs text-[var(--pw-ink)]/60">
+              กำหนดหมวดหมู่เริ่มต้นให้กับร้านค้าที่ตรวจพบจากรายการ
+            </p>
+          </div>
+          {canManage && (
+            <Button onClick={openCreateMerchant} className="gap-2 w-full sm:w-auto">
+              <Plus className="size-4" />
+              เพิ่มร้านค้า
+            </Button>
+          )}
+        </div>
+
         {canManage && (
-        <Card className="mb-4 p-4 sm:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
-            <Store className="size-5 text-[var(--pw-primary)]" />
-            {editingMerchant ? "แก้ไขร้านค้า" : "เพิ่มร้านค้า"}
-          </h2>
-          <form onSubmit={merchantForm.handleSubmit(onMerchantSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField label="ชื่อร้านค้า" htmlFor="merchant-name" error={merchantForm.formState.errors.merchantName?.message}>
-                <Input id="merchant-name" {...merchantForm.register("merchantName")} />
-              </FormField>
-              <FormField label="ผู้ให้บริการ/ธนาคาร" htmlFor="merchant-provider" error={merchantForm.formState.errors.bankOrProvider?.message}>
-                <Input id="merchant-provider" {...merchantForm.register("bankOrProvider")} />
-              </FormField>
-              <FormField label="หมวดหมู่เริ่มต้น (system category)" htmlFor="merchant-category" error={merchantForm.formState.errors.defaultCategoryId?.message}>
-                <Controller control={merchantForm.control} name="defaultCategoryId" render={({ field }) => (
-                  <Select
-                    value={field.value == null ? "none" : String(field.value)}
-                    onValueChange={(value) => field.onChange(value === "none" ? null : Number(value))}
-                  >
-                    <SelectTrigger id="merchant-category"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                      {categories?.filter((category) => category.isSystem).map((category) => (
-                        <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )} />
-              </FormField>
+          <BottomSheet
+            open={isMerchantSheetOpen}
+            onOpenChange={(open) => {
+              if (!open) clearMerchantForm();
+              setIsMerchantSheetOpen(open);
+            }}
+            title={editingMerchant ? "แก้ไขร้านค้า" : "เพิ่มร้านค้าใหม่"}
+            description="ระบุชื่อร้านค้า ผู้ให้บริการ และหมวดหมู่เริ่มต้น"
+          >
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
+              <form onSubmit={merchantForm.handleSubmit(onMerchantSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField label="ชื่อร้านค้า" htmlFor="merchant-name" error={merchantForm.formState.errors.merchantName?.message}>
+                    <Input id="merchant-name" {...merchantForm.register("merchantName")} />
+                  </FormField>
+                  <FormField label="ผู้ให้บริการ/ธนาคาร" htmlFor="merchant-provider" error={merchantForm.formState.errors.bankOrProvider?.message}>
+                    <Input id="merchant-provider" {...merchantForm.register("bankOrProvider")} />
+                  </FormField>
+                  <FormField label="หมวดหมู่เริ่มต้น (system category)" htmlFor="merchant-category" error={merchantForm.formState.errors.defaultCategoryId?.message}>
+                    <Controller control={merchantForm.control} name="defaultCategoryId" render={({ field }) => (
+                      <Select
+                        value={field.value == null ? "none" : String(field.value)}
+                        onValueChange={(value) => field.onChange(value === "none" ? null : Number(value))}
+                      >
+                        <SelectTrigger id="merchant-category"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                          {categories?.filter((category) => category.isSystem).map((category) => (
+                            <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )} />
+                  </FormField>
+                </div>
+                <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
+                  <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => { clearMerchantForm(); setIsMerchantSheetOpen(false); }}>
+                    ยกเลิก
+                  </Button>
+                  <Button type="submit" disabled={isSavingMerchant} className="w-full sm:w-auto">
+                    {isSavingMerchant ? <LoaderCircle className="animate-spin mr-1.5 size-4" /> : editingMerchant ? <Save className="mr-1.5 size-4" /> : <Plus className="mr-1.5 size-4" />}
+                    {editingMerchant ? "บันทึกร้านค้า" : "เพิ่มร้านค้า"}
+                  </Button>
+                </div>
+              </form>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button type="submit" disabled={isSavingMerchant} className="w-full sm:w-auto">
-                {isSavingMerchant ? <LoaderCircle className="animate-spin" /> : editingMerchant ? <Save /> : <Plus />}
-                {editingMerchant ? "บันทึกร้านค้า" : "เพิ่มร้านค้า"}
-              </Button>
-              {editingMerchant && (
-                <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearMerchantForm}>
-                  <X />
-                  ยกเลิก
-                </Button>
-              )}
-            </div>
-          </form>
-        </Card>
+          </BottomSheet>
         )}
         {merchantsLoading ? (
           <ListRowsSkeleton count={4} />
@@ -244,14 +300,10 @@ export function CategorizationView() {
                   </div>
                   {canManage && (
                   <div className="flex gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => {
-                      setEditingMerchant(merchant);
-                      merchantForm.reset({
-                        merchantName: merchant.merchantName,
-                        defaultCategoryId: merchant.defaultCategoryId,
-                        bankOrProvider: merchant.bankOrProvider,
-                      });
-                    }}><Pencil />แก้ไข</Button>
+                    <Button size="sm" variant="secondary" onClick={() => openEditMerchant(merchant)}>
+                      <Pencil className="size-3.5 mr-1" />
+                      แก้ไข
+                    </Button>
                     <ConfirmDialog
                       title="ลบร้านค้านี้?"
                       description="ระบบจะไม่นำร้านค้านี้มาแนะนำหมวดหมู่อีก"
@@ -272,67 +324,85 @@ export function CategorizationView() {
         )}
       </section>
 
-      <section>
+      <section className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold">
+              <Sparkles className="size-5 text-[var(--pw-primary)]" />
+              กฎจัดหมวดหมู่อัตโนมัติ (Rules)
+            </h2>
+            <p className="text-xs text-[var(--pw-ink)]/60">
+              กฎเลขอ้างอิงธนาคารจะใช้จับคู่กับข้อมูลนำเข้า; รายการทั่วไปจะจับคู่จากรายละเอียดหรือชื่อร้านค้า
+            </p>
+          </div>
+          {canManage && (
+            <Button onClick={openCreateRule} className="gap-2 w-full sm:w-auto">
+              <Plus className="size-4" />
+              เพิ่มกฎจัดหมวดหมู่
+            </Button>
+          )}
+        </div>
+
         {canManage && (
-        <Card className="mb-4 p-4 sm:p-6">
-          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold">
-            <Sparkles className="size-5 text-[var(--pw-primary)]" />
-            {editingRule ? "แก้ไขกฎ" : "เพิ่มกฎจัดหมวดหมู่"}
-          </h2>
-          <p className="mb-4 text-xs text-[var(--pw-ink)]/60">
-            กฎเลขอ้างอิงธนาคารจะใช้จับคู่กับข้อมูลนำเข้า (สลิปหรือใบแจ้งยอด); รายการที่บันทึกด้วยตนเองจะจับคู่จากรายละเอียดหรือชื่อร้านค้า
-          </p>
-          <form onSubmit={ruleForm.handleSubmit(onRuleSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField label="ชื่อกฎ" htmlFor="rule-name" error={ruleForm.formState.errors.ruleName?.message}>
-                <Input id="rule-name" {...ruleForm.register("ruleName")} />
-              </FormField>
-              <FormField label="จับคู่จาก" htmlFor="rule-match-type" error={ruleForm.formState.errors.matchType?.message}>
-                <Controller control={ruleForm.control} name="matchType" render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="rule-match-type"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="description">รายละเอียดรายการ</SelectItem>
-                      <SelectItem value="merchantName">ชื่อร้านค้า</SelectItem>
-                      <SelectItem value="bankReference">เลขอ้างอิงธนาคาร</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )} />
-              </FormField>
-              <FormField label="ข้อความที่ใช้จับคู่" htmlFor="rule-pattern" error={ruleForm.formState.errors.matchPattern?.message}>
-                <Input id="rule-pattern" {...ruleForm.register("matchPattern")} />
-              </FormField>
-              <FormField label="หมวดหมู่" htmlFor="rule-category" error={ruleForm.formState.errors.categoryId?.message}>
-                <Controller control={ruleForm.control} name="categoryId" render={({ field }) => (
-                  <Select value={field.value > 0 ? String(field.value) : "none"} onValueChange={(value) => field.onChange(value === "none" ? 0 : Number(value))}>
-                    <SelectTrigger id="rule-category"><SelectValue placeholder="เลือกหมวดหมู่" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">เลือกหมวดหมู่</SelectItem>
-                      {categories?.map((category) => (
-                        <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )} />
-              </FormField>
-              <FormField label="ลำดับความสำคัญ (ค่าน้อยมาก่อน)" htmlFor="rule-priority" error={ruleForm.formState.errors.priority?.message}>
-                <NumberInput id="rule-priority" min={0} step={1} {...ruleForm.register("priority")} />
-              </FormField>
+          <BottomSheet
+            open={isRuleSheetOpen}
+            onOpenChange={(open) => {
+              if (!open) clearRuleForm();
+              setIsRuleSheetOpen(open);
+            }}
+            title={editingRule ? "แก้ไขกฎจัดหมวดหมู่" : "เพิ่มกฎจัดหมวดหมู่ใหม่"}
+            description="กำหนดเงื่อนไขการจับคู่และหมวดหมู่ที่ต้องการให้ระบบจัดให้อัตโนมัติ"
+          >
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
+              <form onSubmit={ruleForm.handleSubmit(onRuleSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField label="ชื่อกฎ" htmlFor="rule-name" error={ruleForm.formState.errors.ruleName?.message}>
+                    <Input id="rule-name" {...ruleForm.register("ruleName")} />
+                  </FormField>
+                  <FormField label="จับคู่จาก" htmlFor="rule-match-type" error={ruleForm.formState.errors.matchType?.message}>
+                    <Controller control={ruleForm.control} name="matchType" render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="rule-match-type"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="description">รายละเอียดรายการ</SelectItem>
+                          <SelectItem value="merchantName">ชื่อร้านค้า</SelectItem>
+                          <SelectItem value="bankReference">เลขอ้างอิงธนาคาร</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )} />
+                  </FormField>
+                  <FormField label="ข้อความที่ใช้จับคู่" htmlFor="rule-pattern" error={ruleForm.formState.errors.matchPattern?.message}>
+                    <Input id="rule-pattern" {...ruleForm.register("matchPattern")} />
+                  </FormField>
+                  <FormField label="หมวดหมู่" htmlFor="rule-category" error={ruleForm.formState.errors.categoryId?.message}>
+                    <Controller control={ruleForm.control} name="categoryId" render={({ field }) => (
+                      <Select value={field.value > 0 ? String(field.value) : "none"} onValueChange={(value) => field.onChange(value === "none" ? 0 : Number(value))}>
+                        <SelectTrigger id="rule-category"><SelectValue placeholder="เลือกหมวดหมู่" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">เลือกหมวดหมู่</SelectItem>
+                          {categories?.map((category) => (
+                            <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )} />
+                  </FormField>
+                  <FormField label="ลำดับความสำคัญ (ค่าน้อยมาก่อน)" htmlFor="rule-priority" error={ruleForm.formState.errors.priority?.message}>
+                    <NumberInput id="rule-priority" min={0} step={1} {...ruleForm.register("priority")} />
+                  </FormField>
+                </div>
+                <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
+                  <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => { clearRuleForm(); setIsRuleSheetOpen(false); }}>
+                    ยกเลิก
+                  </Button>
+                  <Button type="submit" disabled={isSavingRule} className="w-full sm:w-auto">
+                    {isSavingRule ? <LoaderCircle className="animate-spin mr-1.5 size-4" /> : editingRule ? <Save className="mr-1.5 size-4" /> : <Plus className="mr-1.5 size-4" />}
+                    {editingRule ? "บันทึกกฎ" : "เพิ่มกฎ"}
+                  </Button>
+                </div>
+              </form>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button type="submit" disabled={isSavingRule} className="w-full sm:w-auto">
-                {isSavingRule ? <LoaderCircle className="animate-spin" /> : editingRule ? <Save /> : <Plus />}
-                {editingRule ? "บันทึกกฎ" : "เพิ่มกฎ"}
-              </Button>
-              {editingRule && (
-                <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={clearRuleForm}>
-                  <X />
-                  ยกเลิก
-                </Button>
-              )}
-            </div>
-          </form>
-        </Card>
+          </BottomSheet>
         )}
         {rulesLoading ? (
           <ListRowsSkeleton count={4} />
@@ -357,16 +427,10 @@ export function CategorizationView() {
                   </div>
                   {!rule.isGlobal && canManage && (
                     <div className="flex gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => {
-                        setEditingRule(rule);
-                        ruleForm.reset({
-                          ruleName: rule.ruleName,
-                          matchType: rule.matchType,
-                          matchPattern: rule.matchPattern,
-                          categoryId: rule.categoryId,
-                          priority: rule.priority,
-                        });
-                      }}><Pencil />แก้ไข</Button>
+                      <Button size="sm" variant="secondary" onClick={() => openEditRule(rule)}>
+                        <Pencil className="size-3.5 mr-1" />
+                        แก้ไข
+                      </Button>
                       <ConfirmDialog
                         title="ลบกฎนี้?"
                         description="กฎนี้จะไม่แนะนำหมวดหมู่อีก"

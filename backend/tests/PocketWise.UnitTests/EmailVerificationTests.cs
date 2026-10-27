@@ -71,6 +71,22 @@ public class EmailVerificationTests
 
         public override Task<IdentityResult> UpdateAsync(ApplicationUser user) =>
             Task.FromResult(IdentityResult.Success);
+
+        public override Task<IdentityResult> CreateAsync(ApplicationUser user, string password)
+        {
+            user.Id = UsersList.Count + 1;
+            UsersList.Add(user);
+            return Task.FromResult(IdentityResult.Success);
+        }
+
+        public override Task<ApplicationUser?> FindByEmailAsync(string email) =>
+            Task.FromResult(UsersList.FirstOrDefault(u => u.Email == email));
+
+        public override Task<IList<string>> GetRolesAsync(ApplicationUser user) =>
+            Task.FromResult<IList<string>>(new List<string> { "Member" });
+
+        public override Task<IdentityResult> AddToRoleAsync(ApplicationUser user, string role) =>
+            Task.FromResult(IdentityResult.Success);
     }
 
     private class FakeEmailService : IEmailService
@@ -101,7 +117,14 @@ public class EmailVerificationTests
     private class FakeTokenService : ITokenService
     {
         public AuthResponse GenerateTokenPair(ApplicationUser user, IEnumerable<string>? roles = null) =>
-            throw new NotImplementedException();
+            new AuthResponse
+            {
+                AccessToken = "fake-access-token",
+                AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15),
+                RefreshToken = "fake-refresh-token",
+                RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7),
+                User = new UserProfileResponse { Id = user.Id, Email = user.Email, DisplayName = user.DisplayName }
+            };
         public string HashToken(string token) => token;
         public string GenerateRefreshToken() => "fake-refresh-token";
     }
@@ -299,5 +322,39 @@ public class EmailVerificationTests
         Assert.True(result.Verified);
         Assert.Equal("already@pocketwise.local", result.Email);
         Assert.Contains("ได้รับการยืนยันเรียบร้อยแล้ว", result.Message);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_AutomaticallySendsVerificationEmail()
+    {
+        // Arrange
+        var fakeUserManager = new FakeUserManager();
+        var fakeEmailService = new FakeEmailService();
+
+        var authService = new AuthService(
+            fakeUserManager,
+            new FakeRefreshTokenRepository(),
+            new FakeTokenService(),
+            null!,
+            fakeEmailService
+        );
+
+        var request = new RegisterRequest
+        {
+            Email = "newuser@pocketwise.local",
+            Password = "SecurePassword123!",
+            DisplayName = "New User"
+        };
+
+        // Act
+        var result = await authService.RegisterAsync(request, "127.0.0.1", "AgentTest", "http://localhost:3000");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Single(fakeEmailService.SentEmails);
+        var sent = fakeEmailService.SentEmails[0];
+        Assert.Equal("newuser@pocketwise.local", sent.To);
+        Assert.Contains("ยืนยันที่อยู่อีเมลของคุณ", sent.Subject);
+        Assert.Contains("/verify-email?userId=", sent.Body);
     }
 }
