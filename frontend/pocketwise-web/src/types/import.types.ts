@@ -23,6 +23,7 @@ export interface ConfirmSlipRequest {
   description: string;
   categoryId?: number | null;
   bankAccountId?: number | null;
+  creditCardId?: number | null;
   payeeName?: string | null;
   payerName?: string | null;
   transactionReference?: string | null;
@@ -97,3 +98,4 @@ export interface ImportJobResponse {
   statementId?: number | null;
   creditCardId?: number | null;
 }
+

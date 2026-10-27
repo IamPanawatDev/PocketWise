@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
+import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTags } from "@/features/tags/hooks/useTags";
 import { useCategorySuggestion } from "@/features/categorization/hooks/useCategorization";
@@ -47,7 +48,9 @@ export function SlipImportTab() {
   const [amount, setAmount] = useState<string>("");
   const [transactionDate, setTransactionDate] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [payeeName, setPayeeName] = useState<string>("");
   const [bankAccountId, setBankAccountId] = useState<string>("");
+  const [creditCardId, setCreditCardId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [debouncedDescription, setDebouncedDescription] = useState("");
   const [statusMessage, setStatusMessage] = useState<{
@@ -56,6 +59,7 @@ export function SlipImportTab() {
   } | null>(null);
 
   const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: creditCards = [] } = useCreditCards();
   const { data: categories = [] } = useCategories();
   const { data: tags = [] } = useTags();
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
@@ -77,16 +81,18 @@ export function SlipImportTab() {
   async function prepareSlipFile(file: File): Promise<File> {
     // Keep original high-resolution file for sharp OCR reading.
     // Only downscale if the file is extremely massive (> 5MB)
-    if (!file.type.startsWith("image/") || file.size <= 5 * 1024 * 1024) return file;
+    const MAX_RAW_BYTES = 5 * 1024 * 1024;
+    if (file.size <= MAX_RAW_BYTES || !file.type.startsWith("image/")) {
+      return file;
+    }
 
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(url);
-        const maxDim = 2400; // High resolution ceiling for massive files
+        const maxDim = 2500;
         let { width, height } = img;
-
         if (width <= maxDim && height <= maxDim) {
           resolve(file);
           return;
@@ -153,6 +159,8 @@ export function SlipImportTab() {
         } else {
           setTransactionDate(toThailandDateTimeInputValue(new Date()));
         }
+        setPayeeName(data.payeeName ?? "");
+        setCreditCardId("");
         if (data.payeeName) {
           setDescription(`โอนเงินให้ ${data.payeeName}`);
         } else if (data.payerName) {
@@ -199,10 +207,11 @@ export function SlipImportTab() {
         body: {
           amount: numAmount,
           transactionDate: isoDate,
-          description: description.trim() || "โอนเงินผ่านสลิป",
+          description: description.trim() || (payeeName.trim() ? `ชำระเงินให้ ${payeeName.trim()}` : "โอนเงินผ่านสลิป"),
           categoryId: categoryId ? Number(categoryId) : null,
           bankAccountId: bankAccountId ? Number(bankAccountId) : null,
-          payeeName: uploadedSlip.payeeName,
+          creditCardId: creditCardId ? Number(creditCardId) : null,
+          payeeName: payeeName.trim() || uploadedSlip.payeeName,
           payerName: uploadedSlip.payerName,
           transactionReference: uploadedSlip.transactionReference,
           tagIds: selectedTagIds,
@@ -255,6 +264,9 @@ export function SlipImportTab() {
     setUploadedSlip(null);
     setAmount("");
     setDescription("");
+    setPayeeName("");
+    setBankAccountId("");
+    setCreditCardId("");
     setCategoryId("");
     setTransactionDate("");
     setSelectedTagIds([]);
@@ -431,12 +443,13 @@ export function SlipImportTab() {
                 </div>
               </div>
 
-              {/* Edit Fields */}
+              {/* Edit Fields - matching TransactionForm for expenses */}
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField label="จำนวนเงิน (บาท)">
                     <NumberInput
                       step={0.01}
+                      min={0.01}
                       placeholder="0"
                       value={amount}
                       disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
@@ -444,7 +457,7 @@ export function SlipImportTab() {
                     />
                   </FormField>
 
-                  <FormField label="วันที่และเวลาทำรายการ">
+                  <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)">
                     <DateTimeInput
                       value={transactionDate}
                       disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
@@ -453,38 +466,7 @@ export function SlipImportTab() {
                   </FormField>
                 </div>
 
-                <FormField label="รายละเอียดรายการ">
-                  <Input
-                    placeholder="เช่น ชำระค่าอาหาร, ค่ากาแฟ"
-                    value={description}
-                    disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </FormField>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField label="ตัดจากบัญชีธนาคาร">
-                    <Select
-                      value={bankAccountId}
-                      onValueChange={setBankAccountId}
-                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="เลือกบัญชีธนาคาร" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bankAccounts.map((acc) => (
-                          <SelectItem
-                            key={acc.bankAccountId}
-                            value={String(acc.bankAccountId)}
-                          >
-                            {acc.accountName} ({acc.bankName})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
-
                   <FormField
                     label={
                       <div className="flex items-center gap-1.5">
@@ -499,14 +481,15 @@ export function SlipImportTab() {
                     }
                   >
                     <Select
-                      value={categoryId}
-                      onValueChange={setCategoryId}
+                      value={categoryId || "none"}
+                      onValueChange={(val) => setCategoryId(val === "none" ? "" : val)}
                       disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="เลือกหมวดหมู่" />
+                        <SelectValue placeholder="— ไม่ระบุ —" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">— ไม่ระบุ —</SelectItem>
                         {categories.map((cat) => (
                           <SelectItem key={cat.categoryId} value={String(cat.categoryId)}>
                             {cat.categoryName}
@@ -526,6 +509,73 @@ export function SlipImportTab() {
                         <span>ใช้คำแนะนำจากรายละเอียด: <strong>{categorySuggestion.categoryName ?? "หมวดหมู่"}</strong></span>
                       </Button>
                     )}
+                  </FormField>
+
+                  <FormField label="บัญชี">
+                    <Select
+                      value={bankAccountId || "none"}
+                      onValueChange={(val) => {
+                        const nextVal = val === "none" ? "" : val;
+                        setBankAccountId(nextVal);
+                        if (nextVal) setCreditCardId("");
+                      }}
+                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="— ไม่ระบุ —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                        {bankAccounts.map((acc) => (
+                          <SelectItem
+                            key={acc.bankAccountId}
+                            value={String(acc.bankAccountId)}
+                          >
+                            {acc.accountName} ({acc.bankName})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField label="บัตรเครดิต">
+                    <Select
+                      value={creditCardId || "none"}
+                      onValueChange={(val) => {
+                        const nextVal = val === "none" ? "" : val;
+                        setCreditCardId(nextVal);
+                        if (nextVal) setBankAccountId("");
+                      }}
+                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="— ไม่ระบุ —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                        {creditCards
+                          .filter((card) => card.isActive)
+                          .map((card) => (
+                            <SelectItem
+                              key={card.creditCardId}
+                              value={String(card.creditCardId)}
+                            >
+                              {card.cardName} · {card.bankName}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+
+                  <FormField label="ผู้รับเงิน / ร้านค้า">
+                    <Input
+                      placeholder="เช่น บจก. ซีพี ออลล์, ร้านกาแฟ"
+                      value={payeeName}
+                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                      onChange={(e) => setPayeeName(e.target.value)}
+                    />
                   </FormField>
                 </div>
 
@@ -550,7 +600,7 @@ export function SlipImportTab() {
                               checked
                                 ? "opacity-100 ring-2 ring-[var(--pw-link)] ring-offset-2 ring-offset-[var(--pw-canvas)] border-transparent"
                                 : "opacity-65 hover:opacity-90 border-transparent",
-                              (uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate) && "pointer-events-none opacity-40",
+                              uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate && "pointer-events-none opacity-40",
                             )}
                             style={{
                               backgroundColor: color,
@@ -590,6 +640,15 @@ export function SlipImportTab() {
                       })}
                     </div>
                   )}
+                </FormField>
+
+                <FormField label="รายละเอียด">
+                  <Input
+                    placeholder="เช่น ชำระค่าอาหาร, ค่ากาแฟ"
+                    value={description}
+                    disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
                 </FormField>
               </div>
 

@@ -290,6 +290,38 @@ public class ImportServiceTests
     }
 
     [Fact]
+    public async Task SlipImport_ConfirmSlip_WithCreditCard_CreatesTransactionWithCreditCardId()
+    {
+        var repo = new FakeImportRepository();
+        var storage = new FakeFileStorageService();
+        var ocr = new FakeSlipOcrService();
+        var service = new SlipImportService(repo, storage, ocr);
+
+        var bytes = Encoding.UTF8.GetBytes("slip image");
+        using var stream = new MemoryStream(bytes);
+        var uploadRes = await service.UploadSlipAsync(1, stream, "slip.png", "image/png", bytes.Length);
+
+        var confirmRequest = new ConfirmSlipRequest
+        {
+            CreditCardId = 42,
+            CategoryId = 5,
+            Amount = 500.00m,
+            TransactionDate = DateTime.UtcNow,
+            Description = "Coffee paid via credit card"
+        };
+
+        var txn = await service.ConfirmSlipAsync(1, uploadRes.SlipImportFileId, confirmRequest);
+
+        Assert.Equal(SourceType.Slip, txn.SourceType);
+        Assert.Equal(500.00m, txn.Amount);
+        Assert.Equal(42, txn.CreditCardId);
+        Assert.Null(txn.BankAccountId);
+
+        var slip = repo.Slips.First(s => s.SlipImportFileId == uploadRes.SlipImportFileId);
+        Assert.Equal(ReviewStatus.Confirmed, slip.ReviewStatus);
+    }
+
+    [Fact]
     public async Task SlipImport_ConfirmSlip_RegistersMerchantAndLearnsCategoryRule()
     {
         var repo = new FakeImportRepository();

@@ -12,6 +12,18 @@ import {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5268";
 
+function isJwtExpired(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return true;
+    const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
+    if (typeof payload.exp !== "number") return false;
+    return Date.now() >= payload.exp * 1000 - 30_000;
+  } catch {
+    return false;
+  }
+}
+
 interface BodyPayload {
   body: BodyInit | null;
   contentType: string | null;
@@ -99,7 +111,7 @@ async function handleRequest(
   let shouldClearAuth = false;
 
   // Proactively refresh if access token expired/missing and refresh token exists
-  if (!token) {
+  if (!token || isJwtExpired(token)) {
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
       newTokens = await refreshAuthTokens(refreshToken);
