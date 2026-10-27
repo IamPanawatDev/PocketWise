@@ -279,13 +279,18 @@ public class SlipImportService : ISlipImportService
         }
 
         var currencyCode = await _repository.GetCurrencyCodeAsync(userId, cancellationToken);
-        var categoryId = request.CategoryId;
+        var categoryId = request.CategoryId.HasValue && request.CategoryId.Value > 0 ? request.CategoryId : null;
+        var bankAccountId = request.BankAccountId.HasValue && request.BankAccountId.Value > 0 ? request.BankAccountId : null;
+        var creditCardId = request.CreditCardId.HasValue && request.CreditCardId.Value > 0 ? request.CreditCardId : null;
 
         // Auto-categorize if user didn't specify category
         if (!categoryId.HasValue)
         {
             var (suggestedId, _) = await _repository.SuggestCategoryAsync(userId, request.Description ?? slip.PayeeName, cancellationToken);
-            categoryId = suggestedId;
+            if (suggestedId.HasValue && suggestedId.Value > 0)
+            {
+                categoryId = suggestedId;
+            }
         }
 
         long? merchantId = null;
@@ -299,11 +304,12 @@ public class SlipImportService : ISlipImportService
                 var existingMerchant = matches.FirstOrDefault(m => m.NormalizedName == normalized);
                 if (existingMerchant != null)
                 {
-                    merchantId = existingMerchant.MerchantId;
+                    merchantId = existingMerchant.MerchantId > 0 ? existingMerchant.MerchantId : null;
                     if (!existingMerchant.DefaultCategoryId.HasValue && categoryId.HasValue)
                     {
                         existingMerchant.DefaultCategoryId = categoryId;
                         await _merchantRepository.UpdateAsync(existingMerchant, cancellationToken);
+                        await _merchantRepository.SaveChangesAsync(cancellationToken);
                     }
                 }
                 else
@@ -318,12 +324,17 @@ public class SlipImportService : ISlipImportService
                         CreatedAt = DateTime.UtcNow
                     };
                     await _merchantRepository.AddAsync(newMerchant, cancellationToken);
-                    merchantId = newMerchant.MerchantId;
+                    await _merchantRepository.SaveChangesAsync(cancellationToken);
+                    if (newMerchant.MerchantId > 0)
+                    {
+                        merchantId = newMerchant.MerchantId;
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "Failed to register merchant for payee '{Payee}'", payee);
+                merchantId = null;
             }
         }
 
@@ -333,11 +344,13 @@ public class SlipImportService : ISlipImportService
             Amount = request.Amount,
             CurrencyCode = currencyCode,
             TransactionType = TransactionType.Expense,
-            TransactionDate = request.TransactionDate != default ? request.TransactionDate : DateTime.UtcNow,
+            TransactionDate = request.TransactionDate != default
+                ? DateTime.SpecifyKind(request.TransactionDate, DateTimeKind.Utc)
+                : DateTime.UtcNow,
             CategoryId = categoryId,
-            BankAccountId = request.BankAccountId,
-            CreditCardId = request.CreditCardId,
-            MerchantId = merchantId,
+            BankAccountId = bankAccountId,
+            CreditCardId = creditCardId,
+            MerchantId = merchantId > 0 ? merchantId : null,
             Description = string.IsNullOrWhiteSpace(request.Description)
                 ? (slip.PayeeName ?? "โอนเงินจากสลิป")
                 : request.Description,
@@ -350,10 +363,13 @@ public class SlipImportService : ISlipImportService
 
         if (request.TagIds is { Count: > 0 })
         {
-            transaction.TransactionTags = request.TagIds
-                .Distinct()
-                .Select(tagId => new TransactionTag { TagId = tagId })
-                .ToList();
+            var validTagIds = request.TagIds.Where(id => id > 0).Distinct().ToList();
+            if (validTagIds.Count > 0)
+            {
+                transaction.TransactionTags = validTagIds
+                    .Select(tagId => new TransactionTag { TagId = tagId })
+                    .ToList();
+            }
         }
 
         await _repository.AddTransactionAsync(transaction, cancellationToken);

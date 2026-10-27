@@ -227,9 +227,11 @@ export function SlipImportTab() {
           handleReset(true);
         },
         onError: (err) => {
+          const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกรายการ";
+          toast.error(msg);
           setStatusMessage({
             type: "error",
-            text: err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกรายการ",
+            text: msg,
           });
         },
       },

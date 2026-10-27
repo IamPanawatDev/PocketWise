@@ -127,9 +127,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="relative z-1 flex min-h-dvh flex-col">
           <Providers>
             {children}
-            <Toaster position="top-center" richColors />
           </Providers>
         </div>
+        <Toaster position="top-center" richColors style={{ zIndex: 99999 }} />
       </body>
     </html>
   );

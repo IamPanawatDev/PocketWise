@@ -365,3 +365,10 @@ body[data-scroll-locked] {
     font-size: 16px !important;
   }
 }
+
+
+/* Ensure toast alerts always render in front of modals, dialogs, and bottom sheets */
+[data-sonner-toaster],
+[data-sonner-toaster] * {
+  z-index: 99999 !important;
+}
