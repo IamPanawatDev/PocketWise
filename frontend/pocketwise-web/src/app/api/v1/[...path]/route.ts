@@ -49,12 +49,21 @@ async function forward(
   const qs = search.toString();
   const url = `${API_BASE_URL}/api/v1/${path.join("/")}${qs ? `?${qs}` : ""}`;
 
-  return fetch(url, {
-    method,
-    headers,
-    body: payload.body ?? undefined,
-    cache: "no-store",
-  });
+  const isUpload = path.includes("imports") || Boolean(payload.contentType && payload.contentType.includes("multipart"));
+  const timeoutMs = isUpload ? 120_000 : 60_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      method,
+      headers,
+      body: payload.body ?? undefined,
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function readBody(req: NextRequest): Promise<BodyPayload> {
@@ -84,7 +93,8 @@ async function passthrough(
   headers.delete("content-encoding");
   headers.delete("content-length");
 
-  const nextRes = new NextResponse(body, {
+  const isNoBodyStatus = res.status === 204 || res.status === 205 || res.status === 304;
+  const nextRes = new NextResponse(isNoBodyStatus ? null : body, {
     status: res.status,
     statusText: res.statusText,
     headers,

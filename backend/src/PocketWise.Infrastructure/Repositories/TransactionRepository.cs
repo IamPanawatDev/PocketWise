@@ -28,6 +28,14 @@ public class TransactionRepository : ITransactionRepository
             .FirstOrDefaultAsync(t => t.TransactionId == id && t.UserId == userId && !t.IsDeleted, cancellationToken);
     }
 
+    
+    public async Task<bool> ExistsAsync(long id, long userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Transactions
+            .IgnoreQueryFilters()
+            .AnyAsync(t => t.TransactionId == id && t.UserId == userId, cancellationToken);
+    }
+
     public async Task<PagedResult<Transaction>> GetPagedAsync(long userId, TransactionFilter filter, int page, int pageSize, string sortBy, bool sortDesc, CancellationToken cancellationToken = default)
     {
         var query = _context.Transactions

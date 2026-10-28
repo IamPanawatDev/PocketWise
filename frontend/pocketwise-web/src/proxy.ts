@@ -29,16 +29,12 @@ export function proxy(request: NextRequest) {
 
   // If trying to access auth pages:
   if (isAuthPage) {
-    // If request has ?from=..., the user was sent to the auth page due to session expiry or logout.
-    // Allow access to login without redirecting back to /transactions, and clear any leftover cookies.
+    // If request has ?from=..., allow viewing the login/auth page without an immediate redirect loop
     if (request.nextUrl.searchParams.has("from")) {
-      const response = NextResponse.next();
-      response.cookies.delete("pw_access");
-      response.cookies.delete("pw_refresh");
-      return response;
+      return NextResponse.next();
     }
 
-    // If user has an active session (and not redirected with ?from), redirect to /transactions
+    // If user has an active session (and not visiting with ?from), redirect to /transactions
     if (hasSession) {
       return NextResponse.redirect(new URL("/transactions", request.url));
     }

@@ -18,18 +18,21 @@ function isJwtExpired(token: string): boolean {
   }
 }
 
-export async function GET(req: NextRequest) {
+async function handleTokenRequest(req: NextRequest, bodyRefreshToken?: string | null) {
   const forceRefresh = req.nextUrl.searchParams.get("refresh") === "true";
   let token = await getAccessToken();
 
   if (!token || forceRefresh || isJwtExpired(token)) {
-    const refreshToken = await getRefreshToken();
+    const refreshToken = (await getRefreshToken()) || bodyRefreshToken || null;
     if (refreshToken) {
       const newTokens = await refreshAuthTokens(refreshToken);
       if (newTokens?.accessToken) {
         token = newTokens.accessToken;
         await setAuthCookies(newTokens);
-        const res = NextResponse.json({ accessToken: token });
+        const res = NextResponse.json({
+          accessToken: token,
+          refreshToken: newTokens.refreshToken,
+        });
         setAuthCookiesFromData(res, newTokens);
         return res;
       }
@@ -43,4 +46,17 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ accessToken: token });
+}
+
+export async function GET(req: NextRequest) {
+  return handleTokenRequest(req);
+}
+
+export async function POST(req: NextRequest) {
+  let bodyRefreshToken: string | null = null;
+  try {
+    const json = await req.json();
+    bodyRefreshToken = json?.refreshToken ?? null;
+  } catch {}
+  return handleTokenRequest(req, bodyRefreshToken);
 }

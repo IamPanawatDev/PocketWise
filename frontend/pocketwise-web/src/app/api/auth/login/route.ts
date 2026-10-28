@@ -12,7 +12,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const res = NextResponse.json({ success: true, data: result.data.user });
+  const res = NextResponse.json({
+    success: true,
+    data: {
+      user: result.data.user,
+      refreshToken: result.data.refreshToken,
+    },
+  });
   setAuthCookiesFromData(res, result.data);
   return res;
 }

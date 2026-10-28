@@ -34,7 +34,6 @@ import {
 } from "@/lib/utils";
 import {
   ArrowDownRight,
-  ArrowRightLeft,
   ArrowUpRight,
   Check,
   LoaderCircle,
@@ -169,7 +168,7 @@ export function TransactionForm({
               control={control}
               name="transactionType"
               render={({ field }) => (
-                <div id="transaction-type" className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="ประเภทธุรกรรม">
+                <div id="transaction-type" className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="ประเภทธุรกรรม">
                   <button
                     type="button"
                     role="radio"
@@ -202,24 +201,6 @@ export function TransactionForm({
                   >
                     <ArrowUpRight className="size-4" />
                     รายรับ
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={field.value === "transfer"}
-                    onClick={() => {
-                      field.onChange("transfer");
-                      setValue("creditCardId", null);
-                    }}
-                    className={cn(
-                      "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
-                      field.value === "transfer"
-                        ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-[var(--pw-on-link)] font-semibold shadow-sm"
-                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)] hover:bg-[var(--pw-link)]/10",
-                    )}
-                  >
-                    <ArrowRightLeft className="size-4" />
-                    โอน
                   </button>
                 </div>
               )}
