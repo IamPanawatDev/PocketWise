@@ -73,6 +73,7 @@ export function TransactionList({
   const { data: creditCards } = useCreditCards();
   const { data, isLoading } = useTransactions(filter, page, sortBy, sortDesc);
   const remove = useDeleteTransaction();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleFilterChange = (patch: Partial<TransactionFilter>) => {
     setFilter((f) => ({ ...f, ...patch }));
@@ -124,7 +125,7 @@ export function TransactionList({
         description={
           editing
             ? "ปรับเปลี่ยนรายละเอียดของรายการธุรกรรม"
-            : "บันทึกรายการรายรับ รายจ่าย หรือโอนเงินใหม่"
+            : "บันทึกรายการรายรับ หรือรายจ่ายใหม่"
         }
       >
         <TransactionForm
@@ -278,7 +279,7 @@ export function TransactionList({
       >
         <div className="space-y-4 py-2">
           <FormField label="ประเภทธุรกรรม" htmlFor="sheet-type-filter" className="w-full min-w-0">
-            <div id="sheet-type-filter" className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="กรองประเภทธุรกรรม">
+            <div id="sheet-type-filter" className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="กรองประเภทธุรกรรม">
               <button
                 type="button"
                 role="radio"
@@ -323,21 +324,6 @@ export function TransactionList({
               >
                 <ArrowUpRight className="size-3.5" />
                 รายรับ
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={filter.type === "transfer"}
-                onClick={() => handleFilterChange({ type: "transfer" })}
-                className={cn(
-                  "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
-                  filter.type === "transfer"
-                    ? "border-[var(--pw-link)] bg-[var(--pw-link)] text-[var(--pw-on-link)] font-semibold shadow-sm"
-                    : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-link)] hover:text-[var(--pw-link)]",
-                )}
-              >
-                <ArrowRightLeft className="size-3.5" />
-                โอน
               </button>
             </div>
           </FormField>
@@ -645,15 +631,22 @@ export function TransactionList({
                     title="ลบรายการนี้?"
                     description="การลบจะไม่สามารถย้อนกลับได้"
                     confirmLabel="ลบ"
-                    pending={remove.isPending}
+                    pending={deletingId === t.transactionId}
                     onConfirm={() => {
+                      setDeletingId(t.transactionId);
                       remove.mutate(t.transactionId, {
-                        onSuccess: () => toast.success("ลบรายการแล้ว"),
-                        onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
+                        onSuccess: () => {
+                          setDeletingId(null);
+                          toast.success("ลบรายการแล้ว");
+                        },
+                        onError: (e) => {
+                          setDeletingId(null);
+                          toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ");
+                        },
                       });
                     }}
                     trigger={
-                      <Button size="sm" variant="destructive" className="h-8 text-xs px-3">
+                      <Button size="sm" variant="destructive" className="h-8 text-xs px-3" disabled={deletingId === t.transactionId}>
                         <Trash2 className="size-3.5" />
                         ลบ
                       </Button>

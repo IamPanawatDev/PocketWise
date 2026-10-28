@@ -214,7 +214,7 @@ public class TransactionService : ITransactionService
         var entity = await _repository.GetByIdAsync(id, userId, cancellationToken);
         if (entity is null)
         {
-            return false;
+            return await _repository.ExistsAsync(id, userId, cancellationToken);
         }
 
         await _repository.SoftDeleteAsync(entity, cancellationToken);
@@ -222,21 +222,28 @@ public class TransactionService : ITransactionService
 
         if (_auditLogService != null)
         {
-            await _auditLogService.LogAsync(
-                userId,
-                AuditAction.Delete,
-                "Transactions",
-                id.ToString(),
-                new
-                {
-                    entity.TransactionType,
-                    entity.Amount,
-                    entity.CurrencyCode,
-                    entity.TransactionDate,
-                    entity.Description,
-                    IsDeleted = true
-                },
-                cancellationToken);
+            try
+            {
+                await _auditLogService.LogAsync(
+                    userId,
+                    AuditAction.Delete,
+                    "Transactions",
+                    id.ToString(),
+                    new
+                    {
+                        entity.TransactionType,
+                        entity.Amount,
+                        entity.CurrencyCode,
+                        entity.TransactionDate,
+                        entity.Description,
+                        IsDeleted = true
+                    },
+                    cancellationToken);
+            }
+            catch
+            {
+                // Graceful fallback: do not fail transaction deletion if audit logging fails
+            }
         }
 
         return true;

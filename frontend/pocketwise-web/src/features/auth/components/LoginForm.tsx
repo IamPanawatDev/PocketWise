@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -21,6 +21,7 @@ export function LoginForm() {
   const router = useRouter();
   const { data: user, isSuccess } = useCurrentUser();
   const login = useLogin();
+  const [isRestoring, setIsRestoring] = useState(false);
   const {
     register,
     handleSubmit,
@@ -30,13 +31,59 @@ export function LoginForm() {
   });
 
   useEffect(() => {
+    // If user already has an active session and didn't arrive via explicit redirect loop
     const hasFrom = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("from");
     if (isSuccess && user && !hasFrom) {
       router.replace("/");
+      return;
     }
+
+    // Check if there is a persistent fallback refresh token (e.g. iOS PWA restart)
+    if (typeof window === "undefined") return;
+    const fallback = localStorage.getItem("pw_fallback_refresh");
+    if (!fallback) return;
+
+    setIsRestoring(true);
+    fetch("/api/auth/token?refresh=true", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ refreshToken: fallback }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Restore failed");
+        return res.json();
+      })
+      .then((data) => {
+        if (data?.refreshToken) {
+          try {
+            localStorage.setItem("pw_fallback_refresh", data.refreshToken);
+          } catch {}
+        }
+        const from = new URLSearchParams(window.location.search).get("from");
+        window.location.href = from && from !== "/login" ? from : "/transactions";
+      })
+      .catch(() => {
+        try {
+          localStorage.removeItem("pw_fallback_refresh");
+        } catch {}
+        setIsRestoring(false);
+      });
   }, [isSuccess, user, router]);
 
   const onSubmit = (values: LoginFormValues) => login.mutate(values);
+
+  if (isRestoring) {
+    return (
+      <main className="flex flex-1 items-center justify-center px-4 py-6">
+        <div className="flex flex-col items-center gap-3">
+          <LoaderCircle className="size-8 animate-spin text-[var(--pw-primary)]" />
+          <p className="text-sm text-[var(--pw-ink)]/70">กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-6">

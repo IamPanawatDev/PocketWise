@@ -11,6 +11,7 @@ import {
   Sparkles,
   ArrowRight,
   Receipt,
+  LoaderCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -309,24 +310,39 @@ export function SlipImportTab() {
             onChange={handleFileChange}
             disabled={uploadMutation.isPending}
           />
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)] mb-4">
-            <UploadCloud className="h-8 w-8" />
-          </div>
-          <h3 className="text-lg font-semibold text-[var(--pw-text-primary)]">
-            อัปโหลดสลิปโอนเงิน
-          </h3>
-          <p className="mt-1 max-w-sm text-sm text-[var(--pw-text-secondary)]">
-            ลากและวางรูปภาพสลิป หรือคลิกเพื่อเลือกไฟล์ รองรับ JPEG, PNG, WEBP หรือ PDF (สูงสุด 10 MB)
-          </p>
-          <Button
-            type="button"
-            className="mt-6 gap-2"
-            disabled={uploadMutation.isPending}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {uploadMutation.isPending ? "กำลังอ่านข้อมูลสลิป..." : "เลือกไฟล์สลิป"}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          {uploadMutation.isPending ? (
+            <div className="flex flex-col items-center justify-center py-6 text-center space-y-3">
+              <LoaderCircle className="h-10 w-10 animate-spin text-[var(--pw-accent-primary)]" />
+              <div>
+                <h4 className="text-base font-semibold text-[var(--pw-text-primary)]">
+                  กำลังอัปโหลดและวิเคราะห์ข้อมูลด้วย AI / OCR...
+                </h4>
+                <p className="mt-1 max-w-sm text-xs text-[var(--pw-text-secondary)]">
+                  บนเซิร์ฟเวอร์ Render Free อาจใช้เวลา 20–45 วินาทีในการประมวลผล กรุณารอสักครู่
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)] mb-4">
+                <UploadCloud className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-semibold text-[var(--pw-text-primary)]">
+                อัปโหลดสลิปโอนเงิน
+              </h3>
+              <p className="mt-1 max-w-sm text-sm text-[var(--pw-text-secondary)]">
+                ลากและวางรูปภาพสลิป หรือคลิกเพื่อเลือกไฟล์ รองรับ JPEG, PNG, WEBP หรือ PDF (สูงสุด 10 MB)
+              </p>
+              <Button
+                type="button"
+                className="mt-6 gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                เลือกไฟล์สลิป
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-12">
@@ -365,7 +381,7 @@ export function SlipImportTab() {
                   <div>
                     <span className="font-semibold">ตรวจพบสลิปซ้ำในระบบ:</span>
                     <p className="mt-0.5 text-[var(--pw-text-secondary)]">
-                      ไฟล์นี้มีค่าแฮช SHA-256 ตรงกับสลิปที่เคยนำเข้าแล้ว กรุณาตรวจสอบก่อนยืนยัน
+                      ไฟล์นี้มีค่าแฮช SHA-256 ตรงกับสลิปในระบบ หากการอัปโหลดครั้งก่อนเกิดข้อผิดพลาด คุณสามารถตรวจสอบข้อมูลด้านล่างและกดยืนยันบันทึกรายการได้ตามปกติ
                     </p>
                   </div>
                 </div>
