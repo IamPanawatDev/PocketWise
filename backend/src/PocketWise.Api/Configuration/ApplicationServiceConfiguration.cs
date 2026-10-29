@@ -88,7 +88,12 @@ public static class ApplicationServiceConfiguration
 
         // Import Services
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
-        services.AddScoped<ISlipOcrService, TesseractSlipOcrService>();
+        services.AddHttpClient<GeminiSlipOcrService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(25);
+        });
+        services.AddScoped<TesseractSlipOcrService>();
+        services.AddScoped<ISlipOcrService>(sp => sp.GetRequiredService<GeminiSlipOcrService>());
         services.AddScoped<IStatementParserService, StatementParserService>();
         services.AddScoped<ISlipImportService, SlipImportService>();
         services.AddScoped<IStatementImportService, StatementImportService>();
