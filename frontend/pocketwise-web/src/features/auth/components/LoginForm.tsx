@@ -22,6 +22,7 @@ export function LoginForm() {
   const { data: user, isSuccess } = useCurrentUser();
   const login = useLogin();
   const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreStatus, setRestoreStatus] = useState<string>("กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...");
   const {
     register,
     handleSubmit,
@@ -43,36 +44,73 @@ export function LoginForm() {
     if (!fallback) return;
 
     setIsRestoring(true);
-    fetch("/api/auth/token?refresh=true", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      cache: "no-store",
-      body: JSON.stringify({ refreshToken: fallback }),
-    })
-      .then(async (res) => {
+    let isCancelled = false;
+
+    const attemptRestore = async (retryCount = 0) => {
+      if (isCancelled) return;
+      try {
+        setRestoreStatus(
+          retryCount === 0
+            ? "กำลังเชื่อมต่อเซิร์ฟเวอร์และกู้คืนเซสชัน..."
+            : `เซิร์ฟเวอร์กำลังเตรียมความพร้อม กำลังลองใหม่อีกครั้ง (${retryCount}/2)...`
+        );
+
+        const res = await fetch("/api/auth/token?refresh=true", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          cache: "no-store",
+          body: JSON.stringify({ refreshToken: fallback }),
+        });
+
+        if (isCancelled) return;
+
         if (!res.ok) {
-          // Only remove fallback token if server explicitly rejected it (401/403)
+          // If server explicitly rejected credentials (expired or revoked)
           if (res.status === 401 || res.status === 403) {
             try {
               localStorage.removeItem("pw_fallback_refresh");
             } catch {}
+            setIsRestoring(false);
+            return;
           }
+
+          // If Render is waking up (502/503/504/timeout), retry after delay
+          if (retryCount < 2) {
+            setRestoreStatus("เซิร์ฟเวอร์กำลังเริ่มต้นทำงาน กำลังเชื่อมต่อใหม่ใน 3 วินาที...");
+            setTimeout(() => {
+              if (!isCancelled) {
+                attemptRestore(retryCount + 1);
+              }
+            }, 3000);
+            return;
+          }
+
           throw new Error("Restore failed");
         }
-        return res.json();
-      })
-      .then((data) => {
+
+        const data = await res.json();
+        if (isCancelled) return;
+
         if (data?.refreshToken) {
           try {
             localStorage.setItem("pw_fallback_refresh", data.refreshToken);
           } catch {}
         }
+        setRestoreStatus("เข้าสู่ระบบสำเร็จ กำลังพาไปยังหน้ารายการ...");
         window.location.href = "/transactions";
-      })
-      .catch(() => {
-        setIsRestoring(false);
-      });
+      } catch {
+        if (!isCancelled) {
+          setIsRestoring(false);
+        }
+      }
+    };
+
+    attemptRestore();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [isSuccess, user, router]);
 
   const onSubmit = (values: LoginFormValues) => login.mutate(values);
@@ -80,10 +118,55 @@ export function LoginForm() {
   if (isRestoring) {
     return (
       <main className="flex flex-1 items-center justify-center px-4 py-6">
-        <div className="flex flex-col items-center gap-3">
-          <LoaderCircle className="size-8 animate-spin text-[var(--pw-primary)]" />
-          <p className="text-sm text-[var(--pw-ink)]/70">กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-sm"
+        >
+          <Card className="w-full text-center">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.35, delay: 0.06, ease: "easeOut" }}
+              className="mb-4 flex justify-center"
+            >
+              <Image
+                src="/brand-logo.png"
+                alt="PocketWise brand"
+                width={72}
+                height={72}
+                priority
+                className="size-18 object-contain drop-shadow"
+              />
+            </motion.div>
+
+            <div className="mb-4 flex justify-center">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute size-12 animate-ping rounded-full bg-[var(--pw-primary)]/20" />
+                <LoaderCircle className="size-8 animate-spin text-[var(--pw-primary)]" />
+              </div>
+            </div>
+
+            <h1 className="mb-1 text-xl font-bold">กำลังเข้าสู่ระบบอัตโนมัติ</h1>
+            <p className="mb-3 text-sm text-[var(--pw-ink)]/75">
+              {restoreStatus}
+            </p>
+            <p className="mb-6 text-xs text-[var(--pw-ink)]/50">
+              ระบบกำลังเชื่อมต่อข้อมูลเซสชันเดิมของคุณ ไม่จำเป็นต้องกรอกรหัสผ่านใหม่
+            </p>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsRestoring(false)}
+              className="w-full text-xs text-[var(--pw-ink)]/70"
+            >
+              เข้าสู่ระบบด้วยบัญชีอื่น / กรอกรหัสผ่าน
+            </Button>
+          </Card>
+        </motion.div>
       </main>
     );
   }
