@@ -54,6 +54,15 @@ public class GeminiSlipOcrServiceTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(inMemoryConfig).Build();
         var fallback = new TesseractSlipOcrService();
 
+        var modelsListJson = @"{
+  ""models"": [
+    {
+      ""name"": ""models/gemini-2.0-flash"",
+      ""supportedGenerationMethods"": [""generateContent""]
+    }
+  ]
+}";
+
         var geminiResponseJson = @"{
   ""candidates"": [
     {
@@ -68,9 +77,20 @@ public class GeminiSlipOcrServiceTests
   ]
 }";
 
-        var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        var handler = new MockHttpMessageHandler(req =>
         {
-            Content = new StringContent(geminiResponseJson, Encoding.UTF8, "application/json")
+            if (req.Method == HttpMethod.Get && req.RequestUri?.AbsolutePath.Contains("/models") == true)
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(modelsListJson, Encoding.UTF8, "application/json")
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(geminiResponseJson, Encoding.UTF8, "application/json")
+            };
         });
         var httpClient = new HttpClient(handler);
 

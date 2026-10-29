@@ -12,8 +12,9 @@ using PocketWise.Application.Interfaces;
 namespace PocketWise.Infrastructure.Services;
 
 /// <summary>
-/// AI-powered slip extractor using Google Gemini (e.g. gemini-2.5-flash).
+/// AI-powered slip extractor using Google Gemini.
 /// Provides high accuracy, fast turnaround (~1-2s), and zero CPU strain on the host server.
+/// Dynamically detects available Flash models (e.g. gemini-2.0-flash, gemini-1.5-flash) from the user's API key.
 /// If GEMINI_API_KEY is not configured or an error occurs, it automatically falls back to TesseractSlipOcrService.
 /// </summary>
 public class GeminiSlipOcrService : ISlipOcrService
@@ -22,6 +23,9 @@ public class GeminiSlipOcrService : ISlipOcrService
     private readonly IConfiguration _configuration;
     private readonly TesseractSlipOcrService _fallbackService;
     private readonly ILogger<GeminiSlipOcrService>? _logger;
+
+    private static string? _resolvedModelName;
+    private static readonly SemaphoreSlim _modelLock = new(1, 1);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -76,17 +80,29 @@ public class GeminiSlipOcrService : ISlipOcrService
             var mimeType = NormalizeMimeType(contentType, fileName);
             var base64Data = Convert.ToBase64String(imageBytes);
 
-            var model = _configuration["Gemini:Model"] ?? "gemini-2.5-flash";
+            // Dynamically resolve the model from the API key to avoid 404 NotFound
+            var model = await ResolveModelNameAsync(apiKey, cancellationToken);
             _logger?.LogInformation("[GeminiSlipOcrService] Sending slip {FileName} ({Bytes} bytes) to Gemini ({Model})...",
                 fileName, imageBytes.Length, model);
 
             var result = await TryAnalyzeWithGeminiAsync(apiKey, model, base64Data, mimeType, cancellationToken);
 
-            // If gemini-2.5-flash failed with 404/NotFound or similar model error, try gemini-1.5-flash as secondary model
-            if (result == null && model != "gemini-1.5-flash")
+            // If the resolved model failed with 404, invalidate cached model and try common fallbacks
+            if (result == null)
             {
-                _logger?.LogInformation("[GeminiSlipOcrService] Retrying with model 'gemini-1.5-flash'...");
-                result = await TryAnalyzeWithGeminiAsync(apiKey, "gemini-1.5-flash", base64Data, mimeType, cancellationToken);
+                _resolvedModelName = null;
+                var fallbackModels = new[] { "models/gemini-2.0-flash", "models/gemini-1.5-flash", "models/gemini-2.0-flash-exp" };
+                foreach (var fbModel in fallbackModels)
+                {
+                    if (fbModel == model) continue;
+                    _logger?.LogInformation("[GeminiSlipOcrService] Retrying with fallback model '{Model}'...", fbModel);
+                    result = await TryAnalyzeWithGeminiAsync(apiKey, fbModel, base64Data, mimeType, cancellationToken);
+                    if (result != null)
+                    {
+                        _resolvedModelName = fbModel;
+                        break;
+                    }
+                }
             }
 
             if (result != null && (result.DetectedAmount.HasValue || !string.IsNullOrWhiteSpace(result.TransactionReference)))
@@ -108,6 +124,99 @@ public class GeminiSlipOcrService : ISlipOcrService
         return await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
     }
 
+    private async Task<string> ResolveModelNameAsync(string apiKey, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(_resolvedModelName))
+        {
+            return _resolvedModelName;
+        }
+
+        var configured = _configuration["Gemini:Model"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured.StartsWith("models/") ? configured : $"models/{configured}";
+        }
+
+        await _modelLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_resolvedModelName))
+            {
+                return _resolvedModelName;
+            }
+
+            var listUrl = $"https://generativelanguage.googleapis.com/v1beta/models?key={apiKey}";
+            using var resp = await _httpClient.GetAsync(listUrl, cancellationToken);
+            if (resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("models", out var modelsArr))
+                {
+                    var available = new List<string>();
+                    foreach (var m in modelsArr.EnumerateArray())
+                    {
+                        if (!m.TryGetProperty("name", out var nameElem)) continue;
+                        var name = nameElem.GetString();
+                        if (string.IsNullOrWhiteSpace(name)) continue;
+
+                        var supportsGen = false;
+                        if (m.TryGetProperty("supportedGenerationMethods", out var methods))
+                        {
+                            foreach (var method in methods.EnumerateArray())
+                            {
+                                if (method.GetString() == "generateContent")
+                                {
+                                    supportsGen = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (supportsGen)
+                        {
+                            available.Add(name);
+                        }
+                    }
+
+                    _logger?.LogInformation("[GeminiSlipOcrService] Available generateContent models on API key: {Models}",
+                        string.Join(", ", available));
+
+                    // Priority order: 2.5-flash -> 2.0-flash -> 1.5-flash -> any flash -> first available
+                    var best = available.FirstOrDefault(x => x.Contains("2.5-flash"))
+                               ?? available.FirstOrDefault(x => x.Contains("2.0-flash"))
+                               ?? available.FirstOrDefault(x => x.Contains("1.5-flash"))
+                               ?? available.FirstOrDefault(x => x.Contains("flash"))
+                               ?? available.FirstOrDefault();
+
+                    if (!string.IsNullOrWhiteSpace(best))
+                    {
+                        _resolvedModelName = best;
+                        _logger?.LogInformation("[GeminiSlipOcrService] Selected best model: {Model}", _resolvedModelName);
+                        return _resolvedModelName;
+                    }
+                }
+            }
+            else
+            {
+                var err = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger?.LogWarning("[GeminiSlipOcrService] ListModels returned {Status}: {Err}", resp.StatusCode, err);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "[GeminiSlipOcrService] Failed to auto-discover models list from Gemini API.");
+        }
+        finally
+        {
+            _modelLock.Release();
+        }
+
+        // Default to gemini-2.0-flash
+        _resolvedModelName = "models/gemini-2.0-flash";
+        return _resolvedModelName;
+    }
+
     private async Task<SlipExtractedData?> TryAnalyzeWithGeminiAsync(
         string apiKey,
         string model,
@@ -115,7 +224,8 @@ public class GeminiSlipOcrService : ISlipOcrService
         string mimeType,
         CancellationToken cancellationToken)
     {
-        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+        var modelPath = model.StartsWith("models/") ? model : $"models/{model}";
+        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/{modelPath}:generateContent?key={apiKey}";
 
         var prompt = @"คุณคือผู้เชี่ยวชาญการอ่านสลิปโอนเงินธนาคารของประเทศไทย
 กรุณาวิเคราะห์รูปภาพสลิปที่แนบมานี้อย่างละเอียด และส่งข้อมูลกลับมาเป็น JSON ตามโครงสร้างนี้เท่านั้น:
@@ -173,8 +283,8 @@ public class GeminiSlipOcrService : ISlipOcrService
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger?.LogWarning("[GeminiSlipOcrService] Gemini API call returned {StatusCode}: {Response}",
-                response.StatusCode, responseString.Length > 300 ? responseString[..300] : responseString);
+            _logger?.LogWarning("[GeminiSlipOcrService] Gemini API call to {Model} returned {StatusCode}: {Response}",
+                modelPath, response.StatusCode, responseString.Length > 300 ? responseString[..300] : responseString);
             return null;
         }
 
