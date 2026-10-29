@@ -12,9 +12,8 @@ using PocketWise.Application.Interfaces;
 namespace PocketWise.Infrastructure.Services;
 
 /// <summary>
-/// AI-powered slip extractor using Google Gemini.
-/// Provides high accuracy, fast turnaround (~1-2s), and zero CPU strain on the host server.
-/// Dynamically detects available Flash models (e.g. gemini-2.0-flash, gemini-1.5-flash) from the user's API key.
+/// AI-powered slip extractor using Google Gemini (gemini-3.1-flash-lite / gemini-3.5-flash).
+/// Provides high accuracy, ultra-fast turnaround (~1-2s), and zero CPU strain on the host server.
 /// If GEMINI_API_KEY is not configured or an error occurs, it automatically falls back to TesseractSlipOcrService.
 /// </summary>
 public class GeminiSlipOcrService : ISlipOcrService
@@ -24,8 +23,9 @@ public class GeminiSlipOcrService : ISlipOcrService
     private readonly TesseractSlipOcrService _fallbackService;
     private readonly ILogger<GeminiSlipOcrService>? _logger;
 
-    private static string? _resolvedModelName;
-    private static readonly SemaphoreSlim _modelLock = new(1, 1);
+    private static readonly Regex ThaiDateRegex = new(
+        @"([0-3]?\d)\s*([ก-๙\.]+)\s*(25\d{2}|20\d{2}|\b[56]\d\b)[^\d]*([0-2]?\d)[:.]([0-5]\d)(?:[:.]([0-5]\d))?",
+        RegexOptions.Compiled);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -80,39 +80,32 @@ public class GeminiSlipOcrService : ISlipOcrService
             var mimeType = NormalizeMimeType(contentType, fileName);
             var base64Data = Convert.ToBase64String(imageBytes);
 
-            // Dynamically resolve the model from the API key to avoid 404 NotFound
-            var model = await ResolveModelNameAsync(apiKey, cancellationToken);
-            _logger?.LogInformation("[GeminiSlipOcrService] Sending slip {FileName} ({Bytes} bytes) to Gemini ({Model})...",
-                fileName, imageBytes.Length, model);
+            // Verified active models on current Google AI Studio API:
+            // 1) gemini-3.1-flash-lite: ultra-fast (~1.5s - 2.5s)
+            // 2) gemini-3.5-flash: high intelligence (~2s - 4s)
+            // 3) gemini-3.8-flash: latest flagship flash
+            var configuredModel = _configuration["Gemini:Model"];
+            var modelCandidates = !string.IsNullOrWhiteSpace(configuredModel)
+                ? new[] { configuredModel, "gemini-3.1-flash-lite", "gemini-3.5-flash" }
+                : new[] { "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash" };
 
-            var result = await TryAnalyzeWithGeminiAsync(apiKey, model, base64Data, mimeType, cancellationToken);
+            SlipExtractedData? result = null;
 
-            // If the resolved model failed with 404, invalidate cached model and try common fallbacks
-            if (result == null)
+            foreach (var model in modelCandidates)
             {
-                _resolvedModelName = null;
-                var fallbackModels = new[] { "models/gemini-2.0-flash", "models/gemini-1.5-flash", "models/gemini-2.0-flash-exp" };
-                foreach (var fbModel in fallbackModels)
+                _logger?.LogInformation("[GeminiSlipOcrService] Sending slip {FileName} ({Bytes} bytes) to Gemini ({Model})...",
+                    fileName, imageBytes.Length, model);
+
+                result = await TryAnalyzeWithGeminiAsync(apiKey, model, base64Data, mimeType, cancellationToken);
+                if (result != null && (result.DetectedAmount.HasValue || !string.IsNullOrWhiteSpace(result.TransactionReference)))
                 {
-                    if (fbModel == model) continue;
-                    _logger?.LogInformation("[GeminiSlipOcrService] Retrying with fallback model '{Model}'...", fbModel);
-                    result = await TryAnalyzeWithGeminiAsync(apiKey, fbModel, base64Data, mimeType, cancellationToken);
-                    if (result != null)
-                    {
-                        _resolvedModelName = fbModel;
-                        break;
-                    }
+                    _logger?.LogInformation("[GeminiSlipOcrService] Gemini ({Model}) extracted successfully: Bank={Bank}, Amount={Amt}, Date={Date}, Payee={Payee}, Ref={Ref}",
+                        model, result.BankCode, result.DetectedAmount, result.DetectedAt, result.PayeeName, result.TransactionReference);
+                    return result;
                 }
             }
 
-            if (result != null && (result.DetectedAmount.HasValue || !string.IsNullOrWhiteSpace(result.TransactionReference)))
-            {
-                _logger?.LogInformation("[GeminiSlipOcrService] Gemini successfully extracted: Bank={Bank}, Amount={Amt}, Date={Date}, Payee={Payee}, Ref={Ref}",
-                    result.BankCode, result.DetectedAmount, result.DetectedAt, result.PayeeName, result.TransactionReference);
-                return result;
-            }
-
-            _logger?.LogWarning("[GeminiSlipOcrService] Gemini returned incomplete data. Falling back to Tesseract.");
+            _logger?.LogWarning("[GeminiSlipOcrService] All Gemini candidate models returned incomplete data. Falling back to Tesseract.");
         }
         catch (Exception ex)
         {
@@ -124,99 +117,6 @@ public class GeminiSlipOcrService : ISlipOcrService
         return await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
     }
 
-    private async Task<string> ResolveModelNameAsync(string apiKey, CancellationToken cancellationToken)
-    {
-        if (!string.IsNullOrWhiteSpace(_resolvedModelName))
-        {
-            return _resolvedModelName;
-        }
-
-        var configured = _configuration["Gemini:Model"];
-        if (!string.IsNullOrWhiteSpace(configured))
-        {
-            return configured.StartsWith("models/") ? configured : $"models/{configured}";
-        }
-
-        await _modelLock.WaitAsync(cancellationToken);
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(_resolvedModelName))
-            {
-                return _resolvedModelName;
-            }
-
-            var listUrl = $"https://generativelanguage.googleapis.com/v1beta/models?key={apiKey}";
-            using var resp = await _httpClient.GetAsync(listUrl, cancellationToken);
-            if (resp.IsSuccessStatusCode)
-            {
-                var body = await resp.Content.ReadAsStringAsync(cancellationToken);
-                using var doc = JsonDocument.Parse(body);
-                if (doc.RootElement.TryGetProperty("models", out var modelsArr))
-                {
-                    var available = new List<string>();
-                    foreach (var m in modelsArr.EnumerateArray())
-                    {
-                        if (!m.TryGetProperty("name", out var nameElem)) continue;
-                        var name = nameElem.GetString();
-                        if (string.IsNullOrWhiteSpace(name)) continue;
-
-                        var supportsGen = false;
-                        if (m.TryGetProperty("supportedGenerationMethods", out var methods))
-                        {
-                            foreach (var method in methods.EnumerateArray())
-                            {
-                                if (method.GetString() == "generateContent")
-                                {
-                                    supportsGen = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (supportsGen)
-                        {
-                            available.Add(name);
-                        }
-                    }
-
-                    _logger?.LogInformation("[GeminiSlipOcrService] Available generateContent models on API key: {Models}",
-                        string.Join(", ", available));
-
-                    // Priority order: 2.5-flash -> 2.0-flash -> 1.5-flash -> any flash -> first available
-                    var best = available.FirstOrDefault(x => x.Contains("2.5-flash"))
-                               ?? available.FirstOrDefault(x => x.Contains("2.0-flash"))
-                               ?? available.FirstOrDefault(x => x.Contains("1.5-flash"))
-                               ?? available.FirstOrDefault(x => x.Contains("flash"))
-                               ?? available.FirstOrDefault();
-
-                    if (!string.IsNullOrWhiteSpace(best))
-                    {
-                        _resolvedModelName = best;
-                        _logger?.LogInformation("[GeminiSlipOcrService] Selected best model: {Model}", _resolvedModelName);
-                        return _resolvedModelName;
-                    }
-                }
-            }
-            else
-            {
-                var err = await resp.Content.ReadAsStringAsync(cancellationToken);
-                _logger?.LogWarning("[GeminiSlipOcrService] ListModels returned {Status}: {Err}", resp.StatusCode, err);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogWarning(ex, "[GeminiSlipOcrService] Failed to auto-discover models list from Gemini API.");
-        }
-        finally
-        {
-            _modelLock.Release();
-        }
-
-        // Default to gemini-2.0-flash
-        _resolvedModelName = "models/gemini-2.0-flash";
-        return _resolvedModelName;
-    }
-
     private async Task<SlipExtractedData?> TryAnalyzeWithGeminiAsync(
         string apiKey,
         string model,
@@ -224,8 +124,8 @@ public class GeminiSlipOcrService : ISlipOcrService
         string mimeType,
         CancellationToken cancellationToken)
     {
-        var modelPath = model.StartsWith("models/") ? model : $"models/{model}";
-        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/{modelPath}:generateContent?key={apiKey}";
+        var modelClean = model.StartsWith("models/") ? model["models/".Length..] : model;
+        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{modelClean}:generateContent?key={apiKey}";
 
         var prompt = @"คุณคือผู้เชี่ยวชาญการอ่านสลิปโอนเงินธนาคารของประเทศไทย
 กรุณาวิเคราะห์รูปภาพสลิปที่แนบมานี้อย่างละเอียด และส่งข้อมูลกลับมาเป็น JSON ตามโครงสร้างนี้เท่านั้น:
@@ -242,7 +142,7 @@ public class GeminiSlipOcrService : ISlipOcrService
 ข้อกำหนดสำคัญ:
 - bankCode ให้ระบุเป็นตัวย่อมาตรฐานของธนาคารไทยเท่านั้น (KBANK, SCB, KTB, BBL, TTB, BAY, GSB, UOB, CIMB)
 - amount ต้องเป็นตัวเลขเท่านั้น (เช่น 1070 หรือ 1070.50)
-- หากมีปี พ.ศ. เช่น 2567 ให้แปลงเป็นปี ค.ศ. เช่น 2024
+- หากมีปี พ.ศ. เช่น 2567 หรือ 2569 ให้แปลงเป็นปี ค.ศ. เช่น 2024 หรือ 2026
 - ตอบเป็น JSON ล้วนๆ ห้ามใส่คำอธิบายอื่นนอกเหนือจาก JSON";
 
         var payload = new
@@ -284,7 +184,7 @@ public class GeminiSlipOcrService : ISlipOcrService
         if (!response.IsSuccessStatusCode)
         {
             _logger?.LogWarning("[GeminiSlipOcrService] Gemini API call to {Model} returned {StatusCode}: {Response}",
-                modelPath, response.StatusCode, responseString.Length > 300 ? responseString[..300] : responseString);
+                modelClean, response.StatusCode, responseString.Length > 300 ? responseString[..300] : responseString);
             return null;
         }
 
@@ -338,18 +238,18 @@ public class GeminiSlipOcrService : ISlipOcrService
             }
             rawJsonText = rawJsonText.Trim();
 
-            var parsed = JsonSerializer.Deserialize<GeminiSlipResponseDto>(rawJsonText, JsonOptions);
-            if (parsed == null) return null;
+            using var slipDoc = JsonDocument.Parse(rawJsonText);
+            var root = slipDoc.RootElement;
 
             var result = new SlipExtractedData
             {
-                BankCode = NormalizeBankCode(parsed.BankCode),
-                PayerName = CleanName(parsed.PayerName),
-                PayeeName = CleanName(parsed.PayeeName),
-                DetectedAmount = parsed.Amount ?? parsed.DetectedAmount,
-                TransactionReference = parsed.TransactionReference ?? parsed.ReferenceNo,
-                RawText = parsed.RawText ?? rawJsonText,
-                DetectedAt = ParseSlipDateToUtc(parsed.TransactionDate ?? parsed.DetectedAt)
+                BankCode = NormalizeBankCode(GetJsonString(root, "bankCode")),
+                PayerName = CleanName(GetJsonString(root, "payerName")),
+                PayeeName = CleanName(GetJsonString(root, "payeeName")),
+                DetectedAmount = ParseAmount(root),
+                TransactionReference = CleanName(GetJsonString(root, "transactionReference") ?? GetJsonString(root, "referenceNo")),
+                RawText = GetJsonString(root, "rawText") ?? rawJsonText,
+                DetectedAt = ParseSlipDateToUtc(GetJsonString(root, "transactionDate") ?? GetJsonString(root, "detectedAt"))
             };
 
             return result;
@@ -361,10 +261,54 @@ public class GeminiSlipOcrService : ISlipOcrService
         }
     }
 
+    private static string? GetJsonString(JsonElement root, string propName)
+    {
+        if (root.TryGetProperty(propName, out var elem))
+        {
+            return elem.ValueKind switch
+            {
+                JsonValueKind.String => elem.GetString(),
+                JsonValueKind.Number => elem.ToString(),
+                _ => null
+            };
+        }
+        return null;
+    }
+
+    private static decimal? ParseAmount(JsonElement root)
+    {
+        if (root.TryGetProperty("amount", out var amountElem))
+        {
+            if (amountElem.ValueKind == JsonValueKind.Number && amountElem.TryGetDecimal(out var num))
+                return num;
+            if (amountElem.ValueKind == JsonValueKind.String)
+            {
+                var str = amountElem.GetString()?.Replace(",", "").Trim();
+                if (decimal.TryParse(str, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+                    return parsed;
+            }
+        }
+
+        if (root.TryGetProperty("detectedAmount", out var detectedAmountElem))
+        {
+            if (detectedAmountElem.ValueKind == JsonValueKind.Number && detectedAmountElem.TryGetDecimal(out var num))
+                return num;
+            if (detectedAmountElem.ValueKind == JsonValueKind.String)
+            {
+                var str = detectedAmountElem.GetString()?.Replace(",", "").Trim();
+                if (decimal.TryParse(str, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+                    return parsed;
+            }
+        }
+
+        return null;
+    }
+
     private static DateTime? ParseSlipDateToUtc(string? dateStr)
     {
         if (string.IsNullOrWhiteSpace(dateStr)) return null;
 
+        // 1. Try ISO or Standard DateTime parsing
         if (DateTime.TryParse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ||
             DateTime.TryParse(dateStr, out dt))
         {
@@ -374,12 +318,61 @@ public class GeminiSlipOcrService : ISlipOcrService
                 year -= 543;
             }
 
-            // Thai bank slips display Thailand Local Time (Asia/Bangkok, UTC+7)
             var dto = new DateTimeOffset(year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second, TimeSpan.FromHours(7));
             return dto.UtcDateTime;
         }
 
+        // 2. Try Thai Date Regex (e.g. "18 ต.ค. 2569 - 16:04")
+        var match = ThaiDateRegex.Match(dateStr);
+        if (match.Success && int.TryParse(match.Groups[1].Value, out var day) && int.TryParse(match.Groups[3].Value, out var yr))
+        {
+            var month = ParseThaiMonth(match.Groups[2].Value);
+            if (month > 0)
+            {
+                if (yr >= 2500 && yr <= 2600) yr -= 543;
+                else if (yr >= 50 && yr <= 99) yr += 1957; // 2-digit Buddhist (e.g. 69 -> 2569 -> 2026)
+                else if (yr >= 20 && yr <= 49) yr += 2000;
+
+                var hour = 0;
+                var minute = 0;
+                var second = 0;
+                if (match.Groups[4].Success && int.TryParse(match.Groups[4].Value, out var h)) hour = h;
+                if (match.Groups[5].Success && int.TryParse(match.Groups[5].Value, out var m)) minute = m;
+                if (match.Groups[6].Success && int.TryParse(match.Groups[6].Value, out var s)) second = s;
+
+                month = Math.Clamp(month, 1, 12);
+                day = Math.Clamp(day, 1, DateTime.DaysInMonth(yr, month));
+                hour = Math.Clamp(hour, 0, 23);
+                minute = Math.Clamp(minute, 0, 59);
+                second = Math.Clamp(second, 0, 59);
+
+                var dto = new DateTimeOffset(yr, month, day, hour, minute, second, TimeSpan.FromHours(7));
+                return dto.UtcDateTime;
+            }
+        }
+
         return null;
+    }
+
+    private static int ParseThaiMonth(string thaiMonth)
+    {
+        if (string.IsNullOrWhiteSpace(thaiMonth)) return 0;
+        var clean = thaiMonth.Trim().ToLowerInvariant().Replace(".", "");
+
+        if (clean.StartsWith("มค") || clean.StartsWith("มกรา")) return 1;
+        if (clean.StartsWith("กพ") || clean.StartsWith("กุมภา")) return 2;
+        if (clean.StartsWith("มีค") || clean.StartsWith("มีนา")) return 3;
+        if (clean.StartsWith("เมย") || clean.StartsWith("เมษา")) return 4;
+        if (clean.StartsWith("พค") || clean.StartsWith("พฤษภา")) return 5;
+        if (clean.StartsWith("มิย") || clean.StartsWith("มิถุนา")) return 6;
+        if (clean.StartsWith("กค") || clean.StartsWith("กรกฎา")) return 7;
+        if (clean.StartsWith("สค") || clean.StartsWith("สิงหา")) return 8;
+        if (clean.StartsWith("กย") || clean.StartsWith("กันยา")) return 9;
+        if (clean.StartsWith("ตค") || clean.StartsWith("ตุลา")) return 10;
+        if (clean.StartsWith("พย") || clean.StartsWith("พฤศจิกา")) return 11;
+        if (clean.StartsWith("ธค") || clean.StartsWith("ธันวา")) return 12;
+
+        return 0;
     }
 
     private static string NormalizeMimeType(string? contentType, string fileName)
@@ -408,6 +401,17 @@ public class GeminiSlipOcrService : ISlipOcrService
         if (string.IsNullOrWhiteSpace(bank)) return null;
         var b = bank.Trim().ToUpperInvariant();
 
+        // Standard PromptPay numeric bank codes
+        if (b is "004" or "04") return "KBANK";
+        if (b is "014" or "14") return "SCB";
+        if (b is "006" or "06") return "KTB";
+        if (b is "002" or "02") return "BBL";
+        if (b is "011" or "11") return "TTB";
+        if (b is "025" or "25") return "BAY";
+        if (b is "030" or "30") return "GSB";
+        if (b is "024" or "24") return "UOB";
+        if (b is "022" or "22") return "CIMB";
+
         if (b.Contains("KBANK") || b.Contains("KASIKORN") || b.Contains("กสิกร")) return "KBANK";
         if (b.Contains("SCB") || b.Contains("ไทยพาณิชย์")) return "SCB";
         if (b.Contains("KTB") || b.Contains("KRUNGTHAI") || b.Contains("กรุงไทย")) return "KTB";
@@ -426,38 +430,5 @@ public class GeminiSlipOcrService : ISlipOcrService
         if (string.IsNullOrWhiteSpace(name)) return null;
         var trimmed = name.Trim();
         return trimmed.Length > 0 ? trimmed : null;
-    }
-
-    private sealed class GeminiSlipResponseDto
-    {
-        [JsonPropertyName("bankCode")]
-        public string? BankCode { get; set; }
-
-        [JsonPropertyName("payerName")]
-        public string? PayerName { get; set; }
-
-        [JsonPropertyName("payeeName")]
-        public string? PayeeName { get; set; }
-
-        [JsonPropertyName("amount")]
-        public decimal? Amount { get; set; }
-
-        [JsonPropertyName("detectedAmount")]
-        public decimal? DetectedAmount { get; set; }
-
-        [JsonPropertyName("transactionDate")]
-        public string? TransactionDate { get; set; }
-
-        [JsonPropertyName("detectedAt")]
-        public string? DetectedAt { get; set; }
-
-        [JsonPropertyName("transactionReference")]
-        public string? TransactionReference { get; set; }
-
-        [JsonPropertyName("referenceNo")]
-        public string? ReferenceNo { get; set; }
-
-        [JsonPropertyName("rawText")]
-        public string? RawText { get; set; }
     }
 }
