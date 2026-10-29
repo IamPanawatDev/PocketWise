@@ -21,8 +21,7 @@ export function useLogin() {
         } catch {}
       }
       qc.setQueryData(["me"], res?.user);
-      const from = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("from") : null;
-      window.location.href = from && from !== "/login" ? from : "/transactions";
+      window.location.href = "/transactions";
     },
   });
 }
@@ -39,8 +38,7 @@ export function useRegister() {
         } catch {}
       }
       qc.setQueryData(["me"], res?.user);
-      const from = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("from") : null;
-      window.location.href = from && from !== "/login" ? from : "/transactions";
+      window.location.href = "/transactions";
     },
   });
 }
