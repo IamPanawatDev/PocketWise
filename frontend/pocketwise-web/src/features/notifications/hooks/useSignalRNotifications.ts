@@ -29,6 +29,16 @@ export function useSignalRNotifications(enabled = true) {
           // 2. Invalidate related entity queries
           if (notification.relatedEntityType === "Budget") {
             queryClient.invalidateQueries({ queryKey: ["budgets"] });
+          } else if (notification.relatedEntityType === "Slip") {
+            queryClient.invalidateQueries({ queryKey: ["slip"] });
+            queryClient.invalidateQueries({ queryKey: ["importJobs"] });
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("pocketwise:slip_uploaded", {
+                  detail: notification,
+                }),
+              );
+            }
           }
 
           // 3. Show real-time toast
@@ -58,7 +68,6 @@ export function useSignalRNotifications(enabled = true) {
             queryClient.invalidateQueries({ queryKey: ["categories"] });
           } else {
             queryClient.invalidateQueries({ queryKey: ["budgets"] });
-            queryClient.invalidateQueries({ queryKey: ["transactions"] });
           }
         });
 

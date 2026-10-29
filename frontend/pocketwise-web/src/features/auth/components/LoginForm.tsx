@@ -31,10 +31,9 @@ export function LoginForm() {
   });
 
   useEffect(() => {
-    // If user already has an active session and didn't arrive via explicit redirect loop
-    const hasFrom = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("from");
-    if (isSuccess && user && !hasFrom) {
-      router.replace("/");
+    // If user already has an active session, go straight to /transactions
+    if (isSuccess && user) {
+      router.replace("/transactions");
       return;
     }
 
@@ -51,8 +50,16 @@ export function LoginForm() {
       cache: "no-store",
       body: JSON.stringify({ refreshToken: fallback }),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Restore failed");
+      .then(async (res) => {
+        if (!res.ok) {
+          // Only remove fallback token if server explicitly rejected it (401/403)
+          if (res.status === 401 || res.status === 403) {
+            try {
+              localStorage.removeItem("pw_fallback_refresh");
+            } catch {}
+          }
+          throw new Error("Restore failed");
+        }
         return res.json();
       })
       .then((data) => {
@@ -61,13 +68,9 @@ export function LoginForm() {
             localStorage.setItem("pw_fallback_refresh", data.refreshToken);
           } catch {}
         }
-        const from = new URLSearchParams(window.location.search).get("from");
-        window.location.href = from && from !== "/login" ? from : "/transactions";
+        window.location.href = "/transactions";
       })
       .catch(() => {
-        try {
-          localStorage.removeItem("pw_fallback_refresh");
-        } catch {}
         setIsRestoring(false);
       });
   }, [isSuccess, user, router]);

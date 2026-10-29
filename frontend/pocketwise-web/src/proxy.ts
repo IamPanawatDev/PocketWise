@@ -43,11 +43,10 @@ export function proxy(request: NextRequest) {
   }
 
   // If not authenticated and trying to access protected routes, redirect to login
-  if (!hasSession && !isPublicPage) {
+  // Note: Allow "/" to reach dashboard redirect / client hydration so iOS PWA can run silent restore
+  if (!hasSession && !isPublicPage && pathname !== "/") {
     const loginUrl = new URL("/login", request.url);
-    if (pathname !== "/") {
-      loginUrl.searchParams.set("from", pathname);
-    }
+    loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
