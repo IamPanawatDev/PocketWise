@@ -368,7 +368,6 @@ body[data-scroll-locked] {
 
 
 /* Ensure toast alerts always render in front of modals, dialogs, and bottom sheets */
-[data-sonner-toaster],
-[data-sonner-toaster] * {
+[data-sonner-toaster] {
   z-index: 99999 !important;
 }
