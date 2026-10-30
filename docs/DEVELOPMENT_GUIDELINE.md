@@ -30,7 +30,7 @@
 | **สถาปัตยกรรม, ทิศทาง dependency, request lifecycle** | **ARCHITECTURE** | `/docs/ARCHITECTURE.md` |
 | **สัญญา REST/SignalR, endpoint, error envelope, pagination** | **API_SPECIFICATION** | `/docs/API_SPECIFICATION.md` |
 | **Requirement, ขอบเขตระบบ (ทำอะไร/ไม่ทำอะไร)** | **REQUIREMENTS** | `/docs/REQUIREMENTS.md` |
-| Schema ฐานข้อมูล, Business rules ข้อมูล | DataDictionary | `/docs/DataDictionary.md` — **25 ตาราง (ครบทั้งหมดตาม D13)** |
+| Schema ฐานข้อมูล, Business rules ข้อมูล | DataDictionary | `/docs/DataDictionary.md` — ปัจจุบัน **25 ตาราง** (D13); เป้าหมาย **28 ตาราง** หลัง F9/D51 |
 | **Design tokens, UI components** | **DESIGN.md** | `/frontend/pocketwise-web/DESIGN.md` |
 | Stack, Security baseline, Version policy | Tech_Stack | `/docs/Tech_Stack.md` |
 | **ขั้นตอน/คำสั่ง/สถานะ/Decision Points** | **เอกสารนี้** | `/docs/DEVELOPMENT_GUIDELINE.md` |
@@ -76,6 +76,7 @@
 | 6 SignalR | ✅ | NotificationHub (/hubs/notifications), per-user claims group, InApp SignalR delivery, Notification REST APIs, NotificationBell popover, @microsoft/signalr ^10.0.11 ติดตั้งแล้ว |
 | 7 Imports | ✅ | นำเข้าสลิปโอนเงิน (SHA-256 duplicate detection, local OCR parser, review & confirm), นำเข้าใบแจ้งยอดบัตรเครดิต CSV/JSON (duplicate detection, batch confirm), SignalR real-time notification, import jobs history; 27 unit tests + 3 integration tests ผ่าน, FE build & lint ผ่าน |
 | 8 Hardening & Polish | 🟡 | Maintenance Background Jobs (AuditLogCleanup at 02:00, RefreshTokenCleanup at 03:00 Sunday), Motion animation system (`motion`), Unified Skeleton Loading (32 routes), Smooth Modal/BottomSheet transitions, Brand & Ambient background styling |
+| 9 Admin Operations | ⬜ | F9/D51: users, sessions/security events, admin overview, failed imports, system settings, maintenance mode และ targeted announcements |
 
 > กติกา: เมื่อแตะ Phase ไหน ให้ปรับสถานะในตารางนี้ (⬜ → 🟡 → ✅) ทันทีที่สถานะเปลี่ยนจริง
 
@@ -276,6 +277,19 @@ dotnet ef database update --project src/PocketWise.Infrastructure --startup-proj
 
 ---
 
+### Phase 9 — Admin Operations (⬜ รอ implement)
+
+1. **Schema/migration:** เพิ่ม fields การระงับบัญชีใน `Users`; เพิ่ม `SecurityEvents`, `Announcements`, `AnnouncementTargets`; ขยาย `ImportJobs` ด้วย retry/cancel fields และ `Cancelled` status ตาม DataDictionary/D51
+2. **Authorization:** seed permissions ตาม API_SPECIFICATION §5N; backend ตรวจราย permission ไม่ใช้ role Admin เป็นเงื่อนไขอย่างเดียว; ทุก state-changing action ต้อง Audit Log
+3. **Users & sessions:** สร้าง endpoints/UI `/admin/users` สำหรับค้นหา, suspension, ส่ง verification/reset link และ revoke sessions; suspension มีผลตอน refresh/login เท่านั้น
+4. **Security operations:** เก็บ security event ที่ sanitize แล้ว, admin ดูแบบ pagination/filter; สร้าง cleanup job ค่า default 90 วันจาก `SecurityEvents:RetentionDays` ใน `appsettings.json`
+5. **Import operations:** เพิ่ม `/admin/import-jobs` สำหรับงานทุกผู้ใช้; retry `Failed` ได้สูงสุด 5 ครั้ง, cancel เฉพาะ `Pending`/`Processing`; ห้าม admin เปิดไฟล์สลิป และ cleanup ไฟล์ใช้ `ImportFiles:RetentionDays` (default 90)
+6. **System operations:** `/admin/overview` แสดง operational metrics; `/admin/system-settings` แก้ได้เฉพาะ allowlisted settings/feature flags; `appsettings.json` ยังคงเป็นแหล่ง config ของ retention, secrets และ allowlist
+7. **Maintenance & announcements:** maintenance ตอบ `503` ทั้งระบบ ยกเว้น health endpoints และ `MaintenanceMode:AllowedAdminUserIds`; announcements รองรับ target แบบ union (`All`, `Role`, `User`, `UnverifiedEmail`) และช่วงเวลาแสดง
+8. **Frontend & verification:** ใช้ DESIGN.md/shared UI; เพิ่ม routes, feature hooks/types/schemas และ navigation ที่ filter ตาม permission; เพิ่ม unit/integration tests สำหรับ permission, state transitions, masking, retention และ maintenance allowlist; build/lint/test ก่อนปิด phase
+
+---
+
 ## 5. Definition of Done — ทุกงานทุก Phase
 
 งานไม่ "เสร็จ" จนกว่าครบทั้งหมด:
@@ -413,6 +427,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 | D48 | Smooth Modal & BottomSheet Transitions | แก้ไขปัญหาจังหวะปิด Modal/BottomSheet สะดุดหรือค้าง (hanging glitch): กำหนด keyframes `pw-fade-in`, `pw-fade-out`, `pw-sheet-slide-in`, `pw-sheet-slide-out`, `pw-modal-in`, `pw-modal-out` โดยทั้ง Overlay และ Content ใช้เวลาปิด 180ms ซิงค์กันพอดี พร้อม `pointer-events: none` ในจังหวะ closed ป้องกันคลิกซ้ำ | เจ้าของโปรเจค | ✅ ล็อก |
 | D49 | Ambient Background & BottomSheet Responsive Button Layout | เพิ่มภาพพื้นหลัง Ambient (`/bg-dark.jpg` opacity 0.15 + radial blur, `/bg-light.jpg` opacity 0.75); จัดระเบียบปุ่มใน BottomSheet บน Mobile ให้ปุ่มยืนยันอยู่ด้านบนและปุ่มยกเลิกอยู่ด้านล่าง ตรงตามมาตรฐานหน้ารายการธุรกรรม | เจ้าของโปรเจค | ✅ ล็อก |
 | D50 | Database Provider Migration: MS SQL Server -> PostgreSQL | ย้ายฐานข้อมูลจาก MS SQL Server ไปยัง PostgreSQL เพื่อรองรับการ Deploy บนบริการฟรี (Supabase) สำหรับใช้งานกับเพื่อนไม่เกิน 10 คน: เปลี่ยน provider เป็น `Npgsql.EntityFrameworkCore.PostgreSQL` (10.0.0), ปรับ DbContext/EntityConfigurations ใช้ types ที่เข้ากันได้ (`timestamptz`, `smallint`, `text`, `NOW()`), รองรับ Local Docker container `pocketwise-postgres` (`postgres:16-alpine`, port 5432) และ Migration แรก `InitialPostgres` ผ่านการสร้างตารางและ Seed ข้อมูลครบ 100% | เจ้าของโปรเจค | ✅ ล็อก |
+| D51 | Admin Operations scope, policy & schema | เพิ่ม F9/Phase 9: (1) suspension ตรวจตอน refresh/login ไม่ revoke access token, (2) admin ส่งได้เฉพาะ password-reset link, (3) SecurityEvents retention 90 วันผ่าน `SecurityEvents:RetentionDays`, (4) import retry สูงสุด 5, cancel เฉพาะ Pending/Processing, file retention 90 วันผ่าน `ImportFiles:RetentionDays` และไฟล์สลิปดูได้เฉพาะเจ้าของ, (5) maintenance ล็อกระบบ ยกเว้น allowlisted admin ใน `MaintenanceMode:AllowedAdminUserIds`, (6) announcements กำหนด target แบบ union: User/Role/All/UnverifiedEmail + schedule, (7) schema เพิ่ม Users suspension fields, SecurityEvents, Announcements, AnnouncementTargets และ ImportJobs retry/cancel fields | เจ้าของโปรเจค | ✅ ล็อก |
 
 **คำถาม open รวมที่ต้องรอการตัดสินใจ (ตาม Phase):**
 
@@ -423,6 +438,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "..." --project src/PocketWi
 - Phase 6: ~~hub event contract, package, rest endpoints~~ ✅ D37; scale-out (เลื่อน Phase 8)
 - Phase 7: ~~file storage, ข้อจำกัดไฟล์, OCR provider~~ ✅ ล็อกเป็น D38
 - Phase 8: hosting, backup policy, CI แบบไหน, monitoring
+- Phase 9: ✅ ขอบเขตและ policy ของ Admin Operations ล็อกแล้วเป็น D51; รอ implement ตาม FR9/API §5N/DataDictionary
 - Schema เพิ่มในอนาคต — เริ่มจาก **เพิ่ม FR ใน REQUIREMENTS.md** ก่อน แล้วขยาย DataDictionary + Entities ตาม (กระบวนการเดียวกับกติกา §8)
 
 ---

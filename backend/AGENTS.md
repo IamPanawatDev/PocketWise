@@ -47,9 +47,9 @@ backend/
 
 ---
 
-7. **การจัดการฐานข้อมูล (PostgreSQL via Docker & Supabase)**:
-   - ฐานข้อมูลหลักของระบบเปลี่ยนเป็น **PostgreSQL** (Local พัฒนาและทดสอบผ่าน Docker container `pocketwise-postgres` พอร์ต `5432` ฐานข้อมูล `pocketwise_db`, Production รองรับ Supabase)
-   - ห้ามแก้ไขหรือ Drop ตาราง/คอลัมน์โดยตรงผ่านเครื่องมือภายนอก การเปลี่ยนแปลงสกีมาทั้งหมดต้องทำผ่าน EF Core Code-First Migrations (`Npgsql.EntityFrameworkCore.PostgreSQL`) ใน `PocketWise.Infrastructure` เท่านั้น
+7. **การจัดการฐานข้อมูล (PostgreSQL via Docker & Supabase — Zero Schema Drift Policy)**:
+   - **ระหว่างการพัฒนา (Implementation Phase)**: ให้ใช้ MCP Database ที่เชื่อมต่อกับ PostgreSQL Local (Docker container `pocketwise-postgres` พอร์ต `5432` ฐานข้อมูล `pocketwise_db`) เท่านั้น ห้ามรันคำสั่งทดสอบหรือแก้ไขข้อมูลบน Supabase Production โดยเด็ดขาด
+   - **ขั้นตอนการ Deploy (Production Sync)**: หากมีการเพิ่ม ลบ หรือแก้ไข Table, Column, Constraint หรือ Index ต้องสร้าง EF Core Migration (`Npgsql.EntityFrameworkCore.PostgreSQL`) ใน `PocketWise.Infrastructure` และรัน Script อัปเดตตารางบน Supabase ให้ตรงกับ Local 100% เสมอ ห้ามปล่อยให้เกิด Database Schema Mismatch ระหว่าง Implement และ Production เด็ดขาด
 
 ---
 

@@ -157,7 +157,22 @@
 
 ---
 
-## 11. วิธีอัปเดตไฟล์นี้ (ทุกครั้งที่ implement เสร็จ)
+## 11. Phase 9 — Admin Operations ⬜
+
+| # | รายการ | สถานะ | Note |
+|:-:|---|:-:|---|
+| 9.1 | Migration: Users suspension fields, SecurityEvents, Announcements, AnnouncementTargets, ImportJobs retry/cancel fields + `Cancelled` status | ⬜ | DataDictionary/D51; EF Core migration เท่านั้น |
+| 9.2 | Permission seed และ authorization ราย action สำหรับ Admin Operations | ⬜ | API §5N; ต้องมี USERS/SESSIONS/SECURITY_EVENTS/IMPORT_OPERATIONS/SYSTEM_SETTINGS/MAINTENANCE_MODE/ANNOUNCEMENTS permissions |
+| 9.3 | Admin Users: search/detail, suspend/reactivate, resend verification, reset-link และ revoke-all sessions | ⬜ | Suspension มีผลตอน refresh/login; ห้าม admin ตั้ง/เห็น password |
+| 9.4 | Sessions & Security: list/revoke per device, security event capture/query และ cleanup 90 วัน | ⬜ | `SecurityEvents:RetentionDays` ใน appsettings; ห้ามส่ง token/hash |
+| 9.5 | Admin overview และ import operations: all-user jobs, retry ≤5, cancel และ source-file cleanup | ⬜ | admin เปิดไฟล์สลิปไม่ได้; `ImportFiles:RetentionDays` default 90 |
+| 9.6 | System settings, maintenance allowlist และ targeted announcements | ⬜ | maintenance 503 ยกเว้น `MaintenanceMode:AllowedAdminUserIds`; announcement target union + schedule |
+| 9.7 | FE routes/menu, backend integration tests, frontend lint/build และ security/retention/state-transition tests | ⬜ | ใช้ DESIGN.md/shared components; audit ทุก state-changing action |
+| 9.8 | Gate: FR9/API/DataDictionary/checklist sync และ verify end-to-end | ⬜ | ห้ามติ๊กจน implement และตรวจจริงครบ |
+
+---
+
+## 12. วิธีอัปเดตไฟล์นี้ (ทุกครั้งที่ implement เสร็จ)
 
 1. หารายการที่เสร็จจริง → ติด ✅ (+ note สั้น ๆ เช่น ไฟล์ที่สร้าง, วันที่, สิ่งที่ตรวจแล้ว)
 2. รายการที่ทำค้างระหว่างงาน → 🟡 + note ความคืบหน้า

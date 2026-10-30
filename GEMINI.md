@@ -47,10 +47,15 @@
    - ฟิลด์เลือกสีใช้ color picker ไม่บังคับให้ผู้ใช้ป้อนค่า HEX
    - ตัวเลือกแท็กในฟอร์มธุรกรรมต้องแสดงเป็น badge ด้วยสีจริงจาก `TagResponse.color`, สีข้อความต้อง contrast อ่านได้ และสถานะเลือกต้องเห็นชัด
    - หน้า register ต้องยืนยันว่ารหัสผ่านทั้งสองช่องตรงกัน แต่ส่งเฉพาะ contract fields ของ backend ไม่ส่ง `confirmPassword`
-6. **การตรวจสอบและสืบค้นฐานข้อมูลผ่าน Devart MCP Server for SQL Server**
-   - เมื่อ AI ต้องตรวจสอบโครงสร้างตาราง (Schema), ข้อมูลดิบในฐานข้อมูล, ผลลัพธ์ของ Seed Data หรือทดสอบคำสั่ง Query ใน SQL Server (`PocketWiseDb`) ให้ใช้ **Devart MCP Server for SQL Server** (Server Name: `PocketWise`, Driver: `Devart ODBC Driver for SQL Server [STDIO]`, Version 1.1.0)
-   - การเชื่อมต่อ MCP Server ถูกตั้งค่าไว้ที่ `~/.gemini/config/mcp_config.json` โดยเรียกใช้ executable `C:\Program Files\Devart\MCP Server for SQL Server\Devart.AI.McpServer.Odbc.SqlServer.exe run PocketWise`
-   - ห้ามรันคำสั่ง DDL/DML ที่มีผลต่อการเปลี่ยนแปลงโครงสร้างหรือลบข้อมูลจริงโดยพลการ (การเปลี่ยนแปลงสกีมาต้องทำผ่าน EF Core Migrations ของฝั่ง Backend และอ้างอิง [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) เป็น Source of Truth เสมอ)
+6. **กฎเหล็กการใช้งานฐานข้อมูลและ MCP (Database MCP & Zero Schema Drift Policy)**:
+   - **ระหว่างการพัฒนา (Implementation Phase)**:
+     - **ต้องใช้ MCP Database ที่เชื่อมต่อกับ PostgreSQL Local (Docker) เท่านั้น** (เช่น `pocketwise-postgres` หรือ Local Connection: `localhost:5432/pocketwise_db`)
+     - **ห้าม** เรียกใช้ MCP เพื่อ Query, ทดสอบ, Seed หรือแก้ไขข้อมูลบน Supabase Production ในระหว่างการ Implement โดยเด็ดขาด เพื่อป้องกันผลกระทบต่อข้อมูลจริงของผู้ใช้
+   - **ขั้นตอนการ Deploy สู่ Production (Zero Schema Drift)**:
+     - หากมีการอัปเดต, เพิ่ม, ลบ หรือแก้ไขโครงสร้างตาราง (Columns, Tables, Data Types, Constraints, Foreign Keys หรือ Indexes) ในระหว่างการพัฒนา:
+       - ต้องสร้าง EF Core Code-First Migration ใน `PocketWise.Infrastructure` ให้เรียบร้อย
+       - **ต้องรัน Script อัปเดตโครงสร้างตารางบน Supabase (Production) ให้ตรงกับ Local 100% เสมอ** (ผ่าน `supabase_mcp.apply_migration` หรือ `execute_sql` อย่างระมัดระวัง)
+       - **ห้ามเกิด Database Schema Mismatch เด็ดขาด**: สกีมาและคอลัมน์ทั้งหมดระหว่าง Local (Implementation) และ Supabase (Production) ต้องตรงกันอย่างสมบูรณ์ ป้องกันไม่ให้เกิด Database Runtime Error หรือ 500 Internal Server Error บน Production โดยเด็ดขาด
 
 ---
 
