@@ -37,8 +37,8 @@ export function useAdminRoleDetail(roleId: number | null) {
 
 export function useAdminUsers() {
   return useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: () => apiClient.get<UserWithRolesResponse[]>("/api/v1/admin/users"),
+    queryKey: ["admin", "user-roles"],
+    queryFn: () => apiClient.get<UserWithRolesResponse[]>("/api/v1/admin/user-roles"),
   });
 }
 
