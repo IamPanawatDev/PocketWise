@@ -12,6 +12,7 @@ public class ImportJob
     public int TotalRecords { get; set; }
     public int ImportedRecords { get; set; }
     public int DuplicateRecords { get; set; }
+    public int RetryCount { get; set; } = 0;
     public string? ErrorMessage { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }

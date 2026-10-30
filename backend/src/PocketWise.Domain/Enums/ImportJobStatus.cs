@@ -6,5 +6,6 @@ public enum ImportJobStatus
     Processing,
     NeedsReview,
     Completed,
-    Failed
+    Failed,
+    Cancelled
 }

@@ -42,6 +42,10 @@ public class PocketWiseDbContext : IdentityDbContext<ApplicationUser, Applicatio
     public DbSet<CreditCardStatementItem> CreditCardStatementItems => Set<CreditCardStatementItem>();
     public DbSet<InstallmentPlan> InstallmentPlans => Set<InstallmentPlan>();
 
+    public DbSet<SecurityEvent> SecurityEvents => Set<SecurityEvent>();
+    public DbSet<Announcement> Announcements => Set<Announcement>();
+    public DbSet<AnnouncementTarget> AnnouncementTargets => Set<AnnouncementTarget>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

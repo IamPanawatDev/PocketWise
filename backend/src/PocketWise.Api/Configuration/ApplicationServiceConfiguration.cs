@@ -35,6 +35,7 @@ using PocketWise.Application.Features.Transfers;
 using PocketWise.Application.Interfaces;
 using PocketWise.Application.Validators;
 using PocketWise.Infrastructure.Repositories;
+using PocketWise.Infrastructure.Services.Admin;
 
 namespace PocketWise.Api.Configuration;
 
@@ -85,6 +86,15 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<INotificationSender, SignalRNotificationSender>();
         services.AddScoped<IRolePermissionService, RolePermissionService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+
+        // Admin Operations (F9)
+        services.AddScoped<ISecurityEventService, SecurityEventService>();
+        services.AddScoped<IAdminUserService, AdminUserService>();
+        services.AddScoped<IAdminImportJobService, AdminImportJobService>();
+        services.AddScoped<IAnnouncementService, AnnouncementService>();
+        services.AddScoped<IMaintenanceModeService, MaintenanceModeService>();
+        services.AddScoped<IAdminSystemSettingsService, AdminSystemSettingsService>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
         // Import Services
         services.AddScoped<IFileStorageService, LocalFileStorageService>();

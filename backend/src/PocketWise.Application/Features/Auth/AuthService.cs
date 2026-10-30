@@ -21,6 +21,7 @@ public class AuthService : IAuthService
     private readonly IAuditLogService? _auditLogService;
     private readonly ILogger<AuthService>? _logger;
     private readonly IRolePermissionRepository? _rolePermissionRepository;
+    private readonly ISecurityEventService? _securityEventService;
 
     private static readonly ConcurrentDictionary<long, DateTime> _verificationCooldowns = new();
     private static readonly ConcurrentDictionary<string, DateTime> _passwordResetCooldowns = new(StringComparer.OrdinalIgnoreCase);
@@ -33,7 +34,8 @@ public class AuthService : IAuthService
         IEmailService emailService,
         IAuditLogService? auditLogService = null,
         ILogger<AuthService>? logger = null,
-        IRolePermissionRepository? rolePermissionRepository = null)
+        IRolePermissionRepository? rolePermissionRepository = null,
+        ISecurityEventService? securityEventService = null)
     {
         _userManager = userManager;
         _refreshTokenRepository = refreshTokenRepository;
@@ -43,6 +45,7 @@ public class AuthService : IAuthService
         _auditLogService = auditLogService;
         _logger = logger;
         _rolePermissionRepository = rolePermissionRepository;
+        _securityEventService = securityEventService;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress = null, string? userAgent = null, string? originUrl = null, CancellationToken cancellationToken = default)
@@ -101,13 +104,67 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null || !user.IsActive)
         {
+            if (_securityEventService != null)
+            {
+                await _securityEventService.LogEventAsync(
+                    "LOGIN_FAILED",
+                    targetUserId: user?.Id,
+                    actorUserId: null,
+                    succeeded: false,
+                    ipAddress: ipAddress,
+                    userAgent: userAgent,
+                    details: new { reason = "User not found or inactive", email = request.Email },
+                    cancellationToken: cancellationToken);
+            }
             return null;
+        }
+
+        if (user.IsSuspended)
+        {
+            if (_securityEventService != null)
+            {
+                await _securityEventService.LogEventAsync(
+                    "LOGIN_FAILED",
+                    targetUserId: user.Id,
+                    actorUserId: user.Id,
+                    succeeded: false,
+                    ipAddress: ipAddress,
+                    userAgent: userAgent,
+                    details: new { reason = "Account suspended", user.SuspensionReason },
+                    cancellationToken: cancellationToken);
+            }
+            throw new AuthException("ACCOUNT_SUSPENDED", user.SuspensionReason ?? "บัญชีของคุณถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
         }
 
         var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!passwordValid)
         {
+            if (_securityEventService != null)
+            {
+                await _securityEventService.LogEventAsync(
+                    "LOGIN_FAILED",
+                    targetUserId: user.Id,
+                    actorUserId: user.Id,
+                    succeeded: false,
+                    ipAddress: ipAddress,
+                    userAgent: userAgent,
+                    details: new { reason = "Invalid password" },
+                    cancellationToken: cancellationToken);
+            }
             return null;
+        }
+
+        if (_securityEventService != null)
+        {
+            await _securityEventService.LogEventAsync(
+                "LOGIN_SUCCEEDED",
+                targetUserId: user.Id,
+                actorUserId: user.Id,
+                succeeded: true,
+                ipAddress: ipAddress,
+                userAgent: userAgent,
+                details: new { action = "Password login" },
+                cancellationToken: cancellationToken);
         }
 
         if (_auditLogService != null)
@@ -135,7 +192,7 @@ public class AuthService : IAuthService
         }
 
         var user = await _userManager.FindByIdAsync(storedToken.UserId.ToString());
-        if (user is null || !user.IsActive)
+        if (user is null || !user.IsActive || user.IsSuspended)
         {
             return null;
         }
@@ -146,6 +203,23 @@ public class AuthService : IAuthService
                 storedToken.RevokedAt > DateTime.UtcNow.AddSeconds(-60))
             {
                 return await GenerateTokenPairAndSaveAsync(user, ipAddress, userAgent, cancellationToken);
+            }
+
+            // Revoked token reused! Revoke token family and log security event
+            await _refreshTokenRepository.RevokeAllForUserAsync(user.Id, ipAddress, RevokeReason.Compromised.ToString(), cancellationToken);
+            await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+
+            if (_securityEventService != null)
+            {
+                await _securityEventService.LogEventAsync(
+                    "TOKEN_REUSE",
+                    targetUserId: user.Id,
+                    actorUserId: user.Id,
+                    succeeded: false,
+                    ipAddress: ipAddress,
+                    userAgent: userAgent,
+                    details: new { reason = "Revoked refresh token reuse detected", tokenId = storedToken.RefreshTokenId },
+                    cancellationToken: cancellationToken);
             }
 
             return null;
@@ -612,6 +686,19 @@ public class AuthService : IAuthService
         // Security: Revoke all existing refresh tokens to force re-login on all devices
         await _refreshTokenRepository.RevokeAllForUserAsync(user.Id, null, RevokeReason.Compromised.ToString(), cancellationToken);
         await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+
+        if (_securityEventService != null)
+        {
+            await _securityEventService.LogEventAsync(
+                "PASSWORD_RESET",
+                targetUserId: user.Id,
+                actorUserId: user.Id,
+                succeeded: true,
+                ipAddress: null,
+                userAgent: null,
+                details: new { action = "Password reset completed" },
+                cancellationToken: cancellationToken);
+        }
 
         if (_auditLogService != null)
         {

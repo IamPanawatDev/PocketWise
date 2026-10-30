@@ -10,6 +10,7 @@ import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useUserSettings } from "@/features/settings/hooks/useSettings";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useSignalRNotifications } from "@/features/notifications/hooks/useSignalRNotifications";
+import { ActiveAnnouncementsBanner } from "@/features/admin-operations/components/ActiveAnnouncementsBanner";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -39,6 +40,12 @@ import {
   UserRoundCog,
   Wallet,
   X,
+  LayoutDashboard,
+  Users,
+  FileStack,
+  ShieldAlert,
+  Megaphone,
+  Sliders,
 } from "lucide-react";
 
 interface NavItem {
@@ -65,8 +72,14 @@ const mainNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
+  { href: "/admin/overview", label: "ภาพรวมระบบ", tooltip: "ภาพรวมระบบ (Admin)", icon: LayoutDashboard },
+  { href: "/admin/users", label: "จัดการผู้ใช้งาน", tooltip: "จัดการผู้ใช้งาน (Admin)", icon: Users },
+  { href: "/admin/imports", label: "งานนำเข้าทั้งระบบ", tooltip: "งานนำเข้าทั้งระบบ (Admin)", icon: FileStack },
+  { href: "/admin/security-events", label: "เหตุการณ์ความปลอดภัย", tooltip: "เหตุการณ์ความปลอดภัย (Admin)", icon: ShieldAlert },
+  { href: "/admin/announcements", label: "ประกาศระบบ", tooltip: "ประกาศระบบ (Admin)", icon: Megaphone },
   { href: "/admin/permissions", label: "สิทธิ์และบทบาท", tooltip: "สิทธิ์และบทบาท (Admin)", icon: ShieldCheck },
   { href: "/admin/categories", label: "หมวดหมู่มาตรฐาน", tooltip: "หมวดหมู่มาตรฐาน (Admin)", icon: FolderTree },
+  { href: "/admin/settings", label: "การตั้งค่าระบบ", tooltip: "การตั้งค่าระบบ & Maintenance (Admin)", icon: Sliders },
   { href: "/audit-logs", label: "ประวัติการใช้งาน", tooltip: "ประวัติการใช้งาน (Admin)", icon: History },
 ];
 
@@ -360,6 +373,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
+            <ActiveAnnouncementsBanner />
             {children}
           </motion.div>
         </div>

@@ -29,19 +29,32 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
 );
 ", cancellationToken);
 
-            var setting = await context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "AuditLog:Enabled", cancellationToken);
-            if (setting == null)
+            var defaultSettings = new Dictionary<string, (string Value, string Description)>
             {
-                context.SystemSettings.Add(new SystemSetting
+                ["AuditLog:Enabled"] = ("true", "เปิด/ปิด การบันทึกประวัติการเปลี่ยนแปลง (Audit Logs) ทั้งระบบ"),
+                ["Maintenance:Enabled"] = ("false", "เปิด/ปิด โหมดปรับปรุงระบบ (Maintenance Mode)"),
+                ["Maintenance:Message"] = ("ระบบกำลังอยู่ระหว่างปรับปรุงประสิทธิภาพ กรุณากลับมาใหม่อีกครั้งในภายหลัง", "ข้อความแจ้งเตือนผู้ใช้งานเมื่ออยู่ในโหมดปรับปรุงระบบ"),
+                ["Maintenance:AllowedUserIds"] = ("", "รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้ระหว่างปรับปรุงระบบ (คั่นด้วยจุลภาค)"),
+                ["Maintenance:StartsAt"] = ("", "เวลาเริ่มต้นการปรับปรุงระบบ (ISO 8601 UTC)"),
+                ["Maintenance:EndsAt"] = ("", "เวลาสิ้นสุดการปรับปรุงระบบโดยประมาณ (ISO 8601 UTC)")
+            };
+
+            foreach (var kvp in defaultSettings)
+            {
+                var existing = await context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == kvp.Key, cancellationToken);
+                if (existing == null)
                 {
-                    SettingKey = "AuditLog:Enabled",
-                    SettingValue = "true",
-                    Description = "เปิด/ปิด การบันทึกประวัติการเปลี่ยนแปลง (Audit Logs) ทั้งระบบ",
-                    UpdatedAt = DateTime.UtcNow
-                });
-                await context.SaveChangesAsync(cancellationToken);
-                logger.LogInformation("[DatabaseSeeder] SystemSetting 'AuditLog:Enabled' seeded.");
+                    context.SystemSettings.Add(new SystemSetting
+                    {
+                        SettingKey = kvp.Key,
+                        SettingValue = kvp.Value.Value,
+                        Description = kvp.Value.Description,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
             }
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("[DatabaseSeeder] System settings verified/seeded.");
         }
         catch (Exception ex)
         {
@@ -87,47 +100,58 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
         // 1. Seed Permissions
         var permissions = new List<Permission>
         {
-                // Transactions
-                new() { PermissionCode = "TRANSACTIONS_VIEW", PermissionName = "ดูรายการธุรกรรม", Module = "Transactions", Description = "เข้าถึงและดูประวัติรายการรายรับรายจ่าย", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "TRANSACTIONS_CREATE", PermissionName = "สร้างรายการธุรกรรม", Module = "Transactions", Description = "บันทึกรายการรายรับรายจ่ายใหม่", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "TRANSACTIONS_EDIT", PermissionName = "แก้ไขรายการธุรกรรม", Module = "Transactions", Description = "แก้ไขข้อมูลรายการธุรกรรมที่มีอยู่", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "TRANSACTIONS_DELETE", PermissionName = "ลบรายการธุรกรรม", Module = "Transactions", Description = "ลบรายการธุรกรรมออกจากระบบ", CreatedAt = DateTime.UtcNow },
+            // Transactions
+            new() { PermissionCode = "TRANSACTIONS_VIEW", PermissionName = "ดูรายการธุรกรรม", Module = "Transactions", Description = "เข้าถึงและดูประวัติรายการรายรับรายจ่าย", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "TRANSACTIONS_CREATE", PermissionName = "สร้างรายการธุรกรรม", Module = "Transactions", Description = "บันทึกรายการรายรับรายจ่ายใหม่", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "TRANSACTIONS_EDIT", PermissionName = "แก้ไขรายการธุรกรรม", Module = "Transactions", Description = "แก้ไขข้อมูลรายการธุรกรรมที่มีอยู่", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "TRANSACTIONS_DELETE", PermissionName = "ลบรายการธุรกรรม", Module = "Transactions", Description = "ลบรายการธุรกรรมออกจากระบบ", CreatedAt = DateTime.UtcNow },
 
-                // Budgets
-                new() { PermissionCode = "BUDGETS_VIEW", PermissionName = "ดูงบประมาณ", Module = "Budgets", Description = "ดูแผนงบประมาณและการติดตามยอดใช้จ่าย", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "BUDGETS_MANAGE", PermissionName = "จัดการงบประมาณ", Module = "Budgets", Description = "สร้าง แก้ไข ลบแผนงบประมาณ", CreatedAt = DateTime.UtcNow },
+            // Budgets
+            new() { PermissionCode = "BUDGETS_VIEW", PermissionName = "ดูงบประมาณ", Module = "Budgets", Description = "ดูแผนงบประมาณและการติดตามยอดใช้จ่าย", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "BUDGETS_MANAGE", PermissionName = "จัดการงบประมาณ", Module = "Budgets", Description = "สร้าง แก้ไข ลบแผนงบประมาณ", CreatedAt = DateTime.UtcNow },
 
-                // Categories & Tags
-                new() { PermissionCode = "CATEGORIES_VIEW", PermissionName = "ดูหมวดหมู่และแท็ก", Module = "Categories", Description = "ดูรายการหมวดหมู่และแท็ก", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "CATEGORIES_MANAGE", PermissionName = "จัดการหมวดหมู่และแท็กส่วนตัว", Module = "Categories", Description = "สร้างและแก้ไขหมวดหมู่และแท็กของผู้ใช้", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "SYSTEM_CATEGORIES_MANAGE", PermissionName = "จัดการหมวดหมู่มาตรฐานของระบบ", Module = "Categories", Description = "เพิ่ม แก้ไข หรือนำเข้าหมวดหมู่มาตรฐานระบบ", CreatedAt = DateTime.UtcNow },
+            // Categories & Tags
+            new() { PermissionCode = "CATEGORIES_VIEW", PermissionName = "ดูหมวดหมู่และแท็ก", Module = "Categories", Description = "ดูรายการหมวดหมู่และแท็ก", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "CATEGORIES_MANAGE", PermissionName = "จัดการหมวดหมู่และแท็กส่วนตัว", Module = "Categories", Description = "สร้างและแก้ไขหมวดหมู่และแท็กของผู้ใช้", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "SYSTEM_CATEGORIES_MANAGE", PermissionName = "จัดการหมวดหมู่มาตรฐานของระบบ", Module = "Categories", Description = "เพิ่ม แก้ไข หรือนำเข้าหมวดหมู่มาตรฐานระบบ", CreatedAt = DateTime.UtcNow },
 
-                // Categorization
-                new() { PermissionCode = "CATEGORIZATION_VIEW", PermissionName = "ดูและเข้าถึงการจัดหมวดหมู่อัตโนมัติ", Module = "Categorization", Description = "เข้าถึงหน้ากฎและการแนะนำหมวดหมู่อัตโนมัติ", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "CATEGORIZATION_MANAGE", PermissionName = "จัดการกฎและร้านค้าจัดหมวดหมู่อัตโนมัติ", Module = "Categorization", Description = "สร้าง แก้ไข ลบกฎจัดหมวดหมู่และข้อมูลร้านค้า", CreatedAt = DateTime.UtcNow },
+            // Categorization
+            new() { PermissionCode = "CATEGORIZATION_VIEW", PermissionName = "ดูและเข้าถึงการจัดหมวดหมู่อัตโนมัติ", Module = "Categorization", Description = "เข้าถึงหน้ากฎและการแนะนำหมวดหมู่อัตโนมัติ", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "CATEGORIZATION_MANAGE", PermissionName = "จัดการกฎและร้านค้าจัดหมวดหมู่อัตโนมัติ", Module = "Categorization", Description = "สร้าง แก้ไข ลบกฎจัดหมวดหมู่และข้อมูลร้านค้า", CreatedAt = DateTime.UtcNow },
 
-                // Reports
-                new() { PermissionCode = "REPORTS_VIEW", PermissionName = "ดูรายงานและสถิติ", Module = "Reports", Description = "ดูรายงานสรุปรายรับรายจ่ายและกราฟวิเคราะห์", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "REPORTS_EXPORT", PermissionName = "ส่งออกข้อมูลรายงาน", Module = "Reports", Description = "ดาวน์โหลดหรือส่งออกรายงานทางการเงิน", CreatedAt = DateTime.UtcNow },
+            // Reports
+            new() { PermissionCode = "REPORTS_VIEW", PermissionName = "ดูรายงานและสถิติ", Module = "Reports", Description = "ดูรายงานสรุปรายรับรายจ่ายและกราฟวิเคราะห์", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "REPORTS_EXPORT", PermissionName = "ส่งออกข้อมูลรายงาน", Module = "Reports", Description = "ดาวน์โหลดหรือส่งออกรายงานทางการเงิน", CreatedAt = DateTime.UtcNow },
 
-                // Imports
-                new() { PermissionCode = "IMPORTS_MANAGE", PermissionName = "นำเข้าข้อมูลสลิป/ใบแจ้งยอด", Module = "Imports", Description = "อัปโหลดและประมวลผลสลิปโอนเงินและใบแจ้งยอดบัตรเครดิต", CreatedAt = DateTime.UtcNow },
+            // Imports
+            new() { PermissionCode = "IMPORTS_MANAGE", PermissionName = "นำเข้าข้อมูลสลิป/ใบแจ้งยอด", Module = "Imports", Description = "อัปโหลดและประมวลผลสลิปโอนเงินและใบแจ้งยอดบัตรเครดิต", CreatedAt = DateTime.UtcNow },
 
-                // Admin
-                new() { PermissionCode = "ROLES_VIEW", PermissionName = "ดูบทบาทและสิทธิ์", Module = "Admin", Description = "ดูรายการบทบาทและตารางสิทธิ์การเข้าถึง", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "ROLES_MANAGE", PermissionName = "จัดการบทบาทและกำหนดสิทธิ์", Module = "Admin", Description = "สร้าง แก้ไขบทบาท และกำหนดสิทธิ์ให้แต่ละบทบาท", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "USERS_MANAGE", PermissionName = "จัดการผู้ใช้และบทบาท", Module = "Admin", Description = "มอบหมายหรือเปลี่ยนแปลงบทบาทของผู้ใช้งาน", CreatedAt = DateTime.UtcNow },
-                new() { PermissionCode = "AUDIT_LOGS_VIEW", PermissionName = "ดูประวัติการเปลี่ยนแปลง (Audit Logs)", Module = "Admin", Description = "เข้าถึงและตรวจสอบประวัติการทำรายการ (Audit Logs) ทั้งระบบ", CreatedAt = DateTime.UtcNow },
-            };
+            // Admin
+            new() { PermissionCode = "ROLES_VIEW", PermissionName = "ดูบทบาทและสิทธิ์", Module = "Admin", Description = "ดูรายการบทบาทและตารางสิทธิ์การเข้าถึง", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "ROLES_MANAGE", PermissionName = "จัดการบทบาทและกำหนดสิทธิ์", Module = "Admin", Description = "สร้าง แก้ไขบทบาท และกำหนดสิทธิ์ให้แต่ละบทบาท", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "USERS_VIEW", PermissionName = "ดูข้อมูลผู้ใช้งาน", Module = "Admin", Description = "ค้นหา ดูข้อมูลบัญชี และสถานะการใช้งานของผู้ใช้", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "USERS_MANAGE", PermissionName = "จัดการผู้ใช้และบทบาท", Module = "Admin", Description = "มอบหมาย เปลี่ยนแปลงบทบาท และระงับบัญชีผู้ใช้", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "SESSIONS_VIEW", PermissionName = "ดูประวัติเซสชัน", Module = "Admin", Description = "ดูรายการเซสชันและอุปกรณ์ที่เข้าสู่ระบบของผู้ใช้", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "SESSIONS_REVOKE", PermissionName = "เพิกถอนเซสชัน", Module = "Admin", Description = "เพิกถอนและบังคับออกจากระบบสำหรับอุปกรณ์หรือทุกเซสชัน", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "SECURITY_EVENTS_VIEW", PermissionName = "ดูบันทึกเหตุการณ์ความปลอดภัย", Module = "Admin", Description = "เข้าถึงบันทึกเหตุการณ์ความปลอดภัย (Security Events) ของระบบ", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "ADMIN_DASHBOARD_VIEW", PermissionName = "ดูแดชบอร์ดภาพรวมผู้ดูแลระบบ", Module = "Admin", Description = "ดูสถิติและตัวชี้วัดสถานะการทำงานของระบบ", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "IMPORT_OPERATIONS_VIEW", PermissionName = "ดูงานนำเข้าทั้งระบบ", Module = "Admin", Description = "ตรวจสอบรายการและสถานะงานนำเข้าไฟล์ของผู้ใช้ทั้งหมด", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "IMPORT_OPERATIONS_MANAGE", PermissionName = "จัดการงานนำเข้าของระบบ", Module = "Admin", Description = "ลองใหม่หรือยกเลิกงานนำเข้าไฟล์ในระบบ", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "SYSTEM_SETTINGS_VIEW", PermissionName = "ดูการตั้งค่าระบบ", Module = "Admin", Description = "ดูค่าคอนฟิกและการตั้งค่ากลางของระบบ", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "SYSTEM_SETTINGS_MANAGE", PermissionName = "จัดการการตั้งค่าระบบ", Module = "Admin", Description = "แก้ไขค่าคอนฟิกและการตั้งค่ากลางของระบบ", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "MAINTENANCE_MODE_MANAGE", PermissionName = "จัดการโหมดปรับปรุงระบบ", Module = "Admin", Description = "เปิดหรือปิดการบำรุงรักษาระบบ (Maintenance Mode) และกำหนดรายชื่อยกเว้น", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "ANNOUNCEMENTS_MANAGE", PermissionName = "จัดการประกาศของระบบ", Module = "Admin", Description = "สร้าง แก้ไข และเผยแพร่ประกาศถึงผู้ใช้งานตามกลุ่มเป้าหมาย", CreatedAt = DateTime.UtcNow },
+            new() { PermissionCode = "AUDIT_LOGS_VIEW", PermissionName = "ดูประวัติการเปลี่ยนแปลง (Audit Logs)", Module = "Admin", Description = "เข้าถึงและตรวจสอบประวัติการทำรายการ (Audit Logs) ทั้งระบบ", CreatedAt = DateTime.UtcNow },
+        };
 
-            var existingCodes = await context.Permissions.Select(p => p.PermissionCode).ToListAsync(cancellationToken);
-            var missingPerms = permissions.Where(p => !existingCodes.Contains(p.PermissionCode)).ToList();
-            if (missingPerms.Count > 0)
-            {
-                context.Permissions.AddRange(missingPerms);
-                await context.SaveChangesAsync(cancellationToken);
-                logger.LogInformation("[DatabaseSeeder] {Count} new permissions seeded.", missingPerms.Count);
-            }
+        var existingCodes = await context.Permissions.Select(p => p.PermissionCode).ToListAsync(cancellationToken);
+        var missingPerms = permissions.Where(p => !existingCodes.Contains(p.PermissionCode)).ToList();
+        if (missingPerms.Count > 0)
+        {
+            context.Permissions.AddRange(missingPerms);
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("[DatabaseSeeder] {Count} new permissions seeded.", missingPerms.Count);
+        }
 
         // 2. Seed Roles
         var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.NormalizedName == "ADMIN", cancellationToken);

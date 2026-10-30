@@ -57,6 +57,7 @@ public class GlobalExceptionHandlerMiddleware
             "CONFLICT" => (int)HttpStatusCode.Conflict,
             "NOT_FOUND" => (int)HttpStatusCode.NotFound,
             "COOLDOWN" => (int)HttpStatusCode.TooManyRequests,
+            "ACCOUNT_SUSPENDED" => (int)HttpStatusCode.Forbidden,
             _ => (int)HttpStatusCode.BadRequest
         };
 

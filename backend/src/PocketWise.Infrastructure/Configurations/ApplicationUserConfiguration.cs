@@ -14,12 +14,21 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
         builder.Property(e => e.BirthDate).HasColumnType("date");
         builder.Property(e => e.IsEmailVerified).IsRequired().HasDefaultValue(false);
         builder.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+        builder.Property(e => e.IsSuspended).IsRequired().HasDefaultValue(false);
+        builder.Property(e => e.SuspendedAt).HasColumnType("timestamptz");
+        builder.Property(e => e.SuspensionReason).HasMaxLength(500);
         builder.Property(e => e.CreatedAt).IsRequired().HasColumnType("timestamptz").HasDefaultValueSql("NOW()");
         builder.Property(e => e.UpdatedAt).HasColumnType("timestamptz");
 
         builder.HasIndex(e => e.Email).IsUnique();
         builder.HasIndex(e => e.NormalizedEmail).IsUnique();
         builder.HasIndex(e => e.NormalizedUserName).IsUnique();
+        builder.HasIndex(e => e.IsSuspended);
+
+        builder.HasOne(e => e.SuspendedByUser)
+            .WithMany()
+            .HasForeignKey(e => e.SuspendedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasMany(e => e.RefreshTokens)
             .WithOne(t => t.User)
