@@ -140,7 +140,10 @@ async function request<T>(
       !window.location.pathname.startsWith("/login") &&
       !window.location.pathname.startsWith("/register") &&
       !window.location.pathname.startsWith("/forgot-password") &&
-      !window.location.pathname.startsWith("/reset-password")
+      !window.location.pathname.startsWith("/reset-password") &&
+      !window.location.pathname.startsWith("/terms") &&
+      !window.location.pathname.startsWith("/privacy-policy") &&
+      !window.location.pathname.startsWith("/verify-email")
     ) {
       isRedirecting = true;
       window.location.href = `/login?from=${encodeURIComponent(window.location.pathname)}`;
