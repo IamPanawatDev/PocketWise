@@ -337,29 +337,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]", isCollapsed ? "md:ml-20" : "md:ml-72")}>
         {/* Mobile Top Header */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/85 px-3 backdrop-blur-md md:hidden">
-          <div className="flex items-center gap-2.5">
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="border-[var(--pw-input-border)]/60 bg-[var(--pw-surface-indigo)] shadow-xs active:scale-90 transition-transform"
-              aria-label="เปิดเมนู"
-              onClick={toggleNavigation}
-            >
-              <Menu className="size-5 text-[var(--pw-ink)]" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Image
-                src="/brand-logo.png"
-                alt="PocketWise brand"
-                width={36}
-                height={36}
-                priority
-                className="size-9 shrink-0 object-contain drop-shadow"
-              />
-              <span className="truncate text-base font-bold text-[var(--pw-ink)]">PocketWise</span>
-            </div>
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/85 px-4 backdrop-blur-md md:hidden">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/brand-logo.png"
+              alt="PocketWise brand"
+              width={36}
+              height={36}
+              priority
+              className="size-9 shrink-0 object-contain drop-shadow"
+            />
+            <span className="truncate text-base font-bold text-[var(--pw-ink)]">PocketWise</span>
           </div>
           <NotificationBell />
         </header>
