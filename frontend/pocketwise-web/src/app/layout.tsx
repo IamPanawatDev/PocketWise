@@ -129,7 +129,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </Providers>
         </div>
-        <Toaster position="top-center" richColors style={{ zIndex: 99999 }} />
+        <Toaster position="top-center" expand={true} richColors closeButton visibleToasts={3} gap={8} style={{ zIndex: 99999 }} />
       </body>
     </html>
   );
