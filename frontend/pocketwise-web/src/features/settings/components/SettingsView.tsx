@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { Controller, useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -46,6 +47,8 @@ import {
   Mail,
   Save,
   Settings2,
+  Sun,
+  Moon,
   Sliders,
   Trash2,
   UserRound,

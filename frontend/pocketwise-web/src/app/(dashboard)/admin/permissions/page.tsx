@@ -7,6 +7,7 @@ import { RolePermissionsMatrix } from "@/features/admin-permissions/components/R
 import { RolesManager } from "@/features/admin-permissions/components/RolesManager";
 import { UserRolesManager } from "@/features/admin-permissions/components/UserRolesManager";
 import { KeyRound, ShieldAlert, ShieldCheck, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type TabKey = "matrix" | "roles" | "users";
 
@@ -49,46 +50,41 @@ export default function AdminPermissionsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs with Animated Sliding Indicator */}
       <div className="flex flex-wrap border-b border-[var(--pw-hairline)] gap-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab("matrix")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${
-            activeTab === "matrix"
-              ? "border-[var(--pw-primary)] text-[var(--pw-primary)]"
-              : "border-transparent text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
-          }`}
-        >
-          <KeyRound className="size-4" />
-          ตารางสิทธิ์ (Permission Matrix)
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("roles")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${
-            activeTab === "roles"
-              ? "border-[var(--pw-primary)] text-[var(--pw-primary)]"
-              : "border-transparent text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
-          }`}
-        >
-          <ShieldCheck className="size-4" />
-          จัดการบทบาท (Roles)
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("users")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${
-            activeTab === "users"
-              ? "border-[var(--pw-primary)] text-[var(--pw-primary)]"
-              : "border-transparent text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
-          }`}
-        >
-          <Users className="size-4" />
-          กำหนดบทบาทผู้ใช้งาน (User Roles)
-        </button>
+        {(
+          [
+            { key: "matrix", label: "ตารางสิทธิ์ (Permission Matrix)", icon: KeyRound },
+            { key: "roles", label: "จัดการบทบาท (Roles)", icon: ShieldCheck },
+            { key: "users", label: "กำหนดบทบาทผู้ใช้งาน (User Roles)", icon: Users },
+          ] as const
+        ).map((t) => {
+          const isActive = activeTab === t.key;
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveTab(t.key)}
+              className={cn(
+                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition active:scale-95",
+                isActive
+                  ? "text-[var(--pw-primary)] font-semibold"
+                  : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
+              )}
+            >
+              <Icon className="size-4" />
+              <span>{t.label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="adminTabIndicator"
+                  className="absolute bottom-0 inset-x-0 h-0.5 bg-[var(--pw-primary)] rounded-full shadow-sm"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Panels */}

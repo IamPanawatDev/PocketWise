@@ -453,7 +453,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
 
           {/* Top KPI Cards (รวมสรุปสลิปและบัตรเครดิต) */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <Card className="p-4 border-l-4 border-l-[var(--pw-green)]">
+            <Card className="p-4 border-l-4 border-l-[var(--pw-green)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-[var(--pw-ink)]/60">รายรับทั้งหมด</p>
                 <ArrowUpRight className="size-4 text-[var(--pw-green)]" />
@@ -462,7 +462,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 <AnimatedNumber value={activeCurrency.totalIncome} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
-            <Card className="p-4 border-l-4 border-l-[var(--pw-expense)]">
+            <Card className="p-4 border-l-4 border-l-[var(--pw-expense)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-[var(--pw-ink)]/60">รายจ่ายทั้งหมด</p>
                 <ArrowDownRight className="size-4 text-[var(--pw-expense)]" />
@@ -471,7 +471,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 <AnimatedNumber value={activeCurrency.totalExpense} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
-            <Card className="p-4 border-l-4 border-l-[var(--pw-link)]">
+            <Card className="p-4 border-l-4 border-l-[var(--pw-link)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-[var(--pw-ink)]/60">คงเหลือสุทธิ</p>
                 <Scale className="size-4 text-[var(--pw-link)]" />
@@ -480,7 +480,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 <AnimatedNumber value={activeCurrency.netAmount} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
-            <Card className="p-4 border-l-4 border-l-[var(--pw-primary)]">
+            <Card className="p-4 border-l-4 border-l-[var(--pw-primary)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-[var(--pw-ink)]/60">รายจ่ายจากสลิป</p>
                 <Receipt className="size-4 text-[var(--pw-primary)]" />
@@ -492,7 +492,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 {slipPercentage.toFixed(1)}% ของรายจ่ายรวม
               </p>
             </Card>
-            <Card className="p-4 border-l-4 border-l-[var(--pw-magenta)]">
+            <Card className="p-4 border-l-4 border-l-[var(--pw-magenta)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-[var(--pw-ink)]/60">รายจ่ายจากบัตรเครดิต</p>
                 <CreditCard className="size-4 text-[var(--pw-magenta)]" />

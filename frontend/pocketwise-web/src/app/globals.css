@@ -371,3 +371,68 @@ body[data-scroll-locked] {
 [data-sonner-toaster] {
   z-index: 99999 !important;
 }
+
+
+/* ==========================================================================
+   Ambient Floating Glowing Orbs (GPU Composited Aurora)
+   ========================================================================== */
+@keyframes pw-orb-drift-1 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(40px, -30px, 0) scale(1.12);
+  }
+}
+
+@keyframes pw-orb-drift-2 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-50px, 40px, 0) scale(1.18);
+  }
+}
+
+.pw-aurora-orb-1 {
+  position: absolute;
+  top: 10%;
+  left: 15%;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(88, 101, 242, 0.18) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  animation: pw-orb-drift-1 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+.pw-aurora-orb-2 {
+  position: absolute;
+  bottom: 15%;
+  right: 10%;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236, 72, 189, 0.12) 0%, transparent 70%);
+  filter: blur(70px);
+  pointer-events: none;
+  animation: pw-orb-drift-2 22s ease-in-out infinite;
+  will-change: transform;
+}
+
+html[data-theme="light"] .pw-aurora-orb-1 {
+  background: radial-gradient(circle, rgba(88, 101, 242, 0.08) 0%, transparent 70%);
+}
+
+html[data-theme="light"] .pw-aurora-orb-2 {
+  background: radial-gradient(circle, rgba(0, 176, 244, 0.08) 0%, transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-aurora-orb-1,
+  .pw-aurora-orb-2 {
+    animation: none;
+  }
+}

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
+import { TiltCard } from "@/components/ui/tilt-card";
 import { LoaderCircle, LogIn } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -124,48 +125,49 @@ export function LoginForm() {
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-sm"
         >
-          <Card className="w-full text-center">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.35, delay: 0.06, ease: "easeOut" }}
-              className="mb-4 flex justify-center"
-            >
-              <Image
-                src="/brand-logo.png"
-                alt="PocketWise brand"
-                width={72}
-                height={72}
-                priority
-                className="size-18 object-contain drop-shadow"
-              />
-            </motion.div>
+          <TiltCard maxTilt={5}>
+            <Card className="w-full text-center">
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+                className="mb-4 flex justify-center"
+              >
+                <Image
+                  src="/brand-logo.png"
+                  alt="PocketWise brand"
+                  width={72}
+                  height={72}
+                  priority
+                  className="size-18 object-contain drop-shadow-md"
+                />
+              </motion.div>
 
-            <div className="mb-4 flex justify-center">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute size-12 animate-ping rounded-full bg-[var(--pw-primary)]/20" />
-                <LoaderCircle className="size-8 animate-spin text-[var(--pw-primary)]" />
+              <div className="mb-4 flex justify-center">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute size-12 animate-ping rounded-full bg-[var(--pw-primary)]/20" />
+                  <LoaderCircle className="size-8 animate-spin text-[var(--pw-primary)]" />
+                </div>
               </div>
-            </div>
 
-            <h1 className="mb-1 text-xl font-bold">กำลังเข้าสู่ระบบอัตโนมัติ</h1>
-            <p className="mb-3 text-sm text-[var(--pw-ink)]/75">
-              {restoreStatus}
-            </p>
-            <p className="mb-6 text-xs text-[var(--pw-ink)]/50">
-              ระบบกำลังเชื่อมต่อข้อมูลเซสชันเดิมของคุณ ไม่จำเป็นต้องกรอกรหัสผ่านใหม่
-            </p>
+              <h1 className="mb-1 text-xl font-bold">กำลังเข้าสู่ระบบอัตโนมัติ</h1>
+              <p className="mb-3 text-sm text-[var(--pw-ink)]/75">
+                {restoreStatus}
+              </p>
+              <p className="mb-6 text-xs text-[var(--pw-ink)]/50">
+                ระบบกำลังเชื่อมต่อข้อมูลเซสชันเดิมของคุณ ไม่จำเป็นต้องกรอกรหัสผ่านใหม่
+              </p>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsRestoring(false)}
-              className="w-full text-xs text-[var(--pw-ink)]/70"
-            >
-              เข้าสู่ระบบด้วยบัญชีอื่น / กรอกรหัสผ่าน
-            </Button>
-          </Card>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsRestoring(false)}
+                className="w-full text-xs text-[var(--pw-ink)]/70"
+              >
+                เข้าสู่ระบบด้วยบัญชีอื่น / กรอกรหัสผ่าน
+              </Button>
+            </Card>
+          </TiltCard>
         </motion.div>
       </main>
     );
@@ -174,87 +176,101 @@ export function LoginForm() {
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-6">
       <motion.div
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          x: login.isError ? [-8, 8, -6, 6, -3, 3, 0] : 0,
+        }}
+        transition={{
+          duration: 0.4,
+          ease: [0.16, 1, 0.3, 1],
+        }}
         className="w-full max-w-sm"
       >
-        <Card className="w-full">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.35, delay: 0.06, ease: "easeOut" }}
-            className="mb-3 flex justify-center"
-          >
-            <Image
-              src="/brand-logo.png"
-              alt="PocketWise brand"
-              width={72}
-              height={72}
-              priority
-              className="size-18 object-contain drop-shadow"
-            />
-          </motion.div>
-        <h1 className="mb-1 text-center text-2xl font-bold">เข้าสู่ระบบ</h1>
-        <p className="mb-6 text-center text-sm text-[var(--pw-ink)]/70">
-          ยินดีต้อนรับกลับมาที่ PocketWise
-        </p>
-
-        <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <FormField label="อีเมล" htmlFor="email" error={errors.email?.message}>
-            <Input id="email" type="email" {...register("email")} />
-          </FormField>
-
-          <FormField
-            label={
-              <div className="flex items-center justify-between">
-                <span>รหัสผ่าน</span>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs font-normal text-[var(--pw-link)] hover:underline"
-                >
-                  ลืมรหัสผ่าน?
-                </Link>
-              </div>
-            }
-            htmlFor="password"
-            error={errors.password?.message}
-          >
-            <Input id="password" type="password" {...register("password")} />
-          </FormField>
-
-          {login.isError && (
-            <p className="text-sm text-[var(--pw-magenta)]">
-              {login.error instanceof ApiError
-                ? login.error.message
-                : "เข้าสู่ระบบไม่สำเร็จ"}
+        <TiltCard maxTilt={6}>
+          <Card className="w-full">
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+              whileHover={{ scale: 1.08, rotate: [0, -3, 3, 0] }}
+              className="mb-3 flex justify-center cursor-pointer"
+            >
+              <Image
+                src="/brand-logo.png"
+                alt="PocketWise brand"
+                width={72}
+                height={72}
+                priority
+                className="size-18 object-contain drop-shadow-md transition-transform"
+              />
+            </motion.div>
+            <h1 className="mb-1 text-center text-2xl font-bold">เข้าสู่ระบบ</h1>
+            <p className="mb-6 text-center text-sm text-[var(--pw-ink)]/70">
+              ยินดีต้อนรับกลับมาที่ PocketWise
             </p>
-          )}
 
-          <Button type="submit" className="w-full" disabled={login.isPending}>
-            {login.isPending ? <LoaderCircle className="animate-spin" /> : <LogIn />}
-            {login.isPending ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
-          </Button>
-        </form>
+            <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <FormField label="อีเมล" htmlFor="email" error={errors.email?.message}>
+                <Input id="email" type="email" {...register("email")} />
+              </FormField>
 
-        <p className="mt-4 text-center text-sm text-[var(--pw-ink)]/70">
-          ยังไม่มีบัญชี?{" "}
-          <Link href="/register" className="text-[var(--pw-link)]">
-            สมัครสมาชิก
-          </Link>
-        </p>
+              <FormField
+                label={
+                  <div className="flex items-center justify-between">
+                    <span>รหัสผ่าน</span>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-normal text-[var(--pw-link)] hover:underline"
+                    >
+                      ลืมรหัสผ่าน?
+                    </Link>
+                  </div>
+                }
+                htmlFor="password"
+                error={errors.password?.message}
+              >
+                <Input id="password" type="password" {...register("password")} />
+              </FormField>
 
-        <div className="mt-5 flex items-center justify-center gap-3 border-t border-[var(--pw-hairline)] pt-3 text-[11px] text-[var(--pw-ink)]/50">
-          <Link href="/privacy-policy" className="hover:underline">
-            นโยบายความเป็นส่วนตัว
-          </Link>
-          <span>•</span>
-          <Link href="/terms" className="hover:underline">
-            ข้อกำหนดการใช้งาน
-          </Link>
-        </div>
-      </Card>
-    </motion.div>
-  </main>
+              {login.isError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-sm text-[var(--pw-magenta)]"
+                >
+                  {login.error instanceof ApiError
+                    ? login.error.message
+                    : "เข้าสู่ระบบไม่สำเร็จ"}
+                </motion.p>
+              )}
+
+              <Button type="submit" className="w-full" disabled={login.isPending}>
+                {login.isPending ? <LoaderCircle className="animate-spin" /> : <LogIn />}
+                {login.isPending ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              </Button>
+            </form>
+
+            <p className="mt-4 text-center text-sm text-[var(--pw-ink)]/70">
+              ยังไม่มีบัญชี?{" "}
+              <Link href="/register" className="text-[var(--pw-link)] hover:underline">
+                สมัครสมาชิก
+              </Link>
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-3 border-t border-[var(--pw-hairline)] pt-3 text-[11px] text-[var(--pw-ink)]/50">
+              <Link href="/privacy-policy" className="hover:underline">
+                นโยบายความเป็นส่วนตัว
+              </Link>
+              <span>•</span>
+              <Link href="/terms" className="hover:underline">
+                ข้อกำหนดการใช้งาน
+              </Link>
+            </div>
+          </Card>
+        </TiltCard>
+      </motion.div>
+    </main>
   );
 }

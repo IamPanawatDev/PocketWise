@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "motion/react";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { useCategories } from "@/features/categories/hooks/useCategories";
@@ -359,7 +361,7 @@ export function BudgetsView() {
             const percent = current?.percentageUsed ?? 0;
             return (
               <AnimatedListItem key={budget.budgetId}>
-                <Card className="space-y-4 p-4 sm:p-5 h-full">
+                <Card className="space-y-4 p-4 sm:p-5 h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <h2 className="break-words font-bold">{budget.budgetName}</h2>
@@ -394,14 +396,20 @@ export function BudgetsView() {
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={Math.min(100, Math.max(0, percent))}
-                    className="h-3 overflow-hidden rounded-full bg-[var(--pw-hairline)]"
+                    className="h-3 overflow-hidden rounded-full bg-[var(--pw-hairline)] relative"
                   >
-                    <div
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+                      transition={{ duration: 0.85, ease: "easeOut" }}
                       className={cn(
-                        "h-full transition-all duration-700 ease-out",
-                        current?.isOverLimit ? "bg-[var(--pw-expense)]" : "bg-[var(--pw-green)]"
+                        "h-full rounded-full transition-colors",
+                        percent >= 100 || current?.isOverLimit
+                          ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_12px_rgba(239,68,68,0.5)] animate-pulse"
+                          : percent >= 80
+                            ? "bg-gradient-to-r from-amber-400 to-orange-500"
+                            : "bg-gradient-to-r from-emerald-500 to-green-500"
                       )}
-                      style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
                     />
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
