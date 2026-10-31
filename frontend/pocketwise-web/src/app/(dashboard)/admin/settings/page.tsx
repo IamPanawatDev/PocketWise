@@ -40,6 +40,16 @@ import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import type { SystemSettingItem } from "@/types/admin-operations.types";
 
+const getCategoryBadge = (key: string) => {
+  if (key.startsWith("Jwt:")) return { label: "ความปลอดภัย & JWT", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" };
+  if (key.startsWith("AuditLog")) return { label: "ประวัติการใช้งาน (Audit)", color: "bg-purple-500/10 text-purple-500 border-purple-500/20" };
+  if (key.startsWith("RefreshToken")) return { label: "การทำความสะอาดโทเคน", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" };
+  if (key.startsWith("RecurringJob")) return { label: "ธุรกรรมประจำ (Recurring)", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
+  if (key.startsWith("Email")) return { label: "อีเมลแจ้งเตือน (Email)", color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" };
+  if (key.startsWith("Maintenance")) return { label: "โหมดบำรุงรักษา", color: "bg-rose-500/10 text-rose-500 border-rose-500/20" };
+  return { label: "ทั่วไป", color: "bg-gray-500/10 text-gray-500 border-gray-500/20" };
+};
+
 export default function AdminSettingsPage() {
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const { data: settings = [], isLoading, refetch } = useAdminSettingsQuery();
@@ -327,34 +337,49 @@ export default function AdminSettingsPage() {
                   </td>
                 </tr>
               ) : (
-                settings.map((item) => (
-                  <tr
-                    key={item.settingKey}
-                    className="hover:bg-[var(--pw-hairline)]/10 transition-colors"
-                  >
-                    <td className="py-3 px-4 font-mono font-bold text-xs text-[var(--pw-ink)]">
-                      {item.settingKey}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-xs max-w-xs truncate text-[var(--pw-primary)]">
-                      {item.settingValue}
-                    </td>
-                    <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/70 max-w-xs">
-                      {item.description || "-"}
-                    </td>
-                    <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/60">
-                      {formatDisplayDateTime(item.updatedAt)}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => handleOpenEditSetting(item)}
-                        className="p-1.5 rounded-lg border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-all duration-150 active:scale-95"
-                        title="แก้ไขค่านี้"
-                      >
-                        <Edit2 className="size-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                settings.map((item) => {
+                  const badge = getCategoryBadge(item.settingKey);
+                  return (
+                    <tr
+                      key={item.settingKey}
+                      className="hover:bg-[var(--pw-hairline)]/10 transition-colors"
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono font-bold text-xs text-[var(--pw-ink)]">
+                            {item.settingKey}
+                          </span>
+                          <span
+                            className={cn(
+                              "inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-medium border",
+                              badge.color
+                            )}
+                          >
+                            {badge.label}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs max-w-xs truncate text-[var(--pw-primary)]">
+                        {item.settingValue}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/70 max-w-xs">
+                        {item.description || "-"}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/60">
+                        {formatDisplayDateTime(item.updatedAt)}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => handleOpenEditSetting(item)}
+                          className="p-1.5 rounded-lg border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-all duration-150 active:scale-95"
+                          title="แก้ไขค่านี้"
+                        >
+                          <Edit2 className="size-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

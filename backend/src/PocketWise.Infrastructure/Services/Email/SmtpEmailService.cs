@@ -3,9 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Mail;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PocketWise.Application.Interfaces;
+using PocketWise.Infrastructure.Persistence;
 
 namespace PocketWise.Infrastructure.Services.Email;
 
@@ -14,15 +16,41 @@ public class SmtpEmailService : IEmailService
     private static readonly HttpClient HttpClient = new();
     private readonly SmtpSettings _settings;
     private readonly ILogger<SmtpEmailService> _logger;
+    private readonly PocketWiseDbContext? _dbContext;
 
-    public bool IsEnabled => _settings.Enabled;
+    public bool IsEnabled
+    {
+        get
+        {
+            if (_dbContext != null)
+            {
+                try
+                {
+                    var setting = _dbContext.SystemSettings
+                        .AsNoTracking()
+                        .FirstOrDefault(s => s.SettingKey == "Email:Enabled");
+                    if (setting != null && bool.TryParse(setting.SettingValue, out var val))
+                    {
+                        return val;
+                    }
+                }
+                catch
+                {
+                    // Fallback to configuration
+                }
+            }
+            return _settings.Enabled;
+        }
+    }
 
     public SmtpEmailService(
         IOptions<SmtpSettings> settings,
-        ILogger<SmtpEmailService> logger)
+        ILogger<SmtpEmailService> logger,
+        PocketWiseDbContext? dbContext = null)
     {
         _settings = settings.Value;
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     public async Task<bool> SendEmailAsync(
@@ -31,10 +59,39 @@ public class SmtpEmailService : IEmailService
         string bodyHtml,
         CancellationToken cancellationToken = default)
     {
-        // 1. If disabled globally via configuration, do nothing
-        if (!_settings.Enabled)
+        var isEnabled = _settings.Enabled;
+        var fromDisplayName = _settings.FromDisplayName;
+
+        if (_dbContext != null)
         {
-            _logger.LogInformation("[SmtpEmailService] Email delivery is disabled globally in configuration. Skipping.");
+            try
+            {
+                var enabledSetting = await _dbContext.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.SettingKey == "Email:Enabled", cancellationToken);
+                if (enabledSetting != null && bool.TryParse(enabledSetting.SettingValue, out var eVal))
+                {
+                    isEnabled = eVal;
+                }
+
+                var nameSetting = await _dbContext.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.SettingKey == "Email:FromDisplayName", cancellationToken);
+                if (nameSetting != null && !string.IsNullOrWhiteSpace(nameSetting.SettingValue))
+                {
+                    fromDisplayName = nameSetting.SettingValue.Trim();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[SmtpEmailService] Could not read dynamic email settings from database. Using configuration fallback.");
+            }
+        }
+
+        // 1. If disabled globally via configuration or database settings, do nothing
+        if (!isEnabled)
+        {
+            _logger.LogInformation("[SmtpEmailService] Email delivery is disabled globally. Skipping.");
             return false;
         }
 
@@ -47,7 +104,7 @@ public class SmtpEmailService : IEmailService
         // 2. HTTP-based delivery via Resend REST API (bypasses Render/Cloud outbound SMTP port blocks)
         if (!string.IsNullOrWhiteSpace(_settings.ResendApiKey))
         {
-            return await SendViaResendAsync(toEmail, subject, bodyHtml, cancellationToken);
+            return await SendViaResendAsync(toEmail, subject, bodyHtml, fromDisplayName, cancellationToken);
         }
 
         // 3. If SMTP Host is not configured, operate in development simulation logging mode
@@ -66,7 +123,7 @@ public class SmtpEmailService : IEmailService
         {
             using var message = new MailMessage
             {
-                From = new MailAddress(_settings.FromEmail, _settings.FromDisplayName, Encoding.UTF8),
+                From = new MailAddress(_settings.FromEmail, fromDisplayName, Encoding.UTF8),
                 Subject = subject,
                 SubjectEncoding = Encoding.UTF8,
                 Body = bodyHtml,
@@ -104,6 +161,7 @@ public class SmtpEmailService : IEmailService
         string toEmail,
         string subject,
         string bodyHtml,
+        string fromDisplayName,
         CancellationToken cancellationToken)
     {
         try
@@ -116,8 +174,8 @@ public class SmtpEmailService : IEmailService
                 || _settings.FromEmail.EndsWith("@outlook.com", StringComparison.OrdinalIgnoreCase);
 
             var fromAddress = isPublicOrLocalDomain
-                ? "PocketWise <onboarding@resend.dev>"
-                : $"{_settings.FromDisplayName} <{_settings.FromEmail}>";
+                ? $"{fromDisplayName} <onboarding@resend.dev>"
+                : $"{fromDisplayName} <{_settings.FromEmail}>";
 
             var payload = new
             {

@@ -32,6 +32,14 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
             var defaultSettings = new Dictionary<string, (string Value, string Description)>
             {
                 ["AuditLog:Enabled"] = ("true", "เปิด/ปิด การบันทึกประวัติการเปลี่ยนแปลง (Audit Logs) ทั้งระบบ"),
+                ["AuditLogCleanup:Enabled"] = ("true", "เปิด/ปิด งานทำความสะอาด Audit Log เก่าอัตโนมัติ"),
+                ["AuditLogCleanup:RetentionDays"] = ("365", "จำนวนวันจัดเก็บประวัติ Audit Log ก่อนถูกลบออก (วัน)"),
+                ["RefreshTokenCleanup:Enabled"] = ("true", "เปิด/ปิด งานทำความสะอาด Refresh Token ที่หมดอายุแล้วอัตโนมัติ"),
+                ["Jwt:AccessTokenExpirationMinutes"] = ("60", "ระยะเวลาหมดอายุของ Access Token (นาที)"),
+                ["Jwt:RefreshTokenExpirationDays"] = ("30", "ระยะเวลาหมดอายุของ Refresh Token เซสชันล็อกอิน (วัน)"),
+                ["RecurringJob:IntervalMinutes"] = ("60", "ความถี่ในการรันประมวลผลธุรกรรมประจำอัตโนมัติ (นาที)"),
+                ["Email:Enabled"] = ("true", "เปิด/ปิด ระบบการส่งอีเมลแจ้งเตือนของระบบ"),
+                ["Email:FromDisplayName"] = ("PocketWise", "ชื่อผู้ส่งที่แสดงในหัวข้ออีเมล"),
                 ["Maintenance:Enabled"] = ("false", "เปิด/ปิด โหมดปรับปรุงระบบ (Maintenance Mode)"),
                 ["Maintenance:Message"] = ("ระบบกำลังอยู่ระหว่างปรับปรุงประสิทธิภาพ กรุณากลับมาใหม่อีกครั้งในภายหลัง", "ข้อความแจ้งเตือนผู้ใช้งานเมื่ออยู่ในโหมดปรับปรุงระบบ"),
                 ["Maintenance:AllowedUserIds"] = ("", "รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้ระหว่างปรับปรุงระบบ (คั่นด้วยจุลภาค)"),

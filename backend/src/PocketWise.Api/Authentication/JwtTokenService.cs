@@ -1,8 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using PocketWise.Application.DTOs.Auth;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
+using PocketWise.Infrastructure.Persistence;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -13,17 +15,48 @@ namespace PocketWise.Api.Authentication;
 public class JwtTokenService : ITokenService
 {
     private readonly JwtSettings _settings;
+    private readonly PocketWiseDbContext? _dbContext;
 
-    public JwtTokenService(IOptions<JwtSettings> options)
+    public JwtTokenService(IOptions<JwtSettings> options, PocketWiseDbContext? dbContext = null)
     {
         _settings = options.Value;
+        _dbContext = dbContext;
     }
 
     public AuthResponse GenerateTokenPair(ApplicationUser user, IEnumerable<string>? roles = null)
     {
         var roleList = roles?.ToList() ?? new List<string>();
-        var accessTokenExpiresAt = DateTime.UtcNow.AddMinutes(_settings.AccessTokenExpirationMinutes);
-        var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(_settings.RefreshTokenExpirationDays);
+        var accessMinutes = _settings.AccessTokenExpirationMinutes;
+        var refreshDays = _settings.RefreshTokenExpirationDays;
+
+        if (_dbContext != null)
+        {
+            try
+            {
+                var accessSetting = _dbContext.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefault(s => s.SettingKey == "Jwt:AccessTokenExpirationMinutes");
+                if (accessSetting != null && int.TryParse(accessSetting.SettingValue, out var m) && m > 0)
+                {
+                    accessMinutes = m;
+                }
+
+                var refreshSetting = _dbContext.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefault(s => s.SettingKey == "Jwt:RefreshTokenExpirationDays");
+                if (refreshSetting != null && int.TryParse(refreshSetting.SettingValue, out var d) && d > 0)
+                {
+                    refreshDays = d;
+                }
+            }
+            catch
+            {
+                // Fallback to configuration
+            }
+        }
+
+        var accessTokenExpiresAt = DateTime.UtcNow.AddMinutes(accessMinutes);
+        var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(refreshDays);
 
         var accessToken = GenerateAccessToken(user, roleList, accessTokenExpiresAt);
         var refreshToken = GenerateRefreshToken();

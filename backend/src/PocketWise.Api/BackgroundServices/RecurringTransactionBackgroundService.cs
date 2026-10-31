@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PocketWise.Application.Interfaces;
+using PocketWise.Infrastructure.Persistence;
 
 namespace PocketWise.Api.BackgroundServices;
 
@@ -26,9 +28,22 @@ public class RecurringTransactionBackgroundService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            var intervalMinutes = _options.IntervalMinutes;
             try
             {
                 using var scope = _scopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetService<PocketWiseDbContext>();
+                if (dbContext != null)
+                {
+                    var intervalSetting = await dbContext.SystemSettings
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(s => s.SettingKey == "RecurringJob:IntervalMinutes", stoppingToken);
+                    if (intervalSetting != null && int.TryParse(intervalSetting.SettingValue, out var iVal) && iVal > 0)
+                    {
+                        intervalMinutes = iVal;
+                    }
+                }
+
                 var service = scope.ServiceProvider.GetRequiredService<IRecurringTransactionService>();
                 await service.ProcessDueAsync(DateTime.UtcNow, stoppingToken);
             }
@@ -48,7 +63,7 @@ public class RecurringTransactionBackgroundService : BackgroundService
                 }
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(_options.IntervalMinutes), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(intervalMinutes), stoppingToken);
         }
     }
 }
