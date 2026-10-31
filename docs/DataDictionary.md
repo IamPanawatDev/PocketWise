@@ -4,7 +4,7 @@
 > **หมายเหตุสำคัญ:** ระบบใช้ฐานข้อมูล PostgreSQL (Docker `pocketwise_db` ใน Dev และ Supabase ใน Production — D50); โดย mapping ข้อมูลสอดคล้องกับ EF Core (`datetime2` -> `timestamptz`, `SYSUTCDATETIME()` -> `NOW()`, `tinyint` -> `smallint`, `nvarchar(max)` -> `text`)  
 > **วิธีอ่าน:** PK = Primary Key; FK = Foreign Key; Nullable = อนุญาต NULL; Constraint = เงื่อนไข/ค่าเริ่มต้นที่เสนอ  
 > **Google Sheets ต้นทาง:** [ระบบบันทึกรายรับรายจ่าย](https://docs.google.com/spreadsheets/d/11xfdjcAKEbh7a6l6B9u8y_1ksIM2il1xeDpOelm7KRw/edit) (ID: `11xfdjcAKEbh7a6l6B9u8y_1ksIM2il1xeDpOelm7KRw`)
-> **ขอบเขตการ implement (อัปเดตตาม D13):** สร้าง Entity/ตารางจริง **ครบทั้ง 25 ตาราง** — รายการ FR ที่ผูกตารางแต่ละตารางดู badge "ขอบเขตฟีเจอร์" ของแต่ละตาราง + `/docs/REQUIREMENTS.md` (F7/F8 ครอบ Roles/Permissions/UserRoles/RolePermissions/AuditLogs — เพิ่มโดยเจ้าของโปรเจค)
+> **ขอบเขตการ implement (อัปเดตตาม D13/D51):** ปัจจุบัน Entity/ตารางจริงมี **25 ตาราง** ตาม D13; เป้าหมายหลัง implement F9 คือ **28 ตาราง** โดยเพิ่ม SecurityEvents, Announcements และ AnnouncementTargets — รายการ FR ที่ผูกตารางแต่ละตารางดู badge "ขอบเขตฟีเจอร์" ของแต่ละตาราง + `/docs/REQUIREMENTS.md`
 > **หมายเหตุ D12:** คำสั่งเก่า "implement เฉพาะ 20/25 ตาราง" ถูก **ยกเลิก** แล้ว (เจ้าของโปรเจคเพิ่ม F7/F8) — ใช้ D13 แทน
 
 ---
@@ -38,12 +38,15 @@
 | 23 | [TransferGroups](#transfergroups) | กลุ่มการโอนระหว่างบัญชี | `เพิ่มใหม่` | จับคู่โอนออก/โอนเข้าไม่ให้คิดเป็นรายรับรายจ่ายซ้ำ |
 | 24 | [AuditLogs](#auditlogs) | ประวัติการเปลี่ยนแปลง (ส่วนเสริม) | `เพิ่มใหม่` | ช่วยตรวจสอบการแก้ไขและนำเข้าข้อมูลย้อนหลัง (FR8.1–8.2) |
 | 25 | [UserRefreshTokens](#userrefreshtokens) | เก็บ Refresh Token สำหรับต่ออายุ Access Token และจัดการเซสชันผู้ใช้ | `เพิ่มใหม่` | รองรับ JWT Authentication, Token Rotation, Multi-device Sessions และการ Revoke รายเครื่อง — **สร้างใน migration แรกเลย (D6)** |
+| 26 | [SecurityEvents](#securityevents) | เหตุการณ์ความปลอดภัยและการเข้าสู่ระบบ | `เพิ่มใหม่` | Admin security monitoring และ retention 90 วันตาม config (FR9.3) |
+| 27 | [Announcements](#announcements) | ประกาศของผู้ดูแลระบบ | `เพิ่มใหม่` | กำหนดข้อความ ช่วงเวลา และสถานะประกาศ (FR9.8) |
+| 28 | [AnnouncementTargets](#announcementtargets) | กฎกลุ่มผู้รับของประกาศ | `เพิ่มใหม่` | ผู้ใช้รายคน, role, ทุกคน, ผู้ยังไม่ยืนยันอีเมล; รองรับหลาย rule ต่อประกาศ (FR9.8) |
 
 ---
 
 ## กฎและข้อกำหนดสำคัญของระบบ (System Rules & Architecture)
 
-- **ความสัมพันธ์สำคัญ:** Transactions.UserId → Users.UserId; Transactions.CategoryId → Categories.CategoryId; TransactionTags เชื่อม Transactions กับ Tags; CreditCardStatements → CreditCards; CreditCardStatementItems → CreditCardStatements; SlipImportFiles → ImportJobs; Budgets เชื่อม Users กับ Category/Tag; Users ||--o{ UserRefreshTokens เชื่อมต่อการยืนยันตัวตนและจัดการเซสชัน
+- **ความสัมพันธ์สำคัญ:** Transactions.UserId → Users.UserId; Transactions.CategoryId → Categories.CategoryId; TransactionTags เชื่อม Transactions กับ Tags; CreditCardStatements → CreditCards; CreditCardStatementItems → CreditCardStatements; SlipImportFiles → ImportJobs; Budgets เชื่อม Users กับ Category/Tag; Users ||--o{ UserRefreshTokens เชื่อมต่อการยืนยันตัวตนและจัดการเซสชัน; SecurityEvents/Announcements เก็บ actor เป็น Users; AnnouncementTargets ชี้ไป Users หรือ Roles ตาม TargetType
 - **กติกาที่ต้องกำหนดในระบบ:** ตรวจรายการซ้ำด้วย FileHash/TransactionReference/จำนวนเงิน/เวลา; tag limit 20 tags ต่อผู้ใช้; การลบควรใช้ soft delete สำหรับรายการการเงิน; เก็บเวลาเป็น UTC และแสดงตาม timezone ผู้ใช้
 - **การจัดการ Authentication & Refresh Token:**
   - ใช้ **Access Token (JWT)** อายุสั้น (เช่น 15-60 นาที) ควบคู่กับ **Refresh Token** อายุยาว (เช่น 7-30 วัน)
@@ -74,11 +77,17 @@ erDiagram
     Users ||--o{ CategoryRules : "ตั้งกฎหมวดหมู่"
     Users ||--o{ InstallmentPlans : "มีแผนผ่อน"
     Users ||--o{ TransferGroups : "ทำรายการโอน"
+    Users ||--o{ SecurityEvents : "เป็นผู้เกี่ยวข้อง/ผู้กระทำ"
+    Users ||--o{ Announcements : "สร้างประกาศ"
+    Users ||--o{ AnnouncementTargets : "เป็นผู้รับแบบรายบุคคล"
     Users ||--o| UserSettings : "มีการตั้งค่า"
 
     Roles ||--o{ UserRoles : "กำหนดให้ผู้ใช้"
     Roles ||--o{ RolePermissions : "มีสิทธิ์"
+    Roles ||--o{ AnnouncementTargets : "เป็นกลุ่มผู้รับ"
     Permissions ||--o{ RolePermissions : "ผูกกับบทบาท"
+
+    Announcements ||--o{ AnnouncementTargets : "กำหนดผู้รับ"
 
     Categories ||--o{ Transactions : "จัดหมวดหมู่"
     Categories ||--o{ Budgets : "คุมงบตามหมวด"
@@ -135,6 +144,10 @@ erDiagram
 | `BirthDate` | `date` |  |  | YES |  | วันเกิด | 1998-01-15 |
 | `IsEmailVerified` | `bit` |  |  | NO | DEFAULT 0 | ยืนยันอีเมลแล้วหรือไม่ | 0 |
 | `IsActive` | `bit` |  |  | NO | DEFAULT 1 | สถานะบัญชี | 1 |
+| `IsSuspended` | `bit` |  |  | NO | DEFAULT 0 | บัญชีถูกระงับหรือไม่; ตรวจตอน login/refresh ไม่ revoke access token ที่ออกแล้ว | 0 |
+| `SuspendedAt` | `datetime2` |  |  | YES |  | เวลาที่ระงับบัญชีล่าสุด | 2026-11-01T10:00:00Z |
+| `SuspendedByUserId` | `bigint` |  | `Users.UserId` | YES |  | ผู้ดูแลที่สั่งระงับ/เปิดใช้ล่าสุด | 1 |
+| `SuspensionReason` | `nvarchar(500)` |  |  | YES |  | เหตุผลที่ผู้ดูแลระบุเมื่อระงับ; ต้อง sanitize ก่อนแสดง | Suspicious activity confirmed |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้างข้อมูล | 2026-10-16T10:00:00Z |
 | `UpdatedAt` | `datetime2` |  |  | YES |  | วันเวลาแก้ไขล่าสุด | 2026-10-16T10:30:00Z |
 
@@ -328,11 +341,15 @@ erDiagram
 | `UserId` | `bigint` |  | `Users.UserId` | NO |  | ผู้เริ่มนำเข้า | 1001 |
 | `ImportType` | `varchar(30)` |  |  | NO | SLIP/CARD_STATEMENT | ประเภทนำเข้า | SLIP |
 | `FileName` | `nvarchar(260)` |  |  | YES |  | ชื่อไฟล์ต้นฉบับ | slip_20261015.jpg |
-| `Status` | `varchar(20)` |  |  | NO | PENDING/PROCESSING/NEEDS_REVIEW/COMPLETED/FAILED | สถานะงาน | NEEDS_REVIEW |
+| `Status` | `varchar(20)` |  |  | NO | PENDING/PROCESSING/NEEDS_REVIEW/COMPLETED/FAILED/CANCELLED | สถานะงาน | NEEDS_REVIEW |
 | `TotalRecords` | `int` |  |  | NO | DEFAULT 0 | จำนวนรายการที่อ่านได้ | 1 |
 | `ImportedRecords` | `int` |  |  | NO | DEFAULT 0 | จำนวนรายการที่บันทึกสำเร็จ | 1 |
 | `DuplicateRecords` | `int` |  |  | NO | DEFAULT 0 | จำนวนรายการซ้ำ | 0 |
 | `ErrorMessage` | `nvarchar(2000)` |  |  | YES |  | รายละเอียดข้อผิดพลาด |  |
+| `RetryCount` | `int` |  |  | NO | DEFAULT 0; CHECK 0–5 | จำนวนครั้งที่ admin retry งานที่ failed | 2 |
+| `CancelledAt` | `datetime2` |  |  | YES |  | เวลาที่ admin cancel งาน | 2026-11-01T10:05:00Z |
+| `CancelledByUserId` | `bigint` |  | `Users.UserId` | YES |  | admin ผู้สั่ง cancel | 1 |
+| `CancellationReason` | `nvarchar(500)` |  |  | YES |  | เหตุผลการ cancel | Invalid uploaded document |
 | `StartedAt` | `datetime2` |  |  | YES |  | เวลาเริ่มประมวลผล | 2026-10-16T10:00:00Z |
 | `CompletedAt` | `datetime2` |  |  | YES |  | เวลาสิ้นสุด | 2026-10-16T10:00:03Z |
 | `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | วันเวลาสร้างงาน | 2026-10-16T10:00:00Z |
@@ -595,3 +612,54 @@ erDiagram
 | `RevokedByIp` | `varchar(45)` |  |  | YES |  | IP Address ที่ทำการยกเลิก Token | 192.168.1.1 |
 | `ReplacedByTokenHash` | `nvarchar(128)` |  |  | YES |  | Hash ของ Token ตัวใหม่ที่มาแทนที่ (สำหรับ Token Rotation) | a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e |
 | `ReasonRevoked` | `nvarchar(100)` |  |  | YES | LOGOUT / ROTATED / COMPROMISED | เหตุผลที่ Token ถูกยกเลิกการใช้งาน | ROTATED |
+
+### <a id="securityevents"></a>26. SecurityEvents
+
+> **ชื่อไทย:** SecurityEvents — บันทึกเหตุการณ์ความปลอดภัยและการเข้าสู่ระบบ
+> **หน้าที่:** ช่วยผู้ดูแลตรวจสอบ login, session และเหตุการณ์ผิดปกติ (เพิ่มใหม่ตาม D51)
+> **ขอบเขตฟีเจอร์:** FR9.3; มีงานเบื้องหลังลบข้อมูลตาม `SecurityEvents:RetentionDays` ใน `appsettings.json` (ค่าเริ่มต้น 90 วัน)
+
+| Column | Data Type | PK | FK | Nullable | Default / Constraint | รายละเอียด | ตัวอย่าง |
+|---|---|:---:|---|:---:|---|---|---|
+| `SecurityEventId` | `bigint` | ✓ |  | NO | IDENTITY(1,1) | รหัสเหตุการณ์ | 1 |
+| `EventType` | `varchar(50)` |  |  | NO | INDEX | `LOGIN_SUCCEEDED`, `LOGIN_FAILED`, `TOKEN_REUSE`, `PASSWORD_RESET`, `ACCOUNT_SUSPENDED`, `SESSION_REVOKED` เป็นต้น | LOGIN_FAILED |
+| `TargetUserId` | `bigint` |  | `Users.UserId` | YES | INDEX | ผู้ใช้ที่เหตุการณ์เกี่ยวข้อง; NULL ได้เมื่อหา user ไม่พบจาก login failed | 42 |
+| `ActorUserId` | `bigint` |  | `Users.UserId` | YES | INDEX | ผู้กระทำ หากเป็น admin/system; NULL สำหรับ anonymous event | 1 |
+| `Succeeded` | `bit` |  |  | NO |  | ผลลัพธ์ของเหตุการณ์ | 0 |
+| `IpAddress` | `varchar(45)` |  |  | YES |  | IPv4/IPv6; แสดงแบบ mask ตาม policy ของ API | 203.0.113.10 |
+| `UserAgent` | `nvarchar(255)` |  |  | YES |  | ข้อมูล client ที่ผ่านการจำกัดความยาว | Mozilla/5.0... |
+| `DetailsJson` | `nvarchar(max)` |  |  | YES | ห้ามมี token/password/hash/card number | context ที่ sanitize แล้ว | {"reason":"invalid_credentials"} |
+| `OccurredAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME(); INDEX | เวลาเกิดเหตุการณ์ UTC | 2026-11-01T10:00:00Z |
+
+### <a id="announcements"></a>27. Announcements
+
+> **ชื่อไทย:** Announcements — ประกาศจากผู้ดูแลระบบ
+> **หน้าที่:** เก็บเนื้อหา ช่วงเวลาแสดง และสถานะของประกาศ (เพิ่มใหม่ตาม D51)
+> **ขอบเขตฟีเจอร์:** FR9.8; target rules อยู่ใน `AnnouncementTargets` และคำนวณผู้รับแบบ union
+
+| Column | Data Type | PK | FK | Nullable | Default / Constraint | รายละเอียด | ตัวอย่าง |
+|---|---|:---:|---|:---:|---|---|---|
+| `AnnouncementId` | `bigint` | ✓ |  | NO | IDENTITY(1,1) | รหัสประกาศ | 1 |
+| `Title` | `nvarchar(200)` |  |  | NO |  | หัวข้อประกาศ | Please verify your email |
+| `Message` | `nvarchar(4000)` |  |  | NO |  | เนื้อหาประกาศ | Verify your email to keep your account secure. |
+| `StartsAt` | `datetime2` |  |  | NO | INDEX | เวลาเริ่มแสดง UTC | 2026-11-01T00:00:00Z |
+| `EndsAt` | `datetime2` |  |  | YES | CHECK EndsAt > StartsAt เมื่อมีค่า | เวลาสิ้นสุดการแสดง UTC | 2026-11-08T00:00:00Z |
+| `IsActive` | `bit` |  |  | NO | DEFAULT 1 | เปิด/ปิดการเผยแพร่โดยผู้ดูแล | 1 |
+| `CreatedByUserId` | `bigint` |  | `Users.UserId` | NO |  | admin ผู้สร้าง | 1 |
+| `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | เวลาสร้าง UTC | 2026-11-01T00:00:00Z |
+| `UpdatedAt` | `datetime2` |  |  | YES |  | เวลาแก้ไขล่าสุด UTC | 2026-11-01T01:00:00Z |
+
+### <a id="announcementtargets"></a>28. AnnouncementTargets
+
+> **ชื่อไทย:** AnnouncementTargets — กฎกำหนดกลุ่มผู้รับประกาศ
+> **หน้าที่:** รองรับหลาย target rules ต่อหนึ่ง announcement (เพิ่มใหม่ตาม D51)
+> **ขอบเขตฟีเจอร์:** FR9.8; `All`, `Role`, `User`, `UnverifiedEmail` รวมผู้รับแบบ union และตัดซ้ำก่อนแสดง/ส่ง
+
+| Column | Data Type | PK | FK | Nullable | Default / Constraint | รายละเอียด | ตัวอย่าง |
+|---|---|:---:|---|:---:|---|---|---|
+| `AnnouncementTargetId` | `bigint` | ✓ |  | NO | IDENTITY(1,1) | รหัส target rule | 1 |
+| `AnnouncementId` | `bigint` |  | `Announcements.AnnouncementId` | NO | ON DELETE CASCADE; INDEX | ประกาศที่ rule นี้สังกัด | 1 |
+| `TargetType` | `varchar(30)` |  |  | NO | ALL/ROLE/USER/UNVERIFIED_EMAIL | ประเภทกลุ่มผู้รับ | ROLE |
+| `RoleId` | `int` |  | `Roles.RoleId` | YES | ต้องมีเมื่อ `TargetType=ROLE`; อื่นต้อง NULL | role ที่เป็นกลุ่มผู้รับ | 2 |
+| `UserId` | `bigint` |  | `Users.UserId` | YES | ต้องมีเมื่อ `TargetType=USER`; อื่นต้อง NULL | ผู้รับรายบุคคล | 42 |
+| `CreatedAt` | `datetime2` |  |  | NO | DEFAULT SYSUTCDATETIME() | เวลาสร้าง UTC | 2026-11-01T00:00:00Z |

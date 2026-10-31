@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PocketWise.Application.Interfaces;
+using PocketWise.Infrastructure.Persistence;
 
 namespace PocketWise.Api.BackgroundServices;
 
@@ -25,7 +27,8 @@ public class AuditLogCleanupBackgroundService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var config = _options.AuditLogCleanup;
-        if (!config.Enabled)
+        // Dynamic setting: checks SystemSettings table on each run (with fallback to configuration)
+        if (false && !config.Enabled)
         {
             _logger.LogInformation("AuditLogCleanupBackgroundService is disabled in configuration.");
             return;
@@ -59,11 +62,35 @@ public class AuditLogCleanupBackgroundService : BackgroundService
 
             try
             {
-                _logger.LogInformation("Executing daily Audit Log cleanup (purging logs older than {Days} days)...", config.RetentionDays);
+
                 using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<PocketWiseDbContext>();
+
+                var enabledSetting = await context.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.SettingKey == "AuditLogCleanup:Enabled", stoppingToken);
+                var isEnabled = (enabledSetting != null && bool.TryParse(enabledSetting.SettingValue, out var eVal))
+                    ? eVal
+                    : config.Enabled;
+
+                if (!isEnabled)
+                {
+                    _logger.LogInformation("Daily Audit Log cleanup skipped: disabled in SystemSettings.");
+                    continue;
+                }
+
+                var retentionSetting = await context.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.SettingKey == "AuditLogCleanup:RetentionDays", stoppingToken);
+                var retentionDays = (retentionSetting != null && int.TryParse(retentionSetting.SettingValue, out var rVal) && rVal > 0)
+                    ? rVal
+                    : config.RetentionDays;
+
+                _logger.LogInformation("Executing daily Audit Log cleanup (purging logs older than {Days} days)...", retentionDays);
+
                 var auditLogService = scope.ServiceProvider.GetRequiredService<IAuditLogService>();
 
-                var result = await auditLogService.PurgeLogsAsync(config.RetentionDays, actorUserId: 0, stoppingToken);
+                var result = await auditLogService.PurgeLogsAsync(retentionDays, actorUserId: 0, stoppingToken);
                 _logger.LogInformation("Daily Audit Log cleanup completed successfully. Deleted {DeletedCount} logs.", result.DeletedCount);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

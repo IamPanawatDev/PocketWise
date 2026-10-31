@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTransactions, useDeleteTransaction } from "@/features/transactions/hooks/useTransactions";
 import type { TransactionFilter, TransactionResponse } from "@/types/transaction.types";
@@ -21,6 +22,7 @@ import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -63,9 +65,22 @@ export function TransactionList({
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"transactionDate" | "amount">("transactionDate");
   const [sortDesc, setSortDesc] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+
+  const searchParams = useSearchParams();
+  const [showForm, setShowForm] = useState(() => searchParams.get("action") === "new");
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [editing, setEditing] = useState<TransactionResponse | null>(null);
+
+
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      const id = requestAnimationFrame(() => {
+        setEditing(null);
+        setShowForm(true);
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [searchParams]);
 
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
@@ -92,6 +107,17 @@ export function TransactionList({
     if (sortBy !== "transactionDate" || !sortDesc) count++;
     return count;
   }, [filter, sortBy, sortDesc]);
+
+    const { totalIncome, totalExpense, netBalance } = useMemo(() => {
+    if (!data?.items) return { totalIncome: 0, totalExpense: 0, netBalance: 0 };
+    let income = 0;
+    let expense = 0;
+    for (const item of data.items) {
+      if (item.transactionType === "income") income += item.amount;
+      else if (item.transactionType === "expense") expense += item.amount;
+    }
+    return { totalIncome: income, totalExpense: expense, netBalance: income - expense };
+  }, [data]);
 
   const resetFilters = () => {
     setFilter({});
@@ -135,7 +161,46 @@ export function TransactionList({
         />
       </BottomSheet>
 
-      {/* Search & Filter Trigger Bar */}
+            {/* Overview Stat Cards with Animated Numbers */}
+      <div className="mb-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
+        <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 p-3 sm:p-4 shadow-xs backdrop-blur-xs transition hover:border-[var(--pw-green)]/40">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายรับในหน้านี้</span>
+            <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-green)]/15 text-[var(--pw-green)]">
+              <ArrowUpRight className="size-4" />
+            </div>
+          </div>
+          <p className="mt-1.5 text-lg font-bold sm:text-xl text-[var(--pw-green)]">
+            <AnimatedNumber value={totalIncome} prefix="+" />
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 p-3 sm:p-4 shadow-xs backdrop-blur-xs transition hover:border-[var(--pw-expense)]/40">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายจ่ายในหน้านี้</span>
+            <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]">
+              <ArrowDownRight className="size-4" />
+            </div>
+          </div>
+          <p className="mt-1.5 text-lg font-bold sm:text-xl text-[var(--pw-expense)]">
+            <AnimatedNumber value={totalExpense} prefix="-" />
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 p-3 sm:p-4 shadow-xs backdrop-blur-xs transition hover:border-[var(--pw-primary)]/40">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-[var(--pw-ink)]/70">ยอดคงเหลือสุทธิในหน้านี้</span>
+            <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]">
+              <ReceiptText className="size-4" />
+            </div>
+          </div>
+          <p className={cn("mt-1.5 text-lg font-bold sm:text-xl", netBalance >= 0 ? "text-[var(--pw-ink)]" : "text-[var(--pw-expense)]")}>
+            <AnimatedNumber value={netBalance} />
+          </p>
+        </div>
+      </div>
+
+{/* Search & Filter Trigger Bar */}
       <div className="mb-4 space-y-2">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -150,8 +215,14 @@ export function TransactionList({
           </div>
           <Button
             type="button"
-            variant={activeFilterCount > 0 ? "secondary" : "outline"}
-            className="shrink-0 relative gap-2"
+            variant="outline"
+            className={cn(
+              "shrink-0 relative gap-2 font-medium transition-all shadow-xs",
+              activeFilterCount > 0
+                ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
+                : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]",
+            )}
+
             onClick={() => setShowFilterSheet(true)}
             aria-label="เปิดตัวกรองรายการ"
           >
@@ -514,7 +585,7 @@ export function TransactionList({
               <AnimatedListItem
                 key={t.transactionId}
                 className={cn(
-                  "relative flex flex-col justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/40 p-4 transition hover:bg-[var(--pw-surface-raised)]/70 shadow-xs",
+                  "relative flex flex-col justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80 active:scale-[0.99] backdrop-blur-xs",
                   t.transactionType === "expense"
                     ? "border-l-4 border-l-[var(--pw-expense)]"
                     : t.transactionType === "income"

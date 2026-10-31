@@ -32,7 +32,44 @@
    - บันทึกวัตถุประสงค์ ขอบเขต/ตำแหน่งติดตั้ง วิธีใช้หรือคำสั่งมาตรฐาน การตั้งค่าที่จำเป็น และข้อกำหนดการใช้งาน เพื่อให้ AI และผู้พัฒนาคนถัดไปใช้แนวทางเดียวกัน
    - อัปเดตรายการเวอร์ชันและคำสั่งใน `/docs/Tech_Stack.md` หรือ Appendix A/B ของ `/docs/DEVELOPMENT_GUIDELINE.md` ตามความเหมาะสม; ถ้า tool กระทบ architecture, code generation, API/schema หรือ workflow ให้ sync เอกสาร Source of Truth ที่เกี่ยวข้องด้วย
    - ระบุว่าเป็นของที่ติดตั้งแล้วหรือเป็นเพียงตัวเลือกให้ชัดเจน และเอารายการออก/ปรับสถานะเมื่อถอดถอนหรือเลิกใช้; ห้ามบันทึก secret หรือ credential ในเอกสาร
-5. **มาตรฐาน UI ใช้ร่วมกันทั้งโปรเจกต์**
+5. **มาตรฐาน UI, Modal, BottomSheet, Responsive, Animation และ Date (UI & UX Master Standard)**:
+   - **Desktop Modal vs Mobile BottomSheet**:
+     - ทุก Dialog หรือ Modal บนหน้าจอ Desktop (`sm` ขึ้นไป) **ต้องแสดงผลเป็น BottomSheet บนหน้าจอโทรศัพท์มือถือ (`< sm`) เท่านั้น** โดยใช้ component กลาง `@/components/ui/bottom-sheet` (ซึ่งรองรับ responsive modal/bottom-sheet ภายในตัว)
+   - **ลำดับปุ่มใน BottomSheet บน Mobile**:
+     - บน Mobile BottomSheet **ปุ่มยืนยัน/บันทึก (Confirm/Action) ต้องอยู่ข้างบน** และ **ปุ่มยกเลิก/ปิด (Cancel) ต้องอยู่ข้างล่างเสมอ** (ใช้ `BottomSheetFooter` ที่จัดการ flex-col และสลับ order ตามมาตรฐานเพื่อความสะดวกในการใช้นิ้วโป้งกด)
+   - **สไตล์ Glassmorphism (Dark / Light Theme)**:
+     - ทั้ง Modal บน Desktop และ BottomSheet บน Mobile ต้องใช้ดีไซน์สไตล์ **Glassmorphism** (`backdrop-blur-2xl`, translucent surface, subtle hairline border, glow effect)
+     - **ต้องคำนึงถึง Theme Dark และ Light เสมอ**: สีตัวอักษรและคอนทราสต์ต้องคมชัด อ่านง่าย ไม่กลืนกับพื้นหลังทั้งใน Dark Mode (`var(--pw-surface-indigo)/90`) และ Light Mode (`var(--pw-surface)/90`)
+   - **ตัวกรองเมื่อมีหลายเงื่อนไข (Filter Button & Drawer)**:
+     - หากหน้าจอมีเงื่อนไขตัวกรองตั้งแต่ 3 ตัวขึ้นไป หรือมีพื้นที่จำกัดบนมือถือ **ต้องยุบเป็นปุ่ม "ตัวกรอง" (Filter Button)** พร้อม Badge แสดงจำนวนตัวกรองที่เลือกอยู่ และเปิดเป็น BottomSheet บน Mobile เพื่อไม่ให้ฟอร์มตัวกรองกินพื้นที่หน้าจอ
+   - **การเลือกวันที่และเวลา (Date & Time Inputs)**:
+     - หากมีการเรียก input วันที่และเวลา **ห้ามใช้ native `<input type="date">` หรือ `<input type="datetime-local">` เด็ดขาด**
+     - **ต้องใช้ shared component จาก `@/components/ui/date-input`** (`DateInput` หรือ `DateTimeInput`) เท่านั้น เพื่อให้ปฏิทิน การเลือกเวลา และการบังคับใช้ปี ค.ศ. เป็นไปในแนวทางเดียวกันทั้งเว็บ
+   - **การแสดงผลวันที่และเวลา (Date Display Helper Rule)**:
+     - ทุกการแสดงผลวันที่และเวลาในหน้าจอ UI **ต้องเรียกใช้ Helper กลางจาก `@/lib/date-utils`** (`formatDisplayDate`, `formatDisplayDateTime`, `formatDisplayTime`, `formatRelativeTime`) เสมอ
+     - **ข้อกำหนดตายตัว**: แสดงผลปีเป็น **ค.ศ. เท่านั้น (ห้ามแสดงปี พ.ศ. เด็ดขาด)** และปรับตามเวลาประเทศไทย (`Asia/Bangkok`, UTC+7)
+   - **มาตรฐาน Animation ประจำระบบ**:
+     - ใช้ Motion (`motion/react`) ตามมาตรฐานที่มีอยู่:
+       - **เมื่อโหลดหน้าจอ**: ใช้ `motion.div` หรือ shared component `AnimatedList` / `PageTransition` คอนฟิก `initial={{ opacity: 0, y: 10 }}` `animate={{ opacity: 1, y: 0 }}` `transition={{ duration: 0.3 }}` (stagger children 0.05s)
+       - **ปุ่มและ Interactive Elements**: ใส่ Micro-interaction ให้มี tactile feedback: `hover:scale-102 active:scale-98 transition-transform` (หรือ `motion.button` with `whileHover={{ scale: 1.02 }}` `whileTap={{ scale: 0.98 }}`)
+       - **การ์ดและรายการ**: `hover:-translate-y-0.5 hover:shadow-md transition-all`
+       - **ตัวเลขสรุปผลยอดเงิน**: ใช้ `AnimatedNumber` จาก `@/components/ui/animated-number` เพื่อ animate ตัวเลขหมุนขึ้นอย่างนุ่มนวล
+   - **การแจ้งเตือนและการยืนยัน (AlertDialog & Toast Standard - ห้ามใช้ Browser Native)**:
+     - **ห้ามใช้ `window.confirm()` หรือ `window.alert()` ของเบราว์เซอร์โดยเด็ดขาด**: เพราะทำลาย UX และดูไม่เป็นมืออาชีพ
+     - **ต้องใช้ `AlertDialog` หรือ `ConfirmDialog` จาก `@/components/ui/alert-dialog` เสมอ** ซึ่งรองรับ Glassmorphism, Responsive (BottomSheet บน Mobile, Centered Dialog บน Desktop) และจัดลำดับปุ่ม Confirm บน / Cancel ล่าง
+     - **ต้องมี Toast Feedback เสมอ**: ทุกการดำเนินการสำคัญ (เช่น เพิกถอนเซสชัน, ลบรายการ, บันทึกข้อมูล, รีเซ็ตรหัสผ่าน, เปลี่ยนสถานะ) ต้องเรียกใช้ `toast.success(...)` เมื่อสำเร็จ หรือ `toast.error(...)` เมื่อเกิดข้อผิดพลาด ผ่าน `sonner` ห้ามปล่อยให้การทำงานเงียบหายไปโดยไม่มี Feedback
+   - **การใช้งาน Dropdown / Select (ห้ามใช้ Native `<select>`)**:
+     - **ห้ามใช้ native `<select>` และ `<option>` เด็ดขาด**: เนื่องจากบนเบราว์เซอร์หรือมือถือบางรุ่น OS จะบังคับสไตล์พื้นหลังเป็นสีขาวจนตัวหนังสือกลืนมองไม่เห็น (White on White)
+     - **ต้องใช้ shared shadcn `Select` จาก `@/components/ui/select` เท่านั้น**: เพื่อให้พื้นหลังและสีตัวหนังสือปรับตาม Theme Dark / Light อย่างถูกต้อง 100%
+   - **ฟอร์มและการป้อนข้อมูลแบบ Type-Safe (Prevent Misconfiguration)**:
+     - ช่องแก้ไขค่าคอนฟิกหรือการตั้งค่า ต้องตรวจสอบประเภทข้อมูลจริงและแสดงผล input ที่ตรงประเภทเสมอ:
+       - ข้อมูล Boolean / Enabled: ต้องใช้ `Select` เลือกได้เฉพาะ `true` หรือ `false` ห้ามใช้ text input ที่ให้พิมพ์เอง
+       - ข้อมูลวันที่และเวลา: ต้องใช้ `DateTimeInput` / `DateInput` เท่านั้น
+       - ข้อมูลตัวเลข (Count, Limit, Timeout): ต้องใช้ `<input type="number">`
+   - **Mobile Header Back Navigation**:
+     - ในหน้าจอมือถือ บริเวณแถบ Header ด้านบนซ้ายข้างโลโก้ ต้องมีปุ่มย้อนกลับ (`ChevronLeft`) เพื่อให้ผู้ใช้สามารถกดย้อนกลับหน้าจอก่อนหน้าได้สะดวก ไม่ต้องพึ่งปุ่ม Back ของเบราว์เซอร์เพียงอย่างเดียว
+   - **การบริหารจัดการผู้ใช้ (Admin Self-Protection)**:
+     - บัญชี Admin จะต้อง **ไม่สามารถระงับบัญชีของตนเองได้ (Self-suspension prohibited)** ทั้งการป้องกันระดับ Backend (`AdminUserService`) และ Frontend (ซ่อนปุ่มระงับพร้อมแสดง Badge "บัญชีของคุณ")
    - ก่อนสร้างหรือแก้ UI ให้ยึด `frontend/pocketwise-web/DESIGN.md` และกฎใน `frontend/AGENTS.md`; ใช้ shared shadcn components จาก `src/components/ui/` แทนการสร้าง native dropdown หรือ input ซ้ำเอง
    - Dropdown ใช้ shadcn `Select` ที่ `src/components/ui/select.tsx` โดยกำหนดความกว้างจาก trigger/container คงที่และให้เมนูเท่ากับ trigger; ข้อความยาวต้อง truncate ไม่ให้ตัวเลือกดันขนาด; components ที่เพิ่มจาก shadcn ต้องคงการ map สี, radius, focus และ surface ผ่าน `--pw-*` tokens
    - ฟิลด์ที่มี label และ validation error ใช้ `FormField` จาก `frontend/pocketwise-web/src/components/ui/form-field.tsx`; ปุ่ม, input, select และ dialog ใช้ shared components ใน `src/components/ui/` หรือ `src/components/shared/` ก่อนสร้างใหม่
@@ -47,10 +84,50 @@
    - ฟิลด์เลือกสีใช้ color picker ไม่บังคับให้ผู้ใช้ป้อนค่า HEX
    - ตัวเลือกแท็กในฟอร์มธุรกรรมต้องแสดงเป็น badge ด้วยสีจริงจาก `TagResponse.color`, สีข้อความต้อง contrast อ่านได้ และสถานะเลือกต้องเห็นชัด
    - หน้า register ต้องยืนยันว่ารหัสผ่านทั้งสองช่องตรงกัน แต่ส่งเฉพาะ contract fields ของ backend ไม่ส่ง `confirmPassword`
-6. **การตรวจสอบและสืบค้นฐานข้อมูลผ่าน Devart MCP Server for SQL Server**
-   - เมื่อ AI ต้องตรวจสอบโครงสร้างตาราง (Schema), ข้อมูลดิบในฐานข้อมูล, ผลลัพธ์ของ Seed Data หรือทดสอบคำสั่ง Query ใน SQL Server (`PocketWiseDb`) ให้ใช้ **Devart MCP Server for SQL Server** (Server Name: `PocketWise`, Driver: `Devart ODBC Driver for SQL Server [STDIO]`, Version 1.1.0)
-   - การเชื่อมต่อ MCP Server ถูกตั้งค่าไว้ที่ `~/.gemini/config/mcp_config.json` โดยเรียกใช้ executable `C:\Program Files\Devart\MCP Server for SQL Server\Devart.AI.McpServer.Odbc.SqlServer.exe run PocketWise`
-   - ห้ามรันคำสั่ง DDL/DML ที่มีผลต่อการเปลี่ยนแปลงโครงสร้างหรือลบข้อมูลจริงโดยพลการ (การเปลี่ยนแปลงสกีมาต้องทำผ่าน EF Core Migrations ของฝั่ง Backend และอ้างอิง [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) เป็น Source of Truth เสมอ)
+6. **กฎเหล็กการใช้งานฐานข้อมูลและ MCP (Database MCP & Zero Schema Drift Policy)**:
+   - **ระหว่างการพัฒนา (Implementation Phase)**:
+     - **ต้องใช้ MCP Database ที่เชื่อมต่อกับ PostgreSQL Local (Docker) เท่านั้น** (เช่น `pocketwise-postgres` หรือ Local Connection: `localhost:5432/pocketwise_db`)
+     - **ห้าม** เรียกใช้ MCP เพื่อ Query, ทดสอบ, Seed หรือแก้ไขข้อมูลบน Supabase Production ในระหว่างการ Implement โดยเด็ดขาด เพื่อป้องกันผลกระทบต่อข้อมูลจริงของผู้ใช้
+   - **ขั้นตอนการ Deploy สู่ Production (Zero Schema Drift)**:
+     - หากมีการอัปเดต, เพิ่ม, ลบ หรือแก้ไขโครงสร้างตาราง (Columns, Tables, Data Types, Constraints, Foreign Keys หรือ Indexes) ในระหว่างการพัฒนา:
+       - ต้องสร้าง EF Core Code-First Migration ใน `PocketWise.Infrastructure` ให้เรียบร้อย
+       - **ต้องรัน Script อัปเดตโครงสร้างตารางบน Supabase (Production) ให้ตรงกับ Local 100% เสมอ** (ผ่าน `supabase_mcp.apply_migration` หรือ `execute_sql` อย่างระมัดระวัง)
+       - **ห้ามเกิด Database Schema Mismatch เด็ดขาด**: สกีมาและคอลัมน์ทั้งหมดระหว่าง Local (Implementation) และ Supabase (Production) ต้องตรงกันอย่างสมบูรณ์ ป้องกันไม่ให้เกิด Database Runtime Error หรือ 500 Internal Server Error บน Production โดยเด็ดขาด
+
+---
+
+7. **ขั้นตอนการปฏิบัติงาน 5 ขั้นตอนเคร่งครัด (Mandatory 5-Step Execution Rule)**:
+   - ทุกงานพัฒนาต้องดำเนินการตาม 5 ขั้นตอนเท่านั้น: **1. Agent หลัก (มอบหมายและรวมผล)** ➔ **2. Planner (วางแผน)** ➔ **3. Implementer (ลงมือทำ)** ➔ **4. Review (ตรวจงาน)** ➔ **5. แก้ไขและตรวจซ้ำ (เมื่อพบปัญหาจนผ่าน 100%)** ห้ามข้ามขั้นตอนการวางแผนหรือตรวจงานเด็ดขาด
+
+---
+
+8. **กฎเหล็กขั้นตอนการ Deploy (Strict PR-Based Deployment Protocol & Zero Schema Drift Policy)**:
+   - **นิยามของคำสั่ง "Deploy"**: เมื่อผู้ใช้สั่งให้ "Deploy" หมายถึงการนำโค้ดที่พัฒนาและตรวจสอบแล้วเข้าสู่ branch `main` ผ่าน Pull Request (PR) **โดยห้าม Push โค้ดตรงเข้า branch `main` โดยเด็ดขาด (Never Push Directly to `main`)**
+   - **10 ขั้นตอนการ Deploy มาตรฐาน (AI ต้องปฏิบัติตามลำดับโดยอัตโนมัติ)**:
+     1. **Pre-commit Checks**: ตรวจสอบสถานะโค้ดด้วย `git status` ยืนยันว่าไม่มีไฟล์ขยะ/ความลับ (เช่น `.env.local`, logs, scratch scripts, screenshots) หลุดเข้าสู่ repository
+     2. **ทดสอบ Build ทั้งสองฝั่ง (Quality Gates)**:
+        - Backend: `dotnet build backend/PocketWise.sln -c Release` (ต้องคอมไพล์ผ่าน 100%)
+        - Frontend: `cd frontend/pocketwise-web && npm run build` (ต้องคอมไพล์ผ่าน 100% ครบทุก Routes)
+     3. **เช็คฐานข้อมูล (Zero Schema Drift Check)**:
+        - หากมีการแก้ไขหรือเพิ่มตาราง/คอลัมน์ในระหว่างการพัฒนา ต้องเตรียม SQL Migration Script ให้เรียบร้อย
+        - การรัน Script อัปเดตตารางบน Supabase (Production) ต้องทำให้ตรงกับ Local และสอดคล้องกับโค้ดที่จะขึ้นสู่ `main` เสมอ
+     4. **เลือกไฟล์เข้า Staging (Stage Changes)**:
+        - ใช้ `git add <files>` (หรือ `git add .` เฉพาะไฟล์งานที่สะอาด) และตรวจสอบซ้ำด้วย `git diff --staged`
+     5. **Commit เข้า branch `develop` (Conventional Commits)**:
+        - โค้ดที่เตรียม deploy ต้อง commit เข้าสู่ branch `develop` เท่านั้น ด้วยฟอร์แมตมาตรฐาน `<type>(<scope>): <description>` (เช่น `feat(...)`, `fix(...)`)
+     6. **ซิงค์และ Push โค้ดขึ้น GitHub (Pull & Push)**:
+        - ดึงโค้ดล่าสุด: `git pull origin develop --rebase`
+        - Push โค้ดขึ้น branch develop: `git push origin develop`
+     7. **เปิด Pull Request (PR) เข้าสู่ branch `main`**:
+        - สร้าง PR จาก `develop` มุ่งหน้าไปยัง `main` พร้อมระบุ Title และคำอธิบายการเปลี่ยนแปลงอย่างชัดเจน
+     8. **ตรวจสอบสถานะ CI และ Confirm Merge**:
+        - รอตรวจสอบผล GitHub Actions CI (`ci.yml`) ให้ผ่านครบทั้ง `backend-check` และ `frontend-check`
+        - **เมื่อ CI ผ่านครบ 100% แล้ว จึงทำการ Confirm Merge เข้าสู่ branch `main` ได้ทันที**
+     9. **แก้ไขและทำซ้ำเมื่อพบปัญหา (Re-loop on Failure)**:
+        - หากเกิดข้อผิดพลาด, Build พัง หรือ CI ไม่ผ่านในขั้นตอนใด **ห้าม merge เด็ดขาด**
+        - ให้แก้ไขโค้ดในเครื่องให้ถูกต้อง แล้ววนทำซ้ำตั้งแต่ข้อ 4 ถึงข้อ 8 ใหม่อีกครั้งจนกว่าจะผ่านสมบูรณ์
+     10. **ซิงค์สกีมาพร้อมกับการ Merge เข้า `main` (Zero Schema Drift Synchronization)**:
+         - การ Apply Schema Migration บน Supabase Production ต้องทำควบคู่กับการ Merge เข้า `main` เพื่อให้ Backend API บน Render และ Frontend บน Vercel ที่ถูก trigger deploy อัตโนมัติ สามารถทำงานร่วมกับฐานข้อมูลได้ทันทีโดยไม่มี Schema Mismatch
 
 ---
 
@@ -84,20 +161,39 @@
 
 ---
 
-## 📋 5. ลำดับขั้นตอนการทำงานของ AI (Standard Workflow)
+## 📋 5. ลำดับขั้นตอนการทำงานแบบ 5 ขั้นตอน (Mandatory 5-Step Agent Workflow)
+
+ทุกคำสั่งหรืองานพัฒนา (Feature, Refactor, Bug Fix หรือ Optimization) AI **ต้องปฏิบัติตามลำดับ 5 ขั้นตอนนี้อย่างเคร่งครัดเท่านั้น**:
 
 ```mermaid
 flowchart TD
-    A["ได้รับคำสั่งจากผู้ใช้"] --> B["ศึกษา Tech_Stack.md และโค้ดเดิมใน /backend และ /frontend"]
-    B --> C{"มีจุดที่ไม่ชัดเจนหรือไม่?"}
-    C -- "มี / ไม่แน่ใจ" --> D["หยุดทันที แล้วถามผู้ใช้ ห้ามคิดเอง"]
-    D --> E["ได้รับคำตอบจากผู้ใช้"]
-    E --> B
-    C -- "ชัดเจนครบถ้วน" --> F{"ต้องใช้ Library ใหม่หรือไม่?"}
-    F -- "ต้องใช้ แต่ยังไม่ได้รับอนุญาต" --> G["ขออนุญาตติดตั้ง Package จากผู้ใช้ก่อน"]
-    G --> H["ผู้ใช้ยินยอม"]
-    H --> I["ระบุโฟลเดอร์ที่ถูกต้องตาม AGENTS.md ของฝั่งนั้นๆ"]
-    F -- "ไม่ต้องใช้ Library เพิ่ม" --> I
-    I --> J["เริ่มลงมือเขียนโค้ดตามโครงสร้างที่กำหนด"]
-    J --> K["ทดสอบ Build / Lint ให้ผ่าน 100%"]
+    Step1["1. Agent หลัก (Orchestrator)\nรับคำสั่ง ทำความเข้าใจ มอบหมายงาน และรวบรวมผลลัพธ์"] --> Step2["2. Planner (วางแผนงาน)\nวิเคราะห์ผลกระทบ เจาะโค้ดเดิม และวางแผนเป็นขั้นตอน"]
+    Step2 --> Step3["3. Implementer (ลงมือปฏิบัติการ)\nเขียนโค้ดตามแผน แก้ไขไฟล์ที่เกี่ยวข้อง และรักษา Code Quality"]
+    Step3 --> Step4["4. Review (ตรวจสอบงาน)\nตรวจความถูกต้อง Type Safety, Build, Lint และ Data Contract"]
+    Step4 --> Check{"พบข้อผิดพลาด\nหรือไม่?"}
+    Check -- "พบปัญหา (Fail/Warning)" --> Step5["5. แก้ไขและตรวจซ้ำ (Remediate & Re-verify)\nแก้จุดบกพร่อง แล้ววนกลับไปตรวจจนกว่าจะผ่าน 100%"]
+    Step5 --> Step4
+    Check -- "ผ่านสมบูรณ์ 100%" --> Done["Agent หลักสรุปผลส่งมอบงานให้ผู้ใช้"]
 ```
+
+### รายละเอียดหน้าที่ในแต่ละขั้นตอน:
+1. **Agent หลัก (Orchestrator — มอบหมายและรวมผล):**
+   - รับคำขอ/คำสั่งจากผู้ใช้ ตีความความต้องการให้อย่างแม่นยำ
+   - ควบคุมกระบวนการและมอบหมายงานตามลำดับขั้นตอน
+   - รวบรวมสรุปผลงานสุดท้ายอย่างกระชับ ชัดเจน และส่งมอบให้กับผู้ใช้
+2. **Planner (ผู้วางแผนงาน):**
+   - ศึกษา Codebase ที่เกี่ยวข้องทั้งฝั่ง Backend, Frontend และ Database
+   - ตรวจสอบผลกระทบ สัญญา API (Contract) และประเมินจุดเสี่ยง
+   - จัดทำแผนงานทีละขั้นตอน (Step-by-step Plan) ก่อนลงมือทำจริงเสมอ
+3. **Implementer (ผู้ลงมือทำ):**
+   - เขียน/แก้ไขโค้ดตามแผนงานที่กำหนดไว้อย่างแม่นยำ
+   - ยึดหลัก Clean Architecture, Design System Tokens (`--pw-*`), และ Master Rules ทั้งหมด
+   - ทำงานเฉพาะจุดที่ได้รับมอบหมาย ไม่แก้ไขไฟล์นอกขอบเขตโดยไม่จำเป็น
+4. **Review (ผู้ตรวจงาน):**
+   - รันตรวจสอบ Build (`dotnet build` / `npm run build`), Linter, และ Type Check
+   - ตรวจสอบความถูกต้องของ Business Logic, Responsive Design, และ Theme Dark/Light
+   - เปรียบเทียบผลลัพธ์จริงกับโจทย์ที่ได้รับว่าครบถ้วน 100% หรือไม่
+5. **แก้ไขและตรวจซ้ำ (Remediation & Re-verification — เมื่อพบปัญหา):**
+   - หากขั้นตอน Review พบข้อผิดพลาด, Warning, Build Failed หรือ Logic ผิดเพี้ยน
+   - ต้องลงมือแก้ไขจุดบกพร่องทันที
+   - **ต้องรันตรวจซ้ำ (Re-verify) จนกว่าทุกส่วนจะผ่าน 100%** จึงจะส่งงานต่อไปให้ Agent หลักสรุปผล

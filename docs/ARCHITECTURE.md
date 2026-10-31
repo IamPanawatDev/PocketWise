@@ -196,7 +196,7 @@ SignalR (Phase 6): hub connection ใช้ JWT เดียวกัน + per-u
 ## อ่านเอกสารประกอบที่เกี่ยวข้อง
 
 - `/docs/API_SPECIFICATION.md` — สัญญา REST/SignalR (รายละเอียด endpoint/response)
-- `/docs/DataDictionary.md` — ตาราง/schema (**25 ตาราง** ตาม D13)
+- `/docs/DataDictionary.md` — ตาราง/schema (ปัจจุบัน **25 ตาราง** ตาม D13; เป้าหมาย **28 ตาราง** หลัง implement F9/D51)
 - `/docs/DEVELOPMENT_GUIDELINE.md` — Playbook + Decision Ledger
 - `/docs/Tech_Stack.md` — Stack baseline
 - `/docs/REQUIREMENTS.md` — รายการ requirement (FR)

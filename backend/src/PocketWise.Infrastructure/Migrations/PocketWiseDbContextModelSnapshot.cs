@@ -110,6 +110,97 @@ namespace PocketWise.Infrastructure.Migrations
                     b.ToTable("UserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("PocketWise.Domain.Entities.Announcement", b =>
+                {
+                    b.Property<long>("AnnouncementId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("AnnouncementId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.HasKey("AnnouncementId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("StartsAt", "EndsAt");
+
+                    b.ToTable("Announcements", (string)null);
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.AnnouncementTarget", b =>
+                {
+                    b.Property<long>("AnnouncementTargetId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("AnnouncementTargetId"));
+
+                    b.Property<long>("AnnouncementId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<long?>("RoleId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("AnnouncementTargetId");
+
+                    b.HasIndex("AnnouncementId");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("TargetType");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AnnouncementTargets", (string)null);
+                });
+
             modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Property<long>("Id")
@@ -221,6 +312,11 @@ namespace PocketWise.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsSuspended")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 
@@ -247,6 +343,16 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("SuspendedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<long?>("SuspendedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SuspensionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
@@ -262,6 +368,8 @@ namespace PocketWise.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("IsSuspended");
+
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
                         .HasDatabaseName("EmailIndex");
@@ -269,6 +377,8 @@ namespace PocketWise.Infrastructure.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("SuspendedByUserId");
 
                     b.ToTable("Users", (string)null);
                 });
@@ -831,6 +941,11 @@ namespace PocketWise.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("RetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamptz");
 
@@ -1139,6 +1254,59 @@ namespace PocketWise.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RecurringTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.SecurityEvent", b =>
+                {
+                    b.Property<long>("SecurityEventId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("SecurityEventId"));
+
+                    b.Property<long?>("ActorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DetailsJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<bool>("Succeeded")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("TargetUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("SecurityEventId");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("OccurredAt");
+
+                    b.HasIndex("TargetUserId");
+
+                    b.ToTable("SecurityEvents", (string)null);
                 });
 
             modelBuilder.Entity("PocketWise.Domain.Entities.SlipImportFile", b =>
@@ -1577,7 +1745,7 @@ namespace PocketWise.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")
-                        .HasDefaultValue("Light");
+                        .HasDefaultValue("Dark");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -1625,6 +1793,42 @@ namespace PocketWise.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PocketWise.Domain.Entities.Announcement", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.AnnouncementTarget", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.Announcement", "Announcement")
+                        .WithMany("Targets")
+                        .HasForeignKey("AnnouncementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationRole", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Announcement");
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationRolePermission", b =>
                 {
                     b.HasOne("PocketWise.Domain.Entities.Permission", "Permission")
@@ -1642,6 +1846,16 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationUser", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "SuspendedByUser")
+                        .WithMany()
+                        .HasForeignKey("SuspendedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("SuspendedByUser");
                 });
 
             modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationUserRole", b =>
@@ -1863,6 +2077,23 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PocketWise.Domain.Entities.SecurityEvent", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "TargetUser")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("TargetUser");
+                });
+
             modelBuilder.Entity("PocketWise.Domain.Entities.SlipImportFile", b =>
                 {
                     b.HasOne("PocketWise.Domain.Entities.ImportJob", "ImportJob")
@@ -2042,6 +2273,11 @@ namespace PocketWise.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.Announcement", b =>
+                {
+                    b.Navigation("Targets");
                 });
 
             modelBuilder.Entity("PocketWise.Domain.Entities.ApplicationRole", b =>

@@ -64,7 +64,7 @@ const matchTypeLabels = {
 
 export function CategorizationView() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
-  const isAdmin = user?.roles?.includes("Admin") ?? false;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? false;
   const canView = isAdmin || (user?.permissions?.includes("CATEGORIZATION_VIEW") ?? false);
   const canManage = isAdmin || (user?.permissions?.includes("CATEGORIZATION_MANAGE") ?? false);
 

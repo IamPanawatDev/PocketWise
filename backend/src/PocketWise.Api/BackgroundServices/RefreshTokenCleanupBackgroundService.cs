@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PocketWise.Application.Interfaces;
+using PocketWise.Infrastructure.Persistence;
 
 namespace PocketWise.Api.BackgroundServices;
 
@@ -25,7 +27,8 @@ public class RefreshTokenCleanupBackgroundService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var config = _options.RefreshTokenCleanup;
-        if (!config.Enabled)
+        // Dynamic setting: checks SystemSettings table on each run (with fallback to configuration)
+        if (false && !config.Enabled)
         {
             _logger.LogInformation("RefreshTokenCleanupBackgroundService is disabled in configuration.");
             return;
@@ -62,6 +65,21 @@ public class RefreshTokenCleanupBackgroundService : BackgroundService
             {
                 _logger.LogInformation("Executing weekly expired refresh token cleanup...");
                 using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<PocketWiseDbContext>();
+
+                var enabledSetting = await context.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.SettingKey == "RefreshTokenCleanup:Enabled", stoppingToken);
+                var isEnabled = (enabledSetting != null && bool.TryParse(enabledSetting.SettingValue, out var eVal))
+                    ? eVal
+                    : config.Enabled;
+
+                if (!isEnabled)
+                {
+                    _logger.LogInformation("Weekly expired refresh token cleanup skipped: disabled in SystemSettings.");
+                    continue;
+                }
+
                 var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
 
                 var deletedCount = await authService.PurgeExpiredRefreshTokensAsync(stoppingToken);

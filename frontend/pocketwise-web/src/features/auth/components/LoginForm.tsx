@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
+import { TiltCard } from "@/components/ui/tilt-card";
 import { LoaderCircle, LogIn } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -22,6 +23,7 @@ export function LoginForm() {
   const { data: user, isSuccess } = useCurrentUser();
   const login = useLogin();
   const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreStatus, setRestoreStatus] = useState<string>("กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...");
   const {
     register,
     handleSubmit,
@@ -43,36 +45,73 @@ export function LoginForm() {
     if (!fallback) return;
 
     setIsRestoring(true);
-    fetch("/api/auth/token?refresh=true", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      cache: "no-store",
-      body: JSON.stringify({ refreshToken: fallback }),
-    })
-      .then(async (res) => {
+    let isCancelled = false;
+
+    const attemptRestore = async (retryCount = 0) => {
+      if (isCancelled) return;
+      try {
+        setRestoreStatus(
+          retryCount === 0
+            ? "กำลังเชื่อมต่อเซิร์ฟเวอร์และกู้คืนเซสชัน..."
+            : `เซิร์ฟเวอร์กำลังเตรียมความพร้อม กำลังลองใหม่อีกครั้ง (${retryCount}/2)...`
+        );
+
+        const res = await fetch("/api/auth/token?refresh=true", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          cache: "no-store",
+          body: JSON.stringify({ refreshToken: fallback }),
+        });
+
+        if (isCancelled) return;
+
         if (!res.ok) {
-          // Only remove fallback token if server explicitly rejected it (401/403)
+          // If server explicitly rejected credentials (expired or revoked)
           if (res.status === 401 || res.status === 403) {
             try {
               localStorage.removeItem("pw_fallback_refresh");
             } catch {}
+            setIsRestoring(false);
+            return;
           }
+
+          // If Render is waking up (502/503/504/timeout), retry after delay
+          if (retryCount < 2) {
+            setRestoreStatus("เซิร์ฟเวอร์กำลังเริ่มต้นทำงาน กำลังเชื่อมต่อใหม่ใน 3 วินาที...");
+            setTimeout(() => {
+              if (!isCancelled) {
+                attemptRestore(retryCount + 1);
+              }
+            }, 3000);
+            return;
+          }
+
           throw new Error("Restore failed");
         }
-        return res.json();
-      })
-      .then((data) => {
+
+        const data = await res.json();
+        if (isCancelled) return;
+
         if (data?.refreshToken) {
           try {
             localStorage.setItem("pw_fallback_refresh", data.refreshToken);
           } catch {}
         }
+        setRestoreStatus("เข้าสู่ระบบสำเร็จ กำลังพาไปยังหน้ารายการ...");
         window.location.href = "/transactions";
-      })
-      .catch(() => {
-        setIsRestoring(false);
-      });
+      } catch {
+        if (!isCancelled) {
+          setIsRestoring(false);
+        }
+      }
+    };
+
+    attemptRestore();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [isSuccess, user, router]);
 
   const onSubmit = (values: LoginFormValues) => login.mutate(values);
@@ -80,10 +119,56 @@ export function LoginForm() {
   if (isRestoring) {
     return (
       <main className="flex flex-1 items-center justify-center px-4 py-6">
-        <div className="flex flex-col items-center gap-3">
-          <LoaderCircle className="size-8 animate-spin text-[var(--pw-primary)]" />
-          <p className="text-sm text-[var(--pw-ink)]/70">กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-sm"
+        >
+          <TiltCard maxTilt={5}>
+            <Card className="w-full text-center">
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+                className="mb-4 flex justify-center"
+              >
+                <Image
+                  src="/brand-logo.png"
+                  alt="PocketWise brand"
+                  width={72}
+                  height={72}
+                  priority
+                  className="size-18 object-contain drop-shadow-md"
+                />
+              </motion.div>
+
+              <div className="mb-4 flex justify-center">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute size-12 animate-ping rounded-full bg-[var(--pw-primary)]/20" />
+                  <LoaderCircle className="size-8 animate-spin text-[var(--pw-primary)]" />
+                </div>
+              </div>
+
+              <h1 className="mb-1 text-xl font-bold">กำลังเข้าสู่ระบบอัตโนมัติ</h1>
+              <p className="mb-3 text-sm text-[var(--pw-ink)]/75">
+                {restoreStatus}
+              </p>
+              <p className="mb-6 text-xs text-[var(--pw-ink)]/50">
+                ระบบกำลังเชื่อมต่อข้อมูลเซสชันเดิมของคุณ ไม่จำเป็นต้องกรอกรหัสผ่านใหม่
+              </p>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsRestoring(false)}
+                className="w-full text-xs text-[var(--pw-ink)]/70"
+              >
+                เข้าสู่ระบบด้วยบัญชีอื่น / กรอกรหัสผ่าน
+              </Button>
+            </Card>
+          </TiltCard>
+        </motion.div>
       </main>
     );
   }
@@ -91,87 +176,101 @@ export function LoginForm() {
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-6">
       <motion.div
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          x: login.isError ? [-8, 8, -6, 6, -3, 3, 0] : 0,
+        }}
+        transition={{
+          duration: 0.4,
+          ease: [0.16, 1, 0.3, 1],
+        }}
         className="w-full max-w-sm"
       >
-        <Card className="w-full">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.35, delay: 0.06, ease: "easeOut" }}
-            className="mb-3 flex justify-center"
-          >
-            <Image
-              src="/brand-logo.png"
-              alt="PocketWise brand"
-              width={72}
-              height={72}
-              priority
-              className="size-18 object-contain drop-shadow"
-            />
-          </motion.div>
-        <h1 className="mb-1 text-center text-2xl font-bold">เข้าสู่ระบบ</h1>
-        <p className="mb-6 text-center text-sm text-[var(--pw-ink)]/70">
-          ยินดีต้อนรับกลับมาที่ PocketWise
-        </p>
-
-        <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <FormField label="อีเมล" htmlFor="email" error={errors.email?.message}>
-            <Input id="email" type="email" {...register("email")} />
-          </FormField>
-
-          <FormField
-            label={
-              <div className="flex items-center justify-between">
-                <span>รหัสผ่าน</span>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs font-normal text-[var(--pw-link)] hover:underline"
-                >
-                  ลืมรหัสผ่าน?
-                </Link>
-              </div>
-            }
-            htmlFor="password"
-            error={errors.password?.message}
-          >
-            <Input id="password" type="password" {...register("password")} />
-          </FormField>
-
-          {login.isError && (
-            <p className="text-sm text-[var(--pw-magenta)]">
-              {login.error instanceof ApiError
-                ? login.error.message
-                : "เข้าสู่ระบบไม่สำเร็จ"}
+        <TiltCard maxTilt={6}>
+          <Card className="w-full">
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+              whileHover={{ scale: 1.08, rotate: [0, -3, 3, 0] }}
+              className="mb-3 flex justify-center cursor-pointer"
+            >
+              <Image
+                src="/brand-logo.png"
+                alt="PocketWise brand"
+                width={72}
+                height={72}
+                priority
+                className="size-18 object-contain drop-shadow-md transition-transform"
+              />
+            </motion.div>
+            <h1 className="mb-1 text-center text-2xl font-bold">เข้าสู่ระบบ</h1>
+            <p className="mb-6 text-center text-sm text-[var(--pw-ink)]/70">
+              ยินดีต้อนรับกลับมาที่ PocketWise
             </p>
-          )}
 
-          <Button type="submit" className="w-full" disabled={login.isPending}>
-            {login.isPending ? <LoaderCircle className="animate-spin" /> : <LogIn />}
-            {login.isPending ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
-          </Button>
-        </form>
+            <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <FormField label="อีเมล" htmlFor="email" error={errors.email?.message}>
+                <Input id="email" type="email" {...register("email")} />
+              </FormField>
 
-        <p className="mt-4 text-center text-sm text-[var(--pw-ink)]/70">
-          ยังไม่มีบัญชี?{" "}
-          <Link href="/register" className="text-[var(--pw-link)]">
-            สมัครสมาชิก
-          </Link>
-        </p>
+              <FormField
+                label={
+                  <div className="flex items-center justify-between">
+                    <span>รหัสผ่าน</span>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-normal text-[var(--pw-link)] hover:underline"
+                    >
+                      ลืมรหัสผ่าน?
+                    </Link>
+                  </div>
+                }
+                htmlFor="password"
+                error={errors.password?.message}
+              >
+                <Input id="password" type="password" {...register("password")} />
+              </FormField>
 
-        <div className="mt-5 flex items-center justify-center gap-3 border-t border-[var(--pw-hairline)] pt-3 text-[11px] text-[var(--pw-ink)]/50">
-          <Link href="/privacy-policy" className="hover:underline">
-            นโยบายความเป็นส่วนตัว
-          </Link>
-          <span>•</span>
-          <Link href="/terms" className="hover:underline">
-            ข้อกำหนดการใช้งาน
-          </Link>
-        </div>
-      </Card>
-    </motion.div>
-  </main>
+              {login.isError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-sm text-[var(--pw-magenta)]"
+                >
+                  {login.error instanceof ApiError
+                    ? login.error.message
+                    : "เข้าสู่ระบบไม่สำเร็จ"}
+                </motion.p>
+              )}
+
+              <Button type="submit" className="w-full" disabled={login.isPending}>
+                {login.isPending ? <LoaderCircle className="animate-spin" /> : <LogIn />}
+                {login.isPending ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              </Button>
+            </form>
+
+            <p className="mt-4 text-center text-sm text-[var(--pw-ink)]/70">
+              ยังไม่มีบัญชี?{" "}
+              <Link href="/register" className="text-[var(--pw-link)] hover:underline">
+                สมัครสมาชิก
+              </Link>
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-3 border-t border-[var(--pw-hairline)] pt-3 text-[11px] text-[var(--pw-ink)]/50">
+              <Link href="/privacy-policy" className="hover:underline">
+                นโยบายความเป็นส่วนตัว
+              </Link>
+              <span>•</span>
+              <Link href="/terms" className="hover:underline">
+                ข้อกำหนดการใช้งาน
+              </Link>
+            </div>
+          </Card>
+        </TiltCard>
+      </motion.div>
+    </main>
   );
 }

@@ -8,9 +8,14 @@ public class ApplicationUser : IdentityUser<long>
     public DateOnly? BirthDate { get; set; }
     public bool IsEmailVerified { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsSuspended { get; set; }
+    public DateTime? SuspendedAt { get; set; }
+    public long? SuspendedByUserId { get; set; }
+    public string? SuspensionReason { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
+    public ApplicationUser? SuspendedByUser { get; set; }
     public UserSettings? UserSettings { get; set; }
     public ICollection<UserRefreshToken> RefreshTokens { get; set; } = [];
     public ICollection<Category> Categories { get; set; } = [];

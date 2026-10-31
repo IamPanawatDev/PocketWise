@@ -173,9 +173,9 @@ public class RolePermissionService : IRolePermissionService
         if (role == null) return false;
 
         // Prevent deleting core system role
-        if (string.Equals(role.NormalizedName, "ADMIN", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(role.NormalizedName, "SUPERADMIN", StringComparison.OrdinalIgnoreCase) || string.Equals(role.NormalizedName, "ADMIN", StringComparison.OrdinalIgnoreCase) || string.Equals(role.NormalizedName, "MEMBER", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("ไม่สามารถลบบทบาท Admin ของระบบได้");
+            throw new InvalidOperationException("ไม่สามารถลบบทบาทมาตรฐานของระบบได้");
         }
 
         await _repository.DeleteRoleAsync(role, cancellationToken);

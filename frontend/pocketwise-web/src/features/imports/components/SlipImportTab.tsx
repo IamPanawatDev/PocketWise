@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   UploadCloud,
   FileCheck2,
@@ -45,6 +46,7 @@ export function SlipImportTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedSlip, setUploadedSlip] = useState<SlipImportResponse | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Review form state
   const [amount, setAmount] = useState<string>("");
@@ -183,10 +185,8 @@ export function SlipImportTab() {
     });
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const handleProcessFile = async (file: File) => {
     if (!file) return;
-
     setStatusMessage(null);
 
     if (file.type.startsWith("image/")) {
@@ -196,7 +196,6 @@ export function SlipImportTab() {
       setPreviewUrl(null);
     }
 
-    // Automatically trigger upload
     const formData = new FormData();
     const processedFile = await prepareSlipFile(file);
     formData.append("file", processedFile);
@@ -204,6 +203,7 @@ export function SlipImportTab() {
     uploadMutation.mutate(formData, {
       onSuccess: (data) => {
         applySlipData(data);
+        toast.success("AI อ่านข้อมูลสลิปสำเร็จ!");
       },
       onError: (err) => {
         setStatusMessage({
@@ -212,6 +212,35 @@ export function SlipImportTab() {
         });
       },
     });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await handleProcessFile(file);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleProcessFile(file);
+    }
   };
 
   const handleConfirm = () => {
@@ -329,8 +358,18 @@ export function SlipImportTab() {
         </div>
       )}
 
-      {!uploadedSlip ? (
-        <Card className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-8 text-center transition-colors hover:border-[var(--pw-accent-primary)]/50">
+            {!uploadedSlip ? (
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-300 backdrop-blur-xs",
+            isDragging
+              ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 scale-[1.01] shadow-xl shadow-[var(--pw-primary)]/15"
+              : "border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/40 hover:border-[var(--pw-primary)]/50 hover:bg-[var(--pw-surface-raised)]/70"
+          )}
+        >
           <input
             ref={fileInputRef}
             type="file"
@@ -340,50 +379,69 @@ export function SlipImportTab() {
             disabled={uploadMutation.isPending}
           />
           {uploadMutation.isPending ? (
-            <div className="flex flex-col items-center justify-center py-6 text-center space-y-3">
-              <LoaderCircle className="h-10 w-10 animate-spin text-[var(--pw-accent-primary)]" />
-              <div>
-                <h4 className="text-base font-semibold text-[var(--pw-text-primary)]">
-                  กำลังอัปโหลดและวิเคราะห์ข้อมูลด้วย AI / OCR...
-                </h4>
-                <p className="mt-1 max-w-sm text-xs text-[var(--pw-text-secondary)]">
-                  บนเซิร์ฟเวอร์ Render Free อาจใช้เวลา 20–45 วินาทีในการประมวลผล กรุณารอสักครู่
+            <div className="flex flex-col items-center justify-center py-6 text-center space-y-4 w-full">
+              {previewUrl ? (
+                <div className="relative mx-auto w-full max-w-xs sm:max-w-sm overflow-hidden rounded-xl border border-[var(--pw-primary)]/40 shadow-2xl bg-black/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previewUrl} alt="Slip Scanning" className="w-full object-contain max-h-[320px] opacity-80" />
+                  {/* AI Neon Scanning Laser Beam */}
+                  <motion.div
+                    animate={{ y: [0, 290, 0] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_#22d3ee,0_0_30px_#06b6d4] z-10"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
+                </div>
+              ) : (
+                <div className="relative flex size-20 items-center justify-center rounded-full bg-[var(--pw-primary)]/10">
+                  <span className="absolute -inset-2 rounded-full border border-[var(--pw-primary)]/30 animate-ping" />
+                  <Sparkles className="size-10 text-[var(--pw-primary)] animate-spin" />
+                </div>
+              )}
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[var(--pw-primary)]/15 px-3 py-1 text-xs font-semibold text-[var(--pw-primary)]">
+                  <Sparkles className="size-3.5 animate-pulse" />
+                  <span>AI กำลังวิเคราะห์ยอดเงินและอ่านสลิป...</span>
+                </div>
+                <p className="max-w-sm text-xs text-[var(--pw-ink)]/60 pt-1">
+                  กำลังแปลงภาพและดึงข้อมูลอัตโนมัติ กรุณารอสักครู่
                 </p>
               </div>
             </div>
           ) : (
             <>
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)] mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] mb-4 transition-transform group-hover:scale-110">
                 <UploadCloud className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-semibold text-[var(--pw-text-primary)]">
-                อัปโหลดสลิปโอนเงิน
+              <h3 className="text-lg font-semibold text-[var(--pw-ink)]">
+                อัปโหลดสลิปโอนเงิน (AI OCR)
               </h3>
-              <p className="mt-1 max-w-sm text-sm text-[var(--pw-text-secondary)]">
-                ลากและวางรูปภาพสลิป หรือคลิกเพื่อเลือกไฟล์ รองรับ JPEG, PNG, WEBP หรือ PDF (สูงสุด 10 MB)
+              <p className="mt-1 max-w-sm text-sm text-[var(--pw-ink)]/60">
+                ลากและวางรูปภาพสลิป หรือคลิกเพื่อเลือกไฟล์ รองรับ JPEG, PNG, WEBP หรือ PDF
               </p>
               <Button
                 type="button"
-                className="mt-6 gap-2"
+                className="mt-6 gap-2 active:scale-95 transition-all shadow-md"
                 onClick={() => fileInputRef.current?.click()}
               >
+                <Sparkles className="size-4" />
                 เลือกไฟล์สลิป
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </>
           )}
-        </Card>
+        </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Slip Preview Column */}
           <div className="lg:col-span-5 space-y-4">
-            <Card className="p-4 bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)]">
+            <Card className="p-4 bg-[var(--pw-surface-raised)]/50 border border-[var(--pw-hairline)]">
               <div className="flex items-center justify-between pb-3 border-b border-[var(--pw-hairline)]">
-                <div className="flex items-center gap-2 text-sm font-medium text-[var(--pw-text-primary)]">
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--pw-ink)]">
                   <Receipt className="h-4 w-4 text-[var(--pw-accent-primary)]" />
                   <span>ตัวอย่างสลิป</span>
                 </div>
-                <span className="text-xs text-[var(--pw-text-muted)] truncate max-w-[180px]">
+                <span className="text-xs text-[var(--pw-ink)]/50 truncate max-w-[180px]">
                   {uploadedSlip.originalFileName}
                 </span>
               </div>
@@ -398,7 +456,7 @@ export function SlipImportTab() {
                   />
                 </div>
               ) : (
-                <div className="mt-4 flex flex-col items-center justify-center py-12 text-center text-[var(--pw-text-muted)]">
+                <div className="mt-4 flex flex-col items-center justify-center py-12 text-center text-[var(--pw-ink)]/50">
                   <Receipt className="h-12 w-12 mb-2 opacity-50" />
                   <p className="text-sm">ไฟล์เอกสาร PDF หรือไม่มีตัวอย่างรูปภาพ</p>
                 </div>
@@ -409,7 +467,7 @@ export function SlipImportTab() {
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-semibold">ตรวจพบสลิปซ้ำในระบบ:</span>
-                    <p className="mt-0.5 text-[var(--pw-text-secondary)]">
+                    <p className="mt-0.5 text-[var(--pw-ink)]/75">
                       ไฟล์นี้มีค่าแฮช SHA-256 ตรงกับสลิปในระบบ หากการอัปโหลดครั้งก่อนเกิดข้อผิดพลาด คุณสามารถตรวจสอบข้อมูลด้านล่างและกดยืนยันบันทึกรายการได้ตามปกติ
                     </p>
                   </div>
@@ -421,7 +479,7 @@ export function SlipImportTab() {
               type="button"
               variant="outline"
               size="sm"
-              className="w-full gap-2 text-[var(--pw-text-secondary)]"
+              className="w-full gap-2 text-[var(--pw-ink)]/75"
               onClick={() => handleReset(false)}
             >
               <RotateCcw className="h-4 w-4" />
@@ -431,13 +489,13 @@ export function SlipImportTab() {
 
           {/* Form & Verification Column */}
           <div className="lg:col-span-7">
-            <Card className="p-6 bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)] space-y-5">
+            <Card className="p-6 bg-[var(--pw-surface-raised)]/50 border border-[var(--pw-hairline)] space-y-5">
               <div className="flex items-center justify-between pb-2 border-b border-[var(--pw-hairline)]">
                 <div>
-                  <h3 className="text-base font-semibold text-[var(--pw-text-primary)]">
+                  <h3 className="text-base font-semibold text-[var(--pw-ink)]">
                     ตรวจสอบและยืนยันข้อมูลรายการ
                   </h3>
-                  <p className="text-xs text-[var(--pw-text-secondary)]">
+                  <p className="text-xs text-[var(--pw-ink)]/75">
                     ข้อมูลถูกอ่านอัตโนมัติจากไฟล์สลิป สามารถแก้ไขก่อนบันทึกได้
                   </p>
                 </div>
@@ -465,26 +523,26 @@ export function SlipImportTab() {
               {/* Detected info pills */}
               <div className="grid grid-cols-2 gap-3 text-xs bg-[var(--pw-surface-indigo)]/50 p-3 rounded-lg border border-[var(--pw-hairline)]">
                 <div>
-                  <span className="text-[var(--pw-text-muted)]">ผู้รับเงิน / ร้านค้า:</span>
-                  <div className="font-medium text-[var(--pw-text-primary)] truncate">
+                  <span className="text-[var(--pw-ink)]/50">ผู้รับเงิน / ร้านค้า:</span>
+                  <div className="font-medium text-[var(--pw-ink)] truncate">
                     {uploadedSlip.payeeName || "-"}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[var(--pw-text-muted)]">ผู้โอนเงิน:</span>
-                  <div className="font-medium text-[var(--pw-text-primary)] truncate">
+                  <span className="text-[var(--pw-ink)]/50">ผู้โอนเงิน:</span>
+                  <div className="font-medium text-[var(--pw-ink)] truncate">
                     {uploadedSlip.payerName || "-"}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[var(--pw-text-muted)]">รหัสอ้างอิง:</span>
-                  <div className="font-medium text-[var(--pw-text-primary)] truncate">
+                  <span className="text-[var(--pw-ink)]/50">รหัสอ้างอิง:</span>
+                  <div className="font-medium text-[var(--pw-ink)] truncate">
                     {uploadedSlip.transactionReference || "-"}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[var(--pw-text-muted)]">ธนาคาร:</span>
-                  <div className="font-medium text-[var(--pw-text-primary)] truncate">
+                  <span className="text-[var(--pw-ink)]/50">ธนาคาร:</span>
+                  <div className="font-medium text-[var(--pw-ink)] truncate">
                     {uploadedSlip.bankCode || "ตรวจจับอัตโนมัติ"}
                   </div>
                 </div>

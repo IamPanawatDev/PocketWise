@@ -177,6 +177,21 @@
 
 ---
 
+### F9 — ศูนย์ปฏิบัติการผู้ดูแลระบบ (Admin Operations) — ล็อกตาม D51
+
+| FR | รายการ | สถานะ | หมายเหตุ |
+|:-:|---|:-:|---|
+| FR9.1 | จัดการผู้ใช้: ค้นหา/ดูสถานะ, ระงับ/เปิดใช้บัญชี, ส่งอีเมลยืนยันใหม่, ส่งลิงก์ reset password และบังคับออกจากทุก session | 🟡 รอ implement | ระงับบัญชีไม่ revoke access token ที่ออกแล้ว; ระบบปฏิเสธเมื่อ token หมดอายุแล้วเรียก refresh/login ครั้งถัดไป |
+| FR9.2 | ดูและเพิกถอน session รายเครื่องหรือทุกเครื่อง | 🟡 รอ implement | ใช้ `UserRefreshTokens`; แสดง metadata อุปกรณ์/IP เท่าที่จำเป็น; ห้ามแสดง token/hash |
+| FR9.3 | บันทึกและค้นหา security events เช่น login สำเร็จ/ล้มเหลว, token reuse, reset password, ระงับบัญชี และ revoke session | 🟡 รอ implement | เก็บ 90 วัน; ตั้งค่าได้เฉพาะ `appsettings.json` ผ่าน `SecurityEvents:RetentionDays` |
+| FR9.4 | Admin overview แสดงจำนวนผู้ใช้, สถานะ import/OCR ที่ล้มเหลว, background jobs ล่าสุด, ปริมาณ Audit Log และ maintenance mode | 🟡 รอ implement | เป็น dashboard read-only; ไม่เพิ่ม monitoring provider ใหม่ในขอบเขตนี้ |
+| FR9.5 | ดูงาน import/OCR ทั้งระบบ, retry งานที่ล้มเหลว, cancel งาน และลบไฟล์ต้นฉบับตาม retention | 🟡 รอ implement | retry สูงสุด 5 ครั้ง; ไฟล์สลิปเปิดดูได้เฉพาะเจ้าของ; file retention 90 วันตั้งค่าได้ที่ `ImportFiles:RetentionDays` ใน `appsettings.json` |
+| FR9.6 | System settings: feature flags, maintenance mode และ announcements | 🟡 รอ implement | secret/infrastructure configuration ห้ามแก้ผ่าน UI |
+| FR9.7 | Maintenance mode ล็อกระบบทั้งระบบ ยกเว้น admin ใน allowlist ของ `appsettings.json` | 🟡 รอ implement | allowlisted admin เข้า `/admin/system-settings` เพื่อปิด maintenance ได้; ผู้ใช้อื่นได้รับ `503 MAINTENANCE_MODE` |
+| FR9.8 | Announcement กำหนดผู้รับได้หลายเงื่อนไขพร้อมกัน: รายบุคคล, ตาม role, ทุกคน, ผู้ยังไม่ยืนยันอีเมล และช่วงเวลาแสดง | 🟡 รอ implement | คำนวณผู้รับจาก union ของ target rules และไม่ส่งรายการซ้ำ |
+
+---
+
 ## 3. ข้อกำหนดไม่ใช่ฟังก์ชัน (NFRs) ที่ผูกกับ requirements นี้
 
 > ตัวเลขกฎฉบับเต็มอยู่ที่ source of truth ของแต่ละเรื่อง (ดูตาราง SoT ใน `/docs/DEVELOPMENT_GUIDELINE.md`) — บรรทัดนี้ระบุ**ความผูกพันต่อ FR** เท่านั้น
@@ -190,6 +205,7 @@
 | Auth: JWT + refresh (hash/rotation/multi-device) | (prerequisite ของทุก FR — ไม่ใช่ FR จากชีต) | D1 + ARCHITECTURE §5 |
 | ทุก endpoint ตอบ wrapped envelope | ทุก FR (implementation policy) | D8 + API_SPECIFICATION |
 | per-user authorization ทุก record | ทุก FR | ARCHITECTURE §5 + Tech_Stack §8 |
+| Admin operations ต้อง authorize ราย permission, audit ทุก action ที่เปลี่ยน state และ mask sensitive data | FR9.1–FR9.8 | D51 + API_SPECIFICATION §5N |
 
 *สถานะ "ใน roadmap" ใส่เพื่อชี้ว่ารายการนี้จะถูกสร้างใน Phase ไหนตาม `/docs/DEVELOPMENT_GUIDELINE.md` — ไม่ใช่คำมั่นวันเวลา; หากลำดับจริงปรับ ให้แก้ที่ playbook และตารางนี้ให้สอดคล้องกัน*
 
@@ -205,7 +221,7 @@
 - การ share/แชร์รายงานกับ user อื่น, การ invite สมาชิก
 - Mobile native app, PWA, offline-mode specifics
 
-> **หมายเหตุ (D13):** F7 (RBAC) และ F8 (AuditLogs) **ถูกเพิ่มภายหลังชีตต้นทาง** ตามคำสั่งเจ้าของโปรเจค — อยู่ในขอบเขต implement แล้ว (ไม่ใช่ "นอกขอบเขต" อีกต่อไป) ดู §2. **D12 (สร้างเฉพาะ 20/25 ตาราง) ถูกยกเลิก** — DataDictionary + Phase 2 สร้างครบ 25 ตาราง
+> **หมายเหตุ (D13/D51):** F7 (RBAC), F8 (AuditLogs) และ F9 (Admin Operations) **ถูกเพิ่มภายหลังชีตต้นทาง** ตามคำสั่งเจ้าของโปรเจค — อยู่ในขอบเขต implement/roadmap แล้ว (ไม่ใช่ "นอกขอบเขต" อีกต่อไป) ดู §2. **D12 (สร้างเฉพาะ 20/25 ตาราง) ถูกยกเลิก** — DataDictionary + Phase 2 สร้างครบ 25 ตาราง; F9 จะขยายเป้าหมายเป็น 28 ตารางเมื่อ implement Phase 9
 > **หมายเหตุเพิ่มเติม:** **FR6.3.8 (ขอรีเซ็ตรหัสผ่านทางอีเมล - Forgot / Reset Password Flow)** ถูกเพิ่มตามคำสั่งเจ้าของโปรเจค เพื่อให้ผู้ใช้สามารถกู้คืนรหัสผ่านด้วยตนเองได้อย่างปลอดภัยผ่านอีเมลที่ลงทะเบียนไว้
 
 ---

@@ -16,6 +16,7 @@ import { ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { TiltCard } from "@/components/ui/tilt-card";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
@@ -193,45 +194,64 @@ export function CreditCardsView() {
         <AnimatedList className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {data.map((card) => (
             <AnimatedListItem key={card.creditCardId}>
-              <Card className="flex flex-col justify-between gap-4 p-4 sm:p-5 h-full">
-              <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h2 className="break-words font-bold">{card.cardName}</h2>
-                    <p className="text-sm text-[var(--pw-ink)]/65">{card.bankName}</p>
-                    {card.cardNumberMasked && <p className="mt-1 font-mono text-xs tracking-wider text-[var(--pw-ink)]/70">{card.cardNumberMasked}</p>}
+              <div className="flex flex-col gap-3 h-full">
+                <TiltCard className="relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 border border-white/15 min-h-[170px] flex flex-col justify-between transition-transform">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/20 via-transparent to-purple-500/20 pointer-events-none" />
+                  
+                  <div className="relative z-10 flex items-start justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-white/70 font-medium">{card.bankName}</p>
+                      <h3 className="text-lg font-bold tracking-tight text-white mt-0.5">{card.cardName}</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-6 rounded bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 shadow-inner border border-amber-300/40 relative overflow-hidden flex items-center justify-center">
+                        <div className="w-full h-px bg-amber-900/40 absolute top-2" />
+                        <div className="w-full h-px bg-amber-900/40 absolute bottom-2" />
+                        <div className="h-full w-px bg-amber-900/40" />
+                      </div>
+                      <CreditCard className="size-5 text-white/75" />
+                    </div>
                   </div>
-                  <span className="rounded-full bg-[var(--pw-surface-indigo)] px-3 py-1 text-xs font-medium">
-                    {card.creditLimit != null ? (
-                      <>วงเงิน <AnimatedNumber value={card.creditLimit} /></>
-                    ) : (
-                      "ไม่จำกัดวงเงิน"
-                    )}
-                  </span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-4 text-xs text-[var(--pw-ink)]/60">
-                  <span className="inline-flex items-center gap-1">
-                    <Calendar className="size-3.5" />
-                    สรุปยอดทุกวันที่ {card.billingDay ?? "-"}
-                  </span>
-                  <span>ครบกำหนดวันที่ {card.paymentDueDay ?? "-"}</span>
+
+                  <div className="relative z-10 my-3">
+                    <p className="font-mono text-base tracking-widest text-white/90 drop-shadow-sm">
+                      {card.cardNumberMasked || "•••• •••• •••• ••••"}
+                    </p>
+                  </div>
+
+                  <div className="relative z-10 flex items-end justify-between pt-2 text-xs text-white/80 border-t border-white/10">
+                    <div>
+                      <span className="text-[10px] text-white/50 block">วงเงินบัตร</span>
+                      <span className="font-semibold text-white">
+                        {card.creditLimit != null ? (
+                          <AnimatedNumber value={card.creditLimit} />
+                        ) : (
+                          "ไม่จำกัดวงเงิน"
+                        )}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-white/50 block">รอบบิล / กำหนดชำระ</span>
+                      <span>วันที่ {card.billingDay ?? "-"} / {card.paymentDueDay ?? "-"}</span>
+                    </div>
+                  </div>
+                </TiltCard>
+
+                <div className="flex gap-2 justify-end px-1">
+                  <Button size="sm" variant="secondary" className="flex-1 sm:flex-none text-xs" onClick={() => startEdit(card)}><Pencil className="size-3.5" />แก้ไข</Button>
+                  <ConfirmDialog
+                    title="ลบบัตรนี้?"
+                    description="บัตรจะถูกทำเครื่องหมายว่าไม่ใช้งาน รายการธุรกรรมเดิมยังคงอยู่"
+                    confirmLabel="ลบ"
+                    pending={remove.isPending}
+                    onConfirm={() => remove.mutate(card.creditCardId, {
+                      onSuccess: () => toast.success("ลบบัตรแล้ว"),
+                      onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ลบไม่สำเร็จ"),
+                    })}
+                    trigger={<Button size="sm" variant="destructive" className="flex-1 sm:flex-none text-xs"><Trash2 className="size-3.5" />ลบ</Button>}
+                  />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" className="flex-1 sm:flex-none" onClick={() => startEdit(card)}><Pencil />แก้ไข</Button>
-                <ConfirmDialog
-                  title="ลบบัตรนี้?"
-                  description="บัตรจะถูกทำเครื่องหมายว่าไม่ใช้งาน รายการธุรกรรมเดิมยังคงอยู่"
-                  confirmLabel="ลบ"
-                  pending={remove.isPending}
-                  onConfirm={() => remove.mutate(card.creditCardId, {
-                    onSuccess: () => toast.success("ลบบัตรแล้ว"),
-                    onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ลบไม่สำเร็จ"),
-                  })}
-                  trigger={<Button size="sm" variant="destructive" className="flex-1 sm:flex-none"><Trash2 />ลบ</Button>}
-                />
-              </div>
-            </Card>
           </AnimatedListItem>
           ))}
         </AnimatedList>

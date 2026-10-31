@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Bell,
   CheckCheck,
@@ -92,14 +93,31 @@ export function NotificationBell({ className }: { className?: string }) {
               ? `การแจ้งเตือน มี ${unreadCount} รายการที่ยังไม่ได้อ่าน`
               : "การแจ้งเตือน"
           }
-          className={cn("relative", className)}
+          className={cn("relative transition-transform active:scale-90", className)}
         >
-          <Bell className="size-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
+          <motion.div
+            whileHover={{ rotate: [-10, 10, -6, 6, 0] }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
+            <Bell className="size-5" />
+          </motion.div>
+          <AnimatePresence>
+            {unreadCount > 0 && (
+              <motion.span
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [1, 1.15, 1], opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{
+                  scale: { repeat: Infinity, repeatDelay: 3.5, duration: 1.2, ease: "easeInOut" },
+                  opacity: { duration: 0.2 },
+                }}
+                className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-md shadow-red-500/40"
+              >
+                <span className="absolute -inset-0.5 rounded-full bg-red-500/50 animate-ping pointer-events-none" />
+                <span className="relative z-10">{unreadCount > 99 ? "99+" : unreadCount}</span>
+              </motion.span>
+            )}
+          </AnimatePresence>
         </Button>
       </PopoverTrigger>
 
@@ -142,26 +160,40 @@ export function NotificationBell({ className }: { className?: string }) {
           <button
             type="button"
             className={cn(
-              "px-3 py-1 font-medium rounded-md transition",
+              "relative px-3 py-1 font-medium rounded-md transition-colors",
               !unreadOnly
-                ? "bg-[var(--pw-primary)] text-white"
-                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]/50",
+                ? "text-white font-semibold"
+                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]",
             )}
             onClick={() => setUnreadOnly(false)}
           >
-            ทั้งหมด
+            {!unreadOnly && (
+              <motion.div
+                layoutId="notifTabIndicator"
+                className="absolute inset-0 rounded-md bg-[var(--pw-primary)] shadow-xs"
+                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+              />
+            )}
+            <span className="relative z-10">ทั้งหมด</span>
           </button>
           <button
             type="button"
             className={cn(
-              "ml-1 px-3 py-1 font-medium rounded-md transition",
+              "relative ml-1 px-3 py-1 font-medium rounded-md transition-colors",
               unreadOnly
-                ? "bg-[var(--pw-primary)] text-white"
-                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]/50",
+                ? "text-white font-semibold"
+                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]",
             )}
             onClick={() => setUnreadOnly(true)}
           >
-            ยังไม่ได้อ่าน
+            {unreadOnly && (
+              <motion.div
+                layoutId="notifTabIndicator"
+                className="absolute inset-0 rounded-md bg-[var(--pw-primary)] shadow-xs"
+                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+              />
+            )}
+            <span className="relative z-10">ยังไม่ได้อ่าน</span>
           </button>
         </div>
 
@@ -184,7 +216,7 @@ export function NotificationBell({ className }: { className?: string }) {
                       type="button"
                       onClick={() => handleNotificationClick(item)}
                       className={cn(
-                        "w-full text-left p-3.5 transition flex items-start gap-3 hover:bg-[var(--pw-surface-indigo)]/60 cursor-pointer border-b border-[var(--pw-hairline)] last:border-b-0",
+                        "w-full text-left p-3.5 transition-all flex items-start gap-3 hover:bg-[var(--pw-surface-indigo)]/60 active:scale-[0.99] cursor-pointer border-b border-[var(--pw-hairline)] last:border-b-0",
                         isUnread && "bg-[var(--pw-surface-indigo)]/30",
                       )}
                     >

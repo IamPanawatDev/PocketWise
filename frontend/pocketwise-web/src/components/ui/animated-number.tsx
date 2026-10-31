@@ -1,45 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { animate } from "motion/react";
+import { useEffect, useRef } from "react";
+import { useMotionValue, useSpring } from "motion/react";
 import { formatCurrency } from "@/lib/utils";
 
 interface AnimatedNumberProps {
   value: number;
+  currency?: string;
   currencyCode?: string;
   className?: string;
   prefix?: string;
-  duration?: number;
 }
 
 export function AnimatedNumber({
   value,
-  currencyCode = "THB",
+  currency = "THB",
+  currencyCode,
   className,
   prefix = "",
-  duration = 0.65,
 }: AnimatedNumberProps) {
-  const safeValue = isNaN(value) ? 0 : value;
-  const [displayValue, setDisplayValue] = useState(0);
+  const effectiveCurrency = currencyCode ?? currency;
+  const motionVal = useMotionValue(0);
+  const spring = useSpring(motionVal, { stiffness: 70, damping: 18 });
+  const spanRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    if (safeValue === 0) {
-      return;
-    }
+    motionVal.set(value);
+  }, [value, motionVal]);
 
-    const controls = animate(0, safeValue, {
-      duration,
-      ease: [0.16, 1, 0.3, 1], // easeOutExpo
-      onUpdate: (latest) => setDisplayValue(latest),
+  useEffect(() => {
+    return spring.on("change", (latest) => {
+      if (spanRef.current) {
+        spanRef.current.textContent = `${prefix}${formatCurrency(latest, effectiveCurrency)}`;
+      }
     });
-
-    return () => controls.stop();
-  }, [safeValue, duration]);
+  }, [spring, effectiveCurrency, prefix]);
 
   return (
-    <span className={className}>
-      {prefix}
-      {formatCurrency(safeValue === 0 ? 0 : displayValue, currencyCode)}
+    <span ref={spanRef} className={className}>
+      {`${prefix}${formatCurrency(value, effectiveCurrency)}`}
     </span>
   );
 }

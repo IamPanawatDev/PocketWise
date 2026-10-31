@@ -1194,6 +1194,90 @@ Request fields: `email`, `displayName`, `phoneNumber` (nullable), `birthDate` (n
 
 ---
 
+## 5N. Admin Operations (contract — ล็อกแล้วตาม D51)
+
+**สถานะ:** 🟡 รอ implement — ทุก endpoint ต้องตอบ wrapped envelope, ตรวจ permission ราย action และบันทึก Audit Log สำหรับ action ที่เปลี่ยน state
+
+### Permissions ที่เพิ่ม
+
+`USERS_VIEW`, `USERS_MANAGE`, `SESSIONS_VIEW`, `SESSIONS_REVOKE`, `SECURITY_EVENTS_VIEW`, `ADMIN_DASHBOARD_VIEW`, `IMPORT_OPERATIONS_VIEW`, `IMPORT_OPERATIONS_MANAGE`, `SYSTEM_SETTINGS_VIEW`, `SYSTEM_SETTINGS_MANAGE`, `MAINTENANCE_MODE_MANAGE`, `ANNOUNCEMENTS_MANAGE`
+
+### Endpoints
+
+| Method | Path | Summary | Permission |
+|---|---|---|---|
+| `GET` | `/api/v1/admin/user-accounts` | ค้นหา/กรองผู้ใช้และสถานะบัญชี | `USERS_VIEW` |
+| `GET` | `/api/v1/admin/user-accounts/{userId}` | ดูรายละเอียดผู้ใช้สำหรับการดูแลระบบ | `USERS_VIEW` |
+| `PUT` | `/api/v1/admin/user-accounts/{userId}/suspension` | ระงับหรือเปิดใช้บัญชี พร้อมเหตุผล | `USERS_MANAGE` |
+| `POST` | `/api/v1/admin/user-accounts/{userId}/send-verification-email` | ส่งอีเมลยืนยันใหม่ | `USERS_MANAGE` |
+| `POST` | `/api/v1/admin/user-accounts/{userId}/send-password-reset` | ส่งลิงก์ reset password เท่านั้น | `USERS_MANAGE` |
+| `POST` | `/api/v1/admin/user-accounts/{userId}/sessions/revoke-all` | เพิกถอน refresh sessions ทุกเครื่อง | `SESSIONS_REVOKE` |
+| `GET` | `/api/v1/admin/user-accounts/{userId}/sessions` | ดู sessions ของผู้ใช้ | `SESSIONS_VIEW` |
+| `POST` | `/api/v1/admin/user-accounts/{userId}/sessions/{sessionId}/revoke` | เพิกถอน session รายเครื่อง | `SESSIONS_REVOKE` |
+| `GET` | `/api/v1/admin/security-events` | ค้นหา security events แบบแบ่งหน้า | `SECURITY_EVENTS_VIEW` |
+| `GET` | `/api/v1/admin/overview` | สรุป health และ operational metrics | `ADMIN_DASHBOARD_VIEW` |
+| `GET` | `/api/v1/admin/import-jobs` | ดู import jobs ทั้งระบบ | `IMPORT_OPERATIONS_VIEW` |
+| `GET` | `/api/v1/admin/import-jobs/{id}` | ดูรายละเอียดงานและ error ที่ปลอดภัย | `IMPORT_OPERATIONS_VIEW` |
+| `POST` | `/api/v1/admin/import-jobs/{id}/retry` | retry งานที่ `Failed` หาก retry count ยังต่ำกว่า 5 | `IMPORT_OPERATIONS_MANAGE` |
+| `POST` | `/api/v1/admin/import-jobs/{id}/cancel` | cancel งานที่ `Pending` หรือ `Processing` | `IMPORT_OPERATIONS_MANAGE` |
+| `DELETE` | `/api/v1/admin/import-jobs/{id}/source-file` | ลบไฟล์ต้นฉบับตาม policy | `IMPORT_OPERATIONS_MANAGE` |
+| `GET` | `/api/v1/admin/system-settings` | อ่าน system settings ที่แก้จาก UI ได้ | `SYSTEM_SETTINGS_VIEW` |
+| `PUT` | `/api/v1/admin/system-settings` | แก้ feature flags ที่ allowlist ไว้ | `SYSTEM_SETTINGS_MANAGE` |
+| `PUT` | `/api/v1/admin/maintenance-mode` | เปิด/ปิด maintenance mode | `MAINTENANCE_MODE_MANAGE` |
+| `GET` | `/api/v1/admin/announcements` | ดู announcements แบบแบ่งหน้า | `ANNOUNCEMENTS_MANAGE` |
+| `POST` | `/api/v1/admin/announcements` | สร้าง announcement พร้อม target rules | `ANNOUNCEMENTS_MANAGE` |
+| `PUT` | `/api/v1/admin/announcements/{id}` | แก้ announcement และ target rules | `ANNOUNCEMENTS_MANAGE` |
+| `DELETE` | `/api/v1/admin/announcements/{id}` | ถอน/ลบ announcement | `ANNOUNCEMENTS_MANAGE` |
+
+### Business Rules ที่ล็อกแล้ว
+
+1. **Suspension:** ไม่ revoke access token ที่ออกไปแล้ว; เมื่อ token หมดอายุ ผู้ใช้ที่ถูกระงับต้องไม่สามารถ refresh/login เพื่อรับ token ใหม่ได้.
+2. **Password reset:** Admin เรียกได้เฉพาะการส่ง reset link ผ่าน flow ปัจจุบัน ห้ามตั้งหรือเห็นรหัสผ่านชั่วคราว.
+3. **Session privacy:** API ห้ามส่ง refresh token หรือ hash; ส่งได้เฉพาะ session id, created/expiry/revoked timestamps, reason, IP และ User-Agent ที่ผ่านการ sanitize.
+4. **Security events / import files retention:** cleanup jobs อ่านค่า `SecurityEvents:RetentionDays` และ `ImportFiles:RetentionDays` จาก `appsettings.json` (default 90 วัน); ไม่เปิดให้แก้ผ่าน UI.
+5. **Import operations:** retry ได้เฉพาะ `Failed` และไม่เกิน 5 ครั้ง; cancel ได้เฉพาะ `Pending`/`Processing`; admin ไม่มี endpoint สำหรับเปิด/ดาวน์โหลดไฟล์สลิป และไฟล์ดูได้เฉพาะเจ้าของผ่าน user API เดิม.
+6. **Maintenance:** เมื่อเปิด ระบบตอบ `503` ให้ทุก request ยกเว้น health endpoints และ admin ที่อยู่ใน `MaintenanceMode:AllowedAdminUserIds` ของ `appsettings.json`; allowlisted admin ใช้ `/admin/system-settings` เพื่อปิด mode ได้.
+7. **Announcements:** `targetRules` หลายรายการใช้ความหมายแบบ union; ชนิด target คือ `All`, `Role`, `User`, `UnverifiedEmail`; ต้องตัดผู้รับซ้ำก่อนแสดง/ส่ง.
+8. **Sensitive data:** error import, security metadata, audit details และ announcement audience ต้องไม่เผย token, password, hash, full card number หรือไฟล์สลิปแก่ผู้ไม่มีสิทธิ์.
+
+### Request examples
+
+```json
+// PUT /api/v1/admin/user-accounts/42/suspension
+{ "isSuspended": true, "reason": "Suspicious activity confirmed" }
+```
+
+```json
+// PUT /api/v1/admin/maintenance-mode
+{ "isEnabled": true, "message": "System maintenance in progress" }
+```
+
+```json
+// POST /api/v1/admin/announcements
+{
+  "title": "Please verify your email",
+  "message": "Verify your email to keep your account secure.",
+  "startsAt": "2026-11-01T00:00:00Z",
+  "endsAt": "2026-11-08T00:00:00Z",
+  "targetRules": [
+    { "targetType": "UnverifiedEmail" },
+    { "targetType": "Role", "roleId": 2 },
+    { "targetType": "User", "userId": 42 }
+  ]
+}
+```
+
+### Additional error codes
+
+| Code | HTTP | Meaning |
+|---|---:|---|
+| `ACCOUNT_SUSPENDED` | 403 | บัญชีถูกระงับและไม่สามารถออก/refresh token ใหม่ได้ |
+| `RETRY_LIMIT_REACHED` | 409 | งานนำเข้าถูก retry ครบ 5 ครั้งแล้ว |
+| `IMPORT_JOB_NOT_CANCELLABLE` | 409 | งานนำเข้าไม่อยู่ในสถานะที่ cancel ได้ |
+| `MAINTENANCE_MODE` | 503 | ระบบอยู่ระหว่างบำรุงรักษา |
+
+---
+
 ## 6. SignalR Events (contract — ล็อกแล้วตาม D37)
 
 **สถานะ:** ✅ ล็อกแล้ว (D37)

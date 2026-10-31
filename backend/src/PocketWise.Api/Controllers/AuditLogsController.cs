@@ -10,7 +10,7 @@ namespace PocketWise.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/audit-logs")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AuditLogsController : ControllerBase
 {
     private readonly IAuditLogService _auditLogService;

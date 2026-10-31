@@ -20,6 +20,7 @@ public class ImportJobConfiguration : IEntityTypeConfiguration<ImportJob>
         builder.Property(e => e.TotalRecords).IsRequired().HasDefaultValue(0);
         builder.Property(e => e.ImportedRecords).IsRequired().HasDefaultValue(0);
         builder.Property(e => e.DuplicateRecords).IsRequired().HasDefaultValue(0);
+        builder.Property(e => e.RetryCount).IsRequired().HasDefaultValue(0);
         builder.Property(e => e.ErrorMessage).HasMaxLength(2000);
         builder.Property(e => e.StartedAt).HasColumnType("timestamptz");
         builder.Property(e => e.CompletedAt).HasColumnType("timestamptz");

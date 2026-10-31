@@ -6,7 +6,7 @@ import { FolderTree, ShieldAlert } from "lucide-react";
 
 export default function AdminCategoriesPage() {
   const { data: user, isLoading } = useCurrentUser();
-  const isAdmin = user?.roles?.includes("Admin") ?? true;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? true;
 
   if (!isLoading && !isAdmin) {
     return (

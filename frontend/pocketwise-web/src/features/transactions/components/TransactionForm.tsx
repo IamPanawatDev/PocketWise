@@ -178,7 +178,7 @@ export function TransactionForm({
                       "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "expense"
                         ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
-                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10",
+                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10",
                     )}
                   >
                     <ArrowDownRight className="size-4" />
@@ -196,7 +196,7 @@ export function TransactionForm({
                       "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       field.value === "income"
                         ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-[var(--pw-on-green)] font-semibold shadow-sm"
-                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)] hover:bg-[var(--pw-green)]/10",
+                        : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:border-[var(--pw-green)] hover:text-[var(--pw-green)] hover:bg-[var(--pw-green)]/10",
                     )}
                   >
                     <ArrowUpRight className="size-4" />
@@ -320,7 +320,7 @@ export function TransactionForm({
 
           <FormField label="แท็ก" error={errors.tagIds?.message}>
             {!tags || tags.length === 0 ? (
-              <p className="pt-1 text-xs text-[var(--pw-ink)]/55">
+              <p className="pt-1 text-xs text-[var(--pw-ink)]/75">
                 ยังไม่มีแท็ก สามารถเพิ่มแท็กใหม่ได้ที่เมนู แท็ก
               </p>
             ) : (

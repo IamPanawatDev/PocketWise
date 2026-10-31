@@ -134,7 +134,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("purge-expired-tokens")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ApiResponse<object>>> PurgeExpiredTokensAsync(CancellationToken cancellationToken)
     {
         var deletedCount = await _authService.PurgeExpiredRefreshTokensAsync(cancellationToken);

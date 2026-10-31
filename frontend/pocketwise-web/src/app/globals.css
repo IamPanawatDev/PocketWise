@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   color-scheme: dark;
@@ -13,6 +13,8 @@
   --pw-magenta: #ec48bd;
   --pw-expense: #ff4d4f;
   --pw-link: #00b0f4;
+  --pw-surface: #1e2353;
+  --pw-surface-raised: #23272a;
   --pw-surface-indigo: #1e2353;
   --pw-surface-onyx: #23272a;
   --pw-surface-black: #000000;
@@ -76,12 +78,14 @@ html[data-theme="light"] {
   --pw-magenta: #b4238a;
   --pw-expense: #c62828;
   --pw-link: #0077a8;
+  --pw-surface: #ffffff;
+  --pw-surface-raised: #f8f9fc;
   --pw-surface-indigo: #ffffff;
   --pw-surface-onyx: #e9ebf2;
   --pw-surface-black: #ffffff;
   --pw-input-surface: #ffffff;
   --pw-input-border: #747b8d;
-  --pw-ink: #202333;
+  --pw-ink: #111827;
   --pw-ink-dark: #111827;
   --pw-muted: #e9ebf2;
   --pw-hairline: #d7dae4;
@@ -92,7 +96,7 @@ html[data-theme="light"] {
 
   --secondary-foreground: #ffffff;
   --accent-foreground: #ffffff;
-  --muted-foreground: rgb(32 35 51 / 70%);
+  --muted-foreground: rgb(17 24 39 / 75%);
 }
 
 @theme inline {
@@ -368,7 +372,71 @@ body[data-scroll-locked] {
 
 
 /* Ensure toast alerts always render in front of modals, dialogs, and bottom sheets */
-[data-sonner-toaster],
-[data-sonner-toaster] * {
+[data-sonner-toaster] {
   z-index: 99999 !important;
+}
+
+
+/* ==========================================================================
+   Ambient Floating Glowing Orbs (GPU Composited Aurora)
+   ========================================================================== */
+@keyframes pw-orb-drift-1 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(40px, -30px, 0) scale(1.12);
+  }
+}
+
+@keyframes pw-orb-drift-2 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-50px, 40px, 0) scale(1.18);
+  }
+}
+
+.pw-aurora-orb-1 {
+  position: absolute;
+  top: 10%;
+  left: 15%;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(88, 101, 242, 0.18) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  animation: pw-orb-drift-1 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+.pw-aurora-orb-2 {
+  position: absolute;
+  bottom: 15%;
+  right: 10%;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236, 72, 189, 0.12) 0%, transparent 70%);
+  filter: blur(70px);
+  pointer-events: none;
+  animation: pw-orb-drift-2 22s ease-in-out infinite;
+  will-change: transform;
+}
+
+html[data-theme="light"] .pw-aurora-orb-1 {
+  background: radial-gradient(circle, rgba(88, 101, 242, 0.08) 0%, transparent 70%);
+}
+
+html[data-theme="light"] .pw-aurora-orb-2 {
+  background: radial-gradient(circle, rgba(0, 176, 244, 0.08) 0%, transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-aurora-orb-1,
+  .pw-aurora-orb-2 {
+    animation: none;
+  }
 }

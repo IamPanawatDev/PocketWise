@@ -120,6 +120,8 @@ app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<MaintenanceModeMiddleware>();
+
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 

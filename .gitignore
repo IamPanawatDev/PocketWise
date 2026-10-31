@@ -59,3 +59,6 @@ desktop.ini
 # ===== Tool state =====
 *.DotSettings.user
 .idea/
+# Uploads
+App_Data/uploads/
+**/App_Data/uploads/

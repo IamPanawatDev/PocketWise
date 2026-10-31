@@ -47,10 +47,20 @@
    - ฟิลด์เลือกสีใช้ color picker ไม่บังคับให้ผู้ใช้ป้อนค่า HEX
    - ตัวเลือกแท็กในฟอร์มธุรกรรมต้องแสดงเป็น badge ด้วยสีจริงจาก `TagResponse.color`, สีข้อความต้อง contrast อ่านได้ และสถานะเลือกต้องเห็นชัด
    - หน้า register ต้องยืนยันว่ารหัสผ่านทั้งสองช่องตรงกัน แต่ส่งเฉพาะ contract fields ของ backend ไม่ส่ง `confirmPassword`
-6. **การตรวจสอบและสืบค้นฐานข้อมูลผ่าน Devart MCP Server for SQL Server**
-   - เมื่อ AI ต้องตรวจสอบโครงสร้างตาราง (Schema), ข้อมูลดิบในฐานข้อมูล, ผลลัพธ์ของ Seed Data หรือทดสอบคำสั่ง Query ใน SQL Server (`PocketWiseDb`) ให้ใช้ **Devart MCP Server for SQL Server** (Server Name: `PocketWise`, Driver: `Devart ODBC Driver for SQL Server [STDIO]`, Version 1.1.0)
-   - การเชื่อมต่อ MCP Server ถูกตั้งค่าไว้ที่ `~/.gemini/config/mcp_config.json` โดยเรียกใช้ executable `C:\Program Files\Devart\MCP Server for SQL Server\Devart.AI.McpServer.Odbc.SqlServer.exe run PocketWise`
-   - ห้ามรันคำสั่ง DDL/DML ที่มีผลต่อการเปลี่ยนแปลงโครงสร้างหรือลบข้อมูลจริงโดยพลการ (การเปลี่ยนแปลงสกีมาต้องทำผ่าน EF Core Migrations ของฝั่ง Backend และอ้างอิง [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) เป็น Source of Truth เสมอ)
+6. **กฎเหล็กการใช้งานฐานข้อมูลและ MCP (Database MCP & Zero Schema Drift Policy)**:
+   - **ระหว่างการพัฒนา (Implementation Phase)**:
+     - **ต้องใช้ MCP Database ที่เชื่อมต่อกับ PostgreSQL Local (Docker) เท่านั้น** (เช่น `pocketwise-postgres` หรือ Local Connection: `localhost:5432/pocketwise_db`)
+     - **ห้าม** เรียกใช้ MCP เพื่อ Query, ทดสอบ, Seed หรือแก้ไขข้อมูลบน Supabase Production ในระหว่างการ Implement โดยเด็ดขาด เพื่อป้องกันผลกระทบต่อข้อมูลจริงของผู้ใช้
+   - **ขั้นตอนการ Deploy สู่ Production (Zero Schema Drift)**:
+     - หากมีการอัปเดต, เพิ่ม, ลบ หรือแก้ไขโครงสร้างตาราง (Columns, Tables, Data Types, Constraints, Foreign Keys หรือ Indexes) ในระหว่างการพัฒนา:
+       - ต้องสร้าง EF Core Code-First Migration ใน `PocketWise.Infrastructure` ให้เรียบร้อย
+       - **ต้องรัน Script อัปเดตโครงสร้างตารางบน Supabase (Production) ให้ตรงกับ Local 100% เสมอ** (ผ่าน `supabase_mcp.apply_migration` หรือ `execute_sql` อย่างระมัดระวัง)
+       - **ห้ามเกิด Database Schema Mismatch เด็ดขาด**: สกีมาและคอลัมน์ทั้งหมดระหว่าง Local (Implementation) และ Supabase (Production) ต้องตรงกันอย่างสมบูรณ์ ป้องกันไม่ให้เกิด Database Runtime Error หรือ 500 Internal Server Error บน Production โดยเด็ดขาด
+
+---
+
+7. **ขั้นตอนการปฏิบัติงาน 5 ขั้นตอนเคร่งครัด (Mandatory 5-Step Execution Rule)**:
+   - ทุกงานพัฒนาต้องดำเนินการตาม 5 ขั้นตอนเท่านั้น: **1. Agent หลัก (มอบหมายและรวมผล)** ➔ **2. Planner (วางแผน)** ➔ **3. Implementer (ลงมือทำ)** ➔ **4. Review (ตรวจงาน)** ➔ **5. แก้ไขและตรวจซ้ำ (เมื่อพบปัญหาจนผ่าน 100%)** ห้ามข้ามขั้นตอนการวางแผนหรือตรวจงานเด็ดขาด
 
 ---
 
@@ -84,20 +94,70 @@
 
 ---
 
-## 📋 5. ลำดับขั้นตอนการทำงานของ AI (Standard Workflow)
+## 📋 5. ลำดับขั้นตอนการทำงานแบบ 5 ขั้นตอน (Mandatory 5-Step Agent Workflow)
+
+ทุกคำสั่งหรืองานพัฒนา (Feature, Refactor, Bug Fix หรือ Optimization) AI **ต้องปฏิบัติตามลำดับ 5 ขั้นตอนนี้อย่างเคร่งครัดเท่านั้น**:
 
 ```mermaid
 flowchart TD
-    A["ได้รับคำสั่งจากผู้ใช้"] --> B["ศึกษา Tech_Stack.md และโค้ดเดิมใน /backend และ /frontend"]
-    B --> C{"มีจุดที่ไม่ชัดเจนหรือไม่?"}
-    C -- "มี / ไม่แน่ใจ" --> D["หยุดทันที แล้วถามผู้ใช้ ห้ามคิดเอง"]
-    D --> E["ได้รับคำตอบจากผู้ใช้"]
-    E --> B
-    C -- "ชัดเจนครบถ้วน" --> F{"ต้องใช้ Library ใหม่หรือไม่?"}
-    F -- "ต้องใช้ แต่ยังไม่ได้รับอนุญาต" --> G["ขออนุญาตติดตั้ง Package จากผู้ใช้ก่อน"]
-    G --> H["ผู้ใช้ยินยอม"]
-    H --> I["ระบุโฟลเดอร์ที่ถูกต้องตาม AGENTS.md ของฝั่งนั้นๆ"]
-    F -- "ไม่ต้องใช้ Library เพิ่ม" --> I
-    I --> J["เริ่มลงมือเขียนโค้ดตามโครงสร้างที่กำหนด"]
-    J --> K["ทดสอบ Build / Lint ให้ผ่าน 100%"]
+    Step1["1. Agent หลัก (Orchestrator)\nรับคำสั่ง ทำความเข้าใจ มอบหมายงาน และรวบรวมผลลัพธ์"] --> Step2["2. Planner (วางแผนงาน)\nวิเคราะห์ผลกระทบ เจาะโค้ดเดิม และวางแผนเป็นขั้นตอน"]
+    Step2 --> Step3["3. Implementer (ลงมือปฏิบัติการ)\nเขียนโค้ดตามแผน แก้ไขไฟล์ที่เกี่ยวข้อง และรักษา Code Quality"]
+    Step3 --> Step4["4. Review (ตรวจสอบงาน)\nตรวจความถูกต้อง Type Safety, Build, Lint และ Data Contract"]
+    Step4 --> Check{"พบข้อผิดพลาด\nหรือไม่?"}
+    Check -- "พบปัญหา (Fail/Warning)" --> Step5["5. แก้ไขและตรวจซ้ำ (Remediate & Re-verify)\nแก้จุดบกพร่อง แล้ววนกลับไปตรวจจนกว่าจะผ่าน 100%"]
+    Step5 --> Step4
+    Check -- "ผ่านสมบูรณ์ 100%" --> Done["Agent หลักสรุปผลส่งมอบงานให้ผู้ใช้"]
 ```
+
+### รายละเอียดหน้าที่ในแต่ละขั้นตอน:
+1. **Agent หลัก (Orchestrator — มอบหมายและรวมผล):**
+   - รับคำขอ/คำสั่งจากผู้ใช้ ตีความความต้องการให้อย่างแม่นยำ
+   - ควบคุมกระบวนการและมอบหมายงานตามลำดับขั้นตอน
+   - รวบรวมสรุปผลงานสุดท้ายอย่างกระชับ ชัดเจน และส่งมอบให้กับผู้ใช้
+2. **Planner (ผู้วางแผนงาน):**
+   - ศึกษา Codebase ที่เกี่ยวข้องทั้งฝั่ง Backend, Frontend และ Database
+   - ตรวจสอบผลกระทบ สัญญา API (Contract) และประเมินจุดเสี่ยง
+   - จัดทำแผนงานทีละขั้นตอน (Step-by-step Plan) ก่อนลงมือทำจริงเสมอ
+3. **Implementer (ผู้ลงมือทำ):**
+   - เขียน/แก้ไขโค้ดตามแผนงานที่กำหนดไว้อย่างแม่นยำ
+   - ยึดหลัก Clean Architecture, Design System Tokens (`--pw-*`), และ Master Rules ทั้งหมด
+   - ทำงานเฉพาะจุดที่ได้รับมอบหมาย ไม่แก้ไขไฟล์นอกขอบเขตโดยไม่จำเป็น
+4. **Review (ผู้ตรวจงาน):**
+   - รันตรวจสอบ Build (`dotnet build` / `npm run build`), Linter, และ Type Check
+   - ตรวจสอบความถูกต้องของ Business Logic, Responsive Design, และ Theme Dark/Light
+   - เปรียบเทียบผลลัพธ์จริงกับโจทย์ที่ได้รับว่าครบถ้วน 100% หรือไม่
+129: 5. **แก้ไขและตรวจซ้ำ (Remediation & Re-verification — เมื่อพบปัญหา):**
+130:    - หากขั้นตอน Review พบข้อผิดพลาด, Warning, Build Failed หรือ Logic ผิดเพี้ยน
+131:    - ต้องลงมือแก้ไขจุดบกพร่องทันที
+132:    - **ต้องรันตรวจซ้ำ (Re-verify) จนกว่าทุกส่วนจะผ่าน 100%** จึงจะส่งงานต่อไปให้ Agent หลักสรุปผล
+133: 
+134: ---
+135: 
+136: ## 🚀 6. กฎเหล็กขั้นตอนการ Deploy (Strict PR-Based Deployment Protocol & Zero Schema Drift Policy)
+137: 
+138: เมื่อผู้ใช้สั่งให้ **"Deploy"** หมายถึงการนำโค้ดที่ผ่านการทดสอบและสมบูรณ์แล้วเข้าสู่ branch `main` ผ่าน Pull Request (PR) **โดยห้าม Push โค้ดตรงเข้า branch `main` โดยเด็ดขาด (Never Push Directly to `main`)** AI ต้องปฏิบัติตามลำดับ 10 ขั้นตอนนี้โดยอัตโนมัติ:
+139: 
+140: 1. **Pre-commit Checks**: ตรวจสอบสถานะโค้ดด้วย `git status` ยืนยันว่าไม่มีไฟล์ขยะ/ความลับ (เช่น `.env.local`, logs, scratch scripts, screenshots) หลุดเข้าสู่ repository
+141: 2. **ทดสอบ Build ทั้งสองฝั่ง (Quality Gates)**:
+142:    - Backend: `dotnet build backend/PocketWise.sln -c Release` (ต้องผ่าน 100%)
+143:    - Frontend: `cd frontend/pocketwise-web && npm run build` (ต้องผ่าน 100% ครบทุก Routes)
+144: 3. **เช็คฐานข้อมูล (Zero Schema Drift Check)**:
+145:    - หากมีการแก้ไขหรือเพิ่มตาราง/คอลัมน์ในระหว่างการพัฒนา ต้องเตรียม SQL Migration Script ให้เรียบร้อย
+146:    - การรัน Script อัปเดตตารางบน Supabase (Production) ต้องทำให้ตรงกับ Local และสอดคล้องกับโค้ดที่จะขึ้นสู่ `main` เสมอ
+147: 4. **เลือกไฟล์เข้า Staging (Stage Changes)**:
+148:    - ใช้ `git add <files>` (หรือ `git add .` เฉพาะไฟล์งานที่สะอาด) และตรวจสอบซ้ำด้วย `git diff --staged`
+149: 5. **Commit เข้า branch `develop` (Conventional Commits)**:
+150:    - โค้ดที่เตรียม deploy ต้อง commit เข้าสู่ branch `develop` เท่านั้น ด้วยฟอร์แมตมาตรฐาน `<type>(<scope>): <description>` (เช่น `feat(...)`, `fix(...)`)
+151: 6. **ซิงค์และ Push โค้ดขึ้น GitHub (Pull & Push)**:
+152:    - ดึงโค้ดล่าสุด: `git pull origin develop --rebase`
+153:    - Push โค้ดขึ้น branch develop: `git push origin develop`
+154: 7. **เปิด Pull Request (PR) เข้าสู่ branch `main`**:
+155:    - สร้าง PR จาก `develop` มุ่งหน้าไปยัง `main` พร้อมระบุ Title และคำอธิบายการเปลี่ยนแปลงอย่างชัดเจน
+156: 8. **ตรวจสอบสถานะ CI และ Confirm Merge**:
+157:    - รอตรวจสอบผล GitHub Actions CI (`ci.yml`) ให้ผ่านครบทั้ง `backend-check` และ `frontend-check`
+158:    - **เมื่อ CI ผ่านครบ 100% แล้ว จึงทำการ Confirm Merge เข้าสู่ branch `main` ได้ทันที**
+159: 9. **แก้ไขและทำซ้ำเมื่อพบปัญหา (Re-loop on Failure)**:
+160:    - หากเกิดข้อผิดพลาด, Build พัง หรือ CI ไม่ผ่านในขั้นตอนใด **ห้าม merge เด็ดขาด**
+161:    - ให้แก้ไขโค้ดในเครื่องให้ถูกต้อง แล้ววนทำซ้ำตั้งแต่ข้อ 4 ถึงข้อ 8 ใหม่อีกครั้งจนกว่าจะผ่านสมบูรณ์
+162: 10. **ซิงค์สกีมาพร้อมกับการ Merge เข้า `main` (Zero Schema Drift Synchronization)**:
+163:     - การ Apply Schema Migration บน Supabase Production ต้องทำควบคู่กับการ Merge เข้า `main` เพื่อให้ Backend API บน Render และ Frontend บน Vercel ที่ถูก trigger deploy อัตโนมัติ สามารถทำงานร่วมกับฐานข้อมูลได้ทันทีโดยไม่มี Schema Mismatch

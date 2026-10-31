@@ -123,13 +123,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="relative min-h-dvh bg-[var(--pw-canvas)] text-[var(--pw-ink)] antialiased selection:bg-[var(--pw-primary)] selection:text-white">
-        <div className="pw-ambient-bg" aria-hidden="true" />
+        <div className="pw-ambient-bg overflow-hidden" aria-hidden="true">
+          <div className="pw-aurora-orb-1" />
+          <div className="pw-aurora-orb-2" />
+        </div>
         <div className="relative z-1 flex min-h-dvh flex-col">
           <Providers>
             {children}
           </Providers>
         </div>
-        <Toaster position="top-center" richColors style={{ zIndex: 99999 }} />
+        <Toaster position="top-center" expand={true} richColors closeButton visibleToasts={3} gap={8} style={{ zIndex: 99999 }} />
       </body>
     </html>
   );

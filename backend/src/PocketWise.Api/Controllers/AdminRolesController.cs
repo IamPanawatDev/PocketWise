@@ -9,7 +9,7 @@ namespace PocketWise.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/admin")]
-[Authorize]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AdminRolesController : ControllerBase
 {
     private readonly IRolePermissionService _roleService;
@@ -117,7 +117,7 @@ public class AdminRolesController : ControllerBase
         return Ok(ApiResponse<RoleDetailResponse>.Ok(updated));
     }
 
-    [HttpGet("users")]
+    [HttpGet("user-roles")]
     public async Task<ActionResult<ApiResponse<List<UserWithRolesResponse>>>> GetUsersWithRolesAsync(CancellationToken cancellationToken)
     {
         var users = await _roleService.GetUsersWithRolesAsync(cancellationToken);

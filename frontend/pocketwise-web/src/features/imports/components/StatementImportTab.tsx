@@ -14,6 +14,9 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  Download,
+  FileSpreadsheet,
+  FileCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -176,6 +179,61 @@ export function StatementImportTab() {
     }
   };
 
+  const downloadSampleCsv = () => {
+    const csvContent = `# statement_date: 2026-10-15
+# period_start: 2026-09-16
+# period_end: 2026-10-15
+# due_date: 2026-11-05
+date,description,amount,type,ref
+2026-10-01,Starbucks Cafe,150.00,purchase,TXN001
+2026-10-05,Monthly Cashback,50.00,cashback,TXN002
+2026-10-08,Grab Food Delivery,320.00,purchase,TXN003
+2026-10-12,BTS Ticket,65.00,purchase,TXN004
+2026-10-14,Shopee Online,890.00,purchase,TXN005
+`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "sample_statement.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadSampleJson = () => {
+    const jsonContent = JSON.stringify(
+      {
+        statementDate: "2026-10-15",
+        statementPeriodStart: "2026-09-16",
+        statementPeriodEnd: "2026-10-15",
+        paymentDueDate: "2026-11-05",
+        previousBalance: 5000.0,
+        purchaseAmount: 1475.0,
+        totalDue: 1475.0,
+        items: [
+          { transactionDate: "2026-10-01", description: "Starbucks Cafe", amount: 150.0, itemType: "Purchase", externalReference: "TXN001" },
+          { transactionDate: "2026-10-05", description: "Monthly Cashback", amount: 50.0, itemType: "Cashback", externalReference: "TXN002" },
+          { transactionDate: "2026-10-08", description: "Grab Food Delivery", amount: 320.0, itemType: "Purchase", externalReference: "TXN003" },
+          { transactionDate: "2026-10-12", description: "BTS Ticket", amount: 65.0, itemType: "Purchase", externalReference: "TXN004" },
+          { transactionDate: "2026-10-14", description: "Shopee Online", amount: 890.0, itemType: "Purchase", externalReference: "TXN005" }
+        ]
+      },
+      null,
+      2
+    );
+    const blob = new Blob([jsonContent], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "sample_statement.json");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {statusMessage && (
@@ -219,7 +277,27 @@ export function StatementImportTab() {
             </Select>
           </FormField>
 
-          <div className="flex justify-end md:mt-5">
+          <div className="flex flex-wrap items-center justify-end gap-2 md:mt-5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs text-[var(--pw-primary)] border-[var(--pw-primary)]/40 hover:bg-[var(--pw-primary)]/10 active:scale-95 transition-all"
+              onClick={downloadSampleCsv}
+            >
+              <FileSpreadsheet className="size-3.5" />
+              โหลด Template CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs text-[var(--pw-ink)]/80 hover:bg-[var(--pw-surface-onyx)] active:scale-95 transition-all"
+              onClick={downloadSampleJson}
+            >
+              <FileCode className="size-3.5" />
+              โหลด Template JSON
+            </Button>
             <Button
               type="button"
               variant="outline"
