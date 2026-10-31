@@ -101,6 +101,36 @@
 
 ---
 
+8. **กฎเหล็กขั้นตอนการ Deploy (Strict PR-Based Deployment Protocol & Zero Schema Drift Policy)**:
+   - **นิยามของคำสั่ง "Deploy"**: เมื่อผู้ใช้สั่งให้ "Deploy" หมายถึงการนำโค้ดที่พัฒนาและตรวจสอบแล้วเข้าสู่ branch `main` ผ่าน Pull Request (PR) **โดยห้าม Push โค้ดตรงเข้า branch `main` โดยเด็ดขาด (Never Push Directly to `main`)**
+   - **10 ขั้นตอนการ Deploy มาตรฐาน (AI ต้องปฏิบัติตามลำดับโดยอัตโนมัติ)**:
+     1. **Pre-commit Checks**: ตรวจสอบสถานะโค้ดด้วย `git status` ยืนยันว่าไม่มีไฟล์ขยะ/ความลับ (เช่น `.env.local`, logs, scratch scripts, screenshots) หลุดเข้าสู่ repository
+     2. **ทดสอบ Build ทั้งสองฝั่ง (Quality Gates)**:
+        - Backend: `dotnet build backend/PocketWise.sln -c Release` (ต้องคอมไพล์ผ่าน 100%)
+        - Frontend: `cd frontend/pocketwise-web && npm run build` (ต้องคอมไพล์ผ่าน 100% ครบทุก Routes)
+     3. **เช็คฐานข้อมูล (Zero Schema Drift Check)**:
+        - หากมีการแก้ไขหรือเพิ่มตาราง/คอลัมน์ในระหว่างการพัฒนา ต้องเตรียม SQL Migration Script ให้เรียบร้อย
+        - การรัน Script อัปเดตตารางบน Supabase (Production) ต้องทำให้ตรงกับ Local และสอดคล้องกับโค้ดที่จะขึ้นสู่ `main` เสมอ
+     4. **เลือกไฟล์เข้า Staging (Stage Changes)**:
+        - ใช้ `git add <files>` (หรือ `git add .` เฉพาะไฟล์งานที่สะอาด) และตรวจสอบซ้ำด้วย `git diff --staged`
+     5. **Commit เข้า branch `develop` (Conventional Commits)**:
+        - โค้ดที่เตรียม deploy ต้อง commit เข้าสู่ branch `develop` เท่านั้น ด้วยฟอร์แมตมาตรฐาน `<type>(<scope>): <description>` (เช่น `feat(...)`, `fix(...)`)
+     6. **ซิงค์และ Push โค้ดขึ้น GitHub (Pull & Push)**:
+        - ดึงโค้ดล่าสุด: `git pull origin develop --rebase`
+        - Push โค้ดขึ้น branch develop: `git push origin develop`
+     7. **เปิด Pull Request (PR) เข้าสู่ branch `main`**:
+        - สร้าง PR จาก `develop` มุ่งหน้าไปยัง `main` พร้อมระบุ Title และคำอธิบายการเปลี่ยนแปลงอย่างชัดเจน
+     8. **ตรวจสอบสถานะ CI และ Confirm Merge**:
+        - รอตรวจสอบผล GitHub Actions CI (`ci.yml`) ให้ผ่านครบทั้ง `backend-check` และ `frontend-check`
+        - **เมื่อ CI ผ่านครบ 100% แล้ว จึงทำการ Confirm Merge เข้าสู่ branch `main` ได้ทันที**
+     9. **แก้ไขและทำซ้ำเมื่อพบปัญหา (Re-loop on Failure)**:
+        - หากเกิดข้อผิดพลาด, Build พัง หรือ CI ไม่ผ่านในขั้นตอนใด **ห้าม merge เด็ดขาด**
+        - ให้แก้ไขโค้ดในเครื่องให้ถูกต้อง แล้ววนทำซ้ำตั้งแต่ข้อ 4 ถึงข้อ 8 ใหม่อีกครั้งจนกว่าจะผ่านสมบูรณ์
+     10. **ซิงค์สกีมาพร้อมกับการ Merge เข้า `main` (Zero Schema Drift Synchronization)**:
+         - การ Apply Schema Migration บน Supabase Production ต้องทำควบคู่กับการ Merge เข้า `main` เพื่อให้ Backend API บน Render และ Frontend บน Vercel ที่ถูก trigger deploy อัตโนมัติ สามารถทำงานร่วมกับฐานข้อมูลได้ทันทีโดยไม่มี Schema Mismatch
+
+---
+
 ## 🧭 3. กฎย่อยประจำแต่ละส่วนของโปรเจค (Sub-Rules Navigation)
 
 โปรเจคนี้แบ่ง Rule ตามขอบเขตการทำงานเพื่อให้ AI วางโค้ดได้อย่างถูกต้อง:

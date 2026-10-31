@@ -126,7 +126,38 @@ flowchart TD
    - รันตรวจสอบ Build (`dotnet build` / `npm run build`), Linter, และ Type Check
    - ตรวจสอบความถูกต้องของ Business Logic, Responsive Design, และ Theme Dark/Light
    - เปรียบเทียบผลลัพธ์จริงกับโจทย์ที่ได้รับว่าครบถ้วน 100% หรือไม่
-5. **แก้ไขและตรวจซ้ำ (Remediation & Re-verification — เมื่อพบปัญหา):**
-   - หากขั้นตอน Review พบข้อผิดพลาด, Warning, Build Failed หรือ Logic ผิดเพี้ยน
-   - ต้องลงมือแก้ไขจุดบกพร่องทันที
-   - **ต้องรันตรวจซ้ำ (Re-verify) จนกว่าทุกส่วนจะผ่าน 100%** จึงจะส่งงานต่อไปให้ Agent หลักสรุปผล
+129: 5. **แก้ไขและตรวจซ้ำ (Remediation & Re-verification — เมื่อพบปัญหา):**
+130:    - หากขั้นตอน Review พบข้อผิดพลาด, Warning, Build Failed หรือ Logic ผิดเพี้ยน
+131:    - ต้องลงมือแก้ไขจุดบกพร่องทันที
+132:    - **ต้องรันตรวจซ้ำ (Re-verify) จนกว่าทุกส่วนจะผ่าน 100%** จึงจะส่งงานต่อไปให้ Agent หลักสรุปผล
+133: 
+134: ---
+135: 
+136: ## 🚀 6. กฎเหล็กขั้นตอนการ Deploy (Strict PR-Based Deployment Protocol & Zero Schema Drift Policy)
+137: 
+138: เมื่อผู้ใช้สั่งให้ **"Deploy"** หมายถึงการนำโค้ดที่ผ่านการทดสอบและสมบูรณ์แล้วเข้าสู่ branch `main` ผ่าน Pull Request (PR) **โดยห้าม Push โค้ดตรงเข้า branch `main` โดยเด็ดขาด (Never Push Directly to `main`)** AI ต้องปฏิบัติตามลำดับ 10 ขั้นตอนนี้โดยอัตโนมัติ:
+139: 
+140: 1. **Pre-commit Checks**: ตรวจสอบสถานะโค้ดด้วย `git status` ยืนยันว่าไม่มีไฟล์ขยะ/ความลับ (เช่น `.env.local`, logs, scratch scripts, screenshots) หลุดเข้าสู่ repository
+141: 2. **ทดสอบ Build ทั้งสองฝั่ง (Quality Gates)**:
+142:    - Backend: `dotnet build backend/PocketWise.sln -c Release` (ต้องผ่าน 100%)
+143:    - Frontend: `cd frontend/pocketwise-web && npm run build` (ต้องผ่าน 100% ครบทุก Routes)
+144: 3. **เช็คฐานข้อมูล (Zero Schema Drift Check)**:
+145:    - หากมีการแก้ไขหรือเพิ่มตาราง/คอลัมน์ในระหว่างการพัฒนา ต้องเตรียม SQL Migration Script ให้เรียบร้อย
+146:    - การรัน Script อัปเดตตารางบน Supabase (Production) ต้องทำให้ตรงกับ Local และสอดคล้องกับโค้ดที่จะขึ้นสู่ `main` เสมอ
+147: 4. **เลือกไฟล์เข้า Staging (Stage Changes)**:
+148:    - ใช้ `git add <files>` (หรือ `git add .` เฉพาะไฟล์งานที่สะอาด) และตรวจสอบซ้ำด้วย `git diff --staged`
+149: 5. **Commit เข้า branch `develop` (Conventional Commits)**:
+150:    - โค้ดที่เตรียม deploy ต้อง commit เข้าสู่ branch `develop` เท่านั้น ด้วยฟอร์แมตมาตรฐาน `<type>(<scope>): <description>` (เช่น `feat(...)`, `fix(...)`)
+151: 6. **ซิงค์และ Push โค้ดขึ้น GitHub (Pull & Push)**:
+152:    - ดึงโค้ดล่าสุด: `git pull origin develop --rebase`
+153:    - Push โค้ดขึ้น branch develop: `git push origin develop`
+154: 7. **เปิด Pull Request (PR) เข้าสู่ branch `main`**:
+155:    - สร้าง PR จาก `develop` มุ่งหน้าไปยัง `main` พร้อมระบุ Title และคำอธิบายการเปลี่ยนแปลงอย่างชัดเจน
+156: 8. **ตรวจสอบสถานะ CI และ Confirm Merge**:
+157:    - รอตรวจสอบผล GitHub Actions CI (`ci.yml`) ให้ผ่านครบทั้ง `backend-check` และ `frontend-check`
+158:    - **เมื่อ CI ผ่านครบ 100% แล้ว จึงทำการ Confirm Merge เข้าสู่ branch `main` ได้ทันที**
+159: 9. **แก้ไขและทำซ้ำเมื่อพบปัญหา (Re-loop on Failure)**:
+160:    - หากเกิดข้อผิดพลาด, Build พัง หรือ CI ไม่ผ่านในขั้นตอนใด **ห้าม merge เด็ดขาด**
+161:    - ให้แก้ไขโค้ดในเครื่องให้ถูกต้อง แล้ววนทำซ้ำตั้งแต่ข้อ 4 ถึงข้อ 8 ใหม่อีกครั้งจนกว่าจะผ่านสมบูรณ์
+162: 10. **ซิงค์สกีมาพร้อมกับการ Merge เข้า `main` (Zero Schema Drift Synchronization)**:
+163:     - การ Apply Schema Migration บน Supabase Production ต้องทำควบคู่กับการ Merge เข้า `main` เพื่อให้ Backend API บน Render และ Frontend บน Vercel ที่ถูก trigger deploy อัตโนมัติ สามารถทำงานร่วมกับฐานข้อมูลได้ทันทีโดยไม่มี Schema Mismatch
