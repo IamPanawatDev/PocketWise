@@ -9,7 +9,7 @@ namespace PocketWise.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/admin/announcements")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AdminAnnouncementsController : ControllerBase
 {
     private readonly IAnnouncementService _announcementService;

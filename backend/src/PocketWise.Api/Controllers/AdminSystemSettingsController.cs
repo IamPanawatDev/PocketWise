@@ -9,7 +9,7 @@ namespace PocketWise.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/admin")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AdminSystemSettingsController : ControllerBase
 {
     private readonly IAdminSystemSettingsService _settingsService;

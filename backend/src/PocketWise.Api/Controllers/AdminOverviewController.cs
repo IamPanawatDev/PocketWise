@@ -8,7 +8,7 @@ namespace PocketWise.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/admin/overview")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AdminOverviewController : ControllerBase
 {
     private readonly IAdminDashboardService _dashboardService;

@@ -162,6 +162,22 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
         }
 
         // 2. Seed Roles
+        var superAdminRole = await context.Roles.FirstOrDefaultAsync(r => r.NormalizedName == "SUPERADMIN", cancellationToken);
+        if (superAdminRole == null)
+        {
+            logger.LogInformation("[DatabaseSeeder] Creating SuperAdmin role...");
+            superAdminRole = new ApplicationRole
+            {
+                Name = "SuperAdmin",
+                NormalizedName = "SUPERADMIN",
+                Description = "ผู้ดูแลระบบสูงสุด มีสิทธิ์เข้าถึงและจัดการได้ทุกส่วนของระบบอย่างสมบูรณ์",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            context.Roles.Add(superAdminRole);
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
         var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.NormalizedName == "ADMIN", cancellationToken);
         if (adminRole == null)
         {
@@ -170,11 +186,16 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
             {
                 Name = "Admin",
                 NormalizedName = "ADMIN",
-                Description = "ผู้ดูแลระบบ มีสิทธิ์เข้าถึงและจัดการได้ทุกส่วนของระบบ",
+                Description = "ผู้ดูแลระบบฝ่ายจัดการ มีสิทธิ์เข้าถึงเฉพาะส่วนตั้งค่าและการจัดการของระบบ",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
             context.Roles.Add(adminRole);
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        else if (adminRole.Description != "ผู้ดูแลระบบฝ่ายจัดการ มีสิทธิ์เข้าถึงเฉพาะส่วนตั้งค่าและการจัดการของระบบ")
+        {
+            adminRole.Description = "ผู้ดูแลระบบฝ่ายจัดการ มีสิทธิ์เข้าถึงเฉพาะส่วนตั้งค่าและการจัดการของระบบ";
             await context.SaveChangesAsync(cancellationToken);
         }
 
@@ -194,15 +215,71 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
             await context.SaveChangesAsync(cancellationToken);
         }
 
-        // 3. Assign Permissions to Admin Role (ALL permissions)
         var allPermissions = await context.Permissions.ToListAsync(cancellationToken);
-        var existingAdminPermIds = await context.ApplicationRolePermissions
-            .Where(rp => rp.RoleId == adminRole.Id)
+
+        // 3. Assign Permissions to SuperAdmin Role (ALL 29 permissions)
+        var existingSuperAdminPermIds = await context.ApplicationRolePermissions
+            .Where(rp => rp.RoleId == superAdminRole.Id)
             .Select(rp => rp.PermissionId)
             .ToListAsync(cancellationToken);
 
+        var missingSuperAdminPerms = allPermissions
+            .Where(p => !existingSuperAdminPermIds.Contains(p.PermissionId))
+            .Select(p => new ApplicationRolePermission
+            {
+                RoleId = superAdminRole.Id,
+                PermissionId = p.PermissionId,
+                CreatedAt = DateTime.UtcNow
+            })
+            .ToList();
+
+        if (missingSuperAdminPerms.Count > 0)
+        {
+            context.ApplicationRolePermissions.AddRange(missingSuperAdminPerms);
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("[DatabaseSeeder] Assigned {Count} permissions to SuperAdmin role.", missingSuperAdminPerms.Count);
+        }
+
+        // 4. Assign Permissions to Admin Role (Admin settings & operations only)
+        var adminPermCodes = new HashSet<string>
+        {
+            "ADMIN_DASHBOARD_VIEW",
+            "ROLES_VIEW", "ROLES_MANAGE",
+            "USERS_VIEW", "USERS_MANAGE",
+            "SESSIONS_VIEW", "SESSIONS_REVOKE",
+            "SECURITY_EVENTS_VIEW",
+            "IMPORT_OPERATIONS_VIEW", "IMPORT_OPERATIONS_MANAGE",
+            "SYSTEM_SETTINGS_VIEW", "SYSTEM_SETTINGS_MANAGE",
+            "MAINTENANCE_MODE_MANAGE",
+            "ANNOUNCEMENTS_MANAGE",
+            "AUDIT_LOGS_VIEW",
+            "SYSTEM_CATEGORIES_MANAGE"
+        };
+
+        var targetAdminPermIds = allPermissions
+            .Where(p => adminPermCodes.Contains(p.PermissionCode))
+            .Select(p => p.PermissionId)
+            .ToHashSet();
+
+        var currentAdminRolePerms = await context.ApplicationRolePermissions
+            .Where(rp => rp.RoleId == adminRole.Id)
+            .ToListAsync(cancellationToken);
+
+        // Remove non-admin permissions from Admin role
+        var adminPermsToRemove = currentAdminRolePerms
+            .Where(rp => !targetAdminPermIds.Contains(rp.PermissionId))
+            .ToList();
+        if (adminPermsToRemove.Count > 0)
+        {
+            context.ApplicationRolePermissions.RemoveRange(adminPermsToRemove);
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("[DatabaseSeeder] Removed {Count} non-admin permissions from Admin role.", adminPermsToRemove.Count);
+        }
+
+        // Add missing admin permissions to Admin role
+        var currentAdminPermIds = currentAdminRolePerms.Select(rp => rp.PermissionId).ToHashSet();
         var missingAdminPerms = allPermissions
-            .Where(p => !existingAdminPermIds.Contains(p.PermissionId))
+            .Where(p => targetAdminPermIds.Contains(p.PermissionId) && !currentAdminPermIds.Contains(p.PermissionId))
             .Select(p => new ApplicationRolePermission
             {
                 RoleId = adminRole.Id,
@@ -218,12 +295,7 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
             logger.LogInformation("[DatabaseSeeder] Assigned {Count} permissions to Admin role.", missingAdminPerms.Count);
         }
 
-        // 4. Assign Standard Permissions to Member Role
-        var existingMemberPermIds = await context.ApplicationRolePermissions
-            .Where(rp => rp.RoleId == memberRole.Id)
-            .Select(rp => rp.PermissionId)
-            .ToListAsync(cancellationToken);
-
+        // 5. Assign Standard Permissions to Member Role
         var memberPermCodes = new HashSet<string>
         {
             "TRANSACTIONS_VIEW", "TRANSACTIONS_CREATE", "TRANSACTIONS_EDIT", "TRANSACTIONS_DELETE",
@@ -232,8 +304,30 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
             "REPORTS_VIEW", "REPORTS_EXPORT", "IMPORTS_MANAGE"
         };
 
+        var targetMemberPermIds = allPermissions
+            .Where(p => memberPermCodes.Contains(p.PermissionCode))
+            .Select(p => p.PermissionId)
+            .ToHashSet();
+
+        var currentMemberRolePerms = await context.ApplicationRolePermissions
+            .Where(rp => rp.RoleId == memberRole.Id)
+            .ToListAsync(cancellationToken);
+
+        // Remove non-member permissions from Member role
+        var memberPermsToRemove = currentMemberRolePerms
+            .Where(rp => !targetMemberPermIds.Contains(rp.PermissionId))
+            .ToList();
+        if (memberPermsToRemove.Count > 0)
+        {
+            context.ApplicationRolePermissions.RemoveRange(memberPermsToRemove);
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("[DatabaseSeeder] Removed {Count} extraneous permissions from Member role.", memberPermsToRemove.Count);
+        }
+
+        // Add missing member permissions to Member role
+        var currentMemberPermIds = currentMemberRolePerms.Select(rp => rp.PermissionId).ToHashSet();
         var missingMemberPerms = allPermissions
-            .Where(p => memberPermCodes.Contains(p.PermissionCode) && !existingMemberPermIds.Contains(p.PermissionId))
+            .Where(p => targetMemberPermIds.Contains(p.PermissionId) && !currentMemberPermIds.Contains(p.PermissionId))
             .Select(p => new ApplicationRolePermission
             {
                 RoleId = memberRole.Id,
@@ -249,20 +343,38 @@ CREATE TABLE IF NOT EXISTS ""SystemSettings"" (
             logger.LogInformation("[DatabaseSeeder] Assigned {Count} permissions to Member role.", missingMemberPerms.Count);
         }
 
-        // 5. Ensure Existing Users have Admin role assigned so the developer can access immediately
+        // 6. Ensure Primary Developer User (famreplay@gmail.com) has SuperAdmin role assigned
+        var devUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "famreplay@gmail.com", cancellationToken);
+        if (devUser != null)
+        {
+            var hasSuperAdmin = await context.UserRoles.AnyAsync(ur => ur.UserId == devUser.Id && ur.RoleId == superAdminRole.Id, cancellationToken);
+            if (!hasSuperAdmin)
+            {
+                context.UserRoles.Add(new ApplicationUserRole
+                {
+                    UserId = devUser.Id,
+                    RoleId = superAdminRole.Id,
+                    AssignedAt = DateTime.UtcNow
+                });
+                await context.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("[DatabaseSeeder] Assigned SuperAdmin role to primary user {Email}.", devUser.Email);
+            }
+        }
+
+        // 7. Ensure any User without a role gets assigned Member role
         var users = await context.Users.ToListAsync(cancellationToken);
         foreach (var user in users)
         {
-            var hasRole = await context.UserRoles.AnyAsync(ur => ur.UserId == user.Id, cancellationToken);
-            if (!hasRole)
+            var hasAnyRole = await context.UserRoles.AnyAsync(ur => ur.UserId == user.Id, cancellationToken);
+            if (!hasAnyRole)
             {
                 context.UserRoles.Add(new ApplicationUserRole
                 {
                     UserId = user.Id,
-                    RoleId = adminRole.Id,
+                    RoleId = memberRole.Id,
                     AssignedAt = DateTime.UtcNow
                 });
-                logger.LogInformation("[DatabaseSeeder] Assigned Admin role to user {Email} (ID {Id}).", user.Email, user.Id);
+                logger.LogInformation("[DatabaseSeeder] Assigned Member role to user {Email} (ID {Id}).", user.Email, user.Id);
             }
         }
         await context.SaveChangesAsync(cancellationToken);

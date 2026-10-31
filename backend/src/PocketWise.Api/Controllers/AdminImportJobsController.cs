@@ -9,7 +9,7 @@ namespace PocketWise.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/admin/imports")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AdminImportJobsController : ControllerBase
 {
     private readonly IAdminImportJobService _importJobService;

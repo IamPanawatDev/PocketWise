@@ -75,7 +75,7 @@ export default function AdminAnnouncementsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
 
-  const isAdmin = user?.roles?.includes("Admin") ?? true;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? true;
 
   if (!isUserLoading && !isAdmin) {
     return (

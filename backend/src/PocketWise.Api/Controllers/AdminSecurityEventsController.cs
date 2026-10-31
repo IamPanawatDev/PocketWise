@@ -8,7 +8,7 @@ namespace PocketWise.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/admin/security-events")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AdminSecurityEventsController : ControllerBase
 {
     private readonly ISecurityEventService _securityEventService;

@@ -142,7 +142,7 @@ export function RolesManager() {
       {/* Roles Cards / Table */}
       <AnimatedList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {roles.map((role) => {
-          const isSystemRole = role.name.toUpperCase() === "ADMIN";
+          const isSystemRole = ["ADMIN", "SUPERADMIN", "MEMBER"].includes(role.name.toUpperCase());
 
           return (
             <AnimatedListItem key={role.id}>

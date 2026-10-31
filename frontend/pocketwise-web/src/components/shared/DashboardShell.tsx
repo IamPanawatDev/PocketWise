@@ -95,7 +95,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(true);
 
-  const isAdmin = user?.roles?.includes("Admin") ?? false;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? false;
 
   useEffect(() => {
     if (isError) {

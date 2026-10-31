@@ -15,7 +15,7 @@ export default function AdminPermissionsPage() {
   const { data: user, isLoading } = useCurrentUser();
   const [activeTab, setActiveTab] = useState<TabKey>("matrix");
 
-  const isAdmin = user?.roles?.includes("Admin") ?? true;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? true;
 
   if (!isLoading && !isAdmin) {
     return (

@@ -93,7 +93,7 @@ export default function AdminSettingsPage() {
     }
   }, [maintenance]);
 
-  const isAdmin = user?.roles?.includes("Admin") ?? true;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? true;
 
   if (!isUserLoading && !isAdmin) {
     return (

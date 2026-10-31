@@ -41,7 +41,7 @@ export default function AdminOverviewPage() {
   const updateMaintenance = useUpdateMaintenanceMutation();
   const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
 
-  const isAdmin = user?.roles?.includes("Admin") ?? true;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? true;
 
   if (!isUserLoading && !isAdmin) {
     return (

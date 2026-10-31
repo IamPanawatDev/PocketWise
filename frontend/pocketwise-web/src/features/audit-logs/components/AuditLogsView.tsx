@@ -24,7 +24,7 @@ export function AuditLogsView() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const { data: user, isLoading: isLoadingUser } = useCurrentUser();
-  const isAdmin = user?.roles?.includes("Admin") ?? true;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? true;
 
   const { data, isLoading, refetch, isFetching } = useAuditLogs(filter, page, pageSize, isAdmin);
   const { data: entityTypes = [] } = useAuditEntityTypes(isAdmin);

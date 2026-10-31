@@ -55,7 +55,7 @@ export default function AdminSecurityEventsPage() {
 
   const { data: eventsData, isLoading, refetch } = useAdminSecurityEventsQuery(filters);
 
-  const isAdmin = user?.roles?.includes("Admin") ?? true;
+  const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? true;
 
   if (!isUserLoading && !isAdmin) {
     return (

@@ -138,7 +138,7 @@ export default function AdminUsersPage() {
     onConfirm: () => {},
   });
 
-  const isAdmin = currentUser?.roles?.includes("Admin") ?? true;
+  const isAdmin = (currentUser?.roles?.includes("Admin") || currentUser?.roles?.includes("SuperAdmin")) ?? true;
 
   if (!isUserLoading && !isAdmin) {
     return (

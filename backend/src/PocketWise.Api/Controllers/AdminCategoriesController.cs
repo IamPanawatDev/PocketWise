@@ -125,7 +125,7 @@ public class AdminCategoriesController : ControllerBase
 
     private bool IsAdmin()
     {
-        return User.IsInRole("Admin");
+        return User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
     }
 
     private long GetUserId()
