@@ -29,6 +29,8 @@ import {
   Layers,
   LoaderCircle,
   Receipt,
+  ReceiptText,
+  Plus,
   Scale,
   X,
 } from "lucide-react";
@@ -235,15 +237,22 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant={activeFilterCount > 0 ? "secondary" : "outline"}
+            variant="outline"
+
+            className={cn(
+              "relative gap-2 min-h-10 text-xs sm:text-sm font-medium transition-all shadow-xs",
+              activeFilterCount > 0
+                ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
+                : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]",
+            )}
             size="sm"
             onClick={() => setShowFilterSheet(true)}
-            className="relative gap-2 min-h-10 text-xs sm:text-sm font-medium border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)] shadow-xs"
+
           >
             <Filter className="size-4 text-[var(--pw-primary)]" />
             <span>ตัวกรอง</span>
             {activeFilterCount > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[10px] font-bold text-[var(--pw-primary-foreground)]">
+              <span className="flex size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[10px] font-bold text-white shadow-xs">
                 {activeFilterCount}
               </span>
             )}
@@ -430,8 +439,23 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
               : "โหลดรายงานไม่สำเร็จ"}
         </p>
       ) : !activeCurrency ? (
-        <Card className="p-6 text-center text-[var(--pw-ink)]/65">
-          ไม่มีรายการที่ยืนยันแล้วในช่วงวันที่นี้
+        <Card className="flex flex-col items-center justify-center p-8 sm:p-12 text-center border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/40 shadow-xs backdrop-blur-xs">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] mb-3.5 ring-8 ring-[var(--pw-primary)]/5">
+            <ReceiptText className="size-7" />
+          </div>
+          <h2 className="text-lg font-bold text-[var(--pw-ink)] sm:text-xl">
+            ยังไม่มีข้อมูลธุรกรรมที่จะแสดงในรายงาน
+          </h2>
+          <p className="mt-1.5 max-w-md text-sm text-[var(--pw-ink)]/75">
+            เมื่อคุณเริ่มบันทึกรายรับหรือรายจ่าย ระบบจะรวบรวมข้อมูลมาสรุปเป็นสถิติ กราฟแนวโน้ม และสัดส่วนการเงินให้เห็นภาพรวมทันที
+          </p>
+          <Button asChild size="default" className="mt-5 gap-2 font-medium shadow-sm hover:scale-102 active:scale-98 transition-transform">
+            <Link href="/transactions?action=new">
+              <Plus className="size-4" />
+              เพิ่มธุรกรรมแรกของคุณ
+            </Link>
+          </Button>
+
         </Card>
       ) : (
         <>

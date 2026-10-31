@@ -6,6 +6,7 @@ using PocketWise.Application.DTOs.Admin;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
 using PocketWise.Domain.Enums;
+using PocketWise.Domain.Rules;
 using PocketWise.Infrastructure.Persistence;
 
 namespace PocketWise.Infrastructure.Services.Admin;
@@ -199,6 +200,11 @@ public class AdminUserService : IAdminUserService
 
     public async Task<bool> SuspendUserAsync(long userId, long adminUserId, string reason, CancellationToken cancellationToken = default)
     {
+        if (userId == adminUserId)
+        {
+            throw new BusinessException("OPERATION_NOT_ALLOWED", "ไม่สามารถระงับบัญชีของตนเองได้");
+        }
+
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user == null) return false;
 

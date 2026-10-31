@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "node ../../tests/e2e/e2e_full_suite.js",
+    "test:e2e:light": "node ../../tests/e2e/e2e_light_mode_suite.js",
+    "test:security": "node ../../tests/security/security_business_logic_suite.js",
+    "test:pentest": "node ../../tests/security/deep_security_audit_suite.js"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.11",

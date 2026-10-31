@@ -4,31 +4,47 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sliders,
-  AlertTriangle,
-  CheckCircle2,
-  Save,
-  Clock,
   ShieldAlert,
-  Server,
-  Lock,
-  Edit2,
+  Save,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw,
+  Power,
   X,
-  Calendar,
+  Edit2,
+  Lock,
 } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useAdminSettingsQuery,
-  useUpdateSettingMutation,
   useMaintenanceStatusQuery,
+  useUpdateSettingMutation,
   useUpdateMaintenanceMutation,
 } from "@/features/admin-operations/hooks/useAdminOperations";
 import { cn } from "@/lib/utils";
+import {
+  formatDisplayDateTime,
+  toThailandDateTimeInputValue,
+} from "@/lib/date-utils";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { DateTimeInput } from "@/components/ui/date-input";
+import { FormField } from "@/components/ui/form-field";
+import { Button } from "@/components/ui/button";
 import type { SystemSettingItem } from "@/types/admin-operations.types";
 
 export default function AdminSettingsPage() {
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
-  const { data: settings = [], isLoading: isSettingsLoading } = useAdminSettingsQuery();
-  const { data: maintenance, isLoading: isMaintenanceLoading } = useMaintenanceStatusQuery();
+  const { data: settings = [], isLoading, refetch } = useAdminSettingsQuery();
+  const { data: maintenance, isLoading: isMaintenanceLoading } =
+    useMaintenanceStatusQuery();
 
   const updateSettingMutation = useUpdateSettingMutation();
   const updateMaintenanceMutation = useUpdateMaintenanceMutation();
@@ -46,24 +62,26 @@ export default function AdminSettingsPage() {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (maintenance) {
-      setMaintenanceEnabled(maintenance.isEnabled);
-      setMaintenanceMessage(maintenance.message || "");
-      setAllowedUserIdsStr(maintenance.allowedUserIds?.join(", ") || "");
-      setStartsAt(
-        maintenance.startsAt ? new Date(maintenance.startsAt).toISOString().slice(0, 16) : ""
-      );
-      setEndsAt(
-        maintenance.endsAt ? new Date(maintenance.endsAt).toISOString().slice(0, 16) : ""
-      );
-    }
-  }, [maintenance]);
-
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  useEffect(() => {
+    if (maintenance) {
+      setMaintenanceEnabled(maintenance.isEnabled);
+      setMaintenanceMessage(maintenance.message || "");
+      setAllowedUserIdsStr(
+        maintenance.allowedUserIds?.length ? maintenance.allowedUserIds.join(", ") : ""
+      );
+      setStartsAt(
+        maintenance.startsAt ? toThailandDateTimeInputValue(maintenance.startsAt) : ""
+      );
+      setEndsAt(
+        maintenance.endsAt ? toThailandDateTimeInputValue(maintenance.endsAt) : ""
+      );
+    }
+  }, [maintenance]);
 
   const isAdmin = user?.roles?.includes("Admin") ?? true;
 
@@ -75,7 +93,7 @@ export default function AdminSettingsPage() {
           ปฏิเสธการเข้าถึง (Access Denied)
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
-          คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงการตั้งค่าระบบและโหมดปรับปรุงได้
+          คุณต้องมีบทบาทระดับ Admin จึงจะสามารถจัดการการตั้งค่าระบบได้
         </p>
       </div>
     );
@@ -84,54 +102,66 @@ export default function AdminSettingsPage() {
   const handleSaveMaintenance = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const allowedIds = allowedUserIdsStr
+    const allowedUserIds = allowedUserIdsStr
       .split(",")
-      .map((s) => s.trim())
+      .map((id) => id.trim())
       .filter(Boolean)
-      .map((id) => Number(id))
-      .filter((id) => !isNaN(id) && id > 0);
+      .map(Number)
+      .filter((n) => !isNaN(n));
 
     try {
       await updateMaintenanceMutation.mutateAsync({
         isEnabled: maintenanceEnabled,
-        message: maintenanceMessage.trim(),
-        allowedUserIds: allowedIds,
-        startsAt: startsAt ? new Date(startsAt).toISOString() : null,
-        endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+        message: maintenanceMessage.trim() || undefined,
+        allowedUserIds: allowedUserIds.length > 0 ? allowedUserIds : undefined,
+        startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
+        endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
       });
-      showToast("บันทึกการตั้งค่าโหมดปรับปรุงระบบเรียบร้อยแล้ว");
+      toast.success("บันทึกการตั้งค่า Maintenance Mode เรียบร้อยแล้ว");
     } catch (err: any) {
-      alert(err?.message || "เกิดข้อผิดพลาดในการบันทึก");
+      toast.error(err?.message || "เกิดข้อผิดพลาดในการบันทึกโหมดปรับปรุงระบบ");
     }
   };
 
-  const handleSaveSetting = async () => {
+  const handleOpenEditSetting = (item: SystemSettingItem) => {
+    setEditingSetting(item);
+    setEditingValue(item.settingValue);
+  };
+
+  const handleSaveSetting = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!editingSetting) return;
+
     try {
       await updateSettingMutation.mutateAsync({
         key: editingSetting.settingKey,
         value: editingValue,
       });
       setEditingSetting(null);
-      showToast(`บันทึกค่า ${editingSetting.settingKey} เรียบร้อยแล้ว`);
+      toast.success(`อัปเดตการตั้งค่า ${editingSetting.settingKey} เรียบร้อยแล้ว`);
     } catch (err: any) {
-      alert(err?.message || "เกิดข้อผิดพลาดในการบันทึกค่า");
+      toast.error(err?.message || "เกิดข้อผิดพลาดในการบันทึกการตั้งค่า");
     }
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Toast */}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-6"
+    >
+      {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="p-3.5 rounded-xl border border-[var(--pw-income)]/40 bg-[var(--pw-income)]/15 text-[var(--pw-ink)] text-sm flex items-center justify-between"
+            exit={{ opacity: 0, y: -10 }}
+            className="p-3.5 rounded-xl border border-[var(--pw-income)]/40 bg-[var(--pw-income)]/15 backdrop-blur-md text-[var(--pw-income)] text-sm flex items-center justify-between shadow-lg"
           >
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-[var(--pw-income)] shrink-0" />
+              <CheckCircle2 className="size-4 shrink-0" />
               <span>{toastMessage}</span>
             </div>
             <button onClick={() => setToastMessage(null)}>
@@ -151,71 +181,70 @@ export default function AdminSettingsPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-[var(--pw-ink)]">
               การตั้งค่าระบบ & โหมดปรับปรุง (System Settings & Maintenance)
             </h1>
-            <p className="text-xs sm:text-sm text-[var(--pw-ink)]/70">
+            <p className="text-xs sm:text-sm text-[var(--pw-ink)]/75">
               จัดการเปิด/ปิดการบำรุงรักษาระบบ (Maintenance Mode) และกำหนดค่าคอนฟิกกลาง
             </p>
           </div>
         </div>
       </div>
 
-      {/* Maintenance Mode Card */}
-      <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--pw-hairline)] pb-4">
+      {/* Section 1: Maintenance Mode Configuration Card */}
+      <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--pw-hairline)]">
           <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "p-2.5 rounded-xl shrink-0",
-                maintenanceEnabled
-                  ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
-                  : "bg-[var(--pw-income)]/15 text-[var(--pw-income)]"
-              )}
-            >
-              {maintenanceEnabled ? (
-                <AlertTriangle className="size-6 animate-pulse" />
-              ) : (
-                <Server className="size-6" />
-              )}
+            <div className="p-2 rounded-lg bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]">
+              <Power className="size-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base sm:text-lg text-[var(--pw-ink)]">
+              <h2 className="font-bold text-base text-[var(--pw-ink)]">
                 โหมดปรับปรุงระบบ (Maintenance Mode)
-              </h3>
+              </h2>
               <p className="text-xs text-[var(--pw-ink)]/60">
                 เมื่อเปิดใช้งาน ผู้ใช้ทั่วไปจะได้รับรหัส HTTP 503 MAINTENANCE_MODE และไม่สามารถเข้าถึงแอปได้
               </p>
             </div>
           </div>
 
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={maintenanceEnabled}
-              onChange={(e) => setMaintenanceEnabled(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-12 h-6 bg-[var(--pw-hairline)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--pw-expense)]"></div>
-            <span className="ml-3 text-xs sm:text-sm font-bold text-[var(--pw-ink)]">
-              {maintenanceEnabled ? "เปิดใช้งาน (ACTIVE)" : "ปิด (DISABLED)"}
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                "text-xs font-bold px-2.5 py-1 rounded-full uppercase",
+                maintenanceEnabled
+                  ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] animate-pulse"
+                  : "bg-[var(--pw-hairline)] text-[var(--pw-ink)]/70"
+              )}
+            >
+              {maintenanceEnabled ? "เปิดใช้งาน (ENABLED)" : "ปิด (DISABLED)"}
             </span>
-          </label>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={maintenanceEnabled}
+                onChange={(e) => setMaintenanceEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6 bg-[var(--pw-hairline)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--pw-expense)]"></div>
+            </label>
+          </div>
         </div>
 
-        <form onSubmit={handleSaveMaintenance} className="space-y-4 text-xs sm:text-sm">
+        <form onSubmit={handleSaveMaintenance} className="space-y-4">
           <div>
-            <label className="block font-semibold text-[var(--pw-ink)] mb-1">
+            <label className="block font-semibold text-xs text-[var(--pw-ink)] mb-1">
               ข้อความแจ้งเตือนผู้ใช้งานเมื่ออยู่ในโหมดปรับปรุง
             </label>
             <textarea
               rows={2}
               value={maintenanceMessage}
               onChange={(e) => setMaintenanceMessage(e.target.value)}
-              placeholder="ระบบกำลังอยู่ระหว่างปรับปรุงประสิทธิภาพ กรุณากลับมาใหม่อีกครั้งในภายหลัง"
-              className="w-full px-3 py-2 rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
+              placeholder="เช่น ระบบกำลังอยู่ระหว่างปรับปรุงประสิทธิภาพ กรุณากลับมาใหม่อีกครั้งในภายหลัง"
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
             />
           </div>
 
           <div>
-            <label className="block font-semibold text-[var(--pw-ink)] mb-1">
+            <label className="block font-semibold text-xs text-[var(--pw-ink)] mb-1">
               รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้ (Allowlisted User IDs)
             </label>
             <input
@@ -223,196 +252,249 @@ export default function AdminSettingsPage() {
               value={allowedUserIdsStr}
               onChange={(e) => setAllowedUserIdsStr(e.target.value)}
               placeholder="เช่น 1, 2, 5 (คั่นด้วยเครื่องหมายจุลภาค)"
-              className="w-full px-3 py-2 rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
             />
-            <p className="text-[11px] text-[var(--pw-ink)]/60 mt-1">
+            <p className="text-[11px] text-[var(--pw-ink)]/50 mt-1">
               ผู้ใช้ที่มีบทบาท Admin จะได้รับอนุญาตให้เข้าใช้งานเสมอโดยอัตโนมัติ
             </p>
           </div>
 
+          {/* Unified DateTimeInputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-[var(--pw-ink)] mb-1">
-                เวลาเริ่มต้น (Starts At - Optional)
-              </label>
-              <input
-                type="datetime-local"
+            <FormField label="เวลาเริ่มต้น (Starts At - Optional)" htmlFor="maintenance-starts-at">
+              <DateTimeInput
+                id="maintenance-starts-at"
                 value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
+                onChange={setStartsAt}
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block font-semibold text-[var(--pw-ink)] mb-1">
-                เวลาสิ้นสุดโดยประมาณ (Ends At - Optional)
-              </label>
-              <input
-                type="datetime-local"
+            <FormField label="เวลาสิ้นสุดโดยประมาณ (Ends At - Optional)" htmlFor="maintenance-ends-at">
+              <DateTimeInput
+                id="maintenance-ends-at"
                 value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
+                onChange={setEndsAt}
               />
-            </div>
+            </FormField>
           </div>
 
           <div className="pt-2 flex justify-end">
-            <button
+            <Button
               type="submit"
               disabled={updateMaintenanceMutation.isPending}
-              className="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-[var(--pw-primary)] text-white hover:opacity-90 transition-opacity flex items-center gap-2 shadow-sm disabled:opacity-50"
+              className="w-full sm:w-auto"
             >
-              <Save className="size-4" /> บันทึกการตั้งค่า Maintenance
-            </button>
+              <Save className="size-4" />
+              <span>บันทึกการตั้งค่า Maintenance</span>
+            </Button>
           </div>
         </form>
       </div>
 
-      {/* Global System Settings Table */}
-      <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-sm space-y-4">
+      {/* Section 2: General System Settings Key-Value Table */}
+      <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-4">
         <div>
-          <h3 className="font-bold text-base sm:text-lg text-[var(--pw-ink)]">
+          <h2 className="font-bold text-base text-[var(--pw-ink)]">
             ตารางการตั้งค่าระบบ (System Settings Key-Value)
-          </h3>
+          </h2>
           <p className="text-xs text-[var(--pw-ink)]/60">
             ค่าตัวแปรคอนฟิกส่วนกลางที่จัดเก็บในตาราง SystemSettings
           </p>
         </div>
 
-        <div className="rounded-xl border border-[var(--pw-hairline)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
-              <thead>
-                <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-[var(--pw-ink)]/70 font-semibold">
-                  <th className="py-3 px-4">คีย์การตั้งค่า (Key)</th>
-                  <th className="py-3 px-4">ค่าปัจจุบัน (Value)</th>
-                  <th className="py-3 px-4">คำอธิบาย</th>
-                  <th className="py-3 px-4">อัปเดตล่าสุด</th>
-                  <th className="py-3 px-4 text-right">แก้ไข</th>
+        <div className="overflow-x-auto rounded-xl border border-[var(--pw-hairline)]">
+          <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-[var(--pw-ink)]/70 font-semibold text-xs">
+                <th className="py-2.5 px-4">คีย์การตั้งค่า (Key)</th>
+                <th className="py-2.5 px-4">ค่าปัจจุบัน (Value)</th>
+                <th className="py-2.5 px-4">คำอธิบาย</th>
+                <th className="py-2.5 px-4">อัปเดตล่าสุด</th>
+                <th className="py-2.5 px-4 text-right">แก้ไข</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--pw-hairline)]">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-[var(--pw-ink)]/60">
+                    กำลังโหลดการตั้งค่าระบบ...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--pw-hairline)]">
-                {isSettingsLoading ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-[var(--pw-ink)]/60">
-                      กำลังโหลดการตั้งค่า...
+              ) : settings.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-[var(--pw-ink)]/60">
+                    ไม่พบรายการตั้งค่าระบบ
+                  </td>
+                </tr>
+              ) : (
+                settings.map((item) => (
+                  <tr
+                    key={item.settingKey}
+                    className="hover:bg-[var(--pw-hairline)]/10 transition-colors"
+                  >
+                    <td className="py-3 px-4 font-mono font-bold text-xs text-[var(--pw-ink)]">
+                      {item.settingKey}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-xs max-w-xs truncate text-[var(--pw-primary)]">
+                      {item.settingValue}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/70 max-w-xs">
+                      {item.description || "-"}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/60">
+                      {formatDisplayDateTime(item.updatedAt)}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={() => handleOpenEditSetting(item)}
+                        className="p-1.5 rounded-lg border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-all duration-150 active:scale-95"
+                        title="แก้ไขค่านี้"
+                      >
+                        <Edit2 className="size-3.5" />
+                      </button>
                     </td>
                   </tr>
-                ) : settings.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-[var(--pw-ink)]/60">
-                      ไม่พบการตั้งค่าในระบบ
-                    </td>
-                  </tr>
-                ) : (
-                  settings.map((s) => (
-                    <tr key={s.settingKey} className="hover:bg-[var(--pw-hairline)]/10 transition-colors">
-                      <td className="py-3 px-4 font-mono font-semibold text-[var(--pw-ink)]">
-                        {s.settingKey}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-[var(--pw-ink)]/80 max-w-xs truncate">
-                        {s.settingValue}
-                      </td>
-                      <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/70">
-                        {s.description || "-"}
-                      </td>
-                      <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/60 whitespace-nowrap">
-                        {new Date(s.updatedAt).toLocaleString("th-TH")}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => {
-                            setEditingSetting(s);
-                            setEditingValue(s.settingValue);
-                          }}
-                          className="p-1.5 rounded-lg border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
-                          title="แก้ไขค่า"
-                        >
-                          <Edit2 className="size-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Edit Setting Modal */}
-      <AnimatePresence>
+      {/* ---------------------------------------------------------------- */}
+      {/* EDIT SETTING BOTTOM SHEET                                        */}
+      {/* ---------------------------------------------------------------- */}
+      <BottomSheet
+        open={Boolean(editingSetting)}
+        onOpenChange={(open) => !open && setEditingSetting(null)}
+        title="แก้ไขค่าคอนฟิกระบบ"
+        description={editingSetting?.description || editingSetting?.settingKey}
+        className="sm:max-w-md"
+      >
         {editingSetting && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] p-6 shadow-xl space-y-4"
-            >
-              <div className="flex items-center justify-between border-b border-[var(--pw-hairline)] pb-3">
-                <h3 className="font-bold text-base text-[var(--pw-ink)]">
-                  แก้ไขการตั้งค่าระบบ
-                </h3>
-                <button
-                  onClick={() => setEditingSetting(null)}
-                  className="p-1 rounded-lg text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)]"
-                >
-                  <X className="size-5" />
-                </button>
-              </div>
+          <form onSubmit={handleSaveSetting} className="space-y-4 py-2">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--pw-ink)] mb-1">
+                คีย์การตั้งค่า (Key)
+              </label>
+              <input
+                type="text"
+                disabled
+                value={editingSetting.settingKey}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/15 text-[var(--pw-ink)]/70 font-mono text-xs"
+              />
+            </div>
 
-              <div className="space-y-3 text-xs sm:text-sm">
-                <div>
-                  <label className="block font-semibold text-[var(--pw-ink)] mb-1">
-                    คีย์ (Key)
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={editingSetting.settingKey}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/15 text-[var(--pw-ink)]/70 font-mono text-xs"
-                  />
-                </div>
+            {(() => {
+              const lKey = editingSetting.settingKey.toLowerCase();
+              const isBool = lKey.endsWith(":enabled") || editingValue === "true" || editingValue === "false";
+              const isDate = lKey.includes("at") || lKey.includes("date");
+              const isNumber = lKey.includes("count") || lKey.includes("limit") || lKey.includes("days") || lKey.includes("timeout") || /^\d+$/.test(editingValue);
 
+              if (isBool) {
+                return (
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--pw-ink)] mb-1">
+                      ค่าที่กำหนด (สถานะการเปิดใช้งาน) <span className="text-[var(--pw-expense)]">*</span>
+                    </label>
+                    <Select
+                      value={editingValue === "true" ? "true" : "false"}
+                      onValueChange={(val) => setEditingValue(val)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">เปิดใช้งาน (true / Enabled)</SelectItem>
+                        <SelectItem value="false">ปิดใช้งาน (false / Disabled)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              }
+
+              if (isDate) {
+                return (
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--pw-ink)] mb-1">
+                      ค่าที่กำหนด (วันและเวลา) <span className="text-[var(--pw-expense)]">*</span>
+                    </label>
+                    <DateTimeInput
+                      value={editingValue ? toThailandDateTimeInputValue(editingValue) : ""}
+                      onChange={(val) => {
+                        if (!val) {
+                          setEditingValue("");
+                          return;
+                        }
+                        try {
+                          setEditingValue(new Date(val).toISOString());
+                        } catch {
+                          setEditingValue(val);
+                        }
+                      }}
+                      className="w-full"
+                    />
+                    <p className="mt-1 text-[11px] text-[var(--pw-ink)]/50">
+                      ระบบจะจัดเก็บในรูปแบบมาตรฐานสากล (ISO 8601 UTC) อัตโนมัติ
+                    </p>
+                  </div>
+                );
+              }
+
+              if (isNumber) {
+                return (
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--pw-ink)] mb-1">
+                      ค่าที่กำหนด (ตัวเลข) <span className="text-[var(--pw-expense)]">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      className="w-full px-3 py-2 text-xs sm:text-sm font-mono rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
+                    />
+                  </div>
+                );
+              }
+
+              return (
                 <div>
-                  <label className="block font-semibold text-[var(--pw-ink)] mb-1">
-                    ค่าคอนฟิก (Value)
+                  <label className="block text-xs font-semibold text-[var(--pw-ink)] mb-1">
+                    ค่าที่กำหนด (ข้อความ / คอนฟิก) <span className="text-[var(--pw-expense)]">*</span>
                   </label>
                   <textarea
                     rows={3}
+                    required
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] font-mono text-xs focus:outline-none focus:border-[var(--pw-primary)]"
+                    className="w-full px-3 py-2 text-xs sm:text-sm font-mono rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
                   />
                 </div>
+              );
+            })()}
 
-                {editingSetting.description && (
-                  <p className="text-[11px] text-[var(--pw-ink)]/60">
-                    {editingSetting.description}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--pw-hairline)]">
-                <button
-                  onClick={() => setEditingSetting(null)}
-                  className="px-4 py-2 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  onClick={handleSaveSetting}
-                  disabled={updateSettingMutation.isPending}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-[var(--pw-primary)] text-white hover:opacity-90 disabled:opacity-50"
-                >
-                  บันทึกการเปลี่ยนแปลง
-                </button>
-              </div>
-            </motion.div>
-          </div>
+            {/* BottomSheet Button Hierarchy: Save on TOP, Cancel on BOTTOM */}
+            <BottomSheetFooter>
+              <Button
+                type="submit"
+                disabled={updateSettingMutation.isPending}
+                className="w-full"
+              >
+                {updateSettingMutation.isPending ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setEditingSetting(null)}
+              >
+                ยกเลิก
+              </Button>
+            </BottomSheetFooter>
+          </form>
         )}
-      </AnimatePresence>
-    </div>
+      </BottomSheet>
+    </motion.div>
   );
 }

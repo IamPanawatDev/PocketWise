@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import {
+  cn,
   thailandDateBoundaryToUtcIso,
   toThailandDateInputValue,
 } from "@/lib/utils";
@@ -93,14 +94,23 @@ export function AuditLogFilterBar({
         <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant={activeFilterCount > 0 ? "secondary" : "outline"}
+            variant="outline"
             onClick={() => setShowFilterSheet(true)}
-            className="relative gap-2 h-10 border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)] shadow-xs"
+
+
+            className={cn(
+              "relative gap-2 h-10 transition-all shadow-xs font-medium",
+              activeFilterCount > 0
+                ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
+                : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]",
+            )}
+
+
           >
             <Filter className="size-4 text-[var(--pw-primary)]" />
             <span>ตัวกรอง</span>
             {activeFilterCount > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[10px] font-bold text-[var(--pw-primary-foreground)]">
+              <span className="flex size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[10px] font-bold text-white shadow-xs">
                 {activeFilterCount}
               </span>
             )}
@@ -250,7 +260,7 @@ export function AuditLogFilterBar({
             <Button
               type="button"
               variant="outline"
-              className="w-full sm:w-auto"
+            className="w-full sm:w-auto"
               onClick={onReset}
               disabled={activeFilterCount === 0}
             >

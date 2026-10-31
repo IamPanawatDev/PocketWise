@@ -59,7 +59,7 @@ public class AdminUsersController : ControllerBase
         }
 
         var adminId = GetUserId();
-        if (adminId == id)
+        if (id == adminId)
         {
             return BadRequest(ApiResponse<object?>.Fail("OPERATION_NOT_ALLOWED", "ไม่สามารถระงับบัญชีของตนเองได้"));
         }

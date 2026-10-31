@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTransactions, useDeleteTransaction } from "@/features/transactions/hooks/useTransactions";
 import type { TransactionFilter, TransactionResponse } from "@/types/transaction.types";
@@ -64,9 +65,22 @@ export function TransactionList({
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"transactionDate" | "amount">("transactionDate");
   const [sortDesc, setSortDesc] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+
+  const searchParams = useSearchParams();
+  const [showForm, setShowForm] = useState(() => searchParams.get("action") === "new");
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [editing, setEditing] = useState<TransactionResponse | null>(null);
+
+
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      const id = requestAnimationFrame(() => {
+        setEditing(null);
+        setShowForm(true);
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [searchParams]);
 
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
@@ -103,7 +117,7 @@ export function TransactionList({
       else if (item.transactionType === "expense") expense += item.amount;
     }
     return { totalIncome: income, totalExpense: expense, netBalance: income - expense };
-  }, [data?.items]);
+  }, [data]);
 
   const resetFilters = () => {
     setFilter({});
@@ -175,7 +189,7 @@ export function TransactionList({
 
         <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 p-3 sm:p-4 shadow-xs backdrop-blur-xs transition hover:border-[var(--pw-primary)]/40">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[var(--pw-ink)]/70">ยอดคงเหลือสุทธิ</span>
+            <span className="text-xs font-medium text-[var(--pw-ink)]/70">ยอดคงเหลือสุทธิในหน้านี้</span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]">
               <ReceiptText className="size-4" />
             </div>
@@ -201,8 +215,14 @@ export function TransactionList({
           </div>
           <Button
             type="button"
-            variant={activeFilterCount > 0 ? "secondary" : "outline"}
-            className="shrink-0 relative gap-2"
+            variant="outline"
+            className={cn(
+              "shrink-0 relative gap-2 font-medium transition-all shadow-xs",
+              activeFilterCount > 0
+                ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
+                : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]",
+            )}
+
             onClick={() => setShowFilterSheet(true)}
             aria-label="เปิดตัวกรองรายการ"
           >

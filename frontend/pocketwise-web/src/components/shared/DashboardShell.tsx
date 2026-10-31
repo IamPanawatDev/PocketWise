@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { useLogout } from "@/features/auth/hooks/useAuthMutations";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
@@ -23,6 +23,7 @@ import {
   ArrowLeftFromLine,
   ArrowRightLeft,
   ChevronDown,
+  ChevronLeft,
   CreditCard,
   FileUp,
   FolderTree,
@@ -85,6 +86,7 @@ const adminNav: NavItem[] = [
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const logout = useLogout();
   const { data: user, isError } = useCurrentUser();
   const { data: settings } = useUserSettings();
@@ -349,16 +351,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]", isCollapsed ? "md:ml-20" : "md:ml-72")}>
-        {/* Mobile Top Header */}
+        {/* Mobile Top Header with Back Navigation */}
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/85 px-4 backdrop-blur-md md:hidden">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="mr-1 -ml-1 p-2 rounded-lg text-[var(--pw-ink)]/75 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all flex items-center justify-center"
+              aria-label="ย้อนกลับ"
+              title="ย้อนกลับ"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
             <Image
               src="/brand-logo.png"
               alt="PocketWise brand"
-              width={36}
-              height={36}
+              width={32}
+              height={32}
               priority
-              className="size-9 shrink-0 object-contain drop-shadow"
+              className="size-8 shrink-0 object-contain drop-shadow"
             />
             <span className="truncate text-base font-bold text-[var(--pw-ink)]">PocketWise</span>
           </div>
@@ -508,9 +519,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         >
           <div className="relative flex items-center justify-center">
             <Menu className="size-5 mt-1" />
-            {isAdmin && (
-              <span className="absolute -top-0.5 -right-1 size-2 rounded-full bg-[var(--pw-primary)]" />
-            )}
           </div>
           <span className="text-[10px] mt-0.5">เมนู</span>
         </button>

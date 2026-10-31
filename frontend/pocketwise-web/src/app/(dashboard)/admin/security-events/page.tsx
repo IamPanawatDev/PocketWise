@@ -21,6 +21,18 @@ import {
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useAdminSecurityEventsQuery } from "@/features/admin-operations/hooks/useAdminOperations";
 import { cn } from "@/lib/utils";
+import { formatDisplayDateTime } from "@/lib/date-utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  BottomSheet,
+  BottomSheetFooter,
+} from "@/components/ui/bottom-sheet";
 import type { SecurityEventItem } from "@/types/admin-operations.types";
 
 export default function AdminSecurityEventsPage() {
@@ -131,39 +143,47 @@ export default function AdminSecurityEventsPage() {
           </div>
 
           <div>
-            <select
-              value={selectedEventType}
-              onChange={(e) => {
-                setSelectedEventType(e.target.value);
+            <Select
+              value={selectedEventType || "ALL"}
+              onValueChange={(val) => {
+                setSelectedEventType(val === "ALL" ? "" : val);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
             >
-              <option value="">ทุกประเภทเหตุการณ์ (All Events)</option>
-              <option value="LOGIN_SUCCEEDED">LOGIN_SUCCEEDED (เข้าสู่ระบบสำเร็จ)</option>
-              <option value="LOGIN_FAILED">LOGIN_FAILED (เข้าสู่ระบบล้มเหลว)</option>
-              <option value="TOKEN_REUSE">TOKEN_REUSE (ตรวจพบการใช้ Token ซ้ำ)</option>
-              <option value="PASSWORD_RESET">PASSWORD_RESET (รีเซ็ตรหัสผ่านสำเร็จ)</option>
-              <option value="ACCOUNT_SUSPENDED">ACCOUNT_SUSPENDED (ระงับบัญชี)</option>
-              <option value="ACCOUNT_UNSUSPENDED">ACCOUNT_UNSUSPENDED (ยกเลิกระงับบัญชี)</option>
-              <option value="SESSION_REVOKED">SESSION_REVOKED (เพิกถอนเซสชัน)</option>
-              <option value="MAINTENANCE_MODE_UPDATED">MAINTENANCE_MODE_UPDATED (เปลี่ยนโหมดปรับปรุง)</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="ทุกประเภทเหตุการณ์ (All Events)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">ทุกประเภทเหตุการณ์ (All Events)</SelectItem>
+                <SelectItem value="LOGIN_SUCCEEDED">LOGIN_SUCCEEDED (เข้าสู่ระบบสำเร็จ)</SelectItem>
+                <SelectItem value="LOGIN_FAILED">LOGIN_FAILED (เข้าสู่ระบบล้มเหลว)</SelectItem>
+                <SelectItem value="TOKEN_REUSE">TOKEN_REUSE (ตรวจพบการใช้ Token ซ้ำ)</SelectItem>
+                <SelectItem value="PASSWORD_RESET">PASSWORD_RESET (รีเซ็ตรหัสผ่านสำเร็จ)</SelectItem>
+                <SelectItem value="ACCOUNT_SUSPENDED">ACCOUNT_SUSPENDED (ระงับบัญชี)</SelectItem>
+                <SelectItem value="ACCOUNT_UNSUSPENDED">ACCOUNT_UNSUSPENDED (ยกเลิกระงับบัญชี)</SelectItem>
+                <SelectItem value="SESSION_REVOKED">SESSION_REVOKED (เพิกถอนเซสชัน)</SelectItem>
+                <SelectItem value="MAINTENANCE_MODE_UPDATED">MAINTENANCE_MODE_UPDATED (เปลี่ยนโหมดปรับปรุง)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <select
-              value={succeededFilter}
-              onChange={(e) => {
-                setSucceededFilter(e.target.value);
+            <Select
+              value={succeededFilter || "ALL"}
+              onValueChange={(val) => {
+                setSucceededFilter(val === "ALL" ? "" : val);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
             >
-              <option value="">ผลลัพธ์ (ทั้งหมด)</option>
-              <option value="true">สำเร็จ (Succeeded)</option>
-              <option value="false">ล้มเหลว (Failed / Blocked)</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="ผลลัพธ์ (ทั้งหมด)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">ผลลัพธ์ (ทั้งหมด)</SelectItem>
+                <SelectItem value="true">สำเร็จ (Succeeded)</SelectItem>
+                <SelectItem value="false">ล้มเหลว (Failed / Blocked)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -200,7 +220,7 @@ export default function AdminSecurityEventsPage() {
                 eventsData?.items.map((ev) => (
                   <tr key={ev.securityEventId} className="hover:bg-[var(--pw-hairline)]/10 transition-colors">
                     <td className="py-3.5 px-4 text-xs text-[var(--pw-ink)]/70 whitespace-nowrap">
-                      {new Date(ev.occurredAt).toLocaleString("th-TH")}
+                      {formatDisplayDateTime(ev.occurredAt)}
                     </td>
                     <td className="py-3.5 px-4">
                       {renderEventBadge(ev.eventType, ev.succeeded)}
@@ -283,64 +303,56 @@ export default function AdminSecurityEventsPage() {
         )}
       </div>
 
-      {/* JSON Details Inspector Modal */}
-      <AnimatePresence>
+      {/* JSON Details Inspector BottomSheet / Modal */}
+      <BottomSheet
+        open={!!selectedEvent}
+        onOpenChange={(open) => !open && setSelectedEvent(null)}
+        title={
+          selectedEvent ? (
+            <div className="flex items-center gap-2">
+              <span>รายละเอียดเหตุการณ์</span>
+              {renderEventBadge(selectedEvent.eventType, selectedEvent.succeeded)}
+            </div>
+          ) : undefined
+        }
+        description={
+          selectedEvent
+            ? `${formatDisplayDateTime(selectedEvent.occurredAt)} • ID: #${selectedEvent.securityEventId}`
+            : undefined
+        }
+      >
         {selectedEvent && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] p-6 shadow-xl space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-base text-[var(--pw-ink)] flex items-center gap-2">
-                    <span>รายละเอียดเหตุการณ์</span>
-                    {renderEventBadge(selectedEvent.eventType, selectedEvent.succeeded)}
-                  </h3>
-                  <p className="text-xs text-[var(--pw-ink)]/60 mt-0.5">
-                    {new Date(selectedEvent.occurredAt).toLocaleString("th-TH")} &bull; ID: #{selectedEvent.securityEventId}
-                  </p>
+          <div className="space-y-4">
+            {selectedEvent.userAgent && (
+              <div className="space-y-1">
+                <div className="text-xs font-semibold text-[var(--pw-ink)]">User Agent</div>
+                <div className="p-2.5 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-xs text-[var(--pw-ink)]/80 break-all font-mono">
+                  {selectedEvent.userAgent}
                 </div>
-                <button
-                  onClick={() => setSelectedEvent(null)}
-                  className="p-1 rounded-lg text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)]"
-                >
-                  <X className="size-5" />
-                </button>
               </div>
+            )}
 
-              {selectedEvent.userAgent && (
-                <div className="space-y-1">
-                  <div className="text-xs font-semibold text-[var(--pw-ink)]">User Agent</div>
-                  <div className="p-2.5 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-xs text-[var(--pw-ink)]/80 break-all font-mono">
-                    {selectedEvent.userAgent}
-                  </div>
-                </div>
-              )}
-
-              {selectedEvent.detailsJson && (
-                <div className="space-y-1">
-                  <div className="text-xs font-semibold text-[var(--pw-ink)]">Details (JSON)</div>
-                  <pre className="p-3 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/20 text-xs font-mono text-[var(--pw-ink)]/90 max-h-60 overflow-y-auto whitespace-pre-wrap">
-                    {selectedEvent.detailsJson}
-                  </pre>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end pt-2">
-                <button
-                  onClick={() => setSelectedEvent(null)}
-                  className="px-4 py-2 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
-                >
-                  ปิด
-                </button>
+            {selectedEvent.detailsJson && (
+              <div className="space-y-1">
+                <div className="text-xs font-semibold text-[var(--pw-ink)]">Details (JSON)</div>
+                <pre className="p-3 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/20 text-xs font-mono text-[var(--pw-ink)]/90 max-h-60 overflow-y-auto whitespace-pre-wrap">
+                  {selectedEvent.detailsJson}
+                </pre>
               </div>
-            </motion.div>
+            )}
+
+            <BottomSheetFooter>
+              <button
+                type="button"
+                onClick={() => setSelectedEvent(null)}
+                className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-colors"
+              >
+                ปิด
+              </button>
+            </BottomSheetFooter>
           </div>
         )}
-      </AnimatePresence>
+      </BottomSheet>
     </div>
   );
 }

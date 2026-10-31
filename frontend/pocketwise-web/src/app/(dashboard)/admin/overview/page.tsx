@@ -1,7 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Users,
   ShieldAlert,
@@ -27,6 +39,7 @@ export default function AdminOverviewPage() {
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const { data: overview, isLoading, refetch } = useAdminOverviewQuery();
   const updateMaintenance = useUpdateMaintenanceMutation();
+  const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
 
   const isAdmin = user?.roles?.includes("Admin") ?? true;
 
@@ -46,11 +59,24 @@ export default function AdminOverviewPage() {
 
   const handleToggleMaintenance = () => {
     if (!overview) return;
+    setShowMaintenanceConfirm(true);
+  };
+
+  const handleConfirmMaintenance = async () => {
+    if (!overview) return;
     const nextState = !overview.maintenanceStatus.isEnabled;
-    if (confirm(`คุณต้องการ ${nextState ? "เปิด" : "ปิด"} โหมดปรับปรุงระบบ (Maintenance Mode) ใช่หรือไม่?`)) {
-      updateMaintenance.mutate({
+    setShowMaintenanceConfirm(false);
+    try {
+      await updateMaintenance.mutateAsync({
         isEnabled: nextState,
       });
+      toast.success(
+        nextState
+          ? "เปิดโหมดปรับปรุงระบบเรียบร้อยแล้ว"
+          : "ปิดโหมดปรับปรุงระบบเรียบร้อยแล้ว"
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "เกิดข้อผิดพลาดในการเปลี่ยนโหมดปรับปรุงระบบ");
     }
   };
 
@@ -384,6 +410,44 @@ export default function AdminOverviewPage() {
           </div>
         </Link>
       </div>
+
+      {/* Maintenance Mode Confirmation AlertDialog */}
+      <AlertDialog
+        open={showMaintenanceConfirm}
+        onOpenChange={setShowMaintenanceConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {overview?.maintenanceStatus.isEnabled
+                ? "ยืนยันการปิดโหมดปรับปรุงระบบ"
+                : "ยืนยันการเปิดโหมดปรับปรุงระบบ"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {overview?.maintenanceStatus.isEnabled
+                ? "เมื่อปิดโหมดปรับปรุงระบบ ผู้ใช้งานทุกคนจะสามารถเข้าสู่ระบบและใช้งานได้ตามปกติทันที"
+                : "เมื่อเปิดโหมดปรับปรุงระบบ ผู้ใช้ทั่วไปจะถูกปฏิเสธการเข้าถึงและเห็นหน้าแจ้งเตือนปรับปรุงระบบ (ยกเว้น Admin และผู้ใช้ที่ได้รับอนุญาต)"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              className={
+                !overview?.maintenanceStatus.isEnabled
+                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : undefined
+              }
+              onClick={handleConfirmMaintenance}
+            >
+              {overview?.maintenanceStatus.isEnabled
+                ? "ปิดโหมดปรับปรุงระบบ"
+                : "เปิดโหมดปรับปรุงระบบ"}
+            </AlertDialogAction>
+            <AlertDialogCancel onClick={() => setShowMaintenanceConfirm(false)}>
+              ยกเลิก
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

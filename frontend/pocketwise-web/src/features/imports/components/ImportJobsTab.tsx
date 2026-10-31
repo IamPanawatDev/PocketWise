@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   FileText,
   Receipt,
@@ -82,12 +83,17 @@ export function ImportJobsTab() {
           variant="outline"
           size="sm"
           onClick={() => setIsFilterSheetOpen(true)}
-          className="relative gap-2 cursor-pointer border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 hover:bg-[var(--pw-surface-indigo)]"
+          className={cn(
+            "relative gap-2 cursor-pointer transition-all",
+            activeFilterCount > 0
+              ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
+              : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]",
+          )}
         >
           <Filter className="h-4 w-4" />
           <span>ตัวกรอง</span>
           {activeFilterCount > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--pw-link)] px-1.5 text-[11px] font-semibold text-white">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--pw-primary)] px-1.5 text-[11px] font-bold text-white shadow-xs">
               {activeFilterCount}
             </span>
           )}

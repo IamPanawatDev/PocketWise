@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   color-scheme: dark;
@@ -13,6 +13,8 @@
   --pw-magenta: #ec48bd;
   --pw-expense: #ff4d4f;
   --pw-link: #00b0f4;
+  --pw-surface: #1e2353;
+  --pw-surface-raised: #23272a;
   --pw-surface-indigo: #1e2353;
   --pw-surface-onyx: #23272a;
   --pw-surface-black: #000000;
@@ -76,12 +78,14 @@ html[data-theme="light"] {
   --pw-magenta: #b4238a;
   --pw-expense: #c62828;
   --pw-link: #0077a8;
+  --pw-surface: #ffffff;
+  --pw-surface-raised: #f8f9fc;
   --pw-surface-indigo: #ffffff;
   --pw-surface-onyx: #e9ebf2;
   --pw-surface-black: #ffffff;
   --pw-input-surface: #ffffff;
   --pw-input-border: #747b8d;
-  --pw-ink: #202333;
+  --pw-ink: #111827;
   --pw-ink-dark: #111827;
   --pw-muted: #e9ebf2;
   --pw-hairline: #d7dae4;
@@ -92,7 +96,7 @@ html[data-theme="light"] {
 
   --secondary-foreground: #ffffff;
   --accent-foreground: #ffffff;
-  --muted-foreground: rgb(32 35 51 / 70%);
+  --muted-foreground: rgb(17 24 39 / 75%);
 }
 
 @theme inline {
