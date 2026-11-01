@@ -13,4 +13,6 @@ public class SmtpSettings
     public string FromEmail { get; set; } = "noreply@pocketwise.local";
     public string FromDisplayName { get; set; } = "PocketWise";
     public string? ResendApiKey { get; set; }
+    public string? GoogleScriptUrl { get; set; }
+    public string? GoogleScriptSecret { get; set; }
 }

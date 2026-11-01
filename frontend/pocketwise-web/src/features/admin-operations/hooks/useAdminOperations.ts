@@ -91,6 +91,18 @@ export function useUnsuspendUserMutation() {
   });
 }
 
+export function useManualVerifyEmailMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: number) =>
+      apiClient.post(`/api/v1/admin/users/${userId}/verify-email`),
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "user-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "user-detail", userId] });
+    },
+  });
+}
+
 export function useResendVerificationMutation() {
   return useMutation({
     mutationFn: (userId: number) =>

@@ -88,6 +88,21 @@ public class AdminUsersController : ControllerBase
         return Ok(ApiResponse<object?>.Ok(new { message = "ยกเลิกการระงับบัญชีเรียบร้อยแล้ว" }));
     }
 
+    [HttpPost("{id:long}/verify-email")]
+    public async Task<ActionResult<ApiResponse<object?>>> VerifyEmailAsync(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetUserId();
+        var success = await _adminUserService.VerifyUserEmailAsync(id, adminId, cancellationToken);
+        if (!success)
+        {
+            return BadRequest(ApiResponse<object?>.Fail("OPERATION_NOT_ALLOWED", "ไม่สามารถยืนยันอีเมลได้ (ผู้ใช้ยืนยันอีเมลแล้ว หรือไม่พบข้อมูล)"));
+        }
+
+        return Ok(ApiResponse<object?>.Ok(new { message = "ยืนยันที่อยู่อีเมลของผู้ใช้เรียบร้อยแล้ว" }));
+    }
+
     [HttpPost("{id:long}/resend-verification")]
     public async Task<ActionResult<ApiResponse<object?>>> ResendVerificationAsync(
         long id,
