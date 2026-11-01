@@ -29,10 +29,18 @@ export interface AuthEndpointResult {
 export async function callAuthEndpoint(
   path: string,
   body: unknown,
+  originUrl?: string,
 ): Promise<AuthEndpointResult> {
+  const origin =
+    originUrl ||
+    (isProd ? "https://pocket-wise.vercel.app" : "http://localhost:3000");
+
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Origin: origin,
+    },
     body: JSON.stringify(body),
     cache: "no-store",
   });

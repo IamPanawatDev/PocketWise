@@ -3,7 +3,8 @@ import { callAuthEndpoint, setAuthCookiesFromData } from "@/lib/server/auth-endp
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const result = await callAuthEndpoint("/api/v1/auth/register", body);
+  const origin = req.headers.get("origin") || req.nextUrl.origin;
+  const result = await callAuthEndpoint("/api/v1/auth/register", body, origin);
 
   if (!result.ok || !result.data) {
     return NextResponse.json(

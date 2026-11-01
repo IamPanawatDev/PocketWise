@@ -1,3 +1,5 @@
+using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,19 +20,51 @@ public class AdminUserService : IAdminUserService
     private readonly IEmailService _emailService;
     private readonly ISecurityEventService _securityEventService;
     private readonly ILogger<AdminUserService> _logger;
+    private readonly IConfiguration? _configuration;
 
     public AdminUserService(
         PocketWiseDbContext context,
         UserManager<ApplicationUser> userManager,
         IEmailService emailService,
         ISecurityEventService securityEventService,
-        ILogger<AdminUserService> logger)
+        ILogger<AdminUserService> logger,
+        IConfiguration? configuration = null)
     {
         _context = context;
         _userManager = userManager;
         _emailService = emailService;
         _securityEventService = securityEventService;
         _logger = logger;
+        _configuration = configuration;
+    }
+
+    private string ResolveBaseUrl(string? originUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(originUrl) && !originUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return originUrl.TrimEnd('/');
+        }
+
+        var configured = _configuration?["FrontendBaseUrl"] ?? _configuration?["AppUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured.TrimEnd('/');
+        }
+
+        if (!string.IsNullOrWhiteSpace(originUrl))
+        {
+            return originUrl.TrimEnd('/');
+        }
+
+        return "https://pocket-wise.vercel.app";
+    }
+
+    private static string Base64UrlEncode(byte[] bytes)
+    {
+        return Convert.ToBase64String(bytes)
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .TrimEnd('=');
     }
 
     public async Task<PagedResult<AdminUserListItemResponse>> GetUsersPagedAsync(
@@ -298,7 +332,7 @@ public class AdminUserService : IAdminUserService
         return true;
     }
 
-    public async Task<bool> ResendVerificationEmailAsync(long userId, CancellationToken cancellationToken = default)
+    public async Task<bool> ResendVerificationEmailAsync(long userId, string? originUrl = null, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null || user.IsEmailVerified || string.IsNullOrEmpty(user.Email))
@@ -306,23 +340,50 @@ public class AdminUserService : IAdminUserService
             return false;
         }
 
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        var subject = "[PocketWise] ยืนยันอีเมลสำหรับบัญชีของคุณ";
-        var body = $@"
-            <div style=""font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
-                <h2>ยืนยันอีเมลสำหรับ PocketWise</h2>
-                <p>สวัสดีคุณ {user.DisplayName},</p>
-                <p>ผู้ดูแลระบบได้ส่งคำขอยืนยันอีเมลสำหรับบัญชีของคุณ กรุณาใช้รหัสยืนยันด้านล่างนี้:</p>
-                <div style=""background: #f3f4f6; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 18px; text-align: center; margin: 20px 0;"">
-                    {token}
+        var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encodedToken = Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+        var baseUrl = ResolveBaseUrl(originUrl);
+        var verificationUrl = $"{baseUrl}/verify-email?userId={user.Id}&token={encodedToken}";
+
+        var subject = "ยืนยันที่อยู่อีเมลของคุณ — PocketWise";
+        var body = $"""
+            <!DOCTYPE html>
+            <html lang="th">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            </head>
+            <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; color: #1e293b;">
+              <div style="max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <h2 style="color: #4f46e5; margin: 0 0 8px 0; font-size: 22px;">ยืนยันที่อยู่อีเมลสำหรับบัญชีของคุณ</h2>
+                  <p style="color: #64748b; font-size: 14px; margin: 0;">PocketWise — ระบบบันทึกรายรับรายจ่ายอัจฉริยะ</p>
                 </div>
-                <p>หากคุณไม่ได้ร้องขอ สามารถเพิกเฉยต่ออีเมลฉบับนี้ได้</p>
-            </div>";
+                <p style="font-size: 15px; line-height: 1.6;">สวัสดีคุณ <strong>{user.DisplayName}</strong>,</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #334155;">ผู้ดูแลระบบได้ส่งคำขอยืนยันที่อยู่อีเมลสำหรับบัญชี PocketWise ของคุณ กรุณากดปุ่มด้านล่างเพื่อยืนยันบัญชีให้สมบูรณ์:</p>
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="{verificationUrl}" target="_blank" style="display: inline-block; background-color: #4f46e5; color: #ffffff; font-weight: 600; font-size: 15px; padding: 12px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
+                    ยืนยันที่อยู่อีเมล
+                  </a>
+                </div>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px;">
+                  หากปุ่มด้านบนไม่ทำงาน สามารถคลิกหรือคัดลอกลิงก์ด้านล่างไปวางในเบราว์เซอร์ได้:<br/>
+                  <a href="{verificationUrl}" style="color: #4f46e5; word-break: break-all;">{verificationUrl}</a>
+                </p>
+                <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
+                <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+                  หากคุณไม่ได้ส่งคำขอนี้ สามารถละเว้นอีเมลฉบับนี้ได้อย่างปลอดภัย<br/>
+                  ลิงก์นี้ใช้ได้เฉพาะบัญชีของคุณเท่านั้น
+                </p>
+              </div>
+            </body>
+            </html>
+            """;
 
         return await _emailService.SendEmailAsync(user.Email, subject, body, cancellationToken);
     }
 
-    public async Task<string?> SendPasswordResetLinkAsync(long userId, CancellationToken cancellationToken = default)
+    public async Task<string?> SendPasswordResetLinkAsync(long userId, string? originUrl = null, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null || string.IsNullOrEmpty(user.Email))
@@ -330,21 +391,48 @@ public class AdminUserService : IAdminUserService
             return null;
         }
 
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var subject = "[PocketWise] คำขอตั้งรหัสผ่านใหม่";
-        var body = $@"
-            <div style=""font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"">
-                <h2>ตั้งรหัสผ่านใหม่สำหรับ PocketWise</h2>
-                <p>สวัสดีคุณ {user.DisplayName},</p>
-                <p>ผู้ดูแลระบบได้ส่งรหัสสำหรับรีเซ็ตรหัสผ่านของคุณ กรุณาใช้รหัสด้านล่างนี้เพื่อตั้งรหัสผ่านใหม่:</p>
-                <div style=""background: #f3f4f6; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 18px; text-align: center; margin: 20px 0;"">
-                    {token}
+        var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var encodedToken = Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+        var baseUrl = ResolveBaseUrl(originUrl);
+        var resetUrl = $"{baseUrl}/reset-password?userId={user.Id}&token={encodedToken}";
+
+        var subject = "คำขอตั้งรหัสผ่านใหม่ — PocketWise";
+        var body = $"""
+            <!DOCTYPE html>
+            <html lang="th">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            </head>
+            <body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; color: #1e293b;">
+              <div style="max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <h2 style="color: #4f46e5; margin: 0 0 8px 0; font-size: 22px;">ตั้งรหัสผ่านใหม่สำหรับบัญชี PocketWise</h2>
+                  <p style="color: #64748b; font-size: 14px; margin: 0;">PocketWise — ระบบบันทึกรายรับรายจ่ายอัจฉริยะ</p>
                 </div>
-                <p>หากคุณไม่ได้ร้องขอ โปรดแจ้งผู้ดูแลระบบทันที</p>
-            </div>";
+                <p style="font-size: 15px; line-height: 1.6;">สวัสดีคุณ <strong>{user.DisplayName}</strong>,</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #334155;">ผู้ดูแลระบบได้ส่งคำขอรีเซ็ตรหัสผ่านสำหรับบัญชี PocketWise ของคุณ กรุณากดปุ่มด้านล่างเพื่อกำหนดรหัสผ่านใหม่:</p>
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="{resetUrl}" target="_blank" style="display: inline-block; background-color: #4f46e5; color: #ffffff; font-weight: 600; font-size: 15px; padding: 12px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
+                    ตั้งรหัสผ่านใหม่
+                  </a>
+                </div>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px;">
+                  หากปุ่มด้านบนไม่ทำงาน สามารถคลิกหรือคัดลอกลิงก์ด้านล่างไปวางในเบราว์เซอร์ได้:<br/>
+                  <a href="{resetUrl}" style="color: #4f46e5; word-break: break-all;">{resetUrl}</a>
+                </p>
+                <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
+                <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+                  หากคุณไม่ได้ส่งคำขอนี้ โปรดแจ้งผู้ดูแลระบบทันที<br/>
+                  ลิงก์นี้ใช้ได้เฉพาะบัญชีของคุณและมีระยะเวลาหมดอายุ
+                </p>
+              </div>
+            </body>
+            </html>
+            """;
 
         await _emailService.SendEmailAsync(user.Email, subject, body, cancellationToken);
-        return token;
+        return rawToken;
     }
 
     public async Task<List<AdminUserSessionResponse>> GetUserSessionsAsync(long userId, long? currentSessionId, CancellationToken cancellationToken = default)
