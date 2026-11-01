@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   UploadCloud,
@@ -12,7 +12,12 @@ import {
   Sparkles,
   ArrowRight,
   Receipt,
-  LoaderCircle,
+  Image as ImageIcon,
+  Maximize2,
+  Calendar,
+  ChevronDown,
+  Tag as TagIcon,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -40,13 +45,31 @@ import {
 } from "@/features/imports/hooks/useImports";
 import type { SlipImportResponse } from "@/types/import.types";
 import { toast } from "sonner";
+import { formatDisplayDateTime } from "@/lib/date-utils";
 import { cn, getReadableTextColor, toThailandDateTimeInputValue, thailandDateTimeInputToUtcIso } from "@/lib/utils";
+
+function recordCategoryUsage(categoryId: number | null | undefined) {
+  if (!categoryId) return;
+  try {
+    const raw = localStorage.getItem("pocketwise_frequent_categories");
+    const map: Record<number, number> = raw ? JSON.parse(raw) : {};
+    map[categoryId] = (map[categoryId] || 0) + 1;
+    localStorage.setItem("pocketwise_frequent_categories", JSON.stringify(map));
+  } catch {}
+}
 
 export function SlipImportTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedSlip, setUploadedSlip] = useState<SlipImportResponse | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // UX States matching TransactionForm
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isCustomDateTime, setIsCustomDateTime] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showTagsSection, setShowTagsSection] = useState(false);
+  const [showDetectedPills, setShowDetectedPills] = useState(false);
 
   // Review form state
   const [amount, setAmount] = useState<string>("");
@@ -71,6 +94,16 @@ export function SlipImportTab() {
   const uploadMutation = useUploadSlip();
   const confirmMutation = useConfirmSlip();
   const rejectMutation = useRejectSlip();
+
+  // Auto-select bank account reliably even with multiple accounts
+  useEffect(() => {
+    if (bankAccounts.length > 0 && !bankAccountId) {
+      const lastUsed = typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
+      const matched = lastUsed ? bankAccounts.find((a) => String(a.bankAccountId) === lastUsed) : null;
+      const defaultAccount = matched ?? bankAccounts[0];
+      setBankAccountId(String(defaultAccount.bankAccountId));
+    }
+  }, [bankAccounts, bankAccountId]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedDescription(description ?? ""), 300);
@@ -111,7 +144,10 @@ export function SlipImportTab() {
       setCategoryId(String(data.suggestedCategoryId));
     }
     if (bankAccounts.length > 0 && !bankAccountId) {
-      setBankAccountId(String(bankAccounts[0].bankAccountId));
+      const lastUsed = typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
+      const matched = lastUsed ? bankAccounts.find((a) => String(a.bankAccountId) === lastUsed) : null;
+      const defaultAccount = matched ?? bankAccounts[0];
+      setBankAccountId(String(defaultAccount.bankAccountId));
     }
   };
 
@@ -146,8 +182,6 @@ export function SlipImportTab() {
       const url = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(url);
-        // Optimize to max 1600px width/height and JPEG quality 0.85.
-        // Shrinks 4MB iPhone photos to ~250KB, reducing Render OCR time from 30s to 2-3s!
         const maxDim = 1600;
         let { width, height } = img;
         if (width <= maxDim && height <= maxDim && file.size <= 400 * 1024) {
@@ -185,7 +219,7 @@ export function SlipImportTab() {
     });
   }
 
-    const handleProcessFile = async (file: File) => {
+  const handleProcessFile = async (file: File) => {
     if (!file) return;
     setStatusMessage(null);
 
@@ -243,6 +277,59 @@ export function SlipImportTab() {
     }
   };
 
+  // Top active categories filtered by expense / both
+  const availableCategories = useMemo(() => {
+    if (!categories) return [];
+    return categories.filter((c) => c.isActive && (c.categoryType === "both" || c.categoryType === "expense"));
+  }, [categories]);
+
+  // Dynamic quick category chips (Prioritize user's most used categories)
+  const quickCategories = useMemo(() => {
+    if (!availableCategories || availableCategories.length === 0) return [];
+
+    let frequencyMap: Record<number, number> = {};
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("pocketwise_frequent_categories") : null;
+      if (raw) frequencyMap = JSON.parse(raw);
+    } catch {}
+
+    const sorted = [...availableCategories].sort((a, b) => {
+      const countA = frequencyMap[a.categoryId] || 0;
+      const countB = frequencyMap[b.categoryId] || 0;
+      if (countA !== countB) {
+        return countB - countA;
+      }
+      return a.sortOrder - b.sortOrder;
+    });
+
+    return sorted.slice(0, 6);
+  }, [availableCategories]);
+
+  // Selected category if outside the top 6
+  const outsideSelectedCategory = useMemo(() => {
+    if (!categoryId || categoryId === "none") return null;
+    if (quickCategories.some((c) => String(c.categoryId) === categoryId)) return null;
+    return availableCategories.find((c) => String(c.categoryId) === categoryId) ?? null;
+  }, [availableCategories, quickCategories, categoryId]);
+
+  // Format date summary for progressive disclosure
+  const displayDateSummary = useMemo(() => {
+    if (!transactionDate) return "เวลาปัจจุบัน";
+    try {
+      return formatDisplayDateTime(transactionDate);
+    } catch {
+      return "เวลาปัจจุบัน";
+    }
+  }, [transactionDate]);
+
+  const handleSelectCategory = (catId: number | null) => {
+    const val = catId == null ? "" : String(catId);
+    setCategoryId(val);
+    if (catId) {
+      recordCategoryUsage(catId);
+    }
+  };
+
   const handleConfirm = () => {
     if (!uploadedSlip) return;
     const numAmount = parseFloat(amount);
@@ -266,10 +353,10 @@ export function SlipImportTab() {
         body: {
           amount: numAmount,
           transactionDate: isoDate,
-          description: description.trim() || (payeeName.trim() ? `ชำระเงินให้ ${payeeName.trim()}` : "โอนเงินผ่านสลิป"),
-          categoryId: categoryId ? Number(categoryId) : null,
-          bankAccountId: bankAccountId ? Number(bankAccountId) : null,
-          creditCardId: creditCardId ? Number(creditCardId) : null,
+          description: description.trim() || (payeeName.trim() ? `โอนเงินให้ ${payeeName.trim()}` : "โอนเงินผ่านสลิป"),
+          categoryId: categoryId && categoryId !== "none" ? Number(categoryId) : null,
+          bankAccountId: bankAccountId && bankAccountId !== "none" ? Number(bankAccountId) : null,
+          creditCardId: creditCardId && creditCardId !== "none" ? Number(creditCardId) : null,
           payeeName: payeeName.trim() || uploadedSlip.payeeName,
           payerName: uploadedSlip.payerName,
           transactionReference: uploadedSlip.transactionReference,
@@ -278,6 +365,14 @@ export function SlipImportTab() {
       },
       {
         onSuccess: () => {
+          if (bankAccountId && bankAccountId !== "none") {
+            try {
+              localStorage.setItem("pocketwise_last_bank_account_id", bankAccountId);
+            } catch {}
+          }
+          if (categoryId && categoryId !== "none") {
+            recordCategoryUsage(Number(categoryId));
+          }
           toast.success("ยืนยันและบันทึกรายการธุรกรรมเรียบร้อยแล้ว");
           setStatusMessage({
             type: "success",
@@ -331,6 +426,11 @@ export function SlipImportTab() {
     setCategoryId("");
     setTransactionDate("");
     setSelectedTagIds([]);
+    setIsCustomDateTime(false);
+    setShowAllCategories(false);
+    setShowTagsSection(false);
+    setShowDetectedPills(false);
+    setIsLightboxOpen(false);
     if (!keepStatusMessage) {
       setStatusMessage(null);
     }
@@ -340,10 +440,10 @@ export function SlipImportTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {statusMessage && (
         <div
-          className={`flex items-center gap-2 rounded-lg p-3 text-sm font-medium ${
+          className={`flex items-center gap-2 rounded-xl p-3 text-sm font-medium ${
             statusMessage.type === "success"
               ? "bg-[var(--pw-accent-green)]/10 text-[var(--pw-accent-green)] border border-[var(--pw-accent-green)]/20"
               : "bg-[var(--pw-accent-red)]/10 text-[var(--pw-accent-red)] border border-[var(--pw-accent-red)]/20"
@@ -358,33 +458,67 @@ export function SlipImportTab() {
         </div>
       )}
 
-            {!uploadedSlip ? (
+      {/* Hidden Native File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        className="hidden"
+        onChange={handleFileChange}
+        disabled={uploadMutation.isPending}
+      />
+
+      {/* Lightbox Modal for Full Image Zoom */}
+      <AnimatePresence>
+        {isLightboxOpen && previewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <div className="relative max-w-lg w-full max-h-[90vh] flex flex-col items-center">
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(false)}
+                className="absolute -top-12 right-0 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 active:scale-90 transition-transform cursor-pointer"
+                aria-label="ปิดรูปภาพ"
+              >
+                <X className="size-5" />
+              </button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewUrl}
+                alt="Full Slip"
+                className="w-full h-auto max-h-[80vh] object-contain rounded-xl shadow-2xl border border-white/10"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <span className="text-xs text-white/70 mt-2">แตะภายนอกเพื่อปิด</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!uploadedSlip ? (
+        /* STEP 1: INITIAL UPLOAD BOX (ปุ่มเดี่ยว: เลือกจากอัลบั้ม) */
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={cn(
-            "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-300 backdrop-blur-xs",
+            "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 sm:p-12 text-center transition-all duration-300 backdrop-blur-xs",
             isDragging
               ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 scale-[1.01] shadow-xl shadow-[var(--pw-primary)]/15"
               : "border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/40 hover:border-[var(--pw-primary)]/50 hover:bg-[var(--pw-surface-raised)]/70"
           )}
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,application/pdf"
-            className="hidden"
-            onChange={handleFileChange}
-            disabled={uploadMutation.isPending}
-          />
           {uploadMutation.isPending ? (
             <div className="flex flex-col items-center justify-center py-6 text-center space-y-4 w-full">
               {previewUrl ? (
                 <div className="relative mx-auto w-full max-w-xs sm:max-w-sm overflow-hidden rounded-xl border border-[var(--pw-primary)]/40 shadow-2xl bg-black/40">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={previewUrl} alt="Slip Scanning" className="w-full object-contain max-h-[320px] opacity-80" />
-                  {/* AI Neon Scanning Laser Beam */}
                   <motion.div
                     animate={{ y: [0, 290, 0] }}
                     transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
@@ -410,65 +544,89 @@ export function SlipImportTab() {
             </div>
           ) : (
             <>
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] mb-4 transition-transform group-hover:scale-110">
-                <UploadCloud className="h-8 w-8" />
+              <div className="flex size-14 sm:size-16 items-center justify-center rounded-2xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] mb-3 transition-transform group-hover:scale-110">
+                <UploadCloud className="size-7 sm:size-8" />
               </div>
-              <h3 className="text-lg font-semibold text-[var(--pw-ink)]">
-                อัปโหลดสลิปโอนเงิน (AI OCR)
+              <h3 className="text-base sm:text-lg font-bold text-[var(--pw-ink)]">
+                สแกนสลิปโอนเงิน (AI OCR)
               </h3>
-              <p className="mt-1 max-w-sm text-sm text-[var(--pw-ink)]/60">
-                ลากและวางรูปภาพสลิป หรือคลิกเพื่อเลือกไฟล์ รองรับ JPEG, PNG, WEBP หรือ PDF
+              <p className="mt-1 max-w-sm text-xs sm:text-sm text-[var(--pw-ink)]/65">
+                เลือกรูปภาพสลิปจากอัลบั้มเพื่ออ่านยอดและลงรายการอัตโนมัติ
               </p>
+
+              {/* Single Clear Upload Button (ยุบเหลือปุ่มเดียวตามที่ผู้ใช้ร้องขอ) */}
               <Button
                 type="button"
-                className="mt-6 gap-2 active:scale-95 transition-all shadow-md"
+                size="lg"
+                className="mt-6 gap-2 bg-gradient-to-r from-[var(--pw-primary)] to-blue-500 text-white font-bold shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer px-6"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Sparkles className="size-4" />
-                เลือกไฟล์สลิป
-                <ArrowRight className="h-4 w-4" />
+                <ImageIcon className="size-5" />
+                <span>เลือกจากอัลบั้ม</span>
+                <ArrowRight className="size-4" />
               </Button>
+
+              <span className="text-[11px] text-[var(--pw-ink)]/40 mt-3">
+                รองรับไฟล์รูปภาพ JPEG, PNG, WEBP หรือ PDF
+              </span>
             </>
           )}
         </div>
       ) : (
+        /* STEP 2: VERIFICATION FORM MATCHING TRANSACTIONFORM DESIGN */
         <div className="grid gap-6 lg:grid-cols-12">
-          {/* Slip Preview Column */}
-          <div className="lg:col-span-5 space-y-4">
-            <Card className="p-4 bg-[var(--pw-surface-raised)]/50 border border-[var(--pw-hairline)]">
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--pw-hairline)]">
-                <div className="flex items-center gap-2 text-sm font-medium text-[var(--pw-ink)]">
-                  <Receipt className="h-4 w-4 text-[var(--pw-accent-primary)]" />
-                  <span>ตัวอย่างสลิป</span>
+          {/* Slip Thumbnail / Preview Column (Desktop side-by-side) */}
+          <div className="hidden lg:block lg:col-span-5 space-y-3">
+            <Card className="p-3.5 sm:p-4 bg-[var(--pw-surface-raised)]/60 border border-[var(--pw-hairline)] backdrop-blur-md">
+              <div className="flex items-center justify-between pb-2.5 border-b border-[var(--pw-hairline)]">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[var(--pw-ink)]">
+                  <Receipt className="size-4 text-[var(--pw-primary)]" />
+                  <span>รูปภาพสลิป</span>
                 </div>
-                <span className="text-xs text-[var(--pw-ink)]/50 truncate max-w-[180px]">
-                  {uploadedSlip.originalFileName}
-                </span>
+                {previewUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--pw-primary)] hover:underline cursor-pointer"
+                  >
+                    <Maximize2 className="size-3" />
+                    <span>ขยายรูป</span>
+                  </button>
+                )}
               </div>
 
               {previewUrl ? (
-                <div className="mt-4 flex justify-center rounded-lg overflow-hidden bg-black/40 border border-[var(--pw-hairline)] max-h-[420px]">
+                <div
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="mt-3 relative flex justify-center rounded-xl overflow-hidden bg-black/40 border border-[var(--pw-hairline)] max-h-[260px] sm:max-h-[380px] cursor-pointer group"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewUrl}
                     alt="Slip Preview"
-                    className="object-contain w-full max-h-[420px]"
+                    className="object-contain w-full max-h-[260px] sm:max-h-[380px] transition-transform group-hover:scale-102"
                   />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="rounded-full bg-black/70 text-white text-xs px-3 py-1 font-medium flex items-center gap-1">
+                      <Maximize2 className="size-3.5" />
+                      แตะเพื่อดูรูปขยาย
+                    </span>
+                  </div>
                 </div>
               ) : (
-                <div className="mt-4 flex flex-col items-center justify-center py-12 text-center text-[var(--pw-ink)]/50">
-                  <Receipt className="h-12 w-12 mb-2 opacity-50" />
-                  <p className="text-sm">ไฟล์เอกสาร PDF หรือไม่มีตัวอย่างรูปภาพ</p>
+                <div className="mt-3 flex flex-col items-center justify-center py-8 text-center text-[var(--pw-ink)]/50">
+                  <Receipt className="size-10 mb-2 opacity-40" />
+                  <p className="text-xs">ไม่มีตัวอย่างรูปภาพ</p>
                 </div>
               )}
 
               {uploadedSlip.isDuplicate && (
-                <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-[var(--pw-accent-yellow)]/10 border border-[var(--pw-accent-yellow)]/20 p-3 text-xs text-[var(--pw-accent-yellow)]">
-                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/25 p-2.5 text-xs text-amber-500">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-semibold">ตรวจพบสลิปซ้ำในระบบ:</span>
-                    <p className="mt-0.5 text-[var(--pw-ink)]/75">
-                      ไฟล์นี้มีค่าแฮช SHA-256 ตรงกับสลิปในระบบ หากการอัปโหลดครั้งก่อนเกิดข้อผิดพลาด คุณสามารถตรวจสอบข้อมูลด้านล่างและกดยืนยันบันทึกรายการได้ตามปกติ
+                    <span className="font-bold">ตรวจพบสลิปซ้ำ:</span>
+                    <p className="mt-0.5 text-[var(--pw-ink)]/75 text-[11px]">
+                      ไฟล์สลิปนี้เคยถูกนำเข้าแล้ว คุณยังสามารถตรวจสอบและยืนยันบันทึกได้หากจำเป็น
                     </p>
                   </div>
                 </div>
@@ -479,217 +637,312 @@ export function SlipImportTab() {
               type="button"
               variant="outline"
               size="sm"
-              className="w-full gap-2 text-[var(--pw-ink)]/75"
+              className="w-full gap-2 border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:text-[var(--pw-ink)] active:scale-98 transition-all cursor-pointer"
               onClick={() => handleReset(false)}
             >
-              <RotateCcw className="h-4 w-4" />
-              อัปโหลดสลิปอื่น
+              <RotateCcw className="size-3.5" />
+              <span>เลือกสลิปอื่น</span>
             </Button>
           </div>
 
-          {/* Form & Verification Column */}
+          {/* Form & Verification Column: Exactly Matching TransactionForm Standard */}
           <div className="lg:col-span-7">
-            <Card className="p-6 bg-[var(--pw-surface-raised)]/50 border border-[var(--pw-hairline)] space-y-5">
-              <div className="flex items-center justify-between pb-2 border-b border-[var(--pw-hairline)]">
-                <div>
-                  <h3 className="text-base font-semibold text-[var(--pw-ink)]">
-                    ตรวจสอบและยืนยันข้อมูลรายการ
-                  </h3>
-                  <p className="text-xs text-[var(--pw-ink)]/75">
-                    ข้อมูลถูกอ่านอัตโนมัติจากไฟล์สลิป สามารถแก้ไขก่อนบันทึกได้
-                  </p>
-                </div>
-                <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    uploadedSlip.reviewStatus === "confirmed"
-                      ? "bg-[var(--pw-accent-green)]/10 text-[var(--pw-accent-green)]"
-                      : uploadedSlip.reviewStatus === "rejected"
-                      ? "bg-[var(--pw-accent-red)]/10 text-[var(--pw-accent-red)]"
-                      : uploadedSlip.isDuplicate
-                      ? "bg-[var(--pw-accent-yellow)]/10 text-[var(--pw-accent-yellow)]"
-                      : "bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)]"
-                  }`}
-                >
-                  {uploadedSlip.reviewStatus === "confirmed"
-                    ? "บันทึกแล้ว"
-                    : uploadedSlip.reviewStatus === "rejected"
-                    ? "ปฏิเสธแล้ว"
-                    : uploadedSlip.isDuplicate
-                    ? "ตรวจพบซ้ำ"
-                    : "รอตรวจสอบ"}
-                </span>
-              </div>
+            <Card className="p-4 sm:p-6 bg-[var(--pw-surface-raised)]/60 border border-[var(--pw-hairline)] backdrop-blur-md space-y-4">
+              {/* Card Header with Top-Right Thumbnail on Mobile */}
+              <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--pw-hairline)]">
+                <div className="space-y-1.5 min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-bold text-[var(--pw-ink)]">
+                      ตรวจสอบข้อมูลรายการ
+                    </h3>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--pw-primary)]">
+                      <Sparkles className="size-3" />
+                      อ่านด้วย AI
+                    </span>
+                  </div>
 
-              {/* Detected info pills */}
-              <div className="grid grid-cols-2 gap-3 text-xs bg-[var(--pw-surface-indigo)]/50 p-3 rounded-lg border border-[var(--pw-hairline)]">
-                <div>
-                  <span className="text-[var(--pw-ink)]/50">ผู้รับเงิน / ร้านค้า:</span>
-                  <div className="font-medium text-[var(--pw-ink)] truncate">
-                    {uploadedSlip.payeeName || "-"}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span
+                      className={cn(
+                        "px-2.5 py-0.5 rounded-full text-xs font-semibold",
+                        uploadedSlip.reviewStatus === "confirmed"
+                          ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                          : uploadedSlip.reviewStatus === "rejected"
+                          ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                          : uploadedSlip.isDuplicate
+                          ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                          : "bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/30"
+                      )}
+                    >
+                      {uploadedSlip.reviewStatus === "confirmed"
+                        ? "บันทึกแล้ว"
+                        : uploadedSlip.reviewStatus === "rejected"
+                        ? "ปฏิเสธแล้ว"
+                        : uploadedSlip.isDuplicate
+                        ? "ตรวจพบซ้ำ"
+                        : "รอตรวจสอบ"}
+                    </span>
+
+                    {/* Button to reset/re-upload on mobile */}
+                    <button
+                      type="button"
+                      onClick={() => handleReset(false)}
+                      className="text-xs text-[var(--pw-ink)]/55 hover:text-[var(--pw-ink)] lg:hidden underline cursor-pointer"
+                    >
+                      เลือกสลิปอื่น
+                    </button>
                   </div>
                 </div>
-                <div>
-                  <span className="text-[var(--pw-ink)]/50">ผู้โอนเงิน:</span>
-                  <div className="font-medium text-[var(--pw-ink)] truncate">
-                    {uploadedSlip.payerName || "-"}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[var(--pw-ink)]/50">รหัสอ้างอิง:</span>
-                  <div className="font-medium text-[var(--pw-ink)] truncate">
-                    {uploadedSlip.transactionReference || "-"}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[var(--pw-ink)]/50">ธนาคาร:</span>
-                  <div className="font-medium text-[var(--pw-ink)] truncate">
-                    {uploadedSlip.bankCode || "ตรวจจับอัตโนมัติ"}
-                  </div>
-                </div>
-              </div>
 
-              {/* Edit Fields - matching TransactionForm for expenses */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField label="จำนวนเงิน (บาท)">
-                    <NumberInput
-                      step={0.01}
-                      min={0.01}
-                      placeholder="0"
-                      value={amount}
-                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
-                      onChange={(e) => setAmount(e.target.value)}
-                    />
-                  </FormField>
-
-                  <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)">
-                    <DateTimeInput
-                      value={transactionDate}
-                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
-                      onChange={setTransactionDate}
-                    />
-                  </FormField>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    label={
-                      <div className="flex items-center gap-1.5">
-                        <span>หมวดหมู่</span>
-                        {uploadedSlip.suggestedCategoryName && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--pw-accent-primary)] bg-[var(--pw-accent-primary)]/10 px-1.5 py-0.5 rounded">
-                            <Sparkles className="h-3 w-3" />
-                            แนะนำจากสลิป
-                          </span>
-                        )}
-                      </div>
-                    }
+                {/* Top-Right Slip Thumbnail on Mobile (ข้อ 3: ย่อรูปภาพไปมุมขวาบน แตะเพื่อซูม) */}
+                {previewUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="group relative size-16 sm:size-20 shrink-0 overflow-hidden rounded-xl border-2 border-[var(--pw-primary)]/40 bg-black/50 shadow-md active:scale-95 transition-all cursor-pointer lg:hidden"
+                    aria-label="ดูรูปสลิปขยายเต็มจอ"
+                    title="แตะเพื่อดูรูปสลิปขยายเต็มจอ"
                   >
-                    <Select
-                      value={categoryId || "none"}
-                      onValueChange={(val) => setCategoryId(val === "none" ? "" : val)}
-                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="— ไม่ระบุ —" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.categoryId} value={String(cat.categoryId)}>
-                            {cat.categoryName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {categorySuggestion && String(categorySuggestion.categoryId) !== categoryId && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="text-xs text-[var(--pw-accent-primary)] hover:text-[var(--pw-accent-primary)]/80 mt-1.5 flex items-center gap-1.5 px-2 py-1 h-auto"
-                        onClick={() => setCategoryId(String(categorySuggestion.categoryId))}
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        <span>ใช้คำแนะนำจากรายละเอียด: <strong>{categorySuggestion.categoryName ?? "หมวดหมู่"}</strong></span>
-                      </Button>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={previewUrl}
+                      alt="Slip Thumbnail"
+                      className="size-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">
+                      <Maximize2 className="size-4 text-white drop-shadow" />
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              {/* 1. HERO AMOUNT INPUT (Light Mode คมชัดด้วย text-[var(--pw-ink)]) */}
+              <FormField label="จำนวนเงิน (บาท)">
+                <NumberInput
+                  id="slip-amount"
+                  step={0.01}
+                  min={0.01}
+                  placeholder="0.00"
+                  value={amount}
+                  disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                  onChange={(e) => setAmount(e.target.value)}
+                  prefixNode={<span className="text-xl font-bold text-[var(--pw-ink)]/50">฿</span>}
+                  className="h-14 text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--pw-ink)] bg-[var(--pw-surface-black)]/35 border-[var(--pw-input-border)] focus:border-[var(--pw-primary)] rounded-[var(--pw-rounded-sm)]"
+                />
+              </FormField>
+
+              {/* 2. QUICK CATEGORY CHIPS (ปุ่มเลือกหมวดหมู่ทันที + หมวดหมู่อื่นๆ) */}
+              <FormField
+                label={
+                  <div className="flex items-center gap-1.5">
+                    <span>หมวดหมู่</span>
+                    {uploadedSlip.suggestedCategoryName && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[var(--pw-primary)] bg-[var(--pw-primary)]/15 px-1.5 py-0.5 rounded-md font-medium">
+                        <Sparkles className="size-3" />
+                        AI แนะนำจากสลิป
+                      </span>
                     )}
-                  </FormField>
+                  </div>
+                }
+              >
+                <div className="space-y-2">
+                  {/* Category Chips Grid */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {quickCategories.map((cat) => {
+                      const isSelected = categoryId === String(cat.categoryId);
+                      return (
+                        <button
+                          key={cat.categoryId}
+                          type="button"
+                          onClick={() => handleSelectCategory(isSelected ? null : cat.categoryId)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all active:scale-95 cursor-pointer border",
+                            isSelected
+                              ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)] border-[var(--pw-primary)] shadow-sm font-semibold scale-102"
+                              : "bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/85 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:border-[var(--pw-primary)]/50"
+                          )}
+                        >
+                          {isSelected && <Check className="size-3 stroke-[3]" />}
+                          <span>{cat.categoryName}</span>
+                        </button>
+                      );
+                    })}
 
-                  <FormField label="บัญชี">
-                    <Select
-                      value={bankAccountId || "none"}
-                      onValueChange={(val) => {
-                        const nextVal = val === "none" ? "" : val;
-                        setBankAccountId(nextVal);
-                        if (nextVal) setCreditCardId("");
-                      }}
-                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="— ไม่ระบุ —" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                        {bankAccounts.map((acc) => (
-                          <SelectItem
-                            key={acc.bankAccountId}
-                            value={String(acc.bankAccountId)}
-                          >
-                            {acc.accountName} ({acc.bankName})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
-                </div>
+                    {/* Selected category if outside top 6 */}
+                    {outsideSelectedCategory && (
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCategory(null)}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold bg-[var(--pw-primary)] text-[var(--pw-on-primary)] border border-[var(--pw-primary)] shadow-sm scale-102 cursor-pointer"
+                      >
+                        <Check className="size-3 stroke-[3]" />
+                        <span>{outsideSelectedCategory.categoryName}</span>
+                      </button>
+                    )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField label="บัตรเครดิต">
-                    <Select
-                      value={creditCardId || "none"}
-                      onValueChange={(val) => {
-                        const nextVal = val === "none" ? "" : val;
-                        setCreditCardId(nextVal);
-                        if (nextVal) setBankAccountId("");
-                      }}
-                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                    {/* Toggle All Categories Dropdown */}
+                    <button
+                      type="button"
+                      onClick={() => setShowAllCategories((prev) => !prev)}
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium border border-dashed transition-all cursor-pointer",
+                        showAllCategories
+                          ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] font-semibold"
+                          : "border-[var(--pw-hairline)] text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)] hover:border-[var(--pw-ink)]/40"
+                      )}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="— ไม่ระบุ —" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                        {creditCards
-                          .filter((card) => card.isActive)
-                          .map((card) => (
-                            <SelectItem
-                              key={card.creditCardId}
-                              value={String(card.creditCardId)}
-                            >
-                              {card.cardName} · {card.bankName}
+                      <Pencil className="size-3" />
+                      <span>{showAllCategories ? "ซ่อนรายการทั้งหมด" : "หมวดหมู่อื่นๆ"}</span>
+                    </button>
+                  </div>
+
+                  {/* Full Category Select Dropdown */}
+                  {showAllCategories && (
+                    <div className="pt-1">
+                      <Select
+                        value={categoryId || "none"}
+                        onValueChange={(val) => handleSelectCategory(val === "none" ? null : Number(val))}
+                        disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                      >
+                        <SelectTrigger id="slip-category-select">
+                          <SelectValue placeholder="— เลือกจากหมวดหมู่ทั้งหมด —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.categoryId} value={String(cat.categoryId)}>
+                              {cat.categoryName}
                             </SelectItem>
                           ))}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
-                  <FormField label="ผู้รับเงิน / ร้านค้า">
-                    <Input
-                      placeholder="เช่น บจก. ซีพี ออลล์, ร้านกาแฟ"
-                      value={payeeName}
-                      disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
-                      onChange={(e) => setPayeeName(e.target.value)}
-                    />
-                  </FormField>
+                  {/* Secondary AI Suggestion from description */}
+                  {categorySuggestion && String(categorySuggestion.categoryId) !== categoryId && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs text-[var(--pw-primary)] hover:text-[var(--pw-primary)]/80 mt-1 flex items-center gap-1.5 px-2 py-1 h-auto"
+                      onClick={() => handleSelectCategory(categorySuggestion.categoryId)}
+                    >
+                      <Sparkles className="size-3.5" />
+                      <span>ใช้คำแนะนำจากข้อความ: <strong>{categorySuggestion.categoryName ?? "หมวดหมู่"}</strong></span>
+                    </Button>
+                  )}
                 </div>
+              </FormField>
 
-                <FormField label="แท็ก">
-                  {!tags || tags.length === 0 ? (
-                    <p className="pt-1 text-xs text-[var(--pw-ink)]/55">
-                      ยังไม่มีแท็ก สามารถเพิ่มแท็กใหม่ได้ที่เมนู แท็ก
-                    </p>
-                  ) : (
+              {/* 3. PROGRESSIVE DISCLOSURE DATE & TIME (เหมือนหน้า Transactions) */}
+              <div className="space-y-1.5">
+                {!isCustomDateTime ? (
+                  <div className="flex items-center justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2 text-[var(--pw-ink)]/75">
+                      <Calendar className="size-3.5 text-[var(--pw-primary)]" />
+                      <span>เวลาโอน: <strong className="text-[var(--pw-ink)] font-semibold">{displayDateSummary}</strong></span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomDateTime(true)}
+                      className="text-[var(--pw-link)] hover:underline font-medium cursor-pointer"
+                    >
+                      เปลี่ยนวันที่/เวลา
+                    </button>
+                  </div>
+                ) : (
+                  <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)">
+                    <div className="space-y-1.5">
+                      <DateTimeInput
+                        value={transactionDate}
+                        disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                        onChange={setTransactionDate}
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomDateTime(false)}
+                          className="text-[11px] text-[var(--pw-ink)]/60 hover:text-[var(--pw-link)] cursor-pointer"
+                        >
+                          ซ่อน
+                        </button>
+                      </div>
+                    </div>
+                  </FormField>
+                )}
+              </div>
+
+              {/* 4. ACCOUNTS SELECTION */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormField label="บัญชีที่โอนเงิน">
+                  <Select
+                    value={bankAccountId || "none"}
+                    onValueChange={(val) => {
+                      const nextVal = val === "none" ? "" : val;
+                      setBankAccountId(nextVal);
+                      if (nextVal) {
+                        setCreditCardId("");
+                        try {
+                          localStorage.setItem("pocketwise_last_bank_account_id", nextVal);
+                        } catch {}
+                      }
+                    }}
+                    disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="— ไม่ระบุ —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— ไม่ระบุ —</SelectItem>
+                      {bankAccounts.map((acc) => (
+                        <SelectItem key={acc.bankAccountId} value={String(acc.bankAccountId)}>
+                          {acc.accountName} ({acc.bankName})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+
+                <FormField label="ผู้รับเงิน / ร้านค้า">
+                  <Input
+                    placeholder="เช่น บจก. ซีพี ออลล์, ร้านกาแฟ"
+                    value={payeeName}
+                    disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                    onChange={(e) => setPayeeName(e.target.value)}
+                  />
+                </FormField>
+              </div>
+
+              {/* 5. DESCRIPTION / NOTE */}
+              <FormField label="รายละเอียด / หมายเหตุ">
+                <Input
+                  placeholder="เช่น ค่าอาหารกลางวัน, ชำระค่าสินค้า"
+                  value={description}
+                  disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </FormField>
+
+              {/* 6. COLLAPSIBLE TAGS (เหมือนหน้า Transactions) */}
+              {tags && tags.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowTagsSection((prev) => !prev)}
+                    className="flex items-center gap-1.5 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer"
+                  >
+                    <TagIcon className="size-3.5" />
+                    <span className="font-medium">แท็ก</span>
+                    {selectedTagIds && selectedTagIds.length > 0 && (
+                      <span className="rounded-full bg-[var(--pw-primary)]/20 px-2 py-0.5 text-[10px] font-bold text-[var(--pw-primary)]">
+                        {selectedTagIds.length}
+                      </span>
+                    )}
+                    <ChevronDown className={cn("size-3 transition-transform", showTagsSection && "rotate-180")} />
+                  </button>
+
+                  {showTagsSection && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {tags.map((t) => {
                         const checked = selectedTagIds.includes(t.tagId);
@@ -701,7 +954,7 @@ export function SlipImportTab() {
                           <label
                             key={t.tagId}
                             className={cn(
-                              "group inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs sm:text-sm font-medium transition-all select-none shadow-xs",
+                              "group inline-flex min-h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all select-none shadow-2xs",
                               checked
                                 ? "opacity-100 ring-2 ring-[var(--pw-link)] ring-offset-2 ring-offset-[var(--pw-canvas)] border-transparent"
                                 : "opacity-65 hover:opacity-90 border-transparent",
@@ -727,7 +980,7 @@ export function SlipImportTab() {
                             />
                             <span
                               className={cn(
-                                "flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-all",
+                                "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border transition-all",
                                 checked
                                   ? isDarkText
                                     ? "bg-black text-white border-black"
@@ -737,7 +990,7 @@ export function SlipImportTab() {
                                     : "border-white/60 bg-white/15 group-hover:border-white",
                               )}
                             >
-                              {checked && <Check className="size-3 stroke-[3]" />}
+                              {checked && <Check className="size-2.5 stroke-[3]" />}
                             </span>
                             <span>#{t.tagName}</span>
                           </label>
@@ -745,42 +998,77 @@ export function SlipImportTab() {
                       })}
                     </div>
                   )}
-                </FormField>
+                </div>
+              )}
 
-                <FormField label="รายละเอียด">
-                  <Input
-                    placeholder="เช่น ชำระค่าอาหาร, ค่ากาแฟ"
-                    value={description}
-                    disabled={uploadedSlip.reviewStatus !== "pending" && !uploadedSlip.isDuplicate}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </FormField>
+              {/* 7. COLLAPSIBLE DETECTED DETAILS (รหัสอ้างอิง, ผู้โอน, ธนาคาร) */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowDetectedPills((prev) => !prev)}
+                  className="flex items-center gap-1.5 text-xs text-[var(--pw-ink)]/50 hover:text-[var(--pw-ink)] cursor-pointer"
+                >
+                  <Receipt className="size-3.5" />
+                  <span>ข้อมูลเพิ่มเติมจากสลิป (รหัสอ้างอิง, ธนาคาร)</span>
+                  <ChevronDown className={cn("size-3 transition-transform", showDetectedPills && "rotate-180")} />
+                </button>
+
+                {showDetectedPills && (
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-[var(--pw-surface-indigo)]/50 p-2.5 rounded-lg border border-[var(--pw-hairline)] mt-2">
+                    <div>
+                      <span className="text-[var(--pw-ink)]/50">ผู้โอนเงิน:</span>
+                      <div className="font-medium text-[var(--pw-ink)] truncate">
+                        {uploadedSlip.payerName || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[var(--pw-ink)]/50">รหัสอ้างอิง:</span>
+                      <div className="font-medium text-[var(--pw-ink)] truncate">
+                        {uploadedSlip.transactionReference || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[var(--pw-ink)]/50">ธนาคาร:</span>
+                      <div className="font-medium text-[var(--pw-ink)] truncate">
+                        {uploadedSlip.bankCode || "ตรวจจับอัตโนมัติ"}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[var(--pw-ink)]/50">ไฟล์ต้นฉบับ:</span>
+                      <div className="font-medium text-[var(--pw-ink)] truncate">
+                        {uploadedSlip.originalFileName}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Action Buttons */}
+              {/* 8. ACTION BUTTONS: ปุ่มยืนยันอยู่บน ปุ่มปฏิเสธอยู่ล่างบนมือถือ */}
               {uploadedSlip.reviewStatus !== "confirmed" &&
                 uploadedSlip.reviewStatus !== "rejected" && (
-                  <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-[var(--pw-hairline)]">
+                  <div className="flex flex-col gap-2.5 sm:flex-row-reverse sm:justify-start pt-3 border-t border-[var(--pw-hairline)]">
                     <Button
                       type="button"
-                      variant="outline"
-                      className="gap-2 text-[var(--pw-accent-red)] hover:bg-[var(--pw-accent-red)]/10"
-                      disabled={rejectMutation.isPending || confirmMutation.isPending}
-                      onClick={handleReject}
-                    >
-                      <X className="h-4 w-4" />
-                      ปฏิเสธสลิป
-                    </Button>
-                    <Button
-                      type="button"
-                      className="gap-2 bg-[var(--pw-green)] text-[var(--pw-on-green)] hover:brightness-110"
+                      className="w-full sm:w-auto h-11 gap-2 bg-[var(--pw-green)] text-[var(--pw-on-green)] hover:brightness-110 font-bold active:scale-[0.98] transition-transform shadow-md cursor-pointer"
                       disabled={confirmMutation.isPending || rejectMutation.isPending}
                       onClick={handleConfirm}
                     >
-                      <Check className="h-4 w-4" />
-                      {confirmMutation.isPending
-                        ? "กำลังบันทึก..."
-                        : "ยืนยันและบันทึกรายการ"}
+                      <Check className="size-4 stroke-[3]" />
+                      <span>
+                        {confirmMutation.isPending
+                          ? "กำลังบันทึก..."
+                          : "ยืนยันและบันทึกรายการ"}
+                      </span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full sm:w-auto gap-2 text-[var(--pw-accent-red)] hover:bg-[var(--pw-accent-red)]/10 active:scale-[0.98] transition-transform cursor-pointer"
+                      disabled={rejectMutation.isPending || confirmMutation.isPending}
+                      onClick={handleReject}
+                    >
+                      <X className="size-4" />
+                      <span>ปฏิเสธสลิป</span>
                     </Button>
                   </div>
                 )}
