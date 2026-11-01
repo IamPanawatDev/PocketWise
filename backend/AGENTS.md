@@ -53,6 +53,15 @@ backend/
 
 ---
 
+8. **มาตรฐานระบบส่งอีเมลและเทมเพลต (Email Delivery & Actionable Links Standard — ห้ามส่ง Raw Token เด็ดขาด)**:
+   - **ห้ามส่งเฉพาะ Token ดิบในอีเมลเด็ดขาด**: ทุกอีเมลยืนยันตัวตนหรือรีเซ็ตรหัสผ่านต้องมีทั้งปุ่ม CTA ขนาดใหญ่ที่แตะกดได้บนมือถือ และมีลิงก์ URL สำรองแบบข้อความเต็มใต้ปุ่ม
+   - **Token ใน URL ต้องเข้ารหัสด้วย `Base64UrlEncode` เสมอ**: เพื่อป้องกันอักขระพิเศษ (`+`, `/`, `=`) เพี้ยนเมื่อส่งผ่าน URL Query
+   - **Base URL ต้อง Resolve ไปที่โดเมนจริง (`FrontendBaseUrl: https://pocket-wise.vercel.app`)**: ห้ามหลุดไป `localhost:3000` บน Production เด็ดขาด
+   - **ทุก Service ต้องใช้เทมเพลตมาตรฐานเดียวกัน**: ทั้ง `AuthService` และ `AdminUserService` ต้องใช้ HTML Template ที่มีโครงสร้าง ปุ่มกด และดีไซน์ระดับเดียวกัน ห้ามเขียน Placeholder หรือ Dump Token ลอย ๆ
+   - **ระบบส่งอีเมลต้องส่งผ่าน HTTPS API (พอร์ต 443) ลำดับแรกเสมอ**: เพื่อข้ามการบล็อกพอร์ต SMTP ขาออกของ Cloud Hosting (Render Free Tier)
+
+---
+
 ### 📦 รายการ Tools & Packages ที่ได้รับอนุมัติแล้ว:
 - `Npgsql.EntityFrameworkCore.PostgreSQL` (10.0.0) ใน `PocketWise.Infrastructure` — สำหรับเชื่อมต่อและจัดการฐานข้อมูล PostgreSQL
 - `Tesseract` (5.2.0) ใน `PocketWise.Infrastructure` — สำหรับ Local Offline OCR อ่านสลิปโอนเงินภาษาไทย/อังกฤษ ผ่าน `ISlipOcrService` ร่วมกับไฟล์โมเดล `tessdata/{tha,eng,osd}.traineddata`

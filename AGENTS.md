@@ -131,6 +131,29 @@
 
 ---
 
+---
+
+9. **มาตรฐานระบบส่งอีเมล เทมเพลต และลิงก์การทำงาน (Email Delivery & Actionable Link Master Standard — ห้ามส่ง Raw Token เด็ดขาด)**:
+   - **ห้ามพิมพ์ Token ดิบลงในอีเมลโดยไม่มีปุ่มกดหรือลิงก์เด็ดขาด (Zero Raw Token Dumps)**:
+     - ทุกอีเมลที่มีการกระทำ (Actionable Email เช่น ยืนยันอีเมล, รีเซ็ตรหัสผ่าน, คำเชิญ, อนุมัติ):
+       - **ต้องมีปุ่ม CTA (Call-to-Action)** ขนาดใหญ่ จัดกึ่งกลาง สไตล์ Responsive ที่นิ้วแตะกดได้ง่ายบนมือถือ (`<a href="{actionUrl}" target="_blank" ...>`)
+       - **ต้องมีลิงก์ URL สำรองแบบข้อความเต็ม** ด้านล่างปุ่ม เพื่อให้ผู้ใช้สามารถคลิกหรือคัดลอก (Copy-Paste) ไปวางในเบราว์เซอร์ได้หากปุ่มไม่ทำงาน
+       - **ห้ามส่งเฉพาะรหัส Token ดิบ (Raw Token String)** ใส่กล่องข้อความหรือ `<div>` ลอย ๆ โดยไม่มีลิงก์หรือปุ่มกดโดยเด็ดขาด
+   - **การเข้ารหัส Token สำหรับ URL (URL-Safe Base64 Encoding)**:
+     - Token ที่จะนำไปต่อเป็น Query Parameter ใน URL (เช่น `?token={encodedToken}`) **ต้องผ่านการเข้ารหัสด้วย `Base64UrlEncode` เสมอ** (แทนที่ `+` ด้วย `-`, แทนที่ `/` ด้วย `_`, และตัด `=` ทิ้ง) เพื่อป้องกันอักขระพิเศษหลุดหรือถูก URL Decode ผิดพลาด
+   - **การชี้โดเมนบน Production (Never Hardcode or Fallback to Localhost on Production)**:
+     - Base URL ของลิงก์ในอีเมล **ต้องไม่ตกไปที่ `http://localhost:3000` บนเซิร์ฟเวอร์จริงโดยเด็ดขาด**:
+       - ต้องมีระบบ `ResolveBaseUrl`: ตรวจสอบ `Origin` หรือ `Referer` จาก Client Request หากไม่ใช่ localhost ให้ใช้โดเมนนั้น
+       - หากไม่มี Header หรือเป็นค่าว่าง หรือส่งจาก background job/admin ต้อง Fallback ไปที่ค่าคอนฟิก `FrontendBaseUrl` ซึ่งบน Production ถูกกำหนดเป็น `https://pocket-wise.vercel.app`
+       - Route Proxy ฝั่ง Next.js Server (เช่น `/api/auth/register`) ต้องส่งต่อ Header `Origin` หรือ `Referer` ไปยัง Backend API เสมอ
+   - **มาตรฐานความสอดคล้องกันทุก Service (Consistency Across Services)**:
+     - ไม่ว่าจะส่งจาก Public Auth (`AuthService`) หรือผู้ดูแลระบบ (`AdminUserService`) หรือ Scheduled Jobs **ต้องใช้มาตรฐานเทมเพลตอีเมล, ลิงก์ และการเข้ารหัส Token เดียวกัน 100%** ห้ามเขียนเทมเพลตแบบ Placeholder ชั่วคราวเด็ดขาด
+   - **นโยบายพอร์ตคลาวด์และโปรโตคอลส่งอีเมล (Cloud Egress Port & HTTPS Delivery)**:
+     - บริการ Cloud Hosting (เช่น Render Free Tier, Vercel, Serverless) มีนโยบายบล็อกพอร์ต SMTP ขาออก (25, 465, 587)
+     - ระบบส่งอีเมลหลักของโปรเจกต์ต้องรองรับการส่งผ่าน **HTTPS (Port 443) REST API** (เช่น Google Apps Script Web App Relay หรือ API Provider) เป็นอันดับแรกเสมอ โดยมี SMTP เป็นทางเลือกรองสำหรับ Local Development
+
+---
+
 ## 🧭 3. กฎย่อยประจำแต่ละส่วนของโปรเจค (Sub-Rules Navigation)
 
 โปรเจคนี้แบ่ง Rule ตามขอบเขตการทำงานเพื่อให้ AI วางโค้ดได้อย่างถูกต้อง:
