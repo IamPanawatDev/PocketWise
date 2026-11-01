@@ -38,11 +38,11 @@ public interface IAdminUserService
 
     Task<bool> UnsuspendUserAsync(long userId, long adminUserId, CancellationToken cancellationToken = default);
 
-    Task<bool> ResendVerificationEmailAsync(long userId, CancellationToken cancellationToken = default);
+    Task<bool> ResendVerificationEmailAsync(long userId, string? originUrl = null, CancellationToken cancellationToken = default);
 
     Task<bool> VerifyUserEmailAsync(long userId, long adminUserId, CancellationToken cancellationToken = default);
 
-    Task<string?> SendPasswordResetLinkAsync(long userId, CancellationToken cancellationToken = default);
+    Task<string?> SendPasswordResetLinkAsync(long userId, string? originUrl = null, CancellationToken cancellationToken = default);
 
     Task<List<AdminUserSessionResponse>> GetUserSessionsAsync(long userId, long? currentSessionId, CancellationToken cancellationToken = default);
 

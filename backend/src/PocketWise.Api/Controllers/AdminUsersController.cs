@@ -108,7 +108,8 @@ public class AdminUsersController : ControllerBase
         long id,
         CancellationToken cancellationToken)
     {
-        var success = await _adminUserService.ResendVerificationEmailAsync(id, cancellationToken);
+        var originUrl = Request.Headers.Origin.FirstOrDefault() ?? Request.Headers.Referer.FirstOrDefault();
+        var success = await _adminUserService.ResendVerificationEmailAsync(id, originUrl, cancellationToken);
         if (!success)
         {
             return BadRequest(ApiResponse<object?>.Fail("OPERATION_NOT_ALLOWED", "ไม่สามารถส่งอีเมลยืนยันได้ (ผู้ใช้ยืนยันอีเมลแล้ว หรือไม่พบข้อมูล)"));
@@ -122,7 +123,8 @@ public class AdminUsersController : ControllerBase
         long id,
         CancellationToken cancellationToken)
     {
-        var token = await _adminUserService.SendPasswordResetLinkAsync(id, cancellationToken);
+        var originUrl = Request.Headers.Origin.FirstOrDefault() ?? Request.Headers.Referer.FirstOrDefault();
+        var token = await _adminUserService.SendPasswordResetLinkAsync(id, originUrl, cancellationToken);
         if (token == null)
         {
             return NotFound(ApiResponse<object?>.Fail("NOT_FOUND", "ไม่พบผู้ใช้ที่ระบุ"));

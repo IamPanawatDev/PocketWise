@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using FluentValidation;
@@ -22,6 +23,7 @@ public class AuthService : IAuthService
     private readonly ILogger<AuthService>? _logger;
     private readonly IRolePermissionRepository? _rolePermissionRepository;
     private readonly ISecurityEventService? _securityEventService;
+    private readonly IConfiguration? _configuration;
 
     private static readonly ConcurrentDictionary<long, DateTime> _verificationCooldowns = new();
     private static readonly ConcurrentDictionary<string, DateTime> _passwordResetCooldowns = new(StringComparer.OrdinalIgnoreCase);
@@ -35,7 +37,8 @@ public class AuthService : IAuthService
         IAuditLogService? auditLogService = null,
         ILogger<AuthService>? logger = null,
         IRolePermissionRepository? rolePermissionRepository = null,
-        ISecurityEventService? securityEventService = null)
+        ISecurityEventService? securityEventService = null,
+        IConfiguration? configuration = null)
     {
         _userManager = userManager;
         _refreshTokenRepository = refreshTokenRepository;
@@ -46,6 +49,28 @@ public class AuthService : IAuthService
         _logger = logger;
         _rolePermissionRepository = rolePermissionRepository;
         _securityEventService = securityEventService;
+        _configuration = configuration;
+    }
+
+    private string ResolveBaseUrl(string? originUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(originUrl) && !originUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return originUrl.TrimEnd('/');
+        }
+
+        var configured = _configuration?["FrontendBaseUrl"] ?? _configuration?["AppUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured.TrimEnd('/');
+        }
+
+        if (!string.IsNullOrWhiteSpace(originUrl))
+        {
+            return originUrl.TrimEnd('/');
+        }
+
+        return "https://pocket-wise.vercel.app";
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, string? ipAddress = null, string? userAgent = null, string? originUrl = null, CancellationToken cancellationToken = default)
@@ -432,7 +457,7 @@ public class AuthService : IAuthService
         var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(applicationUser);
         var encodedToken = Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
-        var baseUrl = !string.IsNullOrWhiteSpace(originUrl) ? originUrl.TrimEnd('/') : "http://localhost:3000";
+        var baseUrl = ResolveBaseUrl(originUrl);
         var verificationUrl = $"{baseUrl}/verify-email?userId={applicationUser.Id}&token={encodedToken}";
 
         var bodyHtml = $"""
@@ -582,7 +607,7 @@ public class AuthService : IAuthService
         var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
-        var baseUrl = !string.IsNullOrWhiteSpace(originUrl) ? originUrl.TrimEnd('/') : "http://localhost:3000";
+        var baseUrl = ResolveBaseUrl(originUrl);
         var resetUrl = $"{baseUrl}/reset-password?userId={user.Id}&token={encodedToken}";
 
         var bodyHtml = $"""
