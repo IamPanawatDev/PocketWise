@@ -12,6 +12,8 @@ import { NotificationBell } from "@/features/notifications/components/Notificati
 import { useSignalRNotifications } from "@/features/notifications/hooks/useSignalRNotifications";
 import { ActiveAnnouncementsBanner } from "@/features/admin-operations/components/ActiveAnnouncementsBanner";
 import { Button } from "@/components/ui/button";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { TransactionForm } from "@/features/transactions/components/TransactionForm";
 import {
   Tooltip,
   TooltipContent,
@@ -33,6 +35,7 @@ import {
   LogOut,
   Menu,
   PieChart,
+  Plus,
   ReceiptText,
   Repeat,
   ShieldCheck,
@@ -94,6 +97,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(true);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setIsQuickAddOpen(true);
+    window.addEventListener("pocketwise:open-transaction-form", handleOpen);
+    return () => window.removeEventListener("pocketwise:open-transaction-form", handleOpen);
+  }, []);
 
   const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? false;
 
@@ -438,52 +448,45 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <Link
-          href="/budgets"
+          href="/imports"
           className={cn(
             "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
-            pathname.startsWith("/budgets")
+            pathname.startsWith("/imports")
               ? "text-[var(--pw-primary)] font-semibold"
               : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
           )}
+          aria-label="สแกนสลิป"
         >
-          {pathname.startsWith("/budgets") && (
+          {pathname.startsWith("/imports") && (
             <motion.div
               layoutId="mobileBottomIndicator"
               className="absolute top-1 w-8 h-0.75 rounded-full bg-[var(--pw-primary)] shadow-[0_0_8px_var(--pw-primary)]"
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             />
           )}
-          <Wallet className="size-5 mt-1" />
-          <span className="text-[10px] mt-0.5">งบประมาณ</span>
+          <Sparkles className="size-5 mt-1 text-[var(--pw-primary)] animate-pulse" />
+          <span className="text-[10px] mt-0.5">สแกนสลิป</span>
         </Link>
 
-        {/* Center Prominent AI Slip Scanner Button */}
-        <Link
-          href="/imports"
-          className="relative flex flex-col items-center justify-center flex-1 -top-3 active:scale-95 transition-transform"
-          aria-label="สแกนสลิป AI"
+        {/* Center Prominent Quick Add Button */}
+        <button
+          type="button"
+          onClick={() => setIsQuickAddOpen(true)}
+          className="relative flex flex-col items-center justify-center flex-1 -top-3 active:scale-95 transition-transform cursor-pointer group"
+          aria-label="จดรายการด่วน"
         >
           <div
             className={cn(
               "flex size-12 items-center justify-center rounded-full shadow-lg transition-all",
-              pathname.startsWith("/imports")
-                ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)] ring-3 ring-[var(--pw-primary)]/40 ring-offset-2 ring-offset-[var(--pw-surface-black)] shadow-[var(--pw-primary)]/50 scale-105"
-                : "bg-linear-to-tr from-[var(--pw-primary)] to-blue-500 text-white shadow-blue-500/30 hover:brightness-110"
+              "bg-linear-to-tr from-[var(--pw-primary)] to-blue-500 text-white shadow-blue-500/35 hover:brightness-110 active:scale-90 group-hover:scale-105"
             )}
           >
-            <Sparkles className="size-6 animate-pulse" />
+            <Plus className="size-6 stroke-[2.5]" />
           </div>
-          <span
-            className={cn(
-              "text-[10px] mt-0.5 font-medium",
-              pathname.startsWith("/imports")
-                ? "text-[var(--pw-primary)] font-bold"
-                : "text-[var(--pw-ink)]/75"
-            )}
-          >
-            สแกนสลิป
+          <span className="text-[10px] mt-0.5 font-medium text-[var(--pw-ink)]/85">
+            จดด่วน
           </span>
-        </Link>
+        </button>
 
         <Link
           href="/reports"
@@ -523,6 +526,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <span className="text-[10px] mt-0.5">เมนู</span>
         </button>
       </nav>
+
+      {/* Global Quick Add Transaction BottomSheet */}
+      <BottomSheet
+        open={isQuickAddOpen}
+        onOpenChange={setIsQuickAddOpen}
+        title="บันทึกรายการด่วน"
+        description="บันทึกรายรับหรือรายจ่ายทันที"
+      >
+        <TransactionForm
+          key={isQuickAddOpen ? "quick-add-open" : "quick-add-closed"}
+          onClose={() => setIsQuickAddOpen(false)}
+        />
+      </BottomSheet>
     </div>
   );
 }

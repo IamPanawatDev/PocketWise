@@ -20,9 +20,6 @@ export function ImportsView() {
           <FileUp className="size-6 text-[var(--pw-primary)]" />
           นำเข้าข้อมูล (Imports)
         </h1>
-        <p className="mt-1 text-sm text-[var(--pw-text-secondary)]">
-          นำเข้าสลิปการโอนเงินเพื่อบันทึกธุรกรรมทันที หรือนำเข้าใบแจ้งยอดบัตรเครดิต (CSV / JSON) พร้อมระบบตรวจจับรายการซ้ำและการจัดหมวดหมู่อัตโนมัติ
-        </p>
       </div>
 
       {/* Tabs navigation */}

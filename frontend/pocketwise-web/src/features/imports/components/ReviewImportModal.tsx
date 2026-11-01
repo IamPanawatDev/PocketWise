@@ -211,7 +211,7 @@ function SlipReviewContent({
         body: {
           amount: numericAmount,
           transactionDate: isoDate,
-          description: description.trim() || (payeeName.trim() ? `ชำระเงินให้ ${payeeName.trim()}` : "รายการจากสลิป"),
+          description: description.trim() || (payeeName.trim() ? `โอนเงินให้ ${payeeName.trim()}` : "รายการจากสลิป"),
           categoryId: categoryId ? Number(categoryId) : null,
           bankAccountId: bankAccountId ? Number(bankAccountId) : null,
           creditCardId: creditCardId ? Number(creditCardId) : null,
