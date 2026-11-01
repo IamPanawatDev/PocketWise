@@ -264,6 +264,40 @@ public class AdminUserService : IAdminUserService
         return true;
     }
 
+    public async Task<bool> VerifyUserEmailAsync(long userId, long adminUserId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null || user.IsEmailVerified)
+        {
+            return false;
+        }
+
+        user.IsEmailVerified = true;
+        user.EmailConfirmed = true;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            return false;
+        }
+
+        if (_securityEventService != null)
+        {
+            await _securityEventService.LogEventAsync(
+                "USER_EMAIL_MANUALLY_VERIFIED",
+                targetUserId: user.Id,
+                actorUserId: adminUserId,
+                succeeded: true,
+                ipAddress: null,
+                userAgent: null,
+                details: new { targetEmail = user.Email },
+                cancellationToken: cancellationToken);
+        }
+
+        return true;
+    }
+
     public async Task<bool> ResendVerificationEmailAsync(long userId, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());

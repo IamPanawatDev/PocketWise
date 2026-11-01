@@ -30,6 +30,7 @@ import {
   useAdminUserSessionsQuery,
   useSuspendUserMutation,
   useUnsuspendUserMutation,
+  useManualVerifyEmailMutation,
   useResendVerificationMutation,
   useSendResetPasswordMutation,
   useRevokeSessionMutation,
@@ -113,6 +114,7 @@ export default function AdminUsersPage() {
 
   const suspendMutation = useSuspendUserMutation();
   const unsuspendMutation = useUnsuspendUserMutation();
+  const manualVerifyMutation = useManualVerifyEmailMutation();
   const resendVerificationMutation = useResendVerificationMutation();
   const sendResetPasswordMutation = useSendResetPasswordMutation();
   const revokeSessionMutation = useRevokeSessionMutation();
@@ -195,6 +197,24 @@ export default function AdminUsersPage() {
           toast.success(`ยกเลิกการระงับบัญชี ${user.displayName} เรียบร้อยแล้ว`);
         } catch (err: any) {
           toast.error(err?.message || "เกิดข้อผิดพลาดในการยกเลิกการระงับบัญชี");
+        }
+      },
+    });
+  };
+
+  const handleManualVerify = (detail: any) => {
+    setConfirmDialog({
+      open: true,
+      title: "อนุมัติยืนยันอีเมลให้ผู้ใช้",
+      description: `คุณต้องการอนุมัติยืนยันที่อยู่อีเมลให้คุณ "${detail.displayName}" (${detail.email}) ทันทีใช่หรือไม่?`,
+      confirmLabel: "อนุมัติทันที",
+      destructive: false,
+      onConfirm: async () => {
+        try {
+          await manualVerifyMutation.mutateAsync(detail.id);
+          toast.success("อนุมัติยืนยันที่อยู่อีเมลเรียบร้อยแล้ว");
+        } catch (err: any) {
+          toast.error(err?.message || "ไม่สามารถยืนยันอีเมลได้");
         }
       },
     });
@@ -839,6 +859,23 @@ export default function AdminUsersPage() {
                     การดำเนินการสำหรับผู้ดูแลระบบ
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {!userDetail.isEmailVerified && (
+                      <button
+                        onClick={() => handleManualVerify(userDetail)}
+                        disabled={manualVerifyMutation.isPending}
+                        className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all duration-150 active:scale-95 flex items-center gap-2.5 col-span-1 sm:col-span-2"
+                      >
+                        <UserCheck className="size-4 text-emerald-500 shrink-0" />
+                        <div>
+                          <div className="font-medium text-xs text-emerald-400">
+                            อนุมัติยืนยันอีเมลทันที (Manual Verify)
+                          </div>
+                          <div className="text-[10px] text-[var(--pw-ink)]/60">
+                            ยืนยันสถานะบัญชีให้ผู้ใช้ทันทีโดยไม่ต้องผ่านลิงก์อีเมล
+                          </div>
+                        </div>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleResendVerification(userDetail.id)}
                       disabled={resendVerificationMutation.isPending || userDetail.isEmailVerified}
