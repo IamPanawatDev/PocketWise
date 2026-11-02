@@ -151,6 +151,49 @@ export function thailandDateBoundaryToUtcIso(value: string, endOfDay = false): s
   return date.toISOString();
 }
 
+export interface QuickPeriodRange {
+  from: string;
+  to: string;
+}
+
+export function getTodayRange(now = new Date()): QuickPeriodRange {
+  const d = toThailandDateInputValue(now);
+  return { from: d, to: d };
+}
+
+export function getThisWeekRange(now = new Date()): QuickPeriodRange {
+  const day = now.getDay(); // 0 is Sunday, 1 is Monday, ..., 6 is Saturday
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - day);
+  const saturday = new Date(sunday);
+  saturday.setDate(sunday.getDate() + 6);
+  return {
+    from: toThailandDateInputValue(sunday),
+    to: toThailandDateInputValue(saturday),
+  };
+}
+
+export function getThisMonthRange(now = new Date()): QuickPeriodRange {
+  const today = toThailandDateInputValue(now);
+  const [year, month] = today.split("-");
+  const yearNum = Number(year);
+  const monthNum = Number(month);
+  const lastDay = new Date(yearNum, monthNum, 0).getDate();
+  return {
+    from: `${year}-${month}-01`,
+    to: `${year}-${month}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+export function getThisYearRange(now = new Date()): QuickPeriodRange {
+  const today = toThailandDateInputValue(now);
+  const [year] = today.split("-");
+  return {
+    from: `${year}-01-01`,
+    to: `${year}-12-31`,
+  };
+}
+
 export function getCurrentThailandMonthFilter(now: Date): {
   fromDate: string;
   toDate: string;

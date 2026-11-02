@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
   UploadCloud,
@@ -60,6 +61,7 @@ function recordCategoryUsage(categoryId: number | null | undefined) {
 }
 
 export function SlipImportTab() {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedSlip, setUploadedSlip] = useState<SlipImportResponse | null>(null);
@@ -367,7 +369,14 @@ export function SlipImportTab() {
           if (categoryId && categoryId !== "none") {
             recordCategoryUsage(Number(categoryId));
           }
-          toast.success("ยืนยันและบันทึกรายการธุรกรรมเรียบร้อยแล้ว");
+          toast.success("บันทึกรายการจากสลิปเรียบร้อยแล้ว", {
+            action: {
+              label: "ดูรายงาน →",
+              onClick: () => {
+                router.push("/reports");
+              },
+            },
+          });
           setStatusMessage({
             type: "success",
             text: "ยืนยันและบันทึกรายการธุรกรรมเรียบร้อยแล้ว",
