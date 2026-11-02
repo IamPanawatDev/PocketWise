@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
+import { findMatchingBankAccount } from "@/lib/bank-matcher";
 import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { apiClient } from "@/lib/api-client";
@@ -95,15 +96,18 @@ export function SlipImportTab() {
   const confirmMutation = useConfirmSlip();
   const rejectMutation = useRejectSlip();
 
-  // Auto-select bank account reliably even with multiple accounts
+  const matchedAccount = useMemo(() => {
+    if (!uploadedSlip?.bankCode) return null;
+    return findMatchingBankAccount(uploadedSlip.bankCode, bankAccounts);
+  }, [uploadedSlip?.bankCode, bankAccounts]);
+
+  // Match bank account when uploaded slip or bank accounts change
   useEffect(() => {
-    if (bankAccounts.length > 0 && !bankAccountId) {
-      const lastUsed = typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
-      const matched = lastUsed ? bankAccounts.find((a) => String(a.bankAccountId) === lastUsed) : null;
-      const defaultAccount = matched ?? bankAccounts[0];
-      setBankAccountId(String(defaultAccount.bankAccountId));
+    if (uploadedSlip?.bankCode && bankAccounts.length > 0) {
+      const matched = findMatchingBankAccount(uploadedSlip.bankCode, bankAccounts);
+      setBankAccountId(matched ? String(matched.bankAccountId) : "");
     }
-  }, [bankAccounts, bankAccountId]);
+  }, [uploadedSlip?.bankCode, bankAccounts]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedDescription(description ?? ""), 300);
@@ -143,11 +147,12 @@ export function SlipImportTab() {
     if (data.suggestedCategoryId) {
       setCategoryId(String(data.suggestedCategoryId));
     }
-    if (bankAccounts.length > 0 && !bankAccountId) {
-      const lastUsed = typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
-      const matched = lastUsed ? bankAccounts.find((a) => String(a.bankAccountId) === lastUsed) : null;
-      const defaultAccount = matched ?? bankAccounts[0];
-      setBankAccountId(String(defaultAccount.bankAccountId));
+    // Match bank account based on slip bankCode
+    const matched = findMatchingBankAccount(data.bankCode, bankAccounts);
+    if (matched) {
+      setBankAccountId(String(matched.bankAccountId));
+    } else {
+      setBankAccountId("");
     }
   };
 
@@ -897,11 +902,25 @@ export function SlipImportTab() {
                       <SelectItem value="none">— ไม่ระบุ —</SelectItem>
                       {bankAccounts.map((acc) => (
                         <SelectItem key={acc.bankAccountId} value={String(acc.bankAccountId)}>
-                          {acc.accountName} ({acc.bankName})
+                          {acc.accountName} ({acc.bankName}{acc.bankCode ? ` [${acc.bankCode}]` : ""})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {uploadedSlip.bankCode ? (
+                    <div className="mt-1 text-[11px]">
+                      {matchedAccount ? (
+                        <p className="text-[var(--pw-green)] flex items-center gap-1 font-medium">
+                          <Check className="size-3 stroke-[2.5]" />
+                          <span>จับคู่อัตโนมัติกับรหัสธนาคาร: {uploadedSlip.bankCode}</span>
+                        </p>
+                      ) : (
+                        <p className="text-amber-500/90 dark:text-amber-400/90 flex items-center gap-1 font-medium">
+                          <span>⚠️ ไม่พบบัญชีที่ตรงกับรหัสธนาคาร {uploadedSlip.bankCode} (กรุณาเลือกบัญชีเอง หรือเพิ่มบัญชีใหม่)</span>
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
                 </FormField>
 
                 <FormField label="ผู้รับเงิน / ร้านค้า">
