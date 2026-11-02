@@ -96,18 +96,7 @@ export function SlipImportTab() {
   const confirmMutation = useConfirmSlip();
   const rejectMutation = useRejectSlip();
 
-  const matchedAccount = useMemo(() => {
-    if (!uploadedSlip?.bankCode) return null;
-    return findMatchingBankAccount(uploadedSlip.bankCode, bankAccounts);
-  }, [uploadedSlip?.bankCode, bankAccounts]);
-
-  // Match bank account when uploaded slip or bank accounts change
-  useEffect(() => {
-    if (uploadedSlip?.bankCode && bankAccounts.length > 0) {
-      const matched = findMatchingBankAccount(uploadedSlip.bankCode, bankAccounts);
-      setBankAccountId(matched ? String(matched.bankAccountId) : "");
-    }
-  }, [uploadedSlip?.bankCode, bankAccounts]);
+  const matchedAccount = findMatchingBankAccount(uploadedSlip?.bankCode, bankAccounts);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedDescription(description ?? ""), 300);

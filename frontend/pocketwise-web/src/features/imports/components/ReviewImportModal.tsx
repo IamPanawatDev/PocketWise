@@ -135,10 +135,7 @@ function SlipReviewContent({
     Boolean(debouncedDescription && debouncedDescription.trim().length >= 2),
   );
 
-  const matchedAccount = useMemo(() => {
-    if (!slip?.bankCode) return null;
-    return findMatchingBankAccount(slip.bankCode, bankAccounts);
-  }, [slip?.bankCode, bankAccounts]);
+  const matchedAccount = findMatchingBankAccount(slip?.bankCode, bankAccounts);
 
   useEffect(() => {
     if (slip) {
