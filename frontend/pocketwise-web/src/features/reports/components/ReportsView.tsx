@@ -44,7 +44,7 @@ import {
 } from "@/features/reports/hooks/useReports";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import type { ReportPeriod } from "@/types/report.types";
-import { cn, formatCurrency, formatDate, thailandDateBoundaryToUtcIso } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, thailandDateBoundaryToUtcIso, getTodayRange, getThisWeekRange, getThisMonthRange, getThisYearRange } from "@/lib/utils";
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -95,10 +95,23 @@ interface ReportsViewProps {
   initialToDate: string;
 }
 
+
 export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps) {
   const [fromDate, setFromDate] = useState(initialFromDate);
   const [toDate, setToDate] = useState(initialToDate);
   const [period, setPeriod] = useState<ReportPeriod>("monthly");
+
+  const activeQuickPeriod = useMemo(() => {
+    const today = getTodayRange();
+    if (fromDate === today.from && toDate === today.to) return "today";
+    const week = getThisWeekRange();
+    if (fromDate === week.from && toDate === week.to) return "week";
+    const month = getThisMonthRange();
+    if (fromDate === month.from && toDate === month.to) return "month";
+    const year = getThisYearRange();
+    if (fromDate === year.from && toDate === year.to) return "year";
+    return "custom";
+  }, [fromDate, toDate]);
   const [categoryId, setCategoryId] = useState<number | undefined>();
   const [tagId, setTagId] = useState<number | undefined>();
   const [currencyCode, setCurrencyCode] = useState("");
@@ -271,6 +284,78 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
           </Button>
         </div>
       </header>
+
+      {/* Quick Period Pills (1 แตะสลับช่วงเวลาได้ทันที) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        <button
+          type="button"
+          onClick={() => {
+            const r = getTodayRange();
+            setFromDate(r.from);
+            setToDate(r.to);
+            setPeriod("weekly");
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "today"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          วันนี้
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const r = getThisWeekRange();
+            setFromDate(r.from);
+            setToDate(r.to);
+            setPeriod("weekly");
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "week"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          สัปดาห์นี้
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const r = getThisMonthRange();
+            setFromDate(r.from);
+            setToDate(r.to);
+            setPeriod("monthly");
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "month"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          เดือนนี้
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const r = getThisYearRange();
+            setFromDate(r.from);
+            setToDate(r.to);
+            setPeriod("yearly");
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "year"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          ปีนี้
+        </button>
+      </div>
 
       {/* Active Filter Chips & Summary */}
       <div className="flex flex-wrap items-center gap-2">
@@ -475,8 +560,96 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             </div>
           )}
 
-          {/* Top KPI Cards (รวมสรุปสลิปและบัตรเครดิต) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {/* Mobile: Unified Financial Hero Card (1 ใบใหญ่ อ่านจบใน 2 วินาที) */}
+          <div className="block sm:hidden">
+            <Card className="relative overflow-hidden rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-br from-[var(--pw-surface-raised)]/95 via-[var(--pw-surface-indigo)]/85 to-[var(--pw-surface-onyx)]/95 p-4 shadow-md backdrop-blur-xl">
+              {/* Top Row: Net Balance */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[var(--pw-ink)]/70">
+                  คงเหลือสุทธิ ({activeCurrency.currencyCode})
+                </span>
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                  activeCurrency.netAmount >= 0
+                    ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
+                    : "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
+                )}>
+                  <Scale className="size-3" />
+                  {activeCurrency.netAmount >= 0 ? "ดุลบวก" : "ดุลลบ"}
+                </span>
+              </div>
+              <p className={cn(
+                "mt-1 text-2xl font-extrabold tracking-tight",
+                activeCurrency.netAmount >= 0 ? "text-[var(--pw-ink)]" : "text-[var(--pw-expense)]"
+              )}>
+                <AnimatedNumber value={activeCurrency.netAmount} currencyCode={activeCurrency.currencyCode} />
+              </p>
+
+              {/* Middle Row: Income & Expense Summary */}
+              <div className="mt-3.5 grid grid-cols-2 gap-2 pt-3 border-t border-[var(--pw-hairline)]/70">
+                <div className="rounded-xl bg-[var(--pw-surface-sunken)]/50 p-2.5 border border-[var(--pw-hairline)]/50">
+                  <div className="flex items-center gap-1 text-[11px] text-[var(--pw-green)] font-medium">
+                    <ArrowUpRight className="size-3.5" />
+                    <span>รายรับรวม</span>
+                  </div>
+                  <p className="mt-1 text-base font-bold text-[var(--pw-green)] truncate">
+                    <AnimatedNumber value={activeCurrency.totalIncome} currencyCode={activeCurrency.currencyCode} />
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[var(--pw-surface-sunken)]/50 p-2.5 border border-[var(--pw-hairline)]/50">
+                  <div className="flex items-center gap-1 text-[11px] text-[var(--pw-expense)] font-medium">
+                    <ArrowDownRight className="size-3.5" />
+                    <span>รายจ่ายรวม</span>
+                  </div>
+                  <p className="mt-1 text-base font-bold text-[var(--pw-expense)] truncate">
+                    <AnimatedNumber value={activeCurrency.totalExpense} currencyCode={activeCurrency.currencyCode} />
+                  </p>
+                </div>
+              </div>
+
+              {/* Bottom Row: Expense Breakdown Mini Bar (สลิป vs บัตร vs อื่นๆ) */}
+              {activeCurrency.totalExpense > 0 && (
+                <div className="mt-3 pt-2.5 border-t border-[var(--pw-hairline)]/50 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-[var(--pw-ink)]/65">
+                    <span>สัดส่วนช่องทางจ่าย:</span>
+                    <span className="font-medium text-[var(--pw-ink)]">
+                      สลิป {slipPercentage.toFixed(0)}% • บัตร {creditCardPercentage.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--pw-surface-sunken)] flex">
+                    <div
+                      style={{ width: `${Math.min(100, Math.max(0, slipPercentage))}%` }}
+                      className="bg-[var(--pw-primary)] transition-all duration-500"
+                      title={`สลิป ${slipPercentage.toFixed(1)}%`}
+                    />
+                    <div
+                      style={{ width: `${Math.min(100, Math.max(0, creditCardPercentage))}%` }}
+                      className="bg-[var(--pw-magenta)] transition-all duration-500"
+                      title={`บัตรเครดิต ${creditCardPercentage.toFixed(1)}%`}
+                    />
+                    <div
+                      style={{ width: `${Math.max(0, 100 - slipPercentage - creditCardPercentage)}%` }}
+                      className="bg-[var(--pw-ink)]/20 transition-all duration-500"
+                      title="ช่องทางอื่น ๆ"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-[var(--pw-ink)]/55 pt-0.5">
+                    <span className="flex items-center gap-1">
+                      <span className="size-1.5 rounded-full bg-[var(--pw-primary)]" />
+                      สลิป {slipExpense.toLocaleString("th-TH")}฿
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="size-1.5 rounded-full bg-[var(--pw-magenta)]" />
+                      บัตร {creditCardExpense.toLocaleString("th-TH")}฿
+                    </span>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Desktop: 5 Separate KPI Cards (sm+) */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="p-4 border-l-4 border-l-[var(--pw-green)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-[var(--pw-ink)]/60">รายรับทั้งหมด</p>

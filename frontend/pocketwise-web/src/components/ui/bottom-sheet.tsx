@@ -24,6 +24,13 @@ export function BottomSheet({
   className,
   onOpenAutoFocus,
 }: BottomSheetProps) {
+  const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (open && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [open]);
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
@@ -73,7 +80,7 @@ export function BottomSheet({
           </div>
 
           {/* Scrollable Form Body */}
-          <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-5 py-4 sm:px-6">
             {children}
           </div>
         </DialogPrimitive.Content>

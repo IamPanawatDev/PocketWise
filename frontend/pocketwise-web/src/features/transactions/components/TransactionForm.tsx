@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { transactionSchema, type TransactionFormValues } from "@/schemas/transaction.schema";
@@ -35,7 +36,6 @@ import {
 } from "@/lib/utils";
 import {
   ArrowDownRight,
-  ArrowRight,
   ArrowUpRight,
   Calendar,
   Check,
@@ -116,6 +116,8 @@ export function TransactionForm({
     tags: { tagId: number }[];
   };
 }) {
+  const router = useRouter();
+
   const create = useCreateTransaction();
   const update = useUpdateTransaction();
   const { data: categories } = useCategories();
@@ -328,7 +330,14 @@ export function TransactionForm({
             description: values.description || "",
           });
           onClose();
-          toast.success("เพิ่มรายการแล้ว");
+          toast.success("บันทึกรายการสำเร็จ", {
+            action: {
+              label: "ดูรายงาน →",
+              onClick: () => {
+                router.push("/reports");
+              },
+            },
+          });
         },
         onError: (e) => toast.error(e instanceof ApiError ? e.message : "เพิ่มไม่สำเร็จ"),
       });

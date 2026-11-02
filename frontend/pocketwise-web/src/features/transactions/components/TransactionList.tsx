@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -14,6 +16,10 @@ import {
   isGregorianDateInput,
   thailandDateBoundaryToUtcIso,
   toThailandDateInputValue,
+  getTodayRange,
+  getThisWeekRange,
+  getThisMonthRange,
+  getThisYearRange,
 } from "@/lib/utils";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTags } from "@/features/tags/hooks/useTags";
@@ -39,7 +45,6 @@ import { TransactionCardsSkeleton } from "@/components/shared/Skeletons";
 import { TransactionForm } from "./TransactionForm";
 import {
   ArrowDownRight,
-  ArrowRightLeft,
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
@@ -108,6 +113,39 @@ export function TransactionList({
     return count;
   }, [filter, sortBy, sortDesc]);
 
+  const activeQuickPeriod = useMemo(() => {
+    if (!filter.fromDate && !filter.toDate) return "all";
+    if (!filter.fromDate || !filter.toDate) return "custom";
+
+    const fromDateStr = toThailandDateInputValue(filter.fromDate);
+    const toDateStr = toThailandDateInputValue(filter.toDate);
+
+    const today = getTodayRange();
+    if (fromDateStr === today.from && toDateStr === today.to) return "today";
+
+    const week = getThisWeekRange();
+    if (fromDateStr === week.from && toDateStr === week.to) return "week";
+
+    const month = getThisMonthRange();
+    if (fromDateStr === month.from && toDateStr === month.to) return "month";
+
+    const year = getThisYearRange();
+    if (fromDateStr === year.from && toDateStr === year.to) return "year";
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
+    const currentToday = toThailandDateInputValue(now);
+    if (
+      fromDateStr === `${currentYear}-${currentMonth}-01` &&
+      (toDateStr === currentToday || toDateStr === month.to)
+    ) {
+      return "month";
+    }
+
+    return "custom";
+  }, [filter.fromDate, filter.toDate]);
+
     const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     if (!data?.items) return { totalIncome: 0, totalExpense: 0, netBalance: 0 };
     let income = 0;
@@ -161,8 +199,44 @@ export function TransactionList({
         />
       </BottomSheet>
 
-            {/* Overview Stat Cards with Animated Numbers */}
-      <div className="mb-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
+            {/* Mobile: Compact Financial Pulse Bar (Single Row, ~60px, 3 Columns) */}
+      <div className="mb-3.5 block sm:hidden">
+        <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/80 p-2.5 shadow-xs backdrop-blur-md">
+          <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[var(--pw-hairline)]/60 text-[11px] text-[var(--pw-ink)]/60">
+            <span className="font-medium">สรุปในหน้านี้ ({data?.totalItems ?? data?.items?.length ?? 0} รายการ)</span>
+            <Link
+              href="/reports"
+              className="inline-flex items-center gap-0.5 text-[var(--pw-primary)] font-semibold hover:underline"
+            >
+              <span>ดูรายงานภาพรวม</span>
+              <ChevronRight className="size-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-[var(--pw-hairline)]/60 text-center">
+            <div className="px-1">
+              <p className="text-[10px] text-[var(--pw-ink)]/60">รายรับ</p>
+              <p className="text-xs font-bold text-[var(--pw-green)] truncate">
+                <AnimatedNumber value={totalIncome} prefix="+" />
+              </p>
+            </div>
+            <div className="px-1">
+              <p className="text-[10px] text-[var(--pw-ink)]/60">รายจ่าย</p>
+              <p className="text-xs font-bold text-[var(--pw-expense)] truncate">
+                <AnimatedNumber value={totalExpense} prefix="-" />
+              </p>
+            </div>
+            <div className="px-1">
+              <p className="text-[10px] text-[var(--pw-ink)]/60">คงเหลือ</p>
+              <p className={cn("text-xs font-bold truncate", netBalance >= 0 ? "text-[var(--pw-ink)]" : "text-[var(--pw-expense)]")}>
+                <AnimatedNumber value={netBalance} />
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop: 3 Distinct Cards (sm+) */}
+      <div className="mb-4 hidden sm:grid sm:grid-cols-3 sm:gap-4">
         <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 p-3 sm:p-4 shadow-xs backdrop-blur-xs transition hover:border-[var(--pw-green)]/40">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายรับในหน้านี้</span>
@@ -200,7 +274,95 @@ export function TransactionList({
         </div>
       </div>
 
-{/* Search & Filter Trigger Bar */}
+      {/* 1-Tap Quick Period Filter Pills */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar mb-3">
+        <button
+          type="button"
+          onClick={() => handleFilterChange({ fromDate: undefined, toDate: undefined })}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "all"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          ทั้งหมด
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const today = getTodayRange();
+            handleFilterChange({
+              fromDate: thailandDateBoundaryToUtcIso(today.from),
+              toDate: thailandDateBoundaryToUtcIso(today.to, true),
+            });
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "today"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          วันนี้
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const week = getThisWeekRange();
+            handleFilterChange({
+              fromDate: thailandDateBoundaryToUtcIso(week.from),
+              toDate: thailandDateBoundaryToUtcIso(week.to, true),
+            });
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "week"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          สัปดาห์นี้
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const month = getThisMonthRange();
+            handleFilterChange({
+              fromDate: thailandDateBoundaryToUtcIso(month.from),
+              toDate: thailandDateBoundaryToUtcIso(month.to, true),
+            });
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "month"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          เดือนนี้
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const year = getThisYearRange();
+            handleFilterChange({
+              fromDate: thailandDateBoundaryToUtcIso(year.from),
+              toDate: thailandDateBoundaryToUtcIso(year.to, true),
+            });
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "year"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          ปีนี้
+        </button>
+      </div>
+
+      {/* Search & Filter Trigger Bar */}
       <div className="mb-4 space-y-2">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -307,7 +469,14 @@ export function TransactionList({
             )}
             {(filter.fromDate || filter.toDate) && (
               <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
-                ช่วงวันที่
+                <span>
+                  ช่วงวันที่
+                  {filter.fromDate && filter.toDate
+                    ? `: ${toThailandDateInputValue(filter.fromDate)} ถึง ${toThailandDateInputValue(filter.toDate)}`
+                    : filter.fromDate
+                    ? `: ตั้งแต่ ${toThailandDateInputValue(filter.fromDate)}`
+                    : `: ถึง ${toThailandDateInputValue(filter.toDate!)}`}
+                </span>
                 <button
                   type="button"
                   onClick={() => handleFilterChange({ fromDate: undefined, toDate: undefined })}
