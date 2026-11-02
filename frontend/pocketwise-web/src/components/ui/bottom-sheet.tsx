@@ -12,6 +12,7 @@ export interface BottomSheetProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
   className?: string;
+  onOpenAutoFocus?: (event: Event) => void;
 }
 
 export function BottomSheet({
@@ -21,6 +22,7 @@ export function BottomSheet({
   title,
   description,
   className,
+  onOpenAutoFocus,
 }: BottomSheetProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -30,6 +32,13 @@ export function BottomSheet({
         
         {/* Glassmorphism Responsive Content: Bottom Sheet on Mobile, Centered Modal on Desktop */}
         <DialogPrimitive.Content
+          onOpenAutoFocus={(e) => {
+            if (onOpenAutoFocus) {
+              onOpenAutoFocus(e);
+            } else {
+              e.preventDefault();
+            }
+          }}
           className={cn(
             // Mobile (default): Bottom Sheet pinned to bottom, rounded top corners, high-contrast crisp surface
             "fixed inset-x-0 bottom-0 z-50 flex max-h-[92vh] flex-col rounded-t-[28px] border-t border-[var(--pw-hairline)] bg-[var(--pw-surface)]/98 sm:bg-[var(--pw-surface)]/95 backdrop-blur-2xl text-[var(--pw-ink)] shadow-[0_-10px_40px_rgba(0,0,0,0.35)] outline-none pw-bottom-sheet-content",

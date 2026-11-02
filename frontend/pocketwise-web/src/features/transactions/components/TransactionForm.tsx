@@ -440,7 +440,6 @@ export function TransactionForm({
           step="0.01"
           min="0.01"
           placeholder="0.00"
-          autoFocus={!editing}
           inputMode="decimal"
           prefixNode={<span className="text-xl font-bold text-[var(--pw-ink)]/50">฿</span>}
           className="h-14 text-2xl sm:text-3xl font-extrabold tracking-tight bg-[var(--pw-surface-black)]/35 border-[var(--pw-input-border)] focus:border-[var(--pw-primary)] rounded-[var(--pw-rounded-sm)]"

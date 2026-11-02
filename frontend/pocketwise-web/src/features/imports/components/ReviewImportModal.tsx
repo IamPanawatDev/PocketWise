@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   FileText,
   Receipt,
@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
+import { findMatchingBankAccount } from "@/lib/bank-matcher";
 import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTags } from "@/features/tags/hooks/useTags";
@@ -134,6 +135,8 @@ function SlipReviewContent({
     Boolean(debouncedDescription && debouncedDescription.trim().length >= 2),
   );
 
+  const matchedAccount = findMatchingBankAccount(slip?.bankCode, bankAccounts);
+
   useEffect(() => {
     if (slip) {
       if (slip.detectedAmount) {
@@ -160,8 +163,11 @@ function SlipReviewContent({
       if (slip.suggestedCategoryId) {
         setCategoryId(String(slip.suggestedCategoryId));
       }
-      if (bankAccounts.length > 0 && !bankAccountId) {
-        setBankAccountId(String(bankAccounts[0].bankAccountId));
+      if (slip.bankCode && bankAccounts.length > 0) {
+        const matched = findMatchingBankAccount(slip.bankCode, bankAccounts);
+        setBankAccountId(matched ? String(matched.bankAccountId) : "");
+      } else {
+        setBankAccountId("");
       }
     }
   }, [slip, bankAccounts]);
@@ -355,11 +361,25 @@ function SlipReviewContent({
                   <SelectItem value="none">— ไม่ระบุ —</SelectItem>
                   {bankAccounts.map((b) => (
                     <SelectItem key={b.bankAccountId} value={String(b.bankAccountId)}>
-                      {b.accountName} ({b.bankName})
+                      {b.accountName} ({b.bankName}{b.bankCode ? ` [${b.bankCode}]` : ""})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {slip?.bankCode ? (
+                <div className="mt-1 text-[11px]">
+                  {matchedAccount ? (
+                    <p className="text-[var(--pw-green)] flex items-center gap-1 font-medium">
+                      <Check className="size-3 stroke-[2.5]" />
+                      <span>จับคู่อัตโนมัติจากรหัสธนาคาร: {slip.bankCode}</span>
+                    </p>
+                  ) : (
+                    <p className="text-amber-500/90 dark:text-amber-400/90 flex items-center gap-1 font-medium">
+                      <span>⚠️ ไม่พบบัญชีที่ตรงกับรหัสธนาคาร {slip.bankCode} (กรุณาเลือกบัญชีเอง หรือเพิ่มบัญชีใหม่)</span>
+                    </p>
+                  )}
+                </div>
+              ) : null}
             </FormField>
           </div>
 
