@@ -32,6 +32,7 @@ import {
   ReceiptText,
   Plus,
   Scale,
+  Calendar,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -44,7 +45,18 @@ import {
 } from "@/features/reports/hooks/useReports";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import type { ReportPeriod } from "@/types/report.types";
-import { cn, formatCurrency, formatDate, thailandDateBoundaryToUtcIso, getTodayRange, getThisWeekRange, getThisMonthRange, getThisYearRange } from "@/lib/utils";
+import {
+  cn,
+  formatCurrency,
+  formatDate,
+  thailandDateBoundaryToUtcIso,
+  toThailandDateInputValue,
+  getTodayRange,
+  getThisWeekRange,
+  getThisMonthRange,
+  getThisYearRange,
+} from "@/lib/utils";
+import { formatDisplayDate, getRecentMonthOptions } from "@/lib/date-utils";
 import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -100,17 +112,56 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
   const [fromDate, setFromDate] = useState(initialFromDate);
   const [toDate, setToDate] = useState(initialToDate);
   const [period, setPeriod] = useState<ReportPeriod>("monthly");
+  const monthOptions = useMemo(() => getRecentMonthOptions(24, 1), []);
+  const [isCustomDateMode, setIsCustomDateMode] = useState(false);
+
+  const currentMonthValue = useMemo(() => {
+    if (!fromDate) return "all";
+    return fromDate.slice(0, 7);
+  }, [fromDate]);
+
+  const handleMonthSelect = (value: string) => {
+    if (value === "all") {
+      setFromDate("2000-01-01");
+      setToDate("2099-12-31");
+      setPeriod("yearly");
+      return;
+    }
+    const selected = monthOptions.find((m) => m.value === value);
+    if (selected) {
+      setFromDate(selected.from);
+      setToDate(selected.to);
+      setPeriod("monthly");
+    }
+  };
 
   const activeQuickPeriod = useMemo(() => {
+    if (!fromDate && !toDate) return "all";
     if (fromDate === "2000-01-01" && toDate === "2099-12-31") return "all";
+
     const today = getTodayRange();
     if (fromDate === today.from && toDate === today.to) return "today";
+
     const week = getThisWeekRange();
     if (fromDate === week.from && toDate === week.to) return "week";
+
     const month = getThisMonthRange();
     if (fromDate === month.from && toDate === month.to) return "month";
+
     const year = getThisYearRange();
     if (fromDate === year.from && toDate === year.to) return "year";
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
+    const currentToday = toThailandDateInputValue(now);
+    if (
+      fromDate === `${currentYear}-${currentMonth}-01` &&
+      (toDate === currentToday || toDate === month.to)
+    ) {
+      return "month";
+    }
+
     return "custom";
   }, [fromDate, toDate]);
   const [categoryId, setCategoryId] = useState<number | undefined>();
@@ -201,6 +252,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
 
   const resetFilters = () => {
     setCategoryId(undefined);
+    setIsCustomDateMode(false);
     setTagId(undefined);
     setPeriod("monthly");
   };
@@ -287,7 +339,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
       </header>
 
       {/* Quick Period Pills (1 แตะสลับช่วงเวลาได้ทันที) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar mb-3">
         <button
           type="button"
           onClick={() => {
@@ -377,7 +429,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
       {/* Active Filter Chips & Summary */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 px-3 py-1 text-xs text-[var(--pw-ink)]">
-          <span>ช่วงเวลา: <strong>{activeQuickPeriod === "all" ? "ทั้งหมด" : `${fromDate} ถึง ${toDate}`}</strong></span>
+          <span>ช่วงเวลา: <strong>{activeQuickPeriod === "all" ? "ทั้งหมด" : `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`}</strong></span>
         </div>
 
         {selectedCategoryName && (
@@ -442,14 +494,87 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         title="ตัวกรองรายงาน"
         description="เลือกช่วงวันที่ หมวดหมู่ แท็ก และช่วงกราฟที่ต้องการวิเคราะห์"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] space-y-4">
+        <div className="flex flex-col max-h-[75vh]">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="ตั้งแต่วันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-from-date">
-              <DateInput id="report-from-date" value={fromDate} onChange={setFromDate} />
-            </FormField>
-            <FormField label="ถึงวันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-to-date">
-              <DateInput id="report-to-date" value={toDate} onChange={setToDate} />
-            </FormField>
+          {/* Month Picker as Primary with Progressive Disclosure for Custom Dates */}
+          {!isCustomDateMode ? (
+            <div className="space-y-1.5 sm:col-span-2">
+              <FormField label="เลือกช่วงเดือน" htmlFor="report-month-filter" className="w-full min-w-0">
+                <Select
+                  value={
+                    activeQuickPeriod === "all"
+                      ? "all"
+                      : monthOptions.some((m) => m.value === currentMonthValue)
+                      ? currentMonthValue
+                      : "custom"
+                  }
+                  onValueChange={(val) => {
+                    if (val === "custom") {
+                      setIsCustomDateMode(true);
+                    } else {
+                      handleMonthSelect(val);
+                    }
+                  }}
+                >
+                  <SelectTrigger id="report-month-filter" className="w-full">
+                    <SelectValue placeholder="เลือกเดือน" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="all">ทุกช่วงเวลา (ทั้งหมด)</SelectItem>
+                    {monthOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                    {activeQuickPeriod === "custom" && (
+                      <SelectItem value="custom">กำหนดช่วงวันที่เอง (กำลังใช้งาน)</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <div className="flex justify-end pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomDateMode(true)}
+                  className="text-xs text-[var(--pw-primary)] hover:underline flex items-center gap-1 cursor-pointer font-medium py-0.5"
+                >
+                  <Calendar className="size-3.5" />
+                  กำหนดช่วงวันที่เอง (ขั้นสูง)
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3 sm:col-span-2">
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs font-semibold text-[var(--pw-ink)] flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-[var(--pw-primary)]" />
+                  กำหนดช่วงวันที่เอง (วัน/เดือน/ปี)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomDateMode(false);
+                    const thisMonth = getThisMonthRange();
+                    setFromDate(thisMonth.from);
+                    setToDate(thisMonth.to);
+                    setPeriod("monthly");
+                  }}
+                  className="text-xs text-[var(--pw-primary)] hover:underline cursor-pointer font-medium"
+                >
+                  กลับไปเลือกรายเดือน
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormField label="ตั้งแต่วันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-from-date">
+                  <DateInput id="report-from-date" value={fromDate} onChange={setFromDate} />
+                </FormField>
+                <FormField label="ถึงวันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-to-date">
+                  <DateInput id="report-to-date" value={toDate} onChange={setToDate} />
+                </FormField>
+              </div>
+            </div>
+          )}
             <FormField label="ช่วงกราฟ" htmlFor="report-period">
               <Select value={period} onValueChange={(value) => setPeriod(value as ReportPeriod)}>
                 <SelectTrigger id="report-period"><SelectValue /></SelectTrigger>
@@ -509,22 +634,25 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             </FormField>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
+          </div>
+
+          {/* Sticky Mobile-First Footer (Confirm Top, Reset Bottom) */}
+          <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md px-4 sm:px-6 py-3 border-t border-[var(--pw-hairline)] flex flex-col gap-2 z-10">
             <Button
               type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
+              className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
+              onClick={() => setShowFilterSheet(false)}
+            >
+              ดูผลลัพธ์
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full h-9 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] cursor-pointer"
               onClick={resetFilters}
               disabled={activeFilterCount === 0}
             >
               ล้างตัวกรอง
-            </Button>
-            <Button
-              type="button"
-              className="w-full sm:w-auto"
-              onClick={() => setShowFilterSheet(false)}
-            >
-              ดูผลลัพธ์
             </Button>
           </div>
         </div>
