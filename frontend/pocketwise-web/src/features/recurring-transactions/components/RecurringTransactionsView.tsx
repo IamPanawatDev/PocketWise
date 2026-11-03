@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useCategories } from "@/features/categories/hooks/useCategories";
@@ -45,8 +45,10 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import {
   ArrowDownRight,
   ArrowUpRight,
+  CalendarClock,
   Check,
   Clock,
+  Coins,
   LoaderCircle,
   Pencil,
   Plus,
@@ -54,6 +56,8 @@ import {
   Save,
   Tag as TagIcon,
   Trash2,
+  TrendingDown,
+  TrendingUp,
   X,
 } from "lucide-react";
 
@@ -114,6 +118,92 @@ export function RecurringTransactionsView() {
   const selectedFrequency = watch("frequency");
   const selectedDays = watch("daysOfWeek") ?? [];
   const selectedTagIds = watch("tagIds") ?? [];
+
+  const stats = useMemo(() => {
+    if (!data?.length) {
+      return {
+        monthlyExpenses: 0,
+        monthlyIncomes: 0,
+        netMonthly: 0,
+        activeCount: 0,
+        totalCount: 0,
+        upcomingBills: [],
+        upcomingTotal: 0,
+      };
+    }
+
+    const todayStr = toThailandDateInputValue(new Date());
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const next7Days = new Date();
+    next7Days.setDate(next7Days.getDate() + 7);
+    const next7DaysStr = toThailandDateInputValue(next7Days);
+
+    let monthlyExpenses = 0;
+    let monthlyIncomes = 0;
+    let activeCount = 0;
+    const upcomingBills: (RecurringTransactionResponse & { daysLeft: number })[] = [];
+
+    for (const item of data) {
+      const isLive = item.isActive && (!item.endDate || item.endDate >= todayStr);
+      if (!isLive) continue;
+
+      activeCount++;
+
+      let monthlyAmount = item.amount;
+      const interval = Math.max(1, item.intervalValue || 1);
+      switch (item.frequency) {
+        case "daily":
+          monthlyAmount = (item.amount * 30) / interval;
+          break;
+        case "weekly":
+          monthlyAmount = (item.amount * 4.3333) / interval;
+          break;
+        case "monthly":
+          monthlyAmount = item.amount / interval;
+          break;
+        case "quarterly":
+          monthlyAmount = item.amount / (3 * interval);
+          break;
+        case "yearly":
+          monthlyAmount = item.amount / (12 * interval);
+          break;
+        case "custom":
+          if (item.daysOfWeek && item.daysOfWeek.length > 0) {
+            monthlyAmount = item.amount * item.daysOfWeek.length * 4.3333;
+          }
+          break;
+      }
+
+      if (item.transactionType === "expense") {
+        monthlyExpenses += monthlyAmount;
+        if (item.nextRunAt) {
+          const nextDate = new Date(item.nextRunAt);
+          const nextDateStr = toThailandDateInputValue(nextDate);
+          if (nextDateStr >= todayStr && nextDateStr <= next7DaysStr) {
+            const nextMidnight = new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate()).getTime();
+            const daysLeft = Math.max(0, Math.round((nextMidnight - todayMidnight) / (1000 * 60 * 60 * 24)));
+            upcomingBills.push({ ...item, daysLeft });
+          }
+        }
+      } else {
+        monthlyIncomes += monthlyAmount;
+      }
+    }
+
+    upcomingBills.sort((a, b) => new Date(a.nextRunAt).getTime() - new Date(b.nextRunAt).getTime());
+    const upcomingTotal = upcomingBills.reduce((sum, b) => sum + b.amount, 0);
+
+    return {
+      monthlyExpenses,
+      monthlyIncomes,
+      netMonthly: monthlyIncomes - monthlyExpenses,
+      activeCount,
+      totalCount: data.length,
+      upcomingBills,
+      upcomingTotal,
+    };
+  }, [data]);
 
   useEffect(() => {
     reset(initialValues(toThailandDateInputValue(new Date())));
@@ -509,6 +599,121 @@ export function RecurringTransactionsView() {
           </form>
         </div>
       </BottomSheet>
+
+      {/* Monthly Fixed Cost & Commitments Summary */}
+      {!isLoading && !isError && Boolean(data?.length) && (
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {/* Monthly Fixed Expenses */}
+            <Card className="relative overflow-hidden border-[var(--pw-hairline)] bg-gradient-to-br from-rose-500/10 via-[var(--pw-surface-raised)]/70 to-[var(--pw-surface-raised)]/90 p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายจ่ายคงที่ต่อเดือน</span>
+                <div className="flex size-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-500">
+                  <TrendingDown className="size-4" />
+                </div>
+              </div>
+              <div className="mt-2 text-2xl font-bold text-rose-500">
+                -<AnimatedNumber value={stats.monthlyExpenses} />
+              </div>
+              <p className="mt-1 text-[11px] text-[var(--pw-ink)]/50">
+                เฉลี่ยคำนวณจากทุกรอบเวลา
+              </p>
+            </Card>
+
+            {/* Monthly Recurring Income */}
+            <Card className="relative overflow-hidden border-[var(--pw-hairline)] bg-gradient-to-br from-emerald-500/10 via-[var(--pw-surface-raised)]/70 to-[var(--pw-surface-raised)]/90 p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายรับประจำต่อเดือน</span>
+                <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500">
+                  <TrendingUp className="size-4" />
+                </div>
+              </div>
+              <div className="mt-2 text-2xl font-bold text-emerald-500">
+                +<AnimatedNumber value={stats.monthlyIncomes} />
+              </div>
+              <p className="mt-1 text-[11px] text-[var(--pw-ink)]/50">
+                เงินเดือนและรายรับประจำ
+              </p>
+            </Card>
+
+            {/* Net Recurring Commitment */}
+            <Card className="relative overflow-hidden border-[var(--pw-hairline)] bg-gradient-to-br from-blue-500/10 via-[var(--pw-surface-raised)]/70 to-[var(--pw-surface-raised)]/90 p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[var(--pw-ink)]/70">ยอดภาระสุทธิต่อเดือน</span>
+                <div className="flex size-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-500">
+                  <Coins className="size-4" />
+                </div>
+              </div>
+              <div className={cn("mt-2 text-2xl font-bold", stats.netMonthly >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                {stats.netMonthly >= 0 ? "+" : ""}<AnimatedNumber value={stats.netMonthly} />
+              </div>
+              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[var(--pw-ink)]/60">
+                <span className="inline-block size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>เปิดใช้งาน {stats.activeCount} จาก {stats.totalCount} รายการ</span>
+              </div>
+            </Card>
+          </div>
+
+          {/* Upcoming Bills in Next 7 Days Banner */}
+          {stats.upcomingBills.length > 0 && (
+            <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 shadow-xs backdrop-blur-md">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-500 border border-amber-500/30 mt-0.5">
+                    <CalendarClock className="size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-bold text-amber-500 dark:text-amber-400">
+                        บิลครบกำหนดใน 7 วันนี้ ({stats.upcomingBills.length} รายการ)
+                      </h2>
+                      <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-500 border border-amber-500/30">
+                        รวม <AnimatedNumber value={stats.upcomingTotal} />
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-[var(--pw-ink)]/70">
+                      เตรียมสำรองเงินสำหรับรายจ่ายประจำที่กำลังจะตัดรอบเร็ว ๆ นี้
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upcoming Bills Chips List */}
+              <div className="mt-3 flex flex-wrap gap-2 pt-2 border-t border-amber-500/15">
+                {stats.upcomingBills.map((bill) => (
+                  <div
+                    key={bill.recurringTransactionId}
+                    className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-[var(--pw-surface-raised)]/90 px-2.5 py-1.5 shadow-2xs text-xs backdrop-blur-xs"
+                  >
+                    <span className="font-semibold text-[var(--pw-ink)]">
+                      {bill.description || bill.categoryName || "รายจ่ายประจำ"}
+                    </span>
+                    <span className="font-bold text-rose-500">
+                      -<AnimatedNumber value={bill.amount} />
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 py-0.2 text-[10px] font-medium border",
+                        bill.daysLeft === 0
+                          ? "bg-rose-500/15 text-rose-500 border-rose-500/30 animate-pulse font-bold"
+                          : bill.daysLeft === 1
+                          ? "bg-amber-500/15 text-amber-500 border-amber-500/30 font-semibold"
+                          : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                      )}
+                    >
+                      {bill.daysLeft === 0
+                        ? "วันนี้!"
+                        : bill.daysLeft === 1
+                        ? "พรุ่งนี้"
+                        : "อีก " + bill.daysLeft + " วัน"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Recurring Transactions List */}
       {isLoading ? (
