@@ -89,6 +89,18 @@ const adminNav: NavItem[] = [
   { href: "/audit-logs", label: "ประวัติการใช้งาน", tooltip: "ประวัติการใช้งาน (Admin)", icon: History },
 ];
 
+
+const mobileShortcuts = [
+  { href: "/bank-accounts", label: "บัญชีธนาคาร", icon: Landmark, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
+  { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
+  { href: "/budgets", label: "งบประมาณ", icon: Wallet, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
+  { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
+  { href: "/categories", label: "หมวดหมู่", icon: FolderTree, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+  { href: "/tags", label: "แท็ก", icon: Tags, color: "text-rose-400", bg: "bg-rose-500/10 border-rose-500/20" },
+  { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
+  { href: "/settings", label: "ตั้งค่าระบบ", icon: Sliders, color: "text-slate-400", bg: "bg-slate-500/10 border-slate-500/20" },
+];
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -205,6 +217,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col overflow-hidden border-r border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl p-3 shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:p-4 md:shadow-none",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          "w-[84vw] max-w-[320px] sm:w-80",
           isCollapsed ? "md:w-20" : "md:w-72",
         )}
       >
@@ -261,8 +274,162 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        {/* Scrollable Navigation Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
+        {/* Mobile Command Hub Drawer (Mobile Only) */}
+        <div className="flex md:hidden flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Mobile User Profile Card */}
+          <div className="mb-3 shrink-0 rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-br from-[var(--pw-surface-indigo)]/90 to-[var(--pw-surface-onyx)]/90 p-3 shadow-xs backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="relative flex size-11 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-base font-bold text-white shadow-md shadow-[var(--pw-primary)]/20 shrink-0">
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="truncate text-sm font-semibold text-[var(--pw-ink)]">
+                    {user?.displayName || "ผู้ใช้งาน"}
+                  </p>
+                  {isAdmin && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500 border border-amber-500/25 shrink-0">
+                      <ShieldCheck className="size-3" />
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <p className="truncate text-xs text-[var(--pw-ink)]/55">{user?.email || "กำลังเชื่อมต่อ..."}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable Shortcuts and All Menus */}
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 space-y-4">
+            {/* Quick Shortcuts Grid */}
+            <div>
+              <p className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--pw-ink)]/50">
+                ทางลัดการเงิน (Shortcuts)
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {mobileShortcuts.map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeNavigation}
+                      className={cn(
+                        "group relative flex items-center gap-2.5 rounded-xl border p-2.5 transition-all duration-150 active:scale-95",
+                        active
+                          ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 shadow-xs"
+                          : "border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 hover:bg-[var(--pw-surface-indigo)]/70"
+                      )}
+                    >
+                      <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border", item.bg)}>
+                        <Icon className={cn("size-4", item.color)} />
+                      </div>
+                      <span className={cn("text-xs font-medium truncate", active ? "text-[var(--pw-primary)] font-semibold" : "text-[var(--pw-ink)]/85")}>
+                        {item.label}
+                      </span>
+                      {active && (
+                        <span className="absolute right-2 top-2 size-1.5 rounded-full bg-[var(--pw-primary)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Core Menus List */}
+            <div>
+              <p className="px-1 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--pw-ink)]/50">
+                เมนูทั้งหมด (All Menus)
+              </p>
+              <nav aria-label="เมนูทั้งหมดบนมือถือ" className="space-y-1 rounded-xl bg-[var(--pw-canvas)]/60 border border-[var(--pw-hairline)] p-1.5">
+                {mainNav
+                  .filter((item) => !item.permission || isAdmin || user?.permissions?.includes(item.permission))
+                  .map((item) => {
+                    const Icon = item.icon;
+                    const active = pathname.startsWith(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeNavigation}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-98",
+                          active
+                            ? "bg-[var(--pw-primary)] text-white shadow-xs"
+                            : "text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)] hover:text-[var(--pw-ink)]"
+                        )}
+                      >
+                        <Icon className="size-4 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+              </nav>
+            </div>
+
+            {/* Admin Section on Mobile */}
+            {isAdmin && (
+              <div className="pb-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAdminOpen((open) => !open)}
+                  className="flex w-full items-center justify-between rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 px-3 py-2 text-xs font-semibold text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-indigo)] transition"
+                  aria-expanded={isAdminOpen}
+                  aria-label="ย่อ/ขยายเมนูผู้ดูแลระบบบนมือถือ"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="size-4 text-amber-500" />
+                    <span className="uppercase tracking-wider">ผู้ดูแลระบบ (Admin)</span>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      "size-3.5 transition-transform duration-200 text-[var(--pw-ink)]/50",
+                      isAdminOpen ? "rotate-180" : "rotate-0"
+                    )}
+                  />
+                </button>
+                <AnimatePresence initial={false}>
+                  {isAdminOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-1.5 space-y-1 rounded-xl bg-[var(--pw-canvas)]/60 border border-[var(--pw-hairline)] p-1.5">
+                        {adminNav.map((item) => {
+                          const Icon = item.icon;
+                          const active = pathname.startsWith(item.href);
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={closeNavigation}
+                              className={cn(
+                                "flex items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-98",
+                                active
+                                  ? "bg-[var(--pw-primary)] text-white shadow-xs"
+                                  : "text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)] hover:text-[var(--pw-ink)]"
+                              )}
+                            >
+                              <Icon className="size-4 shrink-0" />
+                              <span className="truncate">{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop Scrollable Navigation Area (Hidden on mobile) */}
+        <div className="hidden md:flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
           <TooltipProvider>
             <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
               {/* เมนูทั่วไป */}
