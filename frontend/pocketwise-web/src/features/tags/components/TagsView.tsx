@@ -180,7 +180,7 @@ export function TagsView() {
                 ) : (
                   <Plus className="size-4 mr-1.5" />
                 )}
-                {editing ? "บันทึกการแก้ไข" : "เพิ่มแท็ก"}
+                {create.isPending || update.isPending ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "เพิ่มแท็ก"}
               </Button>
               <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
                 <X className="size-4 mr-1.5" />
