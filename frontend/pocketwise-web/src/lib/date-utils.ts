@@ -117,3 +117,44 @@ export function toThailandDateTimeInputValue(value: DateValue): string {
 
   return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
+
+export interface MonthOption {
+  value: string; // "YYYY-MM"
+  label: string; // "พฤศจิกายน 2026"
+  from: string;  // "YYYY-MM-01"
+  to: string;    // "YYYY-MM-30"
+}
+
+/**
+ * Generate month options for Month Picker (Thai month name + Gregorian year)
+ */
+export function getRecentMonthOptions(pastCount = 24, futureCount = 1): MonthOption[] {
+  const options: MonthOption[] = [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const thaiMonthNames = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+
+  for (let i = futureCount; i >= -pastCount; i--) {
+    const d = new Date(currentYear, currentMonth + i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const monthStr = String(m + 1).padStart(2, "0");
+    const value = y + "-" + monthStr;
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    const isCurrent = i === 0;
+
+    options.push({
+      value: value,
+      label: thaiMonthNames[m] + " " + y + (isCurrent ? " (เดือนนี้)" : ""),
+      from: y + "-" + monthStr + "-01",
+      to: y + "-" + monthStr + "-" + String(lastDay).padStart(2, "0"),
+    });
+  }
+
+  return options;
+}

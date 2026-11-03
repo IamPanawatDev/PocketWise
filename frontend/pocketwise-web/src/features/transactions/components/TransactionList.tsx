@@ -43,8 +43,10 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TransactionCardsSkeleton } from "@/components/shared/Skeletons";
 import { TransactionForm } from "./TransactionForm";
+import { getRecentMonthOptions } from "@/lib/date-utils";
 import {
   ArrowDownRight,
+  Calendar,
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
@@ -74,6 +76,27 @@ export function TransactionList({
   const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(() => searchParams.get("action") === "new");
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const monthOptions = useMemo(() => getRecentMonthOptions(24, 1), []);
+  const [isCustomDateMode, setIsCustomDateMode] = useState(false);
+
+  const currentMonthValue = useMemo(() => {
+    if (!filter.fromDate) return "all";
+    return toThailandDateInputValue(filter.fromDate).slice(0, 7);
+  }, [filter.fromDate]);
+
+  const handleMonthSelect = (value: string) => {
+    if (value === "all") {
+      handleFilterChange({ fromDate: undefined, toDate: undefined });
+      return;
+    }
+    const selected = monthOptions.find((m) => m.value === value);
+    if (selected) {
+      handleFilterChange({
+        fromDate: thailandDateBoundaryToUtcIso(selected.from),
+        toDate: thailandDateBoundaryToUtcIso(selected.to, true),
+      });
+    }
+  };
   const [editing, setEditing] = useState<TransactionResponse | null>(null);
 
 
@@ -99,19 +122,6 @@ export function TransactionList({
     setFilter((f) => ({ ...f, ...patch }));
     setPage(1);
   };
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (filter.type) count++;
-    if (filter.categoryId !== undefined) count++;
-    if (filter.tagId !== undefined) count++;
-    if (filter.bankAccountId !== undefined) count++;
-    if (filter.creditCardId !== undefined) count++;
-    if (filter.fromDate) count++;
-    if (filter.toDate) count++;
-    if (sortBy !== "transactionDate" || !sortDesc) count++;
-    return count;
-  }, [filter, sortBy, sortDesc]);
 
   const activeQuickPeriod = useMemo(() => {
     if (!filter.fromDate && !filter.toDate) return "all";
@@ -146,6 +156,18 @@ export function TransactionList({
     return "custom";
   }, [filter.fromDate, filter.toDate]);
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filter.type) count++;
+    if (filter.categoryId !== undefined) count++;
+    if (filter.tagId !== undefined) count++;
+    if (filter.bankAccountId !== undefined) count++;
+    if (filter.creditCardId !== undefined) count++;
+    if (activeQuickPeriod === "custom") count++;
+    if (sortBy !== "transactionDate" || !sortDesc) count++;
+    return count;
+  }, [filter, sortBy, sortDesc, activeQuickPeriod]);
+
     const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     if (!data?.items) return { totalIncome: 0, totalExpense: 0, netBalance: 0 };
     let income = 0;
@@ -159,6 +181,7 @@ export function TransactionList({
 
   const resetFilters = () => {
     setFilter({});
+    setIsCustomDateMode(false);
     setSortBy("transactionDate");
     setSortDesc(true);
     setPage(1);
@@ -362,6 +385,48 @@ export function TransactionList({
         </button>
       </div>
 
+      {/* 1-Tap Quick Transaction Type Switcher */}
+      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-[var(--pw-surface-indigo)]/50 border border-[var(--pw-hairline)] mb-3">
+        <button
+          type="button"
+          onClick={() => handleFilterChange({ type: undefined })}
+          className={cn(
+            "py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center",
+            !filter.type
+              ? "bg-[var(--pw-surface-raised)] text-[var(--pw-ink)] shadow-xs"
+              : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
+          )}
+        >
+          ทั้งหมด
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFilterChange({ type: "expense" })}
+          className={cn(
+            "py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-1",
+            filter.type === "expense"
+              ? "bg-[var(--pw-expense)] text-white shadow-xs font-bold"
+              : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-expense)]"
+          )}
+        >
+          <ArrowDownRight className="size-3.5" />
+          รายจ่าย
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFilterChange({ type: "income" })}
+          className={cn(
+            "py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-1",
+            filter.type === "income"
+              ? "bg-[var(--pw-green)] text-[var(--pw-on-green)] shadow-xs font-bold"
+              : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-green)]"
+          )}
+        >
+          <ArrowUpRight className="size-3.5" />
+          รายรับ
+        </button>
+      </div>
+
       {/* Search & Filter Trigger Bar */}
       <div className="mb-4 space-y-2">
         <div className="flex items-center gap-2">
@@ -467,7 +532,7 @@ export function TransactionList({
                 </button>
               </span>
             )}
-            {(filter.fromDate || filter.toDate) && (
+            {(filter.fromDate || filter.toDate) && activeQuickPeriod === "custom" && (
               <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
                 <span>
                   ช่วงวันที่
@@ -517,7 +582,8 @@ export function TransactionList({
         title="ตัวกรองและจัดเรียงรายการ"
         description="เลือกเงื่อนไขเพื่อกรองและจัดเรียงรายการธุรกรรมตามต้องการ"
       >
-        <div className="space-y-4 py-2">
+        <div className="flex flex-col max-h-[75vh]">
+          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
           <FormField label="ประเภทธุรกรรม" htmlFor="sheet-type-filter" className="w-full min-w-0">
             <div id="sheet-type-filter" className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="กรองประเภทธุรกรรม">
               <button
@@ -648,40 +714,111 @@ export function TransactionList({
             </FormField>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="ตั้งแต่วันที่ (ค.ศ.)" htmlFor="sheet-from-date" className="w-full min-w-0">
-              <DateInput
-                id="sheet-from-date"
-                className="px-3 py-2 text-base md:text-sm"
-                value={filter.fromDate ? toThailandDateInputValue(filter.fromDate) : ""}
-                onChange={(value) => {
-                  if (value && !isGregorianDateInput(value)) {
-                    toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
-                    return;
+          {/* Month Picker as Primary with Progressive Disclosure for Custom Dates */}
+          {!isCustomDateMode ? (
+            <div className="space-y-1.5">
+              <FormField label="เลือกช่วงเดือน" htmlFor="sheet-month-filter" className="w-full min-w-0">
+                <Select
+                  value={
+                    activeQuickPeriod === "all"
+                      ? "all"
+                      : monthOptions.some((m) => m.value === currentMonthValue)
+                      ? currentMonthValue
+                      : "custom"
                   }
-                  handleFilterChange({
-                    fromDate: value ? thailandDateBoundaryToUtcIso(value) : undefined,
-                  });
-                }}
-              />
-            </FormField>
-            <FormField label="ถึงวันที่ (ค.ศ.)" htmlFor="sheet-to-date" className="w-full min-w-0">
-              <DateInput
-                id="sheet-to-date"
-                className="px-3 py-2 text-base md:text-sm"
-                value={filter.toDate ? toThailandDateInputValue(filter.toDate) : ""}
-                onChange={(value) => {
-                  if (value && !isGregorianDateInput(value)) {
-                    toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
-                    return;
-                  }
-                  handleFilterChange({
-                    toDate: value ? thailandDateBoundaryToUtcIso(value, true) : undefined,
-                  });
-                }}
-              />
-            </FormField>
-          </div>
+                  onValueChange={(val) => {
+                    if (val === "custom") {
+                      setIsCustomDateMode(true);
+                    } else {
+                      handleMonthSelect(val);
+                    }
+                  }}
+                >
+                  <SelectTrigger id="sheet-month-filter" className="w-full">
+                    <SelectValue placeholder="เลือกเดือน" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="all">ทุกช่วงเวลา (ทั้งหมด)</SelectItem>
+                    {monthOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                    {activeQuickPeriod === "custom" && (
+                      <SelectItem value="custom">กำหนดช่วงวันที่เอง (กำลังใช้งาน)</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <div className="flex justify-end pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomDateMode(true)}
+                  className="text-xs text-[var(--pw-primary)] hover:underline flex items-center gap-1 cursor-pointer font-medium py-0.5"
+                >
+                  <Calendar className="size-3.5" />
+                  กำหนดช่วงวันที่เอง (ขั้นสูง)
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3">
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs font-semibold text-[var(--pw-ink)] flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-[var(--pw-primary)]" />
+                  กำหนดช่วงวันที่เอง (วัน/เดือน/ปี)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomDateMode(false);
+                    const thisMonth = getThisMonthRange();
+                    handleFilterChange({
+                      fromDate: thailandDateBoundaryToUtcIso(thisMonth.from),
+                      toDate: thailandDateBoundaryToUtcIso(thisMonth.to, true),
+                    });
+                  }}
+                  className="text-xs text-[var(--pw-primary)] hover:underline cursor-pointer font-medium"
+                >
+                  กลับไปเลือกรายเดือน
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormField label="ตั้งแต่วันที่ (ค.ศ.)" htmlFor="sheet-from-date" className="w-full min-w-0">
+                  <DateInput
+                    id="sheet-from-date"
+                    className="px-3 py-2 text-base md:text-sm"
+                    value={filter.fromDate ? toThailandDateInputValue(filter.fromDate) : ""}
+                    onChange={(value) => {
+                      if (value && !isGregorianDateInput(value)) {
+                        toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
+                        return;
+                      }
+                      handleFilterChange({
+                        fromDate: value ? thailandDateBoundaryToUtcIso(value) : undefined,
+                      });
+                    }}
+                  />
+                </FormField>
+                <FormField label="ถึงวันที่ (ค.ศ.)" htmlFor="sheet-to-date" className="w-full min-w-0">
+                  <DateInput
+                    id="sheet-to-date"
+                    className="px-3 py-2 text-base md:text-sm"
+                    value={filter.toDate ? toThailandDateInputValue(filter.toDate) : ""}
+                    onChange={(value) => {
+                      if (value && !isGregorianDateInput(value)) {
+                        toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
+                        return;
+                      }
+                      handleFilterChange({
+                        toDate: value ? thailandDateBoundaryToUtcIso(value, true) : undefined,
+                      });
+                    }}
+                  />
+                </FormField>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label="เรียงตาม" htmlFor="sheet-sort-by" className="w-full min-w-0">
@@ -720,20 +857,25 @@ export function TransactionList({
             </FormField>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-[var(--pw-hairline)]">
+          </div>
+
+          {/* Sticky Mobile-First Footer (Confirm Top, Reset Bottom) */}
+          <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)] mt-3 flex flex-col gap-2 z-10">
             <Button
               type="button"
-              variant="ghost"
-              onClick={resetFilters}
-              disabled={activeFilterCount === 0}
-            >
-              ล้างค่าทั้งหมด
-            </Button>
-            <Button
-              type="button"
+              className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
               onClick={() => setShowFilterSheet(false)}
             >
               ดูรายการ ({data?.totalItems ?? 0})
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full h-9 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] cursor-pointer"
+              onClick={resetFilters}
+              disabled={activeFilterCount === 0}
+            >
+              ล้างค่าตัวกรองทั้งหมด
             </Button>
           </div>
         </div>
