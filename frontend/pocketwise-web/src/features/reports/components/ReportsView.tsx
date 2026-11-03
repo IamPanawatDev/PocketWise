@@ -33,6 +33,7 @@ import {
   Plus,
   Scale,
   Calendar,
+  ChevronRight,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ import {
   useReportTrends,
 } from "@/features/reports/hooks/useReports";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { ReportContentSkeleton } from "@/components/shared/Skeletons";
 import type { ReportPeriod } from "@/types/report.types";
 import {
   cn,
@@ -659,7 +661,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
       </BottomSheet>
 
       {summaryQuery.isLoading || trendQuery.isLoading ? (
-        <p role="status" className="text-[var(--pw-ink)]/70">กำลังคำนวณรายงาน...</p>
+        <ReportContentSkeleton />
       ) : summaryQuery.isError || trendQuery.isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">
           {summaryQuery.error instanceof ApiError
@@ -985,24 +987,32 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
               {trendPoints.length ? (
                 <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trendPoints} margin={{ top: 8, right: 12, left: 8, bottom: 8 }}>
+                    <BarChart data={trendPoints} margin={{ top: 8, right: 8, left: -14, bottom: 8 }}>
                       <CartesianGrid stroke="var(--pw-hairline)" strokeDasharray="3 3" />
                       <XAxis
                         dataKey="label"
-                        interval={0}
+                        interval="preserveStartEnd"
                         angle={-25}
                         textAnchor="end"
                         height={50}
                         tick={{ fill: "var(--pw-ink)", fontSize: 11 }}
                       />
-                      <YAxis tick={{ fill: "var(--pw-ink)", fontSize: 12 }} />
+                      <YAxis
+                        width={44}
+                        tick={{ fill: "var(--pw-ink)", fontSize: 11 }}
+                        tickFormatter={(v) => {
+                          if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+                          if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
+                          return String(v);
+                        }}
+                      />
                       <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
-                      <Legend />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
                       <Bar
                         dataKey="income"
                         name="รายรับ"
                         fill="var(--pw-green)"
-                        radius={[5, 5, 0, 0]}
+                        radius={[4, 4, 0, 0]}
                         isAnimationActive={true}
                         animationDuration={850}
                         animationEasing="ease-out"
@@ -1011,7 +1021,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                         dataKey="expense"
                         name="รายจ่าย"
                         fill="var(--pw-expense)"
-                        radius={[5, 5, 0, 0]}
+                        radius={[4, 4, 0, 0]}
                         isAnimationActive={true}
                         animationDuration={850}
                         animationEasing="ease-out"
@@ -1025,17 +1035,25 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             </Card>
 
             <Card className="p-4 sm:p-5">
-              <h2 className="mb-4 text-lg font-bold">รายจ่ายตามหมวดหมู่</h2>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">รายจ่ายตามหมวดหมู่</h2>
+                  <p className="text-xs text-[var(--pw-ink)]/60">สัดส่วนค่าใช้จ่ายและการกระจายตัวของเงิน</p>
+                </div>
+                <span className="rounded-full bg-[var(--pw-surface-indigo)] px-2.5 py-0.5 text-xs font-semibold text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)]">
+                  {activeCurrency.categoryBreakdown.length} หมวดหมู่
+                </span>
+              </div>
               {activeCurrency.categoryBreakdown.length ? (
-                <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
-                  <div className="h-64 min-w-0">
+                <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
+                  <div className="h-60 sm:h-64 min-w-0 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={activeCurrency.categoryBreakdown}
                           dataKey="amount"
                           nameKey="categoryName"
-                          innerRadius={50}
+                          innerRadius={52}
                           outerRadius={88}
                           paddingAngle={2}
                           isAnimationActive={true}
@@ -1050,15 +1068,54 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <ul className="space-y-2">
-                    {activeCurrency.categoryBreakdown.map((item, index) => (
-                      <li key={`${item.categoryId ?? "none"}-${item.categoryName}`} className="flex min-w-0 items-center gap-2 text-sm">
-                        <span aria-hidden="true" className="size-3 shrink-0 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
-                        <span className="min-w-0 flex-1 truncate">{item.categoryName}</span>
-                        <span className="shrink-0 text-right">{item.percentage.toFixed(1)}%</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                    {activeCurrency.categoryBreakdown.map((item, index) => {
+                      const color = colors[index % colors.length];
+                      return (
+                        <div
+                          key={`${item.categoryId ?? "none"}-${item.categoryName}`}
+                          className="group relative rounded-xl border border-[var(--pw-hairline)]/70 bg-[var(--pw-surface-raised)]/40 p-2.5 transition-all hover:border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-raised)]/70"
+                        >
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                aria-hidden="true"
+                                className="size-2.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: color }}
+                              />
+                              <Link
+                                href={item.categoryId ? `/transactions?categoryId=${item.categoryId}` : "/transactions"}
+                                className="truncate font-semibold text-[var(--pw-ink)] hover:text-[var(--pw-primary)] hover:underline flex items-center gap-1"
+                              >
+                                <span>{item.categoryName}</span>
+                                <ChevronRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </Link>
+                              {item.transactionCount !== undefined && item.transactionCount > 0 && (
+                                <span className="text-[10px] text-[var(--pw-ink)]/50 shrink-0">
+                                  ({item.transactionCount} รายการ)
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="font-bold text-[var(--pw-ink)] block">
+                                {formatCurrency(item.amount, activeCurrency.currencyCode)}
+                              </span>
+                              <span className="text-[10px] font-medium text-[var(--pw-ink)]/60">
+                                {item.percentage.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                          {/* Visual Progress Bar */}
+                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--pw-surface-sunken)]">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%`, backgroundColor: color }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <p className="py-12 text-center text-sm text-[var(--pw-ink)]/60">ไม่มีรายจ่ายแยกตามหมวดหมู่</p>
@@ -1283,17 +1340,32 @@ function BreakdownCard({
       {items.length ? (
         <ul className="space-y-3">
           {items.map((item, index) => (
-            <li key={`${item.label}-${index}`} className="flex items-start justify-between gap-3 text-sm">
-              <div className="min-w-0">
-                <span className="block break-words font-medium">{item.label}</span>
-                {item.count !== undefined && item.count > 0 && (
-                  <span className="text-xs text-[var(--pw-ink)]/50">{item.count} รายการ</span>
-                )}
+            <li
+              key={`${item.label}-${index}`}
+              className="rounded-xl border border-[var(--pw-hairline)]/60 bg-[var(--pw-surface-raised)]/30 p-2.5 space-y-2 hover:bg-[var(--pw-surface-raised)]/60 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-3 text-xs">
+                <div className="min-w-0">
+                  <span className="block truncate font-semibold text-[var(--pw-ink)]">{item.label}</span>
+                  {item.count !== undefined && item.count > 0 && (
+                    <span className="text-[10px] text-[var(--pw-ink)]/50">{item.count} รายการ</span>
+                  )}
+                </div>
+                <div className="shrink-0 text-right">
+                  <span className="font-bold text-[var(--pw-ink)]">
+                    {formatCurrency(item.amount, currencyCode)}
+                  </span>
+                  <span className="ml-1.5 text-[10px] text-[var(--pw-ink)]/55 font-medium">
+                    ({item.percentage.toFixed(1)}%)
+                  </span>
+                </div>
               </div>
-              <span className="shrink-0 text-right">
-                {formatCurrency(item.amount, currencyCode)}
-                <span className="ml-2 block text-xs text-[var(--pw-ink)]/55">{item.percentage.toFixed(1)}%</span>
-              </span>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--pw-surface-sunken)]">
+                <div
+                  className="h-full rounded-full bg-[var(--pw-primary)] transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }}
+                />
+              </div>
             </li>
           ))}
         </ul>

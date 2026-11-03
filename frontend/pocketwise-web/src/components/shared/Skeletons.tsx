@@ -220,6 +220,75 @@ export function ReportPageSkeleton() {
 }
 
 /**
+ * Skeleton for Reports Content area (Mobile Hero Card or Desktop KPI Cards + 2 Charts + 3 Breakdown Cards)
+ */
+export function ReportContentSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Mobile: Unified Hero Card Skeleton (< sm) */}
+      <div className="block sm:hidden">
+        <Card className="p-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-8 w-48" />
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--pw-hairline)]">
+            <Skeleton className="h-16 rounded-xl" />
+            <Skeleton className="h-16 rounded-xl" />
+          </div>
+          <div className="space-y-2 pt-2 border-t border-[var(--pw-hairline)]">
+            <div className="flex justify-between">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="h-2 w-full rounded-full" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Desktop: 5 KPI Cards (sm+) */}
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Card key={i} className="p-4 space-y-2">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="size-4 rounded-full" />
+            </div>
+            <Skeleton className="h-7 w-32" />
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <Card className="p-5 space-y-4">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-64 w-full rounded-lg" />
+        </Card>
+        <Card className="p-5 space-y-4">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-64 w-full rounded-lg" />
+        </Card>
+      </div>
+
+      {/* Breakdown Cards Row */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="p-5 space-y-3">
+            <Skeleton className="h-5 w-36" />
+            <div className="space-y-2 pt-2">
+              <Skeleton className="h-12 w-full rounded-xl" />
+              <Skeleton className="h-12 w-full rounded-xl" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Skeleton for Table views (e.g. Audit Logs, Import Jobs)
  */
 export function TableSkeleton({

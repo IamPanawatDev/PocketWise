@@ -766,7 +766,7 @@ export function TransactionForm({
           ) : (
             <Plus className="size-4" />
           )}
-          {editing ? "บันทึกการแก้ไข" : "บันทึกรายการ"}
+          {(create.isPending || update.isPending) ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "บันทึกรายการ"}
         </Button>
         <Button
           type="button"

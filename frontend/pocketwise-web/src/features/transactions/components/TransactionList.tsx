@@ -43,7 +43,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TransactionCardsSkeleton } from "@/components/shared/Skeletons";
 import { TransactionForm } from "./TransactionForm";
-import { getRecentMonthOptions } from "@/lib/date-utils";
+import { formatDisplayDate, formatDisplayDateTime, getRecentMonthOptions } from "@/lib/date-utils";
 import {
   ArrowDownRight,
   Calendar,
@@ -52,6 +52,7 @@ import {
   ChevronRight,
   CreditCard,
   Landmark,
+  LoaderCircle,
   Layers,
   Pencil,
   Plus,
@@ -76,6 +77,7 @@ export function TransactionList({
   const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(() => searchParams.get("action") === "new");
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionResponse | null>(null);
   const monthOptions = useMemo(() => getRecentMonthOptions(24, 1), []);
   const [isCustomDateMode, setIsCustomDateMode] = useState(false);
 
@@ -194,10 +196,12 @@ export function TransactionList({
           <ReceiptText className="size-6 text-[var(--pw-primary)]" />
           รายการรายรับรายจ่าย
         </h1>
-        <Button className="w-full sm:w-auto" onClick={() => { setEditing(null); setShowForm(true); }}>
-          <Plus />
-          เพิ่มรายการ
-        </Button>
+        <div className="hidden sm:block">
+          <Button onClick={() => { setEditing(null); setShowForm(true); }}>
+            <Plus />
+            เพิ่มรายการ
+          </Button>
+        </div>
       </div>
 
       <BottomSheet
@@ -893,147 +897,228 @@ export function TransactionList({
         <div className="space-y-4">
           <AnimatedList key={`page-${page}-${sortBy}-${sortDesc}`} className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {data.items.map((t) => (
-              <AnimatedListItem
-                key={t.transactionId}
-                className={cn(
-                  "relative flex flex-col justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80 active:scale-[0.99] backdrop-blur-xs",
-                  t.transactionType === "expense"
-                    ? "border-l-4 border-l-[var(--pw-expense)]"
-                    : t.transactionType === "income"
-                      ? "border-l-4 border-l-[var(--pw-green)]"
-                      : "border-l-4 border-l-[var(--pw-link)]",
-                )}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      {t.description ? (
-                        <p className="break-words font-semibold text-base text-[var(--pw-ink)]">
-                          {t.description}
-                        </p>
-                      ) : (
-                        <p className="break-words text-sm italic font-normal text-[var(--pw-ink)]/40">
-                          (ไม่ระบุรายละเอียด)
-                        </p>
+              <AnimatedListItem key={t.transactionId}>
+                {/* 1. Mobile Compact List Row (< sm) */}
+                <div
+                  onClick={() => setSelectedTransaction(t)}
+                  className="sm:hidden flex items-center justify-between p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-raised)] active:scale-[0.98] transition-all cursor-pointer backdrop-blur-xs gap-3"
+                >
+                  <div
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                      t.transactionType === "expense"
+                        ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
+                        : t.transactionType === "income"
+                          ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
+                          : "bg-[var(--pw-link)]/15 text-[var(--pw-link)]"
+                    )}
+                  >
+                    {t.transactionType === "expense" ? (
+                      <ArrowDownRight className="size-5" />
+                    ) : t.transactionType === "income" ? (
+                      <ArrowUpRight className="size-5" />
+                    ) : (
+                      <ReceiptText className="size-5" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-sm text-[var(--pw-ink)]">
+                      {t.description || "(ไม่ระบุรายละเอียด)"}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--pw-ink)]/60 mt-0.5 truncate">
+                      <span>{formatDisplayDate(t.transactionDate)}</span>
+                      <span>•</span>
+                      <span className="truncate">{t.categoryName ?? "ไม่มีหมวดหมู่"}</span>
+                      {Boolean(t.bankAccountId || t.creditCardId) && (
+                        <>
+                          <span>•</span>
+                          <span className="truncate">
+                            {t.bankAccountName ??
+                              t.creditCardName ??
+                              bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName ??
+                              creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName}
+                          </span>
+                        </>
                       )}
-                      <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-                        {formatDateTime(t.transactionDate)}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span
-                        className={cn(
-                          "text-base font-bold sm:text-lg block",
-                          t.transactionType === "expense"
-                            ? "text-[var(--pw-expense)]"
-                            : t.transactionType === "income"
-                              ? "text-[var(--pw-green)]"
-                              : "text-[var(--pw-link)]",
-                        )}
-                      >
-                        {t.transactionType === "expense" ? "-" : t.transactionType === "income" ? "+" : "↔"}
-                        {formatCurrency(t.amount, t.currencyCode)}
-                      </span>
-                      <span
-                        className={cn(
-                          "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase",
-                          t.transactionType === "expense"
-                            ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
-                            : t.transactionType === "income"
-                              ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
-                              : "bg-[var(--pw-link)]/15 text-[var(--pw-link)]",
-                        )}
-                      >
-                        {t.transactionType === "expense" ? "รายจ่าย" : t.transactionType === "income" ? "รายรับ" : "โอน"}
-                      </span>
                     </div>
                   </div>
 
-                  <div className="my-3 flex flex-wrap items-center gap-1.5 text-xs text-[var(--pw-ink)]/75">
-                    <span className="rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)]">
-                      {t.categoryName ?? "ไม่มีหมวดหมู่"}
+                  <div className="text-right shrink-0">
+                    <span
+                      className={cn(
+                        "text-sm font-bold block",
+                        t.transactionType === "expense"
+                          ? "text-[var(--pw-expense)]"
+                          : t.transactionType === "income"
+                            ? "text-[var(--pw-green)]"
+                            : "text-[var(--pw-link)]"
+                      )}
+                    >
+                      {t.transactionType === "expense" ? "-" : t.transactionType === "income" ? "+" : ""}
+                      {formatCurrency(t.amount, t.currencyCode)}
                     </span>
-                    {Boolean(t.bankAccountId && (t.bankAccountName ?? bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName)) && (
-                      <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
-                        <Landmark className="mr-1 size-3 text-[var(--pw-link)]" />
-                        {t.bankAccountName ?? bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName}
-                      </span>
-                    )}
-                    {Boolean(t.creditCardId && (t.creditCardName ?? creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName)) && (
-                      <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
-                        <CreditCard className="mr-1 size-3 text-[var(--pw-accent)]" />
-                        {t.creditCardName ?? creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName}
-                      </span>
-                    )}
-                    {t.sourceType && t.sourceType !== "manual" && (
-                      <span className="inline-flex items-center rounded bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--pw-primary)]">
-                        {t.sourceType === "cardStatement" ? (
-                          <>
-                            <CreditCard className="mr-1 size-3" />
-                            บัตรเครดิต
-                          </>
-                        ) : t.sourceType === "slip" ? (
-                          "สลิป"
-                        ) : (
-                          t.sourceType
-                        )}
-                      </span>
-                    )}
-                    {t.tags.length > 0 &&
-                      t.tags.map((tag) => {
-                        const color = tags?.find((item) => item.tagId === tag.tagId)?.color ?? "#ec48bd";
-                        return (
-                          <span
-                            key={tag.tagId}
-                            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                            style={{ backgroundColor: color, color: getReadableTextColor(color) }}
-                          >
-                            <Tag className="mr-1 size-2.5 opacity-80" />
-                            {tag.tagName}
-                          </span>
-                        );
-                      })}
+                    <span
+                      className={cn(
+                        "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded inline-block mt-0.5",
+                        t.transactionType === "expense"
+                          ? "bg-[var(--pw-expense)]/10 text-[var(--pw-expense)]"
+                          : t.transactionType === "income"
+                            ? "bg-[var(--pw-green)]/10 text-[var(--pw-green)]"
+                            : "bg-[var(--pw-link)]/10 text-[var(--pw-link)]"
+                      )}
+                    >
+                      {t.transactionType === "expense" ? "รายจ่าย" : t.transactionType === "income" ? "รายรับ" : "โอน"}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 border-t border-[var(--pw-hairline)] pt-3">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="h-8 text-xs px-3"
-                    onClick={() => {
-                      setEditing(t);
-                      setShowForm(false);
-                    }}
-                  >
-                    <Pencil className="size-3.5" />
-                    แก้ไข
-                  </Button>
-                  <ConfirmDialog
-                    title="ลบรายการนี้?"
-                    description="การลบจะไม่สามารถย้อนกลับได้"
-                    confirmLabel="ลบ"
-                    pending={deletingId === t.transactionId}
-                    onConfirm={() => {
-                      setDeletingId(t.transactionId);
-                      remove.mutate(t.transactionId, {
-                        onSuccess: () => {
-                          setDeletingId(null);
-                          toast.success("ลบรายการแล้ว");
-                        },
-                        onError: (e) => {
-                          setDeletingId(null);
-                          toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ");
-                        },
-                      });
-                    }}
-                    trigger={
-                      <Button size="sm" variant="destructive" className="h-8 text-xs px-3" disabled={deletingId === t.transactionId}>
-                        <Trash2 className="size-3.5" />
-                        ลบ
-                      </Button>
-                    }
-                  />
+                {/* 2. Desktop Card Grid (>= sm) */}
+                <div
+                  className={cn(
+                    "hidden sm:flex relative flex-col justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80 backdrop-blur-xs h-full",
+                    t.transactionType === "expense"
+                      ? "border-l-4 border-l-[var(--pw-expense)]"
+                      : t.transactionType === "income"
+                        ? "border-l-4 border-l-[var(--pw-green)]"
+                        : "border-l-4 border-l-[var(--pw-link)]",
+                  )}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        {t.description ? (
+                          <p className="break-words font-semibold text-base text-[var(--pw-ink)]">
+                            {t.description}
+                          </p>
+                        ) : (
+                          <p className="break-words text-sm italic font-normal text-[var(--pw-ink)]/40">
+                            (ไม่ระบุรายละเอียด)
+                          </p>
+                        )}
+                        <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+                          {formatDateTime(t.transactionDate)}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span
+                          className={cn(
+                            "text-base font-bold sm:text-lg block",
+                            t.transactionType === "expense"
+                              ? "text-[var(--pw-expense)]"
+                              : t.transactionType === "income"
+                                ? "text-[var(--pw-green)]"
+                                : "text-[var(--pw-link)]",
+                          )}
+                        >
+                          {t.transactionType === "expense" ? "-" : t.transactionType === "income" ? "+" : "↔"}
+                          {formatCurrency(t.amount, t.currencyCode)}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase",
+                            t.transactionType === "expense"
+                              ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
+                              : t.transactionType === "income"
+                                ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
+                                : "bg-[var(--pw-link)]/15 text-[var(--pw-link)]",
+                          )}
+                        >
+                          {t.transactionType === "expense" ? "รายจ่าย" : t.transactionType === "income" ? "รายรับ" : "โอน"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="my-3 flex flex-wrap items-center gap-1.5 text-xs text-[var(--pw-ink)]/75">
+                      <span className="rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)]">
+                        {t.categoryName ?? "ไม่มีหมวดหมู่"}
+                      </span>
+                      {Boolean(t.bankAccountId && (t.bankAccountName ?? bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName)) && (
+                        <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
+                          <Landmark className="mr-1 size-3 text-[var(--pw-link)]" />
+                          {t.bankAccountName ?? bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName}
+                        </span>
+                      )}
+                      {Boolean(t.creditCardId && (t.creditCardName ?? creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName)) && (
+                        <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
+                          <CreditCard className="mr-1 size-3 text-[var(--pw-accent)]" />
+                          {t.creditCardName ?? creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName}
+                        </span>
+                      )}
+                      {t.sourceType && t.sourceType !== "manual" && (
+                        <span className="inline-flex items-center rounded bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--pw-primary)]">
+                          {t.sourceType === "cardStatement" ? (
+                            <>
+                              <CreditCard className="mr-1 size-3" />
+                              บัตรเครดิต
+                            </>
+                          ) : t.sourceType === "slip" ? (
+                            "สลิป"
+                          ) : (
+                            t.sourceType
+                          )}
+                        </span>
+                      )}
+                      {t.tags.length > 0 &&
+                        t.tags.map((tag) => {
+                          const color = tags?.find((item) => item.tagId === tag.tagId)?.color ?? "#ec48bd";
+                          return (
+                            <span
+                              key={tag.tagId}
+                              className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                              style={{ backgroundColor: color, color: getReadableTextColor(color) }}
+                            >
+                              <Tag className="mr-1 size-2.5 opacity-80" />
+                              {tag.tagName}
+                            </span>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 border-t border-[var(--pw-hairline)] pt-3">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 text-xs px-3"
+                      onClick={() => {
+                        setEditing(t);
+                        setShowForm(false);
+                      }}
+                    >
+                      <Pencil className="size-3.5" />
+                      แก้ไข
+                    </Button>
+                    <ConfirmDialog
+                      title="ลบรายการนี้?"
+                      description="การลบจะไม่สามารถย้อนกลับได้"
+                      confirmLabel="ลบ"
+                      pending={deletingId === t.transactionId}
+                      onConfirm={() => {
+                        setDeletingId(t.transactionId);
+                        remove.mutate(t.transactionId, {
+                          onSuccess: () => {
+                            setDeletingId(null);
+                            toast.success("ลบรายการแล้ว");
+                          },
+                          onError: (e) => {
+                            setDeletingId(null);
+                            toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ");
+                          },
+                        });
+                      }}
+                      trigger={
+                        <Button size="sm" variant="destructive" className="h-8 text-xs px-3" disabled={deletingId === t.transactionId}>
+                          {deletingId === t.transactionId ? (
+                            <LoaderCircle className="size-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-3.5" />
+                          )}
+                          {deletingId === t.transactionId ? "กำลังลบ..." : "ลบ"}
+                        </Button>
+                      }
+                    />
+                  </div>
                 </div>
               </AnimatedListItem>
             ))}
@@ -1056,6 +1141,151 @@ export function TransactionList({
           )}
         </div>
       )}
+      {/* Mobile Transaction Details BottomSheet */}
+      <BottomSheet
+        open={selectedTransaction !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTransaction(null);
+        }}
+        title="รายละเอียดรายการ"
+        description="ข้อมูลและจัดการรายการธุรกรรม"
+      >
+        {selectedTransaction && (
+          <div className="flex flex-col max-h-[75vh]">
+            <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
+              {/* Amount Banner */}
+              <div
+                className={cn(
+                  "p-4 rounded-2xl border text-center flex flex-col items-center justify-center gap-1",
+                  selectedTransaction.transactionType === "expense"
+                    ? "bg-[var(--pw-expense)]/10 border-[var(--pw-expense)]/30 text-[var(--pw-expense)]"
+                    : selectedTransaction.transactionType === "income"
+                      ? "bg-[var(--pw-green)]/10 border-[var(--pw-green)]/30 text-[var(--pw-green)]"
+                      : "bg-[var(--pw-link)]/10 border-[var(--pw-link)]/30 text-[var(--pw-link)]"
+                )}
+              >
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  {selectedTransaction.transactionType === "expense"
+                    ? "รายจ่าย"
+                    : selectedTransaction.transactionType === "income"
+                      ? "รายรับ"
+                      : "โอน"}
+                </span>
+                <p className="text-3xl font-extrabold tracking-tight">
+                  {selectedTransaction.transactionType === "expense" ? "-" : selectedTransaction.transactionType === "income" ? "+" : ""}
+                  {formatCurrency(selectedTransaction.amount, selectedTransaction.currencyCode)}
+                </p>
+                <p className="text-xs text-[var(--pw-ink)]/70 mt-1">
+                  {formatDisplayDateTime(selectedTransaction.transactionDate)}
+                </p>
+              </div>
+
+              {/* Details List */}
+              <div className="space-y-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3.5 text-xs">
+                <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                  <span className="text-[var(--pw-ink)]/60">รายละเอียด / ร้านค้า</span>
+                  <span className="font-semibold text-[var(--pw-ink)] text-right">{selectedTransaction.description || "-"}</span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                  <span className="text-[var(--pw-ink)]/60">หมวดหมู่</span>
+                  <span className="font-medium text-[var(--pw-ink)]">{selectedTransaction.categoryName ?? "ไม่มีหมวดหมู่"}</span>
+                </div>
+                {(selectedTransaction.bankAccountId || selectedTransaction.creditCardId) && (
+                  <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                    <span className="text-[var(--pw-ink)]/60">ช่องทางชำระเงิน</span>
+                    <span className="font-medium text-[var(--pw-ink)]">
+                      {selectedTransaction.bankAccountName ??
+                        selectedTransaction.creditCardName ??
+                        bankAccounts?.find((b) => b.bankAccountId === selectedTransaction.bankAccountId)?.accountName ??
+                        creditCards?.find((c) => c.creditCardId === selectedTransaction.creditCardId)?.cardName ??
+                        "-"}
+                    </span>
+                  </div>
+                )}
+                {selectedTransaction.tags.length > 0 && (
+                  <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                    <span className="text-[var(--pw-ink)]/60">แท็ก</span>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {selectedTransaction.tags.map((tag) => (
+                        <span
+                          key={tag.tagId}
+                          className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-medium"
+                        >
+                          #{tag.tagName}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-[var(--pw-ink)]/60">ที่มาของข้อมูล</span>
+                  <span className="font-medium text-[var(--pw-ink)]/80">
+                    {selectedTransaction.sourceType === "slip"
+                      ? "สลิปโอนเงิน"
+                      : selectedTransaction.sourceType === "cardStatement"
+                        ? "ใบแจ้งยอดบัตรเครดิต"
+                        : "บันทึกเอง"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sticky Action Footer (Rule 5: Action on Top, Cancel/Destructive on Bottom) */}
+            <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)] mt-3 flex flex-col gap-2 z-10">
+              <Button
+                type="button"
+                className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
+                onClick={() => {
+                  const itemToEdit = selectedTransaction;
+                  setSelectedTransaction(null);
+                  setEditing(itemToEdit);
+                  setShowForm(true);
+                }}
+              >
+                <Pencil className="size-4 mr-1.5" />
+                แก้ไขรายการ
+              </Button>
+
+              <ConfirmDialog
+                title="ลบรายการนี้?"
+                description="การลบจะไม่สามารถย้อนกลับได้"
+                confirmLabel="ลบ"
+                pending={deletingId === selectedTransaction.transactionId}
+                onConfirm={() => {
+                  const id = selectedTransaction.transactionId;
+                  setDeletingId(id);
+                  remove.mutate(id, {
+                    onSuccess: () => {
+                      setDeletingId(null);
+                      setSelectedTransaction(null);
+                      toast.success("ลบรายการแล้ว");
+                    },
+                    onError: (e) => {
+                      setDeletingId(null);
+                      toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ");
+                    },
+                  });
+                }}
+                trigger={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={deletingId === selectedTransaction.transactionId}
+                    className="w-full h-9 text-xs text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 cursor-pointer"
+                  >
+                    {deletingId === selectedTransaction.transactionId ? (
+                      <LoaderCircle className="size-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3.5 mr-1.5" />
+                    )}
+                    {deletingId === selectedTransaction.transactionId ? "กำลังลบ..." : "ลบรายการ"}
+                  </Button>
+                }
+              />
+            </div>
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 }

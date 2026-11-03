@@ -332,7 +332,7 @@ export function BudgetsView() {
             <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
               <Button type="submit" disabled={loadingMutation} className="w-full sm:w-auto">
                 {loadingMutation ? <LoaderCircle className="animate-spin size-4 mr-1.5" /> : editing ? <Save className="size-4 mr-1.5" /> : <Plus className="size-4 mr-1.5" />}
-                {editing ? "บันทึกการแก้ไข" : "ตั้งงบประมาณ"}
+                {loadingMutation ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "ตั้งงบประมาณ"}
               </Button>
               <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
                 <X className="size-4 mr-1.5" />
@@ -359,85 +359,171 @@ export function BudgetsView() {
           {budgets.map((budget) => {
             const current = activeTracking.find((item) => item.budgetId === budget.budgetId);
             const percent = current?.percentageUsed ?? 0;
+            const isOver = current?.isOverLimit || percent >= 100;
+            const isNearLimit = !isOver && percent >= (budget.alertThresholdPercent ?? 80);
             const todayStr = toThailandDateInputValue(new Date());
             const isLive = budget.isActive && (!budget.endDate || budget.endDate >= todayStr);
+            const remaining = current?.remainingAmount ?? (budget.amountLimit - (current?.spentAmount ?? 0));
+
             return (
               <AnimatedListItem key={budget.budgetId}>
-                <Card className="space-y-4 p-4 sm:p-5 h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h2 className="break-words font-bold">{budget.budgetName}</h2>
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold border",
-                            isLive
-                              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                              : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                <Card className={cn(
+                  "relative overflow-hidden rounded-2xl border p-4 sm:p-5 h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between gap-4 backdrop-blur-md",
+                  isOver
+                    ? "border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/5 shadow-[0_0_15px_rgba(239,68,68,0.08)]"
+                    : isNearLimit
+                      ? "border-amber-500/40 bg-amber-500/5 shadow-[0_0_15px_rgba(245,158,11,0.08)]"
+                      : "border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60"
+                )}>
+                  {/* Top Bar: Name, Status Badges & Action Buttons */}
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h2 className="font-bold text-base sm:text-lg text-[var(--pw-ink)] truncate">
+                            {budget.budgetName}
+                          </h2>
+                          {/* Risk Badge */}
+                          {isOver ? (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] border border-[var(--pw-expense)]/30 animate-pulse">
+                              <AlertTriangle className="size-3" />
+                              เกินงบ
+                            </span>
+                          ) : isNearLimit ? (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                              <AlertTriangle className="size-3" />
+                              ใกล้เต็มงบ
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-[var(--pw-green)]/15 text-[var(--pw-green)] border border-[var(--pw-green)]/30">
+                              <CheckCircle2 className="size-3" />
+                              ปกติ
+                            </span>
                           )}
-                        >
                           <span
                             className={cn(
-                              "size-1.5 rounded-full",
-                              isLive ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                              "inline-flex items-center gap-1 rounded-full px-1.5 py-0.2 text-[9px] font-semibold",
+                              isLive
+                                ? "bg-emerald-500/10 text-emerald-500"
+                                : "bg-[var(--pw-ink)]/10 text-[var(--pw-ink)]/50"
                             )}
-                          />
-                          {isLive ? "Live" : "Offline"}
+                          >
+                            <span className={cn("size-1.5 rounded-full", isLive ? "bg-emerald-500 animate-pulse" : "bg-[var(--pw-ink)]/40")} />
+                            {isLive ? "ใช้งานอยู่" : "ปิดการใช้"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--pw-ink)]/60 truncate">
+                          {scopeLabels[budget.scopeType]} · {periodLabels[budget.periodType]}
+                          {budget.categoryName ? ` · ${budget.categoryName}` : ""}
+                          {budget.tagName ? ` · #${budget.tagName}` : ""}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 px-2.5 text-xs"
+                          onClick={() => startEdit(budget)}
+                        >
+                          <Pencil className="size-3.5" />
+                          <span className="hidden sm:inline">แก้ไข</span>
+                        </Button>
+                        <ConfirmDialog
+                          title="ลบงบนี้?"
+                          description="งบจะถูกซ่อนจากรายการที่ใช้งานอยู่"
+                          confirmLabel="ลบ"
+                          pending={remove.isPending}
+                          onConfirm={() => remove.mutate(budget.budgetId, {
+                            onSuccess: () => toast.success("ลบงบแล้ว"),
+                            onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ลบไม่สำเร็จ"),
+                          })}
+                          trigger={
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              aria-label={`ลบงบ ${budget.budgetName}`}
+                              className="h-8 px-2.5 text-xs"
+                            >
+                              <Trash2 className="size-3.5" />
+                              <span className="hidden sm:inline">ลบ</span>
+                            </Button>
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Spend & Remaining Metrics Grid */}
+                    <div className="mt-3.5 grid grid-cols-2 gap-2 rounded-xl bg-[var(--pw-surface-sunken)]/60 p-2.5 border border-[var(--pw-hairline)]/50">
+                      <div>
+                        <span className="text-[10px] text-[var(--pw-ink)]/55 block">ใช้ไปแล้ว</span>
+                        <p className="text-sm sm:text-base font-bold text-[var(--pw-ink)] truncate">
+                          <AnimatedNumber value={current?.spentAmount ?? 0} currencyCode={budget.currencyCode} />
+                        </p>
+                        <span className="text-[10px] text-[var(--pw-ink)]/50 block">
+                          จาก {formatCurrency(budget.amountLimit, budget.currencyCode)}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-[var(--pw-ink)]/60">
-                        {scopeLabels[budget.scopeType]} · {periodLabels[budget.periodType]}
-                        {budget.categoryName ? ` · ${budget.categoryName}` : ""}
-                        {budget.tagName ? ` · #${budget.tagName}` : ""}
-                      </p>
+                      <div className="text-right">
+                        <span className="text-[10px] text-[var(--pw-ink)]/55 block">
+                          {isOver ? "ใช้เกินไป" : "คงเหลือใช้ได้"}
+                        </span>
+                        <p className={cn(
+                          "text-sm sm:text-base font-bold truncate",
+                          isOver ? "text-[var(--pw-expense)]" : "text-[var(--pw-green)]"
+                        )}>
+                          <AnimatedNumber
+                            value={isOver ? Math.abs(remaining) : remaining}
+                            currencyCode={budget.currencyCode}
+                          />
+                        </p>
+                        <span className="text-[10px] text-[var(--pw-ink)]/50 block">
+                          เตือนที่ {budget.alertThresholdPercent}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => startEdit(budget)}><Pencil />แก้ไข</Button>
-                      <ConfirmDialog
-                        title="ลบงบนี้?"
-                        description="งบจะถูกซ่อนจากรายการที่ใช้งานอยู่"
-                        confirmLabel="ลบ"
-                        pending={remove.isPending}
-                        onConfirm={() => remove.mutate(budget.budgetId, {
-                          onSuccess: () => toast.success("ลบงบแล้ว"),
-                          onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ลบไม่สำเร็จ"),
-                        })}
-                        trigger={<Button size="sm" variant="destructive" aria-label={`ลบงบ ${budget.budgetName}`}><Trash2 />ลบ</Button>}
+                  </div>
+
+                  {/* Animated Progress Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className={cn(
+                        "text-[11px]",
+                        isOver
+                          ? "text-[var(--pw-expense)]"
+                          : isNearLimit
+                            ? "text-amber-500"
+                            : "text-[var(--pw-ink)]/70"
+                      )}>
+                        {percent.toFixed(1)}% ของงบประมาณ
+                      </span>
+                      <span className="text-[10px] text-[var(--pw-ink)]/50">
+                        {isOver ? "เกินวงเงินแล้ว" : `เหลือ ${(Math.max(0, 100 - percent)).toFixed(1)}%`}
+                      </span>
+                    </div>
+
+                    <div
+                      role="progressbar"
+                      aria-label={`ใช้วงเงินงบ ${budget.budgetName}`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.min(100, Math.max(0, percent))}
+                      className="h-2.5 overflow-hidden rounded-full bg-[var(--pw-hairline)] relative"
+                    >
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+                        transition={{ duration: 0.85, ease: "easeOut" }}
+                        className={cn(
+                          "h-full rounded-full transition-colors",
+                          isOver
+                            ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_12px_rgba(239,68,68,0.5)] animate-pulse"
+                            : isNearLimit
+                              ? "bg-gradient-to-r from-amber-400 to-orange-500"
+                              : "bg-gradient-to-r from-emerald-500 to-green-500"
+                        )}
                       />
                     </div>
-                  </div>
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                    <span>{formatCurrency(current?.spentAmount ?? 0, budget.currencyCode)} ใช้ไป</span>
-                    <span>จาก {formatCurrency(budget.amountLimit, budget.currencyCode)}</span>
-                  </div>
-                  <div
-                    role="progressbar"
-                    aria-label={`ใช้วงเงินงบ ${budget.budgetName}`}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.min(100, Math.max(0, percent))}
-                    className="h-3 overflow-hidden rounded-full bg-[var(--pw-hairline)] relative"
-                  >
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
-                      transition={{ duration: 0.85, ease: "easeOut" }}
-                      className={cn(
-                        "h-full rounded-full transition-colors",
-                        percent >= 100 || current?.isOverLimit
-                          ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_12px_rgba(239,68,68,0.5)] animate-pulse"
-                          : percent >= 80
-                            ? "bg-gradient-to-r from-amber-400 to-orange-500"
-                            : "bg-gradient-to-r from-emerald-500 to-green-500"
-                      )}
-                    />
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <span className={`inline-flex items-center gap-1.5 ${current?.isOverLimit ? "font-semibold text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/70"}`}>
-                      {current?.isOverLimit ? <AlertTriangle className="size-4 text-[var(--pw-expense)]" /> : <CheckCircle2 className="size-4 text-[var(--pw-green)]" />}
-                      {percent.toFixed(2)}% · {current?.isOverLimit ? "เกินงบ" : "คงเหลือ"}
-                    </span>
-                    <span>{formatCurrency(current?.remainingAmount ?? budget.amountLimit, budget.currencyCode)}</span>
                   </div>
                 </Card>
               </AnimatedListItem>

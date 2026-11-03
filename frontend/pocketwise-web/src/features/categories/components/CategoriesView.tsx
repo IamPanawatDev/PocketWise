@@ -269,7 +269,7 @@ export function CategoriesView() {
                 ) : (
                   <Plus className="size-4 mr-1.5" />
                 )}
-                {editing ? "บันทึกการแก้ไข" : "เพิ่มหมวดหมู่"}
+                {create.isPending || update.isPending ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "เพิ่มหมวดหมู่"}
               </Button>
               <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
                 <X className="size-4 mr-1.5" />

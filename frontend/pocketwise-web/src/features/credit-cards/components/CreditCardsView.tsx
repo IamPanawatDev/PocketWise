@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -25,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Calendar, CreditCard, LoaderCircle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { Calendar, ChevronRight, CreditCard, LoaderCircle, Pencil, Plus, ReceiptText, Save, Trash2, X } from "lucide-react";
 
 const emptyValues: CreditCardFormValues = {
   bankName: "",
@@ -166,7 +167,7 @@ export function CreditCardsView() {
                 ) : (
                   <Plus className="size-4 mr-1.5" />
                 )}
-                {editing ? "บันทึกการแก้ไข" : "เพิ่มบัตรเครดิต"}
+                {isSaving ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "เพิ่มบัตรเครดิต"}
               </Button>
               <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
                 <X className="size-4 mr-1.5" />
@@ -234,6 +235,18 @@ export function CreditCardsView() {
                       <span className="text-[10px] text-white/50 block">รอบบิล / กำหนดชำระ</span>
                       <span>วันที่ {card.billingDay ?? "-"} / {card.paymentDueDay ?? "-"}</span>
                     </div>
+                  </div>
+
+                  <div className="relative z-10 flex items-center justify-between pt-2 border-t border-white/10 text-xs">
+                    <Link
+                      href={`/transactions?creditCardId=${card.creditCardId}`}
+                      className="inline-flex items-center gap-1 text-white/80 hover:text-white transition-colors font-medium hover:underline"
+                    >
+                      <ReceiptText className="size-3.5" />
+                      <span>ดูประวัติธุรกรรม</span>
+                      <ChevronRight className="size-3" />
+                    </Link>
+                    <span className="text-[10px] text-white/50">บัตรเครดิต</span>
                   </div>
                 </TiltCard>
 

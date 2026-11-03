@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Controller, useForm } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import {
   useUpdateBankAccount,
 } from "@/features/accounts/hooks/useBankAccounts";
 import { ApiError } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
@@ -26,7 +28,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { ListRowsSkeleton } from "@/components/shared/Skeletons";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import {
   Banknote,
   Landmark,
@@ -35,6 +37,8 @@ import {
   Plus,
   Save,
   Smartphone,
+  ChevronRight,
+  ReceiptText,
   Trash2,
   X,
 } from "lucide-react";
@@ -46,6 +50,80 @@ const initialBankValues: BankAccountFormValues = {
   accountNumberMasked: null,
   accountType: "bank",
 };
+
+function getBankTheme(bankCode?: string | null, bankName?: string | null, accountType?: string | null) {
+  const t = accountType?.toLowerCase();
+  if (t === "cash") {
+    return {
+      gradient: "from-emerald-950 via-slate-900 to-teal-950 border-emerald-500/30",
+      accent: "text-emerald-400 bg-emerald-500/15",
+      badge: "เงินสด",
+    };
+  }
+  if (t === "wallet") {
+    return {
+      gradient: "from-purple-950 via-slate-900 to-fuchsia-950 border-purple-500/30",
+      accent: "text-purple-400 bg-purple-500/15",
+      badge: "กระเป๋าเงินดิจิทัล",
+    };
+  }
+  const code = (bankCode || "").toUpperCase();
+  const name = (bankName || "").toLowerCase();
+  if (code.includes("KBANK") || name.includes("กสิกร") || code === "004") {
+    return {
+      gradient: "from-emerald-900 via-teal-950 to-green-950 border-emerald-500/30",
+      accent: "text-emerald-400 bg-emerald-500/15",
+      badge: "KBANK",
+    };
+  }
+  if (code.includes("SCB") || name.includes("ไทยพาณิชย์") || code === "014") {
+    return {
+      gradient: "from-purple-900 via-indigo-950 to-violet-950 border-purple-500/30",
+      accent: "text-purple-400 bg-purple-500/15",
+      badge: "SCB",
+    };
+  }
+  if (code.includes("BBL") || name.includes("กรุงเทพ") || code === "002") {
+    return {
+      gradient: "from-blue-900 via-indigo-950 to-slate-950 border-blue-500/30",
+      accent: "text-blue-400 bg-blue-500/15",
+      badge: "BBL",
+    };
+  }
+  if (code.includes("KTB") || name.includes("กรุงไทย") || code === "006") {
+    return {
+      gradient: "from-cyan-900 via-sky-950 to-blue-950 border-cyan-500/30",
+      accent: "text-cyan-400 bg-cyan-500/15",
+      badge: "KTB",
+    };
+  }
+  if (code.includes("TTB") || name.includes("ทหารไทย") || name.includes("ธนชาต") || code === "011") {
+    return {
+      gradient: "from-blue-950 via-slate-900 to-amber-950 border-orange-500/30",
+      accent: "text-orange-400 bg-orange-500/15",
+      badge: "TTB",
+    };
+  }
+  if (code.includes("BAY") || name.includes("กรุงศรี") || code === "025") {
+    return {
+      gradient: "from-amber-900 via-stone-900 to-yellow-950 border-amber-500/30",
+      accent: "text-amber-400 bg-amber-500/15",
+      badge: "BAY",
+    };
+  }
+  if (code.includes("GSB") || name.includes("ออมสิน") || code === "030") {
+    return {
+      gradient: "from-pink-900 via-rose-950 to-stone-950 border-pink-500/30",
+      accent: "text-pink-400 bg-pink-500/15",
+      badge: "GSB",
+    };
+  }
+  return {
+    gradient: "from-slate-900 via-indigo-950 to-slate-950 border-indigo-500/30",
+    accent: "text-indigo-400 bg-indigo-500/15",
+    badge: bankCode || bankName || "ธนาคาร",
+  };
+}
 
 export function BankAccountsView() {
   const { data, isLoading } = useBankAccounts();
@@ -189,7 +267,7 @@ export function BankAccountsView() {
                 ) : (
                   <Plus className="size-4 mr-1.5" />
                 )}
-                {editing !== null ? "บันทึกการแก้ไข" : "เพิ่มบัญชี"}
+                {create.isPending || update.isPending ? "กำลังบันทึก..." : editing !== null ? "บันทึกการแก้ไข" : "เพิ่มบัญชี"}
               </Button>
               <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
                 <X className="size-4 mr-1.5" />
@@ -202,7 +280,7 @@ export function BankAccountsView() {
 
       {/* Accounts List */}
       {isLoading ? (
-        <ListRowsSkeleton count={4} hasAvatar />
+        <CardGridSkeleton count={4} columns="grid-cols-1 sm:grid-cols-2" type="creditCard" />
       ) : !data || data.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-8 text-center">
           <Landmark className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
@@ -212,69 +290,110 @@ export function BankAccountsView() {
           </p>
         </Card>
       ) : (
-        <Card className="p-0 overflow-hidden">
-          <AnimatedList>
-            {data.map((a) => (
-              <AnimatedListItem
-                key={a.bankAccountId}
-                className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--pw-surface-sunken)]">
-                    {getAccountIcon(a.accountType)}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-[var(--pw-ink)] truncate">{a.accountName}</p>
-                    <p className="text-xs text-[var(--pw-ink)]/50">
-                      {a.bankName}
-                      {a.bankCode && ` [${a.bankCode}]`}
-                      {a.accountNumberMasked && ` • ${a.accountNumberMasked}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="min-h-10 flex-1 sm:flex-none"
-                    onClick={() => {
-                      setEditing(a.bankAccountId);
-                      reset({
-                        bankName: a.bankName,
-                        accountName: a.accountName,
-                        bankCode: a.bankCode,
-                        accountNumberMasked: a.accountNumberMasked,
-                        accountType: (a.accountType?.toLowerCase() as BankAccountFormValues["accountType"]) ?? "bank",
-                      });
-                      setIsFormOpen(true);
-                    }}
+        <AnimatedList className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {data.map((a) => {
+            const theme = getBankTheme(a.bankCode, a.bankName, a.accountType);
+            return (
+              <AnimatedListItem key={a.bankAccountId}>
+                <div className="flex flex-col gap-2.5 h-full">
+                  <div
+                    className={cn(
+                      "relative overflow-hidden rounded-2xl p-4 sm:p-5 text-white shadow-lg bg-gradient-to-br border min-h-[160px] flex flex-col justify-between transition-transform hover:-translate-y-0.5",
+                      theme.gradient
+                    )}
                   >
-                    <Pencil />
-                    แก้ไข
-                  </Button>
-                  <ConfirmDialog
-                    title="ลบบัญชีนี้?"
-                    description="ไม่สามารถลบบัญชีที่มีรายการใช้งานอยู่ได้"
-                    confirmLabel="ลบ"
-                    pending={remove.isPending}
-                    onConfirm={() => {
-                      remove.mutate(a.bankAccountId, {
-                        onSuccess: () => toast.success("ลบบัญชีแล้ว"),
-                        onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
-                      });
-                    }}
-                    trigger={
-                      <Button size="sm" variant="destructive" className="min-h-10 flex-1 sm:flex-none">
-                        <Trash2 />
-                        ลบ
-                      </Button>
-                    }
-                  />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
+
+                    {/* Top Row: Provider / Type & Icon */}
+                    <div className="relative z-10 flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider", theme.accent)}>
+                            {theme.badge}
+                          </span>
+                          {a.bankName && (
+                            <span className="text-xs text-white/70 truncate max-w-[150px]">
+                              {a.bankName}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-bold tracking-tight text-white mt-1 truncate">
+                          {a.accountName}
+                        </h3>
+                      </div>
+                      <div className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white backdrop-blur-xs border border-white/15">
+                        {getAccountIcon(a.accountType)}
+                      </div>
+                    </div>
+
+                    {/* Middle: Masked Account Number */}
+                    <div className="relative z-10 my-2">
+                      <p className="font-mono text-sm sm:text-base tracking-widest text-white/85 drop-shadow-xs">
+                        {a.accountNumberMasked || "•••• •••• ••••"}
+                      </p>
+                    </div>
+
+                    {/* Bottom: Quick Link to Transactions */}
+                    <div className="relative z-10 flex items-center justify-between pt-2 border-t border-white/10 text-xs">
+                      <Link
+                        href={`/transactions?bankAccountId=${a.bankAccountId}`}
+                        className="inline-flex items-center gap-1 text-white/80 hover:text-white transition-colors font-medium hover:underline"
+                      >
+                        <ReceiptText className="size-3.5" />
+                        <span>ดูประวัติธุรกรรม</span>
+                        <ChevronRight className="size-3" />
+                      </Link>
+                      <span className="text-[10px] text-white/50">
+                        {a.accountType === "cash" ? "เงินสด" : a.accountType === "wallet" ? "e-Wallet" : "บัญชีเงินฝาก"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions Row */}
+                  <div className="flex gap-2 justify-end px-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1 sm:flex-none text-xs h-8"
+                      onClick={() => {
+                        setEditing(a.bankAccountId);
+                        reset({
+                          bankName: a.bankName,
+                          accountName: a.accountName,
+                          bankCode: a.bankCode,
+                          accountNumberMasked: a.accountNumberMasked,
+                          accountType: (a.accountType?.toLowerCase() as BankAccountFormValues["accountType"]) ?? "bank",
+                        });
+                        setIsFormOpen(true);
+                      }}
+                    >
+                      <Pencil className="size-3.5" />
+                      แก้ไข
+                    </Button>
+                    <ConfirmDialog
+                      title="ลบบัญชีนี้?"
+                      description="ไม่สามารถลบบัญชีที่มีรายการใช้งานอยู่ได้"
+                      confirmLabel="ลบ"
+                      pending={remove.isPending}
+                      onConfirm={() => {
+                        remove.mutate(a.bankAccountId, {
+                          onSuccess: () => toast.success("ลบบัญชีแล้ว"),
+                          onError: (e) => toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ"),
+                        });
+                      }}
+                      trigger={
+                        <Button size="sm" variant="destructive" className="flex-1 sm:flex-none text-xs h-8">
+                          <Trash2 className="size-3.5" />
+                          ลบ
+                        </Button>
+                      }
+                    />
+                  </div>
                 </div>
               </AnimatedListItem>
-            ))}
-          </AnimatedList>
-        </Card>
+            );
+          })}
+        </AnimatedList>
       )}
     </div>
   );
