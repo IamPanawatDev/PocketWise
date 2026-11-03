@@ -118,17 +118,16 @@ export function CategoriesView() {
 
   const moveCategory = (categoryId: number, offset: -1 | 1) => {
     if (!data) return;
-    const reorderable = data.filter((category) => !category.isSystem);
-    const index = reorderable.findIndex((category) => category.categoryId === categoryId);
+    const index = data.findIndex((category) => category.categoryId === categoryId);
     const target = index + offset;
-    if (index < 0 || target < 0 || target >= reorderable.length) return;
+    if (index < 0 || target < 0 || target >= data.length) return;
 
-    const newReorderable = [...reorderable];
-    const [moved] = newReorderable.splice(index, 1);
-    newReorderable.splice(target, 0, moved);
+    const newList = [...data];
+    const [moved] = newList.splice(index, 1);
+    newList.splice(target, 0, moved);
 
     reorder.mutate({
-      items: newReorderable.map((category, sortOrder) => ({
+      items: newList.map((category, sortOrder) => ({
         categoryId: category.categoryId,
         sortOrder,
       })),
@@ -296,12 +295,11 @@ export function CategoriesView() {
         <Card className="p-0 overflow-hidden">
           <AnimatedList>
             {data.map((c) => {
-              const reorderIndex = reorderableCategories.findIndex(
+              const index = data.findIndex(
                 (category) => category.categoryId === c.categoryId,
               );
-              const canMoveUp = !c.isSystem && reorderIndex > 0;
-              const canMoveDown =
-                !c.isSystem && reorderIndex >= 0 && reorderIndex < reorderableCategories.length - 1;
+              const canMoveUp = index > 0;
+              const canMoveDown = index < data.length - 1;
 
               return (
                 <AnimatedListItem
@@ -310,34 +308,28 @@ export function CategoriesView() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 text-[var(--pw-ink)]/40">
-                      {!c.isSystem ? (
-                        <>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="size-8 p-0"
-                            disabled={!canMoveUp || reorder.isPending}
-                            onClick={() => moveCategory(c.categoryId, -1)}
-                            aria-label={`เลื่อนหมวดหมู่ ${c.categoryName} ขึ้น`}
-                          >
-                            <ArrowUp className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="size-8 p-0"
-                            disabled={!canMoveDown || reorder.isPending}
-                            onClick={() => moveCategory(c.categoryId, 1)}
-                            aria-label={`เลื่อนหมวดหมู่ ${c.categoryName} ลง`}
-                          >
-                            <ArrowDown className="size-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <div className="size-8" />
-                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="size-8 p-0"
+                        disabled={!canMoveUp || reorder.isPending}
+                        onClick={() => moveCategory(c.categoryId, -1)}
+                        aria-label={`เลื่อนหมวดหมู่ ${c.categoryName} ขึ้น`}
+                      >
+                        <ArrowUp className="size-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="size-8 p-0"
+                        disabled={!canMoveDown || reorder.isPending}
+                        onClick={() => moveCategory(c.categoryId, 1)}
+                        aria-label={`เลื่อนหมวดหมู่ ${c.categoryName} ลง`}
+                      >
+                        <ArrowDown className="size-4" />
+                      </Button>
                     </div>
                     <div>
                       <div className="flex items-center gap-2">

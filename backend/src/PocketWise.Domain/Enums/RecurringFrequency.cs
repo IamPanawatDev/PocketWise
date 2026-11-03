@@ -6,5 +6,6 @@ public enum RecurringFrequency
     Weekly,
     Monthly,
     Quarterly,
-    Yearly
+    Yearly,
+    Custom
 }

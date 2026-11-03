@@ -10,6 +10,8 @@ import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useUserSettings } from "@/features/settings/hooks/useSettings";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useSignalRNotifications } from "@/features/notifications/hooks/useSignalRNotifications";
+import { useUnreadNotificationCount } from "@/features/notifications/hooks/useNotifications";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { ActiveAnnouncementsBanner } from "@/features/admin-operations/components/ActiveAnnouncementsBanner";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -97,6 +99,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(true);
+  const { data: unreadData } = useUnreadNotificationCount();
+  const unreadCount = unreadData?.unreadCount ?? 0;
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
   useEffect(() => {
@@ -383,8 +387,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             />
             <span className="truncate text-base font-bold text-[var(--pw-ink)]">PocketWise</span>
           </div>
-          <NotificationBell />
+          <ThemeToggle />
         </header>
+
+        {/* Desktop Top-Right Floating Theme Toggle */}
+        <div className="fixed top-3 right-6 z-30 hidden md:flex items-center gap-2">
+          <ThemeToggle />
+        </div>
 
         {/* Page Container with Stagger/Slide Entrance */}
         <div className="flex-1 p-3 pb-24 sm:p-6 sm:pb-8">
@@ -522,6 +531,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         >
           <div className="relative flex items-center justify-center">
             <Menu className="size-5 mt-1" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex size-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pw-primary)] opacity-75" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-[var(--pw-primary)]" />
+              </span>
+            )}
           </div>
           <span className="text-[10px] mt-0.5">เมนู</span>
         </button>

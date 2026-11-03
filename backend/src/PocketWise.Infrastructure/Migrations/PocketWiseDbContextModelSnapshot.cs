@@ -1206,6 +1206,10 @@ namespace PocketWise.Infrastructure.Migrations
                         .HasColumnType("timestamptz")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<string>("DaysOfWeek")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -1254,6 +1258,26 @@ namespace PocketWise.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RecurringTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.RecurringTransactionTag", b =>
+                {
+                    b.Property<long>("RecurringTransactionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TagId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("RecurringTransactionId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("RecurringTransactionTags", (string)null);
                 });
 
             modelBuilder.Entity("PocketWise.Domain.Entities.SecurityEvent", b =>
@@ -1657,6 +1681,31 @@ namespace PocketWise.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("TransferGroups", (string)null);
+                });
+
+            modelBuilder.Entity("PocketWise.Domain.Entities.UserCategoryOrder", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("UserId", "CategoryId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("UserCategoryOrders", (string)null);
                 });
 
             modelBuilder.Entity("PocketWise.Domain.Entities.UserRefreshToken", b =>
@@ -2077,6 +2126,25 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PocketWise.Domain.Entities.RecurringTransactionTag", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.RecurringTransaction", "RecurringTransaction")
+                        .WithMany("RecurringTransactionTags")
+                        .HasForeignKey("RecurringTransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PocketWise.Domain.Entities.Tag", "Tag")
+                        .WithMany("RecurringTransactionTags")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RecurringTransaction");
+
+                    b.Navigation("Tag");
+                });
+
             modelBuilder.Entity("PocketWise.Domain.Entities.SecurityEvent", b =>
                 {
                     b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "ActorUser")
@@ -2253,6 +2321,25 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PocketWise.Domain.Entities.UserCategoryOrder", b =>
+                {
+                    b.HasOne("PocketWise.Domain.Entities.Category", "Category")
+                        .WithMany("UserCategoryOrders")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
+                        .WithMany("UserCategoryOrders")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PocketWise.Domain.Entities.UserRefreshToken", b =>
                 {
                     b.HasOne("PocketWise.Domain.Entities.ApplicationUser", "User")
@@ -2317,6 +2404,8 @@ namespace PocketWise.Infrastructure.Migrations
 
                     b.Navigation("TransferGroups");
 
+                    b.Navigation("UserCategoryOrders");
+
                     b.Navigation("UserSettings");
                 });
 
@@ -2340,6 +2429,8 @@ namespace PocketWise.Infrastructure.Migrations
                     b.Navigation("RecurringTransactions");
 
                     b.Navigation("Transactions");
+
+                    b.Navigation("UserCategoryOrders");
                 });
 
             modelBuilder.Entity("PocketWise.Domain.Entities.CreditCard", b =>
@@ -2395,6 +2486,8 @@ namespace PocketWise.Infrastructure.Migrations
 
             modelBuilder.Entity("PocketWise.Domain.Entities.RecurringTransaction", b =>
                 {
+                    b.Navigation("RecurringTransactionTags");
+
                     b.Navigation("Transactions");
                 });
 
@@ -2406,6 +2499,8 @@ namespace PocketWise.Infrastructure.Migrations
             modelBuilder.Entity("PocketWise.Domain.Entities.Tag", b =>
                 {
                     b.Navigation("Budgets");
+
+                    b.Navigation("RecurringTransactionTags");
 
                     b.Navigation("TransactionTags");
                 });

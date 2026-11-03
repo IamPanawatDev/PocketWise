@@ -12,6 +12,7 @@ public class RecurringTransaction
     public long? CategoryId { get; set; }
     public RecurringFrequency Frequency { get; set; }
     public int IntervalValue { get; set; } = 1;
+    public string? DaysOfWeek { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
     public DateTime NextRunAt { get; set; }
@@ -22,4 +23,5 @@ public class RecurringTransaction
     public ApplicationUser User { get; set; } = null!;
     public Category? Category { get; set; }
     public ICollection<Transaction> Transactions { get; set; } = [];
+    public ICollection<RecurringTransactionTag> RecurringTransactionTags { get; set; } = [];
 }

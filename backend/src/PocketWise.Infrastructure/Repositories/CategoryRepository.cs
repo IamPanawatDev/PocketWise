@@ -22,18 +22,36 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task<IReadOnlyList<Category>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
     {
-        return await _context.Categories
+        var categories = await _context.Categories
             .AsNoTracking()
             .Where(c => c.UserId == userId || c.IsSystem)
+            .ToListAsync(cancellationToken);
+
+        var userOrders = await _context.UserCategoryOrders
+            .AsNoTracking()
+            .Where(o => o.UserId == userId)
+            .ToDictionaryAsync(o => o.CategoryId, o => o.SortOrder, cancellationToken);
+
+        if (userOrders.Count > 0)
+        {
+            return categories
+                .OrderBy(c => userOrders.TryGetValue(c.CategoryId, out var order) ? order : (c.IsSystem ? 1000 + c.SortOrder : 2000 + c.SortOrder))
+                .ThenBy(c => c.CategoryName)
+                .ToList();
+        }
+
+        return categories
             .OrderBy(c => c.IsSystem ? 0 : 1)
             .ThenBy(c => c.SortOrder)
             .ThenBy(c => c.CategoryName)
-            .ToListAsync(cancellationToken);
+            .ToList();
     }
 
     public async Task<bool> NameExistsAsync(long userId, string name, long? excludeId = null, CancellationToken cancellationToken = default)
     {
-        var query = _context.Categories.Where(c => c.UserId == userId && c.CategoryName == name);
+        var query = _context.Categories
+            .Where(c => (c.UserId == userId || c.IsSystem) && c.CategoryName == name);
+
         if (excludeId.HasValue)
         {
             query = query.Where(c => c.CategoryId != excludeId.Value);
@@ -56,7 +74,8 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task<bool> HasTransactionsAsync(long id, CancellationToken cancellationToken = default)
     {
-        return await _context.Transactions.AnyAsync(t => t.CategoryId == id, cancellationToken);
+        return await _context.Transactions
+            .AnyAsync(t => t.CategoryId == id, cancellationToken);
     }
 
     public async Task<IReadOnlyList<Category>> GetSystemCategoriesAsync(CancellationToken cancellationToken = default)
@@ -77,7 +96,9 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task<bool> SystemNameExistsAsync(string name, long? excludeId = null, CancellationToken cancellationToken = default)
     {
-        var query = _context.Categories.Where(c => c.IsSystem && c.CategoryName == name);
+        var query = _context.Categories
+            .Where(c => c.IsSystem && c.CategoryName == name);
+
         if (excludeId.HasValue)
         {
             query = query.Where(c => c.CategoryId != excludeId.Value);
@@ -86,14 +107,41 @@ public class CategoryRepository : ICategoryRepository
         return await query.AnyAsync(cancellationToken);
     }
 
+    public async Task UpsertUserCategoryOrdersAsync(long userId, IEnumerable<(long CategoryId, int SortOrder)> orders, CancellationToken cancellationToken = default)
+    {
+        var existingOrders = await _context.UserCategoryOrders
+            .Where(o => o.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        var existingMap = existingOrders.ToDictionary(o => o.CategoryId);
+
+        foreach (var (categoryId, sortOrder) in orders)
+        {
+            if (existingMap.TryGetValue(categoryId, out var existing))
+            {
+                existing.SortOrder = sortOrder;
+            }
+            else
+            {
+                _context.UserCategoryOrders.Add(new UserCategoryOrder
+                {
+                    UserId = userId,
+                    CategoryId = categoryId,
+                    SortOrder = sortOrder,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+    }
+
     public Task DeleteAsync(Category category, CancellationToken cancellationToken = default)
     {
         _context.Categories.Remove(category);
         return Task.CompletedTask;
     }
 
-    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        await _context.SaveChangesAsync(cancellationToken);
+        return _context.SaveChangesAsync(cancellationToken);
     }
 }

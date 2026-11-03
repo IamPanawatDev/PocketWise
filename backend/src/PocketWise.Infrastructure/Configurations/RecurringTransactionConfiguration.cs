@@ -18,6 +18,7 @@ public class RecurringTransactionConfiguration : IEntityTypeConfiguration<Recurr
         builder.Property(e => e.Description).HasMaxLength(500);
         builder.Property(e => e.Frequency).IsRequired().HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.IntervalValue).IsRequired().HasDefaultValue(1);
+        builder.Property(e => e.DaysOfWeek).HasMaxLength(50);
         builder.Property(e => e.StartDate).IsRequired().HasColumnType("date");
         builder.Property(e => e.EndDate).HasColumnType("date");
         builder.Property(e => e.NextRunAt).IsRequired().HasColumnType("timestamptz");

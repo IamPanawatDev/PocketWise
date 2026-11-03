@@ -11,5 +11,6 @@ public class Tag
 
     public ApplicationUser User { get; set; } = null!;
     public ICollection<TransactionTag> TransactionTags { get; set; } = [];
+    public ICollection<RecurringTransactionTag> RecurringTransactionTags { get; set; } = [];
     public ICollection<Budget> Budgets { get; set; } = [];
 }

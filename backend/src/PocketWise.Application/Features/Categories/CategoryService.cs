@@ -1,9 +1,9 @@
 using FluentValidation;
 using PocketWise.Application.DTOs.Categories;
+using PocketWise.Domain.Rules;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
 using PocketWise.Domain.Enums;
-using PocketWise.Domain.Rules;
 
 namespace PocketWise.Application.Features.Categories;
 
@@ -151,16 +151,19 @@ public class CategoryService : ICategoryService
 
     public async Task ReorderAsync(long userId, ReorderCategoriesRequest request, CancellationToken cancellationToken = default)
     {
+        await _repository.UpsertUserCategoryOrdersAsync(
+            userId,
+            request.Items.Select(i => (i.CategoryId, i.SortOrder)),
+            cancellationToken);
+
         foreach (var item in request.Items)
         {
             var entity = await _repository.GetByIdAsync(item.CategoryId, userId, cancellationToken);
-            if (entity is null)
+            if (entity is not null && !entity.IsSystem && entity.UserId == userId)
             {
-                continue;
+                entity.SortOrder = item.SortOrder;
+                await _repository.UpdateAsync(entity, cancellationToken);
             }
-
-            entity.SortOrder = item.SortOrder;
-            await _repository.UpdateAsync(entity, cancellationToken);
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
