@@ -8,6 +8,7 @@ public interface IRecurringTransactionRepository
     Task<IReadOnlyList<RecurringTransaction>> GetAllAsync(long userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RecurringTransaction>> GetDueAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
     Task<bool> CategoryExistsAsync(long userId, long categoryId, CancellationToken cancellationToken = default);
+    Task<List<Tag>> GetTagsByIdsAsync(long userId, IEnumerable<long> tagIds, CancellationToken cancellationToken = default);
     Task AddAsync(RecurringTransaction entity, CancellationToken cancellationToken = default);
     Task UpdateAsync(RecurringTransaction entity, CancellationToken cancellationToken = default);
     Task SoftDeleteAsync(RecurringTransaction entity, CancellationToken cancellationToken = default);

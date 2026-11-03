@@ -359,12 +359,32 @@ export function BudgetsView() {
           {budgets.map((budget) => {
             const current = activeTracking.find((item) => item.budgetId === budget.budgetId);
             const percent = current?.percentageUsed ?? 0;
+            const todayStr = toThailandDateInputValue(new Date());
+            const isLive = budget.isActive && (!budget.endDate || budget.endDate >= todayStr);
             return (
               <AnimatedListItem key={budget.budgetId}>
                 <Card className="space-y-4 p-4 sm:p-5 h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <h2 className="break-words font-bold">{budget.budgetName}</h2>
+                      <div className="flex items-center gap-2">
+                        <h2 className="break-words font-bold">{budget.budgetName}</h2>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold border",
+                            isLive
+                              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full",
+                              isLive ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                            )}
+                          />
+                          {isLive ? "Live" : "Offline"}
+                        </span>
+                      </div>
                       <p className="mt-1 text-sm text-[var(--pw-ink)]/60">
                         {scopeLabels[budget.scopeType]} · {periodLabels[budget.periodType]}
                         {budget.categoryName ? ` · ${budget.categoryName}` : ""}

@@ -1,9 +1,10 @@
 using FluentValidation;
 using PocketWise.Application.DTOs.RecurringTransactions;
+using PocketWise.Application.DTOs.Tags;
+using PocketWise.Domain.Rules;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
 using PocketWise.Domain.Enums;
-using PocketWise.Domain.Rules;
 
 namespace PocketWise.Application.Features.RecurringTransactions;
 
@@ -43,6 +44,10 @@ public class RecurringTransactionService : IRecurringTransactionService
         await _createValidator.ValidateAndThrowAsync(request, cancellationToken);
         await ValidateCategoryAsync(userId, request.CategoryId, cancellationToken);
 
+        var daysOfWeekStr = request.DaysOfWeek is { Count: > 0 }
+            ? string.Join(",", request.DaysOfWeek.Distinct().OrderBy(d => d))
+            : null;
+
         var entity = new RecurringTransaction
         {
             UserId = userId,
@@ -52,14 +57,79 @@ public class RecurringTransactionService : IRecurringTransactionService
             CategoryId = request.CategoryId,
             Frequency = request.Frequency,
             IntervalValue = request.IntervalValue,
+            DaysOfWeek = daysOfWeekStr,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
-            NextRunAt = RecurringSchedule.CalculateNextRunAt(request.StartDate, request.Frequency, request.IntervalValue),
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
 
+        if (request.TagIds is { Count: > 0 })
+        {
+            var validTags = await _repository.GetTagsByIdsAsync(userId, request.TagIds, cancellationToken);
+            foreach (var tag in validTags)
+            {
+                entity.RecurringTransactionTags.Add(new RecurringTransactionTag
+                {
+                    TagId = tag.TagId,
+                    Tag = tag,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var shouldRunToday = false;
+
+        if (request.StartDate <= today && RecurringSchedule.IsWithinRange(request.EndDate, DateTime.UtcNow))
+        {
+            if (request.Frequency == RecurringFrequency.Custom)
+            {
+                var targetDays = RecurringSchedule.ParseDaysOfWeek(daysOfWeekStr);
+                shouldRunToday = targetDays.Contains((int)today.DayOfWeek);
+            }
+            else
+            {
+                shouldRunToday = request.StartDate == today;
+            }
+        }
+
+        if (shouldRunToday)
+        {
+            entity.NextRunAt = RecurringSchedule.Advance(DateTime.UtcNow, entity.Frequency, entity.IntervalValue, entity.DaysOfWeek);
+        }
+        else
+        {
+            entity.NextRunAt = RecurringSchedule.CalculateNextRunAt(request.StartDate, request.Frequency, request.IntervalValue, entity.DaysOfWeek);
+        }
+
         await _repository.AddAsync(entity, cancellationToken);
+
+        if (shouldRunToday)
+        {
+            var initialTransaction = new Transaction
+            {
+                UserId = userId,
+                TransactionType = entity.TransactionType,
+                Amount = entity.Amount,
+                CurrencyCode = "THB",
+                TransactionDate = DateTime.UtcNow,
+                Description = entity.Description,
+                CategoryId = entity.CategoryId,
+                SourceType = SourceType.Recurring,
+                Status = TransactionStatus.Confirmed,
+                RecurringTransaction = entity,
+                CreatedAt = DateTime.UtcNow,
+                TransactionTags = entity.RecurringTransactionTags.Select(t => new TransactionTag
+                {
+                    TagId = t.TagId,
+                    CreatedAt = DateTime.UtcNow
+                }).ToList()
+            };
+
+            await _repository.AddTransactionAsync(initialTransaction, cancellationToken);
+        }
+
         await _repository.SaveChangesAsync(cancellationToken);
 
         if (_auditLogService != null)
@@ -77,6 +147,7 @@ public class RecurringTransactionService : IRecurringTransactionService
                     entity.CategoryId,
                     entity.Frequency,
                     entity.IntervalValue,
+                    entity.DaysOfWeek,
                     entity.StartDate,
                     entity.EndDate
                 },
@@ -98,6 +169,10 @@ public class RecurringTransactionService : IRecurringTransactionService
 
         await ValidateCategoryAsync(userId, request.CategoryId, cancellationToken);
 
+        var daysOfWeekStr = request.DaysOfWeek is { Count: > 0 }
+            ? string.Join(",", request.DaysOfWeek.Distinct().OrderBy(d => d))
+            : null;
+
         var beforeState = new
         {
             entity.TransactionType,
@@ -106,6 +181,7 @@ public class RecurringTransactionService : IRecurringTransactionService
             entity.CategoryId,
             entity.Frequency,
             entity.IntervalValue,
+            entity.DaysOfWeek,
             entity.StartDate,
             entity.EndDate,
             entity.IsActive
@@ -117,10 +193,27 @@ public class RecurringTransactionService : IRecurringTransactionService
         entity.CategoryId = request.CategoryId;
         entity.Frequency = request.Frequency;
         entity.IntervalValue = request.IntervalValue;
+        entity.DaysOfWeek = daysOfWeekStr;
         entity.StartDate = request.StartDate;
         entity.EndDate = request.EndDate;
-        entity.NextRunAt = RecurringSchedule.CalculateNextRunAt(request.StartDate, request.Frequency, request.IntervalValue);
+        entity.NextRunAt = RecurringSchedule.CalculateNextRunAt(request.StartDate, request.Frequency, request.IntervalValue, daysOfWeekStr);
         entity.IsActive = request.IsActive;
+
+        entity.RecurringTransactionTags.Clear();
+        if (request.TagIds is { Count: > 0 })
+        {
+            var validTags = await _repository.GetTagsByIdsAsync(userId, request.TagIds, cancellationToken);
+            foreach (var tag in validTags)
+            {
+                entity.RecurringTransactionTags.Add(new RecurringTransactionTag
+                {
+                    RecurringTransactionId = entity.RecurringTransactionId,
+                    TagId = tag.TagId,
+                    Tag = tag,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
 
         await _repository.UpdateAsync(entity, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
@@ -143,6 +236,7 @@ public class RecurringTransactionService : IRecurringTransactionService
                         request.CategoryId,
                         request.Frequency,
                         request.IntervalValue,
+                        DaysOfWeek = daysOfWeekStr,
                         request.StartDate,
                         request.EndDate,
                         request.IsActive
@@ -209,12 +303,17 @@ public class RecurringTransactionService : IRecurringTransactionService
                 SourceType = SourceType.Recurring,
                 Status = TransactionStatus.Confirmed,
                 RecurringTransactionId = item.RecurringTransactionId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                TransactionTags = item.RecurringTransactionTags.Select(rt => new TransactionTag
+                {
+                    TagId = rt.TagId,
+                    CreatedAt = DateTime.UtcNow
+                }).ToList()
             };
 
             await _repository.AddTransactionAsync(transaction, cancellationToken);
 
-            item.NextRunAt = RecurringSchedule.Advance(item.NextRunAt, item.Frequency, item.IntervalValue);
+            item.NextRunAt = RecurringSchedule.Advance(item.NextRunAt, item.Frequency, item.IntervalValue, item.DaysOfWeek);
             await _repository.UpdateAsync(item, cancellationToken);
         }
 
@@ -246,6 +345,16 @@ public class RecurringTransactionService : IRecurringTransactionService
             CategoryName = entity.Category?.CategoryName,
             Frequency = entity.Frequency,
             IntervalValue = entity.IntervalValue,
+            DaysOfWeek = RecurringSchedule.ParseDaysOfWeek(entity.DaysOfWeek),
+            Tags = entity.RecurringTransactionTags
+                .Where(rt => rt.Tag != null)
+                .Select(rt => new TagResponse
+                {
+                    TagId = rt.Tag.TagId,
+                    TagName = rt.Tag.TagName,
+                    Color = rt.Tag.Color,
+                    SortOrder = rt.Tag.SortOrder
+                }).ToList(),
             StartDate = entity.StartDate,
             EndDate = entity.EndDate,
             NextRunAt = entity.NextRunAt,

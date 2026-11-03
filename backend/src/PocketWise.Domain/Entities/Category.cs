@@ -21,4 +21,5 @@ public class Category
     public ICollection<CategoryRule> CategoryRules { get; set; } = [];
     public ICollection<RecurringTransaction> RecurringTransactions { get; set; } = [];
     public ICollection<Merchant> Merchants { get; set; } = [];
+    public ICollection<UserCategoryOrder> UserCategoryOrders { get; set; } = [];
 }

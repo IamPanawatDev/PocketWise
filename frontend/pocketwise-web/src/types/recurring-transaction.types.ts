@@ -1,4 +1,12 @@
-export type RecurringFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+import type { TagResponse } from "./tag.types";
+
+export type RecurringFrequency =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "yearly"
+  | "custom";
 
 export interface RecurringTransactionResponse {
   recurringTransactionId: number;
@@ -9,6 +17,8 @@ export interface RecurringTransactionResponse {
   categoryName: string | null;
   frequency: RecurringFrequency;
   intervalValue: number;
+  daysOfWeek?: number[];
+  tags?: TagResponse[];
   startDate: string;
   endDate: string | null;
   nextRunAt: string;
@@ -23,6 +33,8 @@ export interface RecurringTransactionRequest {
   categoryId: number | null;
   frequency: RecurringFrequency;
   intervalValue: number;
+  daysOfWeek?: number[];
+  tagIds?: number[];
   startDate: string;
   endDate: string | null;
 }

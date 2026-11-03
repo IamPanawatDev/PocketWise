@@ -102,6 +102,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
   const [period, setPeriod] = useState<ReportPeriod>("monthly");
 
   const activeQuickPeriod = useMemo(() => {
+    if (fromDate === "2000-01-01" && toDate === "2099-12-31") return "all";
     const today = getTodayRange();
     if (fromDate === today.from && toDate === today.to) return "today";
     const week = getThisWeekRange();
@@ -290,6 +291,22 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         <button
           type="button"
           onClick={() => {
+            setFromDate("2000-01-01");
+            setToDate("2099-12-31");
+            setPeriod("yearly");
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            activeQuickPeriod === "all"
+              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+          )}
+        >
+          ทั้งหมด
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             const r = getTodayRange();
             setFromDate(r.from);
             setToDate(r.to);
@@ -360,7 +377,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
       {/* Active Filter Chips & Summary */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 px-3 py-1 text-xs text-[var(--pw-ink)]">
-          <span>ช่วงเวลา: <strong>{fromDate}</strong> ถึง <strong>{toDate}</strong></span>
+          <span>ช่วงเวลา: <strong>{activeQuickPeriod === "all" ? "ทั้งหมด" : `${fromDate} ถึง ${toDate}`}</strong></span>
         </div>
 
         {selectedCategoryName && (

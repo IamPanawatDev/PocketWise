@@ -1,3 +1,4 @@
+using PocketWise.Application.DTOs.Tags;
 using PocketWise.Domain.Enums;
 
 namespace PocketWise.Application.DTOs.RecurringTransactions;
@@ -12,6 +13,8 @@ public class RecurringTransactionResponse
     public string? CategoryName { get; set; }
     public RecurringFrequency Frequency { get; set; }
     public int IntervalValue { get; set; }
+    public List<int>? DaysOfWeek { get; set; }
+    public List<TagResponse> Tags { get; set; } = [];
     public DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
     public DateTime NextRunAt { get; set; }

@@ -6,7 +6,15 @@ using System.Reflection;
 
 namespace PocketWise.Infrastructure.Persistence;
 
-public class PocketWiseDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, long, IdentityUserClaim<long>, ApplicationUserRole, IdentityUserLogin<long>, IdentityRoleClaim<long>, IdentityUserToken<long>>
+public class PocketWiseDbContext : IdentityDbContext<
+    ApplicationUser,
+    ApplicationRole,
+    long,
+    IdentityUserClaim<long>,
+    ApplicationUserRole,
+    IdentityUserLogin<long>,
+    IdentityRoleClaim<long>,
+    IdentityUserToken<long>>
 {
     public PocketWiseDbContext(DbContextOptions<PocketWiseDbContext> options)
         : base(options)
@@ -22,6 +30,7 @@ public class PocketWiseDbContext : IdentityDbContext<ApplicationUser, Applicatio
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<UserCategoryOrder> UserCategoryOrders => Set<UserCategoryOrder>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<Merchant> Merchants => Set<Merchant>();
     public DbSet<CategoryRule> CategoryRules => Set<CategoryRule>();
@@ -32,6 +41,7 @@ public class PocketWiseDbContext : IdentityDbContext<ApplicationUser, Applicatio
     public DbSet<TransactionTag> TransactionTags => Set<TransactionTag>();
     public DbSet<TransferGroup> TransferGroups => Set<TransferGroup>();
     public DbSet<RecurringTransaction> RecurringTransactions => Set<RecurringTransaction>();
+    public DbSet<RecurringTransactionTag> RecurringTransactionTags => Set<RecurringTransactionTag>();
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
     public DbSet<SlipImportFile> SlipImportFiles => Set<SlipImportFile>();
 

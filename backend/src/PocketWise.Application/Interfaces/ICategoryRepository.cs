@@ -13,6 +13,7 @@ public interface ICategoryRepository
     Task<IReadOnlyList<Category>> GetSystemCategoriesAsync(CancellationToken cancellationToken = default);
     Task<Category?> GetSystemCategoryByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<bool> SystemNameExistsAsync(string name, long? excludeId = null, CancellationToken cancellationToken = default);
+    Task UpsertUserCategoryOrdersAsync(long userId, IEnumerable<(long CategoryId, int SortOrder)> orders, CancellationToken cancellationToken = default);
     Task DeleteAsync(Category category, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -56,6 +56,7 @@ public class SystemCategoryServiceTests
         public Task<bool> SystemNameExistsAsync(string name, long? excludeId = null, CancellationToken cancellationToken = default) =>
             Task.FromResult(Categories.Any(c => c.IsSystem && c.CategoryName.Equals(name, StringComparison.OrdinalIgnoreCase) && (!excludeId.HasValue || c.CategoryId != excludeId.Value)));
 
+        public Task UpsertUserCategoryOrdersAsync(long userId, IEnumerable<(long CategoryId, int SortOrder)> orders, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 

@@ -18,6 +18,8 @@ public class RecurringTransactionRepository : IRecurringTransactionRepository
     {
         return await _context.RecurringTransactions
             .Include(r => r.Category)
+            .Include(r => r.RecurringTransactionTags)
+                .ThenInclude(rt => rt.Tag)
             .FirstOrDefaultAsync(r =>
                 r.RecurringTransactionId == id && r.UserId == userId && !r.IsDeleted,
                 cancellationToken);
@@ -28,6 +30,8 @@ public class RecurringTransactionRepository : IRecurringTransactionRepository
         return await _context.RecurringTransactions
             .AsNoTracking()
             .Include(r => r.Category)
+            .Include(r => r.RecurringTransactionTags)
+                .ThenInclude(rt => rt.Tag)
             .Where(r => r.UserId == userId && !r.IsDeleted)
             .OrderBy(r => r.NextRunAt)
             .ToListAsync(cancellationToken);
@@ -36,6 +40,7 @@ public class RecurringTransactionRepository : IRecurringTransactionRepository
     public async Task<IReadOnlyList<RecurringTransaction>> GetDueAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
     {
         return await _context.RecurringTransactions
+            .Include(r => r.RecurringTransactionTags)
             .Where(r => r.IsActive && !r.IsDeleted && r.NextRunAt <= nowUtc)
             .ToListAsync(cancellationToken);
     }
@@ -45,6 +50,13 @@ public class RecurringTransactionRepository : IRecurringTransactionRepository
         return _context.Categories.AnyAsync(
             c => c.CategoryId == categoryId && (c.UserId == userId || c.IsSystem),
             cancellationToken);
+    }
+
+    public async Task<List<Tag>> GetTagsByIdsAsync(long userId, IEnumerable<long> tagIds, CancellationToken cancellationToken = default)
+    {
+        return await _context.Tags
+            .Where(t => t.UserId == userId && tagIds.Contains(t.TagId))
+            .ToListAsync(cancellationToken);
     }
 
     public Task AddAsync(RecurringTransaction entity, CancellationToken cancellationToken = default)
@@ -72,8 +84,8 @@ public class RecurringTransactionRepository : IRecurringTransactionRepository
         return Task.CompletedTask;
     }
 
-    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        await _context.SaveChangesAsync(cancellationToken);
+        return _context.SaveChangesAsync(cancellationToken);
     }
 }

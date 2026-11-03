@@ -32,4 +32,5 @@ public class ApplicationUser : IdentityUser<long>
     public ICollection<InstallmentPlan> InstallmentPlans { get; set; } = [];
     public ICollection<TransferGroup> TransferGroups { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
+    public ICollection<UserCategoryOrder> UserCategoryOrders { get; set; } = [];
 }

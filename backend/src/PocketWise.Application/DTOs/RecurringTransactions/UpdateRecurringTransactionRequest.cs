@@ -10,6 +10,8 @@ public class UpdateRecurringTransactionRequest
     public long? CategoryId { get; set; }
     public RecurringFrequency Frequency { get; set; }
     public int IntervalValue { get; set; } = 1;
+    public List<int>? DaysOfWeek { get; set; }
+    public List<long>? TagIds { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
     public bool IsActive { get; set; } = true;
