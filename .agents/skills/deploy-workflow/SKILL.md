@@ -11,6 +11,10 @@ description: >-
 
 > **สำคัญสำหรับ AI ทุกตัว**: เมื่อผู้ใช้สั่งให้ **"Deploy"** หมายถึงการนำโค้ดเข้าสู่ branch `main` ผ่าน Pull Request (PR) **โดยห้าม Push ตรงเข้า branch `main` โดยเด็ดขาด (Never Push Directly to `main`)**
 
+> [!IMPORTANT]
+> **Pre-requisite จาก Mandatory 6-Step Workflow**:
+> ก่อนเริ่มขั้นตอนการ Deploy นี้ โค้ดจะต้องผ่านการทดสอบใน **ขั้นตอนที่ 5 (QA Browser Testing Agent)** มาก่อนแล้ว 100% โดยต้องเปิด Browser บน Local ทดสอบทั้ง **กรณี Error** (Validation/Edge Case ป้องกันเว็บพัง) และ **กรณี Success** (Flow การทำงานจริง) จนผ่านสมบูรณ์ จึงจะเริ่มขั้นตอนที่ 1 ของการ Deploy ได้
+
 ---
 
 ## 📋 10 ขั้นตอนการ Deploy มาตรฐาน (Mandatory 10 Steps)
