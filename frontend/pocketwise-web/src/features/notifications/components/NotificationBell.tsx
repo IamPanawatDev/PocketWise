@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -13,10 +13,12 @@ import {
   Inbox,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { NotificationSkeleton } from "@/components/shared/Skeletons";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/date-utils";
 import {
   useMarkAllNotificationsAsRead,
   useMarkNotificationAsRead,
@@ -25,28 +27,19 @@ import {
 } from "../hooks/useNotifications";
 import type { NotificationResponse } from "@/types/notification.types";
 
-function formatRelativeTime(dateStr: string): string {
-  try {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHours = Math.floor(diffMin / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMin < 1) return "เมื่อสักครู่";
-    if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
-    if (diffHours < 24) return `${diffHours} ชั่วโมงที่แล้ว`;
-    if (diffDays < 7) return `${diffDays} วันที่แล้ว`;
-    return formatDateTime(dateStr);
-  } catch {
-    return formatDateTime(dateStr);
-  }
-}
-
 export function NotificationBell({ className }: { className?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 639px)");
+    const onChange = () => setIsMobile(mql.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
 
   const { data: countData } = useUnreadNotificationCount();
   const unreadCount = countData?.unreadCount ?? 0;
@@ -62,11 +55,10 @@ export function NotificationBell({ className }: { className?: string }) {
       markAsRead.mutate(item.notificationId);
     }
 
+    setOpen(false);
     if (item.relatedEntityType === "Budget") {
-      setOpen(false);
       router.push("/budgets");
     } else if (item.relatedEntityType === "Transaction") {
-      setOpen(false);
       router.push("/transactions");
     }
   };
@@ -81,86 +73,56 @@ export function NotificationBell({ className }: { className?: string }) {
     return <Info className="size-4 shrink-0 text-[var(--pw-link)]" />;
   };
 
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={
-            unreadCount > 0
-              ? `การแจ้งเตือน มี ${unreadCount} รายการที่ยังไม่ได้อ่าน`
-              : "การแจ้งเตือน"
-          }
-          className={cn("relative transition-transform active:scale-90", className)}
-        >
-          <motion.div
-            whileHover={{ rotate: [-10, 10, -6, 6, 0] }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-          >
-            <Bell className="size-5" />
-          </motion.div>
-          <AnimatePresence>
-            {unreadCount > 0 && (
-              <motion.span
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: [1, 1.15, 1], opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{
-                  scale: { repeat: Infinity, repeatDelay: 3.5, duration: 1.2, ease: "easeInOut" },
-                  opacity: { duration: 0.2 },
-                }}
-                className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-md shadow-red-500/40"
-              >
-                <span className="absolute -inset-0.5 rounded-full bg-red-500/50 animate-ping pointer-events-none" />
-                <span className="relative z-10">{unreadCount > 99 ? "99+" : unreadCount}</span>
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="flex w-84 sm:w-96 max-h-[85vh] flex-col p-0 bg-[var(--pw-surface-black)] border-[var(--pw-hairline)]"
+  // Bell Button Trigger
+  const triggerButton = (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      aria-label={
+        unreadCount > 0
+          ? `การแจ้งเตือน มี ${unreadCount} รายการที่ยังไม่ได้อ่าน`
+          : "การแจ้งเตือน"
+      }
+      onClick={isMobile ? () => setOpen(true) : undefined}
+      className={cn("relative transition-transform active:scale-90 cursor-pointer", className)}
+    >
+      <motion.div
+        whileHover={{ rotate: [-10, 10, -6, 6, 0] }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--pw-hairline)] px-4 py-3 bg-[var(--pw-surface-indigo)]/50">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm text-[var(--pw-ink)]">การแจ้งเตือน</span>
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-300">
-                ใหม่ {unreadCount}
-              </span>
-            )}
-          </div>
-          {unreadCount > 0 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 px-2 text-xs text-[var(--pw-link)] hover:text-[var(--pw-link)]"
-              onClick={() => markAllAsRead.mutate()}
-              disabled={markAllAsRead.isPending}
-            >
-              {markAllAsRead.isPending ? (
-                <LoaderCircle className="size-3.5 animate-spin" />
-              ) : (
-                <CheckCheck className="size-3.5" />
-              )}
-              อ่านทั้งหมด
-            </Button>
-          )}
-        </div>
+        <Bell className="size-5" />
+      </motion.div>
+      <AnimatePresence>
+        {unreadCount > 0 && (
+          <motion.span
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [1, 1.15, 1], opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{
+              scale: { repeat: Infinity, repeatDelay: 3.5, duration: 1.2, ease: "easeInOut" },
+              opacity: { duration: 0.2 },
+            }}
+            className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-md shadow-red-500/40"
+          >
+            <span className="absolute -inset-0.5 rounded-full bg-red-500/50 animate-ping pointer-events-none" />
+            <span className="relative z-10">{unreadCount > 99 ? "99+" : unreadCount}</span>
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </Button>
+  );
 
-        {/* Filter Tab */}
-        <div className="flex border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/20 px-3 py-1.5 text-xs">
+  // Reusable Notifications List & Filter Content
+  const notificationBody = (
+    <div className="flex flex-col">
+      {/* Filter Tabs Bar & Mark all as read */}
+      <div className="flex items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/20 px-3.5 py-2 text-xs">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             className={cn(
-              "relative px-3 py-1 font-medium rounded-md transition-colors",
+              "relative px-3 py-1 font-medium rounded-md transition-colors cursor-pointer",
               !unreadOnly
                 ? "text-white font-semibold"
                 : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]",
@@ -179,7 +141,7 @@ export function NotificationBell({ className }: { className?: string }) {
           <button
             type="button"
             className={cn(
-              "relative ml-1 px-3 py-1 font-medium rounded-md transition-colors",
+              "relative px-3 py-1 font-medium rounded-md transition-colors cursor-pointer",
               unreadOnly
                 ? "text-white font-semibold"
                 : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]",
@@ -193,62 +155,138 @@ export function NotificationBell({ className }: { className?: string }) {
                 transition={{ type: "spring", stiffness: 450, damping: 32 }}
               />
             )}
-            <span className="relative z-10">ยังไม่ได้อ่าน</span>
+            <span className="relative z-10">ยังไม่อ่าน</span>
           </button>
         </div>
 
-        {/* Content list */}
-        <div className="overflow-y-auto max-h-96">
-          {isLoading ? (
-            <NotificationSkeleton count={4} />
-          ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center text-sm text-[var(--pw-ink)]/60">
-              <Inbox className="size-10 text-[var(--pw-ink)]/30 mb-2" />
-              <p>ไม่มีการแจ้งเตือน</p>
-            </div>
-          ) : (
-            <AnimatedList>
-              {notifications.map((item) => {
-                const isUnread = item.status !== "read";
-                return (
-                  <AnimatedListItem key={item.notificationId}>
-                    <button
-                      type="button"
-                      onClick={() => handleNotificationClick(item)}
-                      className={cn(
-                        "w-full text-left p-3.5 transition-all flex items-start gap-3 hover:bg-[var(--pw-surface-indigo)]/60 active:scale-[0.99] cursor-pointer border-b border-[var(--pw-hairline)] last:border-b-0",
-                        isUnread && "bg-[var(--pw-surface-indigo)]/30",
-                      )}
-                    >
-                      <div className="mt-0.5">{getNotificationIcon(item)}</div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <p
-                            className={cn(
-                              "truncate text-sm font-medium",
-                              isUnread ? "text-[var(--pw-ink)] font-semibold" : "text-[var(--pw-ink)]/80",
-                            )}
-                          >
-                            {item.title}
-                          </p>
-                          {isUnread && (
-                            <span className="size-2 shrink-0 rounded-full bg-[var(--pw-primary)]" />
+        {unreadCount > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs text-[var(--pw-link)] hover:text-[var(--pw-ink)] hover:bg-[var(--pw-link)]/10"
+            onClick={() => markAllAsRead.mutate()}
+            disabled={markAllAsRead.isPending}
+          >
+            {markAllAsRead.isPending ? (
+              <LoaderCircle className="size-3 animate-spin" />
+            ) : (
+              <CheckCheck className="size-3" />
+            )}
+            อ่านทั้งหมด
+          </Button>
+        )}
+      </div>
+
+      {/* Notifications Scrollable List */}
+      <div className="overflow-y-auto max-h-[60vh] sm:max-h-96 divide-y divide-[var(--pw-hairline)]">
+        {isLoading ? (
+          <NotificationSkeleton count={4} />
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center text-sm text-[var(--pw-ink)]/60">
+            <Inbox className="size-10 text-[var(--pw-ink)]/30 mb-2" />
+            <p>ไม่มีการแจ้งเตือน</p>
+          </div>
+        ) : (
+          <AnimatedList>
+            {notifications.map((item) => {
+              const isUnread = item.status !== "read";
+              return (
+                <AnimatedListItem key={item.notificationId}>
+                  <button
+                    type="button"
+                    onClick={() => handleNotificationClick(item)}
+                    className={cn(
+                      "w-full text-left p-3.5 transition-all flex items-start gap-3 hover:bg-[var(--pw-surface-indigo)]/40 active:scale-[0.99] cursor-pointer",
+                      isUnread && "bg-[var(--pw-surface-indigo)]/25",
+                    )}
+                  >
+                    <div className="mt-0.5">{getNotificationIcon(item)}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <p
+                          className={cn(
+                            "truncate text-xs sm:text-sm font-medium",
+                            isUnread ? "text-[var(--pw-ink)] font-semibold" : "text-[var(--pw-ink)]/80",
                           )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-[var(--pw-ink)]/70 line-clamp-2">
-                          {item.message}
+                        >
+                          {item.title}
                         </p>
-                        <p className="mt-1.5 text-[11px] text-[var(--pw-ink)]/40">
-                          {formatRelativeTime(item.createdAt)}
-                        </p>
+                        {isUnread && (
+                          <span className="size-2 shrink-0 rounded-full bg-[var(--pw-primary)]" />
+                        )}
                       </div>
-                    </button>
-                  </AnimatedListItem>
-                );
-              })}
-            </AnimatedList>
-          )}
+                      <p className="mt-0.5 text-xs text-[var(--pw-ink)]/70 line-clamp-2">
+                        {item.message}
+                      </p>
+                      <p className="mt-1.5 text-[10px] text-[var(--pw-ink)]/40">
+                        {formatRelativeTime(item.createdAt)}
+                      </p>
+                    </div>
+                  </button>
+                </AnimatedListItem>
+              );
+            })}
+          </AnimatedList>
+        )}
+      </div>
+    </div>
+  );
+
+  // If Mobile (< sm): Render BottomSheet for native thumb accessibility
+  if (isMobile) {
+    return (
+      <>
+        {triggerButton}
+        <BottomSheet
+          open={open}
+          onOpenChange={setOpen}
+          title={
+            <div className="flex items-center gap-2">
+              <Bell className="size-5 text-[var(--pw-primary)]" />
+              <span>การแจ้งเตือน</span>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-300">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+          }
+          description="รายการแจ้งเตือนงบประมาณและข้อมูลสำคัญของคุณ"
+        >
+          <div className="-mx-5 -mb-4 pt-1 sm:-mx-6">
+            {notificationBody}
+          </div>
+        </BottomSheet>
+      </>
+    );
+  }
+
+  // If Desktop (sm+): Render Dropdown Popover
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        {triggerButton}
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="flex w-96 max-h-[85vh] flex-col p-0 bg-[var(--pw-surface)] border-[var(--pw-hairline)] shadow-xl overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[var(--pw-hairline)] px-4 py-3 bg-[var(--pw-surface-indigo)]/50">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-[var(--pw-ink)]">การแจ้งเตือน</span>
+            {unreadCount > 0 && (
+              <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-300">
+                ใหม่ {unreadCount}
+              </span>
+            )}
+          </div>
         </div>
+
+        {notificationBody}
       </PopoverContent>
     </Popover>
   );

@@ -30,6 +30,7 @@ import {
   UserX,
   MailQuestion,
   Lock,
+  RefreshCw,
 } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useAdminOverviewQuery, useUpdateMaintenanceMutation } from "@/features/admin-operations/hooks/useAdminOperations";
@@ -99,9 +100,11 @@ export default function AdminOverviewPage() {
         </div>
         <button
           onClick={() => refetch()}
-          className="self-start sm:self-auto px-3.5 py-1.5 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-colors"
+          disabled={isLoading}
+          className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-3.5 py-2 sm:py-1.5 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 active:scale-95 transition-all"
         >
-          รีเฟรชข้อมูล
+          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+          <span>รีเฟรชข้อมูล</span>
         </button>
       </div>
 
@@ -157,7 +160,7 @@ export default function AdminOverviewPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
             <button
               onClick={handleToggleMaintenance}
               disabled={updateMaintenance.isPending}
@@ -260,7 +263,7 @@ export default function AdminOverviewPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 text-center my-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center my-3 sm:my-4">
               <div className="p-3 rounded-lg bg-[var(--pw-hairline)]/20">
                 <div className="text-xs text-[var(--pw-ink)]/70">ทั้งหมด</div>
                 <div className="text-lg font-bold text-[var(--pw-ink)] mt-1">
@@ -314,7 +317,7 @@ export default function AdminOverviewPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 text-center my-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center my-3 sm:my-4">
               <div className="p-3 rounded-lg bg-[var(--pw-hairline)]/20">
                 <div className="text-xs text-[var(--pw-ink)]/70">เหตุการณ์</div>
                 <div className="text-lg font-bold text-[var(--pw-ink)] mt-1">

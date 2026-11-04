@@ -150,6 +150,34 @@ flowchart LR
     4. **ผู้ดูแลระบบ (Admin)**: เมนูฝั่งแอดมิน 9 หน้าจอ รวมไว้ในกล่อง Accordion ที่เปิด/ปิดได้ตามต้องการ
   - มีจุด Indicator แสดงสถานะหน้าปัจจุบัน (Active Page Indicator Dot) ทุกการ์ด
 
+### 3.12 การยกระดับ UI บนหน้าจอมือถือ (Transfers, Categorization, Imports & Admin)
+- **โอนเงินระหว่างบัญชี (`/transfers`)**:
+  - เปลี่ยนการ์ดประวัติเป็น **Visual Route**: กล่องบัญชีต้นทาง (ไอคอนธนาคาร) ➔ ลูกศรบอกทิศทาง ➔ กล่องบัญชีปลายทาง (ไอคอนกระเป๋าเงิน)
+  - เพิ่มปุ่ม **"โอนอีกครั้ง" (Quick Repeat Transfer)** กดโอนซ้ำรายการเดิมได้ทันทีด้วย 1 แตะ
+  - เพิ่มการ์ดสรุปยอดโอนรวมและจำนวนรายการด้านบน
+  - ใช้ `BottomSheetFooter` (Confirm บน, Cancel ล่าง) และ `formatDisplayDateTime` ตาม Master Rules
+- **จัดหมวดหมู่อัตโนมัติ & ร้านค้า (`/categorization`)**:
+  - เพิ่ม **Segmented Tabs** สลับดูระหว่าง "กฎจัดหมวด (Rules)" และ "ร้านค้า (Merchants)" ไม่ต้องเลื่อนจอยาว
+  - เพิ่ม **Instant Search Box** ค้นหาชื่อกฎ คำค้น ร้านค้า หรือหมวดหมู่ได้ทันที
+  - แปลงรายการเป็น Mobile Card ที่มีภาพ visual ชัดเจน: เมื่อเงื่อนไขตรง ➔ จัดลงหมวดหมู่อะไร พร้อมปุ่มแก้ไข/ลบ
+  - ใช้ `BottomSheetFooter` และ `enableQuickMath`
+- **นำเข้าข้อมูล & ประวัติ Import (`/imports`)**:
+  - แท็บด้านบนปรับเป็น Glassmorphism Segmented Tab Bar รองรับจอมือถือ
+  - ในแท็บ **Import Jobs**: เพิ่ม **Mobile Card List View** (`md:hidden`) สรุปประเภทงาน, ชื่อไฟล์, วันที่เวลา, สถิติ (ทั้งหมด/นำเข้า/ซ้ำ), สถานะ และปุ่ม "ตรวจสอบและยืนยันรายการ" ขนาดเต็มปุ่มกดง่าย
+  - ใช้ `BottomSheetFooter` ในตัวกรอง
+- **หน้าผู้ดูแลระบบ Admin (`/admin/users`, `/admin/security-events`)**:
+  - เพิ่ม **Mobile User Cards**: แสดง Avatar, ชื่อ, อีเมล, บทบาท, สถานะอีเมล/บัญชี และปุ่ม Quick Action (ตรวจสอบ, ยกเลิกระงับ, ระงับบัญชี)
+  - เพิ่ม **Mobile Security Event Cards**: แสดง Event Badge, เวลา, เป้าหมาย, ผู้กระทำ, IP และปุ่มดู JSON รายละเอียด
+  - กำจัดปัญหา Horizontal Overflow บนมือถือ 100%
+
+- **กล่องแจ้งเตือน (`NotificationBell.tsx`)**:
+  - บน Mobile (`< sm`): แปลง Popover ให้กลายเป็น **BottomSheet เต็มจอจากขอบล่าง** ใช้งานสะดวกด้วยนิ้วโป้ง พร้อมปุ่ม "อ่านทั้งหมด" และ Tab สลับ "ทั้งหมด" / "ยังไม่อ่าน"
+  - ใช้ helper กลาง `formatRelativeTime` จาก `@/lib/date-utils` แทนการคำนวณซ้ำ
+- **หน้าภาพรวมแอดมิน (`/admin/overview`)**:
+  - ปรับการ์ดสรุป Operations (งานนำเข้าข้อมูล และ เหตุการณ์ความปลอดภัย 24 ชม.) ให้เป็น Responsive Grid (`grid-cols-2 sm:grid-cols-4`) ป้องกันข้อความภาษาไทยตัดคำเบียดกันบนจอมือถือ
+  - แถบโหมดปรับปรุงระบบ (Maintenance Mode) จัดปุ่มเต็มความกว้างบนมือถือ แตะง่าย
+  - ปุ่มรีเฟรชข้อมูลมีแอนิเมชัน `RefreshCw` หมุนขณะโหลดข้อมูล
+
 ## 📜 4. ประวัติการ Deploy และ PR ที่เกี่ยวข้อง (PR History)
 
 | Pull Request | Commit | รายละเอียดสำคัญ |
