@@ -699,7 +699,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
           </div>
 
           {/* Sticky Mobile-First Footer (Confirm Top, Reset Bottom) */}
-          <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md px-4 sm:px-6 py-3 border-t border-[var(--pw-hairline)] flex flex-col gap-2 z-10">
+          <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md px-4 sm:px-6 py-3 border-t border-[var(--pw-hairline)]/50 flex flex-col gap-2 z-10">
             <Button
               type="button"
               className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"

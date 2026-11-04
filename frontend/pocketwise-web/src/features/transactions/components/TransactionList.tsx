@@ -871,7 +871,7 @@ export function TransactionList({
           </div>
 
           {/* Sticky Mobile-First Footer (Confirm Top, Reset Bottom) */}
-          <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)] mt-3 flex flex-col gap-2 z-10">
+          <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)]/50 mt-3 flex flex-col gap-2 z-10">
             <Button
               type="button"
               className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
@@ -1252,7 +1252,7 @@ export function TransactionList({
             </div>
 
             {/* Sticky Action Footer (Rule 5: Action on Top, Cancel/Destructive on Bottom) */}
-            <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)] mt-3 flex flex-col gap-2 z-10">
+            <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)]/50 mt-3 flex flex-col gap-2 z-10">
               <Button
                 type="button"
                 className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
@@ -1291,14 +1291,14 @@ export function TransactionList({
                 trigger={
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="destructive"
                     disabled={deletingId === selectedTransaction.transactionId}
-                    className="w-full h-9 text-xs text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 cursor-pointer"
+                    className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
                   >
                     {deletingId === selectedTransaction.transactionId ? (
-                      <LoaderCircle className="size-3.5 mr-1.5 animate-spin" />
+                      <LoaderCircle className="size-4 mr-1.5 animate-spin" />
                     ) : (
-                      <Trash2 className="size-3.5 mr-1.5" />
+                      <Trash2 className="size-4 mr-1.5" />
                     )}
                     {deletingId === selectedTransaction.transactionId ? "กำลังลบ..." : "ลบรายการ"}
                   </Button>
