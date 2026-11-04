@@ -6,7 +6,7 @@
 
 export function evaluateMathExpression(input: string): number | null {
   if (!input || typeof input !== "string") return null;
-  const cleaned = input.trim().replace(/\s+/g, "");
+  const cleaned = input.trim().replace(/\s+/g, "").replace(/×/g, "*").replace(/÷/g, "/");
   if (!cleaned) return null;
 
   // Allow only valid characters: digits, decimal point, operators, parentheses
@@ -126,5 +126,5 @@ export function isMathExpression(input: string): boolean {
   if (!input || typeof input !== "string") return false;
   const trimmed = input.trim();
   // Contains at least one operator following digits
-  return /[0-9]\s*[\+\-\*\/]\s*[0-9]/.test(trimmed);
+  return /[0-9]\s*[\+\-\*\/\×\÷]\s*[0-9]/.test(trimmed);
 }
