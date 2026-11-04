@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -240,8 +242,8 @@ date,description,amount,type,ref
         <div
           className={`flex items-center gap-2 rounded-lg p-3 text-sm font-medium ${
             statusMessage.type === "success"
-              ? "bg-[var(--pw-accent-green)]/10 text-[var(--pw-accent-green)] border border-[var(--pw-accent-green)]/20"
-              : "bg-[var(--pw-accent-red)]/10 text-[var(--pw-accent-red)] border border-[var(--pw-accent-red)]/20"
+              ? "bg-[var(--pw-green)]/10 text-[var(--pw-green)] border border-[var(--pw-green)]/20"
+              : "bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] border border-[var(--pw-expense)]/20"
           }`}
         >
           {statusMessage.type === "success" ? (
@@ -302,10 +304,10 @@ date,description,amount,type,ref
               type="button"
               variant="outline"
               size="sm"
-              className="gap-1.5 text-xs text-[var(--pw-text-secondary)]"
+              className="gap-1.5 text-xs text-[var(--pw-ink)]/70"
               onClick={() => setShowSampleFormat(!showSampleFormat)}
             >
-              <Info className="h-3.5 w-3.5 text-[var(--pw-accent-primary)]" />
+              <Info className="h-3.5 w-3.5 text-[var(--pw-primary)]" />
               {showSampleFormat ? "ซ่อนตัวอย่างรูปแบบไฟล์" : "ดูตัวอย่างไฟล์ CSV / JSON"}
               {showSampleFormat ? (
                 <ChevronUp className="h-3.5 w-3.5" />
@@ -319,15 +321,15 @@ date,description,amount,type,ref
         {/* Collapsible Format Sample */}
         {showSampleFormat && (
           <div className="rounded-lg bg-[var(--pw-surface-indigo)]/40 p-4 border border-[var(--pw-hairline)] text-xs space-y-3">
-            <div className="font-semibold text-[var(--pw-text-primary)]">
+            <div className="font-semibold text-[var(--pw-ink)]">
               รูปแบบไฟล์ที่รองรับ (CSV หรือ JSON):
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-[11px]">
               <div className="space-y-1">
-                <div className="font-sans font-medium text-[var(--pw-accent-primary)]">
+                <div className="font-sans font-medium text-[var(--pw-primary)]">
                   ตัวอย่างไฟล์ CSV (.csv):
                 </div>
-                <pre className="p-2.5 rounded bg-black/50 text-[var(--pw-text-secondary)] overflow-x-auto whitespace-pre">
+                <pre className="p-2.5 rounded bg-black/50 text-[var(--pw-ink)]/70 overflow-x-auto whitespace-pre">
 {`# statement_date: 2026-10-15
 # period_start: 2026-09-16
 # period_end: 2026-10-15
@@ -339,10 +341,10 @@ date,description,amount,type,ref
               </div>
 
               <div className="space-y-1">
-                <div className="font-sans font-medium text-[var(--pw-accent-primary)]">
+                <div className="font-sans font-medium text-[var(--pw-primary)]">
                   ตัวอย่างไฟล์ JSON (.json):
                 </div>
-                <pre className="p-2.5 rounded bg-black/50 text-[var(--pw-text-secondary)] overflow-x-auto whitespace-pre">
+                <pre className="p-2.5 rounded bg-black/50 text-[var(--pw-ink)]/70 overflow-x-auto whitespace-pre">
 {`{
   "statementDate": "2026-10-15",
   "statementPeriodStart": "2026-09-16",
@@ -360,7 +362,7 @@ date,description,amount,type,ref
       </Card>
 
       {!statementData ? (
-        <Card className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-8 text-center transition-colors hover:border-[var(--pw-accent-primary)]/50">
+        <Card className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] p-8 text-center transition-colors hover:border-[var(--pw-primary)]/50">
           <input
             ref={fileInputRef}
             type="file"
@@ -369,13 +371,13 @@ date,description,amount,type,ref
             onChange={handleFileChange}
             disabled={!selectedCardId || uploadMutation.isPending}
           />
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)] mb-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] mb-4">
             <UploadCloud className="h-8 w-8" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--pw-text-primary)]">
+          <h3 className="text-lg font-semibold text-[var(--pw-ink)]">
             อัปโหลดใบแจ้งยอดบัตรเครดิต
           </h3>
-          <p className="mt-1 max-w-sm text-sm text-[var(--pw-text-secondary)]">
+          <p className="mt-1 max-w-sm text-sm text-[var(--pw-ink)]/70">
             {selectedCardId
               ? "รองรับไฟล์รูปแบบ CSV หรือ JSON จากแอปธนาคารหรือธนาคารผู้ให้บริการ"
               : "กรุณาเลือกบัตรเครดิตด้านบนก่อนเพื่อดำเนินการอัปโหลด"}
@@ -395,14 +397,14 @@ date,description,amount,type,ref
           <Card className="p-5 bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)] space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[var(--pw-hairline)]">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
                   <CreditCard className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-[var(--pw-text-primary)]">
+                  <h3 className="text-base font-semibold text-[var(--pw-ink)]">
                     ใบแจ้งยอด: {statementData.cardName || "บัตรเครดิต"}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-[var(--pw-text-secondary)]">
+                  <div className="flex items-center gap-2 text-xs text-[var(--pw-ink)]/70">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>
                       รอบบัญชี: {statementData.statementPeriodStart} ถึง {statementData.statementPeriodEnd}
@@ -416,7 +418,7 @@ date,description,amount,type,ref
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="gap-1.5 text-xs text-[var(--pw-text-secondary)]"
+                  className="gap-1.5 text-xs text-[var(--pw-ink)]/70"
                   onClick={handleReset}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -428,26 +430,26 @@ date,description,amount,type,ref
             {/* Financial Summary Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div className="p-3 rounded-lg bg-[var(--pw-surface-indigo)]/40 border border-[var(--pw-hairline)]">
-                <span className="text-[var(--pw-text-muted)]">ยอดเรียกเก็บรวม</span>
-                <div className="text-base font-bold text-[var(--pw-text-primary)] mt-1">
+                <span className="text-[var(--pw-ink)]/50">ยอดเรียกเก็บรวม</span>
+                <div className="text-base font-bold text-[var(--pw-ink)] mt-1">
                   ฿{statementData.totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
               <div className="p-3 rounded-lg bg-[var(--pw-surface-indigo)]/40 border border-[var(--pw-hairline)]">
-                <span className="text-[var(--pw-text-muted)]">ยอดซื้อ/ชำระสินค้า</span>
-                <div className="text-base font-bold text-[var(--pw-accent-red)] mt-1">
+                <span className="text-[var(--pw-ink)]/50">ยอดซื้อ/ชำระสินค้า</span>
+                <div className="text-base font-bold text-[var(--pw-expense)] mt-1">
                   ฿{statementData.purchaseAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
               <div className="p-3 rounded-lg bg-[var(--pw-surface-indigo)]/40 border border-[var(--pw-hairline)]">
-                <span className="text-[var(--pw-text-muted)]">เครดิตเงินคืน / ชำระ</span>
-                <div className="text-base font-bold text-[var(--pw-accent-green)] mt-1">
+                <span className="text-[var(--pw-ink)]/50">เครดิตเงินคืน / ชำระ</span>
+                <div className="text-base font-bold text-[var(--pw-green)] mt-1">
                   ฿{(statementData.cashbackAmount + statementData.paymentAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
               <div className="p-3 rounded-lg bg-[var(--pw-surface-indigo)]/40 border border-[var(--pw-hairline)]">
-                <span className="text-[var(--pw-text-muted)]">วันครบกำหนดชำระ</span>
-                <div className="text-base font-bold text-[var(--pw-accent-yellow)] mt-1">
+                <span className="text-[var(--pw-ink)]/50">วันครบกำหนดชำระ</span>
+                <div className="text-base font-bold text-[var(--pw-ink)] mt-1">
                   {statementData.paymentDueDate || "-"}
                 </div>
               </div>
@@ -455,12 +457,12 @@ date,description,amount,type,ref
 
             {/* Counters */}
             <div className="flex flex-wrap items-center gap-3 pt-2 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--pw-surface-indigo)] text-[var(--pw-text-primary)] border border-[var(--pw-hairline)]">
-                <Layers className="h-3.5 w-3.5 text-[var(--pw-accent-primary)]" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] border border-[var(--pw-hairline)]">
+                <Layers className="h-3.5 w-3.5 text-[var(--pw-primary)]" />
                 รายการทั้งหมด: {statementData.totalItems} รายการ
               </span>
               {statementData.duplicateItems > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--pw-accent-yellow)]/10 text-[var(--pw-accent-yellow)] border border-[var(--pw-accent-yellow)]/20">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--pw-ink)]/10 text-[var(--pw-ink)] border border-[var(--pw-ink)]/20">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   พบรายการซ้ำ: {statementData.duplicateItems} รายการ
                 </span>
@@ -472,10 +474,10 @@ date,description,amount,type,ref
           <Card className="p-5 bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)] space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[var(--pw-hairline)]">
               <div>
-                <h4 className="text-sm font-semibold text-[var(--pw-text-primary)]">
+                <h4 className="text-sm font-semibold text-[var(--pw-ink)]">
                   ตรวจสอบรายการในใบแจ้งยอด
                 </h4>
-                <p className="text-xs text-[var(--pw-text-secondary)]">
+                <p className="text-xs text-[var(--pw-ink)]/70">
                   เลือกรายการที่ต้องการบันทึกเป็นธุรกรรม และตรวจสอบหมวดหมู่ที่แนะนำ
                 </p>
               </div>
@@ -508,11 +510,146 @@ date,description,amount,type,ref
               </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
+            {/* Mobile Card List View (< md) */}
+            <div className="space-y-3 md:hidden">
+              {statementData.items.map((item) => {
+                const isSelected = selectedItemIds.has(item.statementItemId);
+                const isCredit =
+                  item.itemType.toLowerCase() === "cashback" ||
+                  item.itemType.toLowerCase() === "payment";
+
+                return (
+                  <div
+                    key={item.statementItemId}
+                    className={cn(
+                      "relative rounded-xl border p-3.5 transition-all space-y-2.5",
+                      isSelected
+                        ? "border-[var(--pw-primary)]/50 bg-[var(--pw-primary)]/5 shadow-xs"
+                        : item.isDuplicate
+                          ? "border-amber-500/30 bg-amber-500/5"
+                          : "border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/40"
+                    )}
+                  >
+                    {/* Row 1: Checkbox + Date + Status Badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <Checkbox
+                          checked={isSelected}
+                          disabled={item.isLinked}
+                          onCheckedChange={() => toggleItemSelection(item.statementItemId)}
+                          aria-label={`เลือกรายการวันที่ ${item.transactionDate}`}
+                        />
+                        <span className="font-semibold text-xs text-[var(--pw-ink)]">
+                          {item.transactionDate}
+                        </span>
+                      </label>
+
+                      <div>
+                        {item.isLinked ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--pw-green)]/15 text-[var(--pw-green)] border border-[var(--pw-green)]/30">
+                            <Check className="size-3" />
+                            บันทึกแล้ว
+                          </span>
+                        ) : item.isDuplicate ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                            <AlertTriangle className="size-3" />
+                            ตรวจพบซ้ำ
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/30">
+                            รอยืนยัน
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 2: Description edit input */}
+                    <div>
+                      <Input
+                        value={itemDescriptions[item.statementItemId] ?? item.description}
+                        disabled={item.isLinked}
+                        onChange={(e) =>
+                          setItemDescriptions((prev) => ({
+                            ...prev,
+                            [item.statementItemId]: e.target.value,
+                          }))
+                        }
+                        className="h-8 text-xs bg-[var(--pw-surface-black)]/60"
+                        placeholder="รายละเอียดรายการ"
+                      />
+                      {item.externalReference && (
+                        <span className="block text-[10px] text-[var(--pw-ink)]/50 font-mono mt-1">
+                          Ref: {item.externalReference}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row 3: Amount + Type */}
+                    <div className="flex items-center justify-between pt-1 border-t border-[var(--pw-hairline)]/50 text-xs">
+                      <span className="text-[11px] text-[var(--pw-ink)]/60">
+                        ประเภท: <span className="font-medium text-[var(--pw-ink)]">{item.itemType}</span>
+                      </span>
+                      <span
+                        className={cn(
+                          "font-bold text-sm",
+                          isCredit ? "text-[var(--pw-green)]" : "text-[var(--pw-expense)]"
+                        )}
+                      >
+                        {isCredit ? "-" : "+"}฿
+                        {item.amount.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Row 4: Category Dropdown & Suggested Badge */}
+                    <div className="space-y-1 pt-1">
+                      <Select
+                        value={
+                          itemCategories[item.statementItemId]
+                            ? String(itemCategories[item.statementItemId])
+                            : ""
+                        }
+                        disabled={item.isLinked}
+                        onValueChange={(val) =>
+                          setItemCategories((prev) => ({
+                            ...prev,
+                            [item.statementItemId]: Number(val),
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs w-full bg-[var(--pw-surface-black)]/60">
+                          <SelectValue placeholder="เลือกหมวดหมู่สำหรับบันทึก" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem
+                              key={cat.categoryId}
+                              value={String(cat.categoryId)}
+                              className="text-xs"
+                            >
+                              {cat.categoryName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {item.suggestedCategoryName && (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-[var(--pw-primary)] font-medium">
+                          <Sparkles className="size-3" />
+                          หมวดหมู่แนะนำ: {item.suggestedCategoryName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--pw-hairline)] text-[var(--pw-text-muted)]">
+                  <tr className="border-b border-[var(--pw-hairline)] text-[var(--pw-ink)]/50">
                     <th className="py-2.5 px-3 w-10 text-center">เลือก</th>
                     <th className="py-2.5 px-3">วันที่</th>
                     <th className="py-2.5 px-3">รายละเอียด / ร้านค้า</th>
@@ -532,13 +669,14 @@ date,description,amount,type,ref
                     return (
                       <tr
                         key={item.statementItemId}
-                        className={`transition-colors ${
+                        className={cn(
+                          "transition-colors",
                           isSelected
-                            ? "bg-[var(--pw-accent-primary)]/5"
+                            ? "bg-[var(--pw-primary)]/5"
                             : item.isDuplicate
-                            ? "bg-[var(--pw-accent-yellow)]/5"
+                            ? "bg-amber-500/5"
                             : "hover:bg-[var(--pw-surface-indigo)]/30"
-                        }`}
+                        )}
                       >
                         <td className="py-2.5 px-3 text-center">
                           <Checkbox
@@ -548,11 +686,11 @@ date,description,amount,type,ref
                             aria-label={`เลือกรายการวันที่ ${item.transactionDate}`}
                           />
                         </td>
-                        <td className="py-2.5 px-3 font-medium text-[var(--pw-text-primary)] whitespace-nowrap">
+                        <td className="py-2.5 px-3 font-medium text-[var(--pw-ink)] whitespace-nowrap">
                           {item.transactionDate}
                         </td>
-                        <td className="py-2.5 px-3 text-[var(--pw-text-primary)]">
-                          <input
+                        <td className="py-2.5 px-3 text-[var(--pw-ink)]">
+                          <Input
                             type="text"
                             value={itemDescriptions[item.statementItemId] ?? item.description}
                             disabled={item.isLinked}
@@ -562,23 +700,23 @@ date,description,amount,type,ref
                                 [item.statementItemId]: e.target.value,
                               }))
                             }
-                            className="w-full bg-transparent border-b border-transparent hover:border-[var(--pw-hairline)] focus:border-[var(--pw-accent-primary)] focus:outline-none text-xs py-0.5"
+                            className="h-7 text-xs bg-transparent border-transparent hover:border-[var(--pw-hairline)] focus:border-[var(--pw-primary)] px-1.5"
                           />
                           {item.externalReference && (
-                            <span className="block text-[10px] text-[var(--pw-text-muted)] font-mono">
+                            <span className="block text-[10px] text-[var(--pw-ink)]/50 font-mono mt-0.5">
                               Ref: {item.externalReference}
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 text-[var(--pw-text-secondary)] whitespace-nowrap">
+                        <td className="py-2.5 px-3 text-[var(--pw-ink)]/70 whitespace-nowrap">
                           {item.itemType}
                         </td>
                         <td className="py-2.5 px-3 text-right font-semibold whitespace-nowrap">
                           <span
                             className={
                               isCredit
-                                ? "text-[var(--pw-accent-green)]"
-                                : "text-[var(--pw-text-primary)]"
+                                ? "text-[var(--pw-green)]"
+                                : "text-[var(--pw-expense)]"
                             }
                           >
                             {isCredit ? "-" : "+"}฿
@@ -602,7 +740,7 @@ date,description,amount,type,ref
                               }))
                             }
                           >
-                            <SelectTrigger className="h-8 text-xs w-full">
+                            <SelectTrigger className="h-8 text-xs w-full bg-[var(--pw-surface-black)]/60">
                               <SelectValue placeholder="เลือกหมวดหมู่" />
                             </SelectTrigger>
                             <SelectContent>
@@ -618,25 +756,25 @@ date,description,amount,type,ref
                             </SelectContent>
                           </Select>
                           {item.suggestedCategoryName && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-[var(--pw-accent-primary)] mt-0.5">
-                              <Sparkles className="h-2.5 w-2.5" />
+                            <span className="inline-flex items-center gap-1 text-[10px] text-[var(--pw-primary)] mt-0.5">
+                              <Sparkles className="size-2.5" />
                               {item.suggestedCategoryName}
                             </span>
                           )}
                         </td>
                         <td className="py-2.5 px-3 text-center whitespace-nowrap">
                           {item.isLinked ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-accent-green)]/10 text-[var(--pw-accent-green)]">
-                              <Check className="h-3 w-3" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-green)]/15 text-[var(--pw-green)] border border-[var(--pw-green)]/30">
+                              <Check className="size-3" />
                               บันทึกแล้ว
                             </span>
                           ) : item.isDuplicate ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-accent-yellow)]/10 text-[var(--pw-accent-yellow)]">
-                              <AlertTriangle className="h-3 w-3" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                              <AlertTriangle className="size-3" />
                               ตรวจพบซ้ำ
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-accent-primary)]/10 text-[var(--pw-accent-primary)]">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/30">
                               รอยืนยัน
                             </span>
                           )}

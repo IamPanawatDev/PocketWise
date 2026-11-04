@@ -321,7 +321,7 @@ export function TransactionForm({
       );
     } else {
       create.mutate(payload, {
-        onSuccess: () => {
+        onSuccess: (res) => {
           saveRecentPreset({
             label: values.description || "รายการ",
             amount: Number(values.amount),
@@ -330,14 +330,20 @@ export function TransactionForm({
             description: values.description || "",
           });
           onClose();
-          toast.success("บันทึกรายการสำเร็จ", {
-            action: {
-              label: "ดูรายงาน →",
-              onClick: () => {
-                router.push("/reports");
+          if ((res as unknown as { isOfflineQueued?: boolean })?.isOfflineQueued) {
+            toast.info("บันทึกรายการในโหมดออฟไลน์แล้ว — ข้อมูลจะซิงค์กับเซิร์ฟเวอร์อัตโนมัติเมื่อต่อเน็ต", {
+              icon: "📡",
+            });
+          } else {
+            toast.success("บันทึกรายการสำเร็จ", {
+              action: {
+                label: "ดูรายงาน →",
+                onClick: () => {
+                  router.push("/reports");
+                },
               },
-            },
-          });
+            });
+          }
         },
         onError: (e) => toast.error(e instanceof ApiError ? e.message : "เพิ่มไม่สำเร็จ"),
       });

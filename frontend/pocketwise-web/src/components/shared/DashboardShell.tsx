@@ -189,6 +189,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState({
+    isIos: false,
+    isIosChrome: false,
+    isStandalone: false,
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const ua = window.navigator.userAgent || "";
+    const isIosDevice = /iPad|iPhone|iPod/.test(ua) || (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+    const isChrome = /CriOS/i.test(ua);
+    const isStandaloneMode = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+
+    setDeviceInfo({
+      isIos: isIosDevice,
+      isIosChrome: isIosDevice && isChrome,
+      isStandalone: Boolean(isStandaloneMode),
+    });
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
@@ -945,6 +964,133 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </BottomSheet>
 
 
+
+      {/* iOS / Browser Install Guide BottomSheet */}
+      <BottomSheet
+        open={showIosInstallGuide}
+        onOpenChange={setShowIosInstallGuide}
+        title={
+          <div className="flex items-center gap-2">
+            <Smartphone className="size-5 text-[var(--pw-primary)]" />
+            <span>ติดตั้ง PocketWise บนหน้าจอโฮม</span>
+          </div>
+        }
+        description={
+          deviceInfo.isIosChrome
+            ? "ขั้นตอนการติดตั้งสำหรับ Google Chrome บน iPhone / iPad"
+            : deviceInfo.isIos
+              ? "ขั้นตอนการติดตั้งสำหรับ Safari บน iPhone / iPad"
+              : "วิธีติดตั้ง PocketWise ลงบนอุปกรณ์ของคุณ"
+        }
+      >
+        <div className="space-y-4 py-2 text-xs text-[var(--pw-ink)]">
+          {deviceInfo.isIosChrome ? (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 flex items-start gap-2.5">
+                <Share className="size-5 shrink-0 text-blue-400 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm text-[var(--pw-ink)]">
+                    ขั้นตอนที่ 1: แตะปุ่ม &quot;แชร์&quot; หรือเมนู &quot;...&quot;
+                  </p>
+                  <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
+                    แตะที่ไอคอนแชร์ <Share className="size-3.5 inline mx-0.5 text-blue-400" /> ที่มุมบนขวาของ Chrome หรือแตะที่ไอคอนเมนูสามจุด (...) ที่มุมล่างขวา
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 flex items-start gap-2.5">
+                <PlusSquare className="size-5 shrink-0 text-emerald-400 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm text-[var(--pw-ink)]">
+                    ขั้นตอนที่ 2: เลือก &quot;เพิ่มไปยังหน้าจอโฮม&quot;
+                  </p>
+                  <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
+                    เลื่อนรายการเมนูลงมา แล้วเลือกคำสั่ง <span className="font-semibold text-emerald-400">&quot;เพิ่มไปยังหน้าจอโฮม&quot; (Add to Home Screen)</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-3 flex items-start gap-2.5">
+                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--pw-primary)] text-white font-bold text-[10px]">
+                  3
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-[var(--pw-ink)]">
+                    ขั้นตอนที่ 3: แตะ &quot;เพิ่ม&quot; (Add)
+                  </p>
+                  <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
+                    ตรวจสอบชื่อแอปเป็น &quot;PocketWise&quot; แล้วแตะปุ่ม &quot;เพิ่ม&quot; ที่มุมบนขวา ไอคอนแอปจะไปปรากฏบนหน้าจอโฮมของคุณทันที
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : deviceInfo.isIos ? (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 flex items-start gap-2.5">
+                <Share className="size-5 shrink-0 text-blue-400 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm text-[var(--pw-ink)]">
+                    ขั้นตอนที่ 1: แตะปุ่มแชร์ใน Safari
+                  </p>
+                  <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
+                    แตะที่ไอคอนแชร์ <Share className="size-3.5 inline mx-0.5 text-blue-400" /> ที่แถบเครื่องมือด้านล่างสุดของหน้าจอ Safari
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 flex items-start gap-2.5">
+                <PlusSquare className="size-5 shrink-0 text-emerald-400 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm text-[var(--pw-ink)]">
+                    ขั้นตอนที่ 2: เลือก &quot;เพิ่มไปยังหน้าจอโฮม&quot;
+                  </p>
+                  <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
+                    เลื่อนหน้าต่างขึ้นมา แล้วแตะที่ <span className="font-semibold text-emerald-400">&quot;เพิ่มไปยังหน้าจอโฮม&quot; (Add to Home Screen)</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-3 flex items-start gap-2.5">
+                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--pw-primary)] text-white font-bold text-[10px]">
+                  3
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-[var(--pw-ink)]">
+                    ขั้นตอนที่ 3: แตะปุ่ม &quot;เพิ่ม&quot;
+                  </p>
+                  <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
+                    แตะปุ่ม &quot;เพิ่ม&quot; (Add) ที่มุมขวาบนเพื่อนำแอปไปไว้บนหน้าจอโฮมของคุณ
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 p-3 flex items-start gap-2.5">
+                <Download className="size-5 shrink-0 text-[var(--pw-primary)] mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm text-[var(--pw-ink)]">
+                    ติดตั้งผ่านแถบที่อยู่เบราว์เซอร์ (Address Bar)
+                  </p>
+                  <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
+                    คลิกที่ไอคอน &quot;ติดตั้ง PocketWise&quot; บริเวณขวาสุดของช่องใส่ URL ในเบราว์เซอร์ Chrome หรือ Edge หรือเลือกเมนู &quot;...&quot; &gt; &quot;ติดตั้งแอป&quot;
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="pt-2">
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => setShowIosInstallGuide(false)}
+            >
+              รับทราบ / ปิดหน้าต่าง
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Global Command Palette */}
       <CommandPalette />
