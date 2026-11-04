@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Calendar, ChevronRight, CreditCard, LoaderCircle, Pencil, Plus, ReceiptText, Save, Trash2, X } from "lucide-react";
 
 const emptyValues: CreditCardFormValues = {
@@ -184,13 +185,18 @@ export function CreditCardsView() {
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดบัตรไม่สำเร็จ"}</p>
       ) : !data?.length ? (
-        <Card className="flex flex-col items-center justify-center p-8 text-center">
-          <CreditCard className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
-          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีบัตรเครดิต</p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-            กดปุ่ม &quot;เพิ่มบัตรเครดิต&quot; ด้านบนเพื่อเริ่มติดตามยอดใช้จ่าย
-          </p>
-        </Card>
+        <EmptyState
+          icon={CreditCard}
+          title="ยังไม่มีบัตรเครดิต"
+          description="เพิ่มบัตรเครดิตเพื่อติดตามยอดวงเงิน วันตัดรอบบิล และกำหนดชำระเงินอย่างเป็นระบบ"
+          actionLabel="เพิ่มบัตรเครดิตแรก"
+          actionIcon={Plus}
+          onAction={() => {
+            reset(emptyValues);
+            setEditing(null);
+            setIsFormOpen(true);
+          }}
+        />
       ) : (
         <AnimatedList className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {data.map((card) => (

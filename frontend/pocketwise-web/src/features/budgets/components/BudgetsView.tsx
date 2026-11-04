@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { AlertTriangle, CheckCircle2, LoaderCircle, Pencil, Plus, Save, Trash2, Wallet, X } from "lucide-react";
 
 const initialValues = (startDate = ""): BudgetFormValues => ({
@@ -349,11 +350,17 @@ export function BudgetsView() {
       ) : isError ? (
         <p role="alert" className="text-[var(--pw-expense)]">{error instanceof ApiError ? error.message : "โหลดงบไม่สำเร็จ"}</p>
       ) : !budgets?.length ? (
-        <Card className="flex flex-col items-center justify-center p-8 text-center">
-          <Wallet className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
-          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีงบประมาณ</p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">กดปุ่ม &quot;ตั้งงบประมาณใหม่&quot; ด้านบนเพื่อกำหนดเป้าหมายวงเงินเพื่อควบคุมค่าใช้จ่ายของคุณ</p>
-        </Card>
+        <EmptyState
+          icon={Wallet}
+          title="ยังไม่มีงบประมาณ"
+          description="กำหนดเป้าหมายวงเงินและขอบเขตเพื่อควบคุมค่าใช้จ่ายของคุณให้เป็นไปตามแผน"
+          actionLabel="ตั้งงบประมาณใหม่"
+          actionIcon={Plus}
+          onAction={() => {
+            resetForm();
+            setIsFormOpen(true);
+          }}
+        />
       ) : (
         <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {budgets.map((budget) => {

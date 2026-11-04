@@ -33,6 +33,7 @@ import {
   Plus,
   Scale,
   Calendar,
+  ChevronLeft,
   ChevronRight,
   X,
 } from "lucide-react";
@@ -134,6 +135,26 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
       setFromDate(selected.from);
       setToDate(selected.to);
       setPeriod("monthly");
+    }
+  };
+
+  const handlePrevMonth = () => {
+    setIsCustomDateMode(false);
+    const idx = monthOptions.findIndex((m) => m.value === currentMonthValue);
+    if (idx !== -1 && idx < monthOptions.length - 1) {
+      handleMonthSelect(monthOptions[idx + 1].value);
+    } else if (monthOptions.length > 0) {
+      handleMonthSelect(monthOptions[0].value);
+    }
+  };
+
+  const handleNextMonth = () => {
+    setIsCustomDateMode(false);
+    const idx = monthOptions.findIndex((m) => m.value === currentMonthValue);
+    if (idx > 0) {
+      handleMonthSelect(monthOptions[idx - 1].value);
+    } else if (monthOptions.length > 0) {
+      handleMonthSelect(monthOptions[0].value);
     }
   };
 
@@ -440,10 +461,37 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         </button>
       </div>
 
-      {/* Active Filter Chips & Summary */}
+      {/* Active Filter Chips, Month Stepper & Summary */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 px-3 py-1 text-xs text-[var(--pw-ink)]">
-          <span>ช่วงเวลา: <strong>{activeQuickPeriod === "all" ? "ทั้งหมด" : `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`}</strong></span>
+        {/* Quick Month Stepper */}
+        <div className="inline-flex items-center rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 p-0.5 text-xs shadow-2xs backdrop-blur-xs">
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all cursor-pointer"
+            aria-label="เดือนก่อนหน้า"
+            title="เดือนก่อนหน้า"
+          >
+            <ChevronLeft className="size-3.5" />
+          </button>
+
+          <span className="px-2 font-semibold text-[var(--pw-ink)] text-[11px] sm:text-xs select-none">
+            {activeQuickPeriod === "all"
+              ? "ทั้งหมด"
+              : monthOptions.find((m) => m.value === currentMonthValue)?.label ??
+                `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`}
+          </span>
+
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            disabled={monthOptions.findIndex((m) => m.value === currentMonthValue) === 0}
+            className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] disabled:opacity-30 disabled:pointer-events-none active:scale-90 transition-all cursor-pointer"
+            aria-label="เดือนถัดไป"
+            title="เดือนถัดไป"
+          >
+            <ChevronRight className="size-3.5" />
+          </button>
         </div>
 
         {selectedCategoryName && (
@@ -651,7 +699,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
           </div>
 
           {/* Sticky Mobile-First Footer (Confirm Top, Reset Bottom) */}
-          <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md px-4 sm:px-6 py-3 border-t border-[var(--pw-hairline)] flex flex-col gap-2 z-10">
+          <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md px-4 sm:px-6 py-3 border-t border-[var(--pw-hairline)]/50 flex flex-col gap-2 z-10">
             <Button
               type="button"
               className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"

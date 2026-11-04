@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
+  User,
   Users,
   Search,
   Filter,
@@ -539,7 +540,7 @@ export default function AdminUsersPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="size-8 rounded-full bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-bold flex items-center justify-center text-xs shrink-0">
-                        {u.displayName.slice(0, 1).toUpperCase()}
+                        <User className="size-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">

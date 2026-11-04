@@ -11,7 +11,7 @@ import { ApiError } from "@/lib/api-client";
 import {
   cn,
   formatCurrency,
-  formatDateTime,
+
   getReadableTextColor,
   isGregorianDateInput,
   thailandDateBoundaryToUtcIso,
@@ -27,6 +27,7 @@ import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { DateInput } from "@/components/ui/date-input";
@@ -235,7 +236,7 @@ export function TransactionList({
 
             {/* Mobile: Compact Financial Pulse Bar (Single Row, ~60px, 3 Columns) */}
       <div className="mb-3.5 block sm:hidden">
-        <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/80 p-2.5 shadow-xs backdrop-blur-md">
+        <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)]/70 bg-[var(--pw-surface)]/70 p-2.5 shadow-xs backdrop-blur-md">
           <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[var(--pw-hairline)]/60 text-[11px] text-[var(--pw-ink)]/60">
             <span className="font-medium">สรุปตามเงื่อนไข ({data?.totalItems ?? 0} รายการ)</span>
             <Link
@@ -871,7 +872,7 @@ export function TransactionList({
           </div>
 
           {/* Sticky Mobile-First Footer (Confirm Top, Reset Bottom) */}
-          <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)] mt-3 flex flex-col gap-2 z-10">
+          <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)]/50 mt-3 flex flex-col gap-2 z-10">
             <Button
               type="button"
               className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
@@ -895,11 +896,17 @@ export function TransactionList({
       {isLoading ? (
         <TransactionCardsSkeleton count={6} />
       ) : !data || data.items.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-12 text-center text-[var(--pw-ink)]/65">
-          <ReceiptText className="mb-3 size-12 opacity-35 text-[var(--pw-primary)]" />
-          <p className="text-base font-semibold text-[var(--pw-ink)]">ยังไม่มีรายการธุรกรรม</p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">กดปุ่ม &quot;เพิ่มรายการ&quot; ด้านบนเพื่อเริ่มต้นบันทึก</p>
-        </Card>
+        <EmptyState
+          icon={ReceiptText}
+          title="ยังไม่มีรายการธุรกรรม"
+          description="บันทึกรายรับหรือรายจ่ายของคุณเพื่อเริ่มติดตามการเงินได้อย่างแม่นยำ"
+          actionLabel="เพิ่มรายการแรก"
+          actionIcon={Plus}
+          onAction={() => {
+            setEditing(null);
+            setShowForm(true);
+          }}
+        />
       ) : (
         <div className="space-y-4">
           <AnimatedList key={`page-${page}-${sortBy}-${sortDesc}`} className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1017,7 +1024,7 @@ export function TransactionList({
                           </p>
                         )}
                         <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-                          {formatDateTime(t.transactionDate)}
+                          {formatDisplayDateTime(t.transactionDate)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -1252,7 +1259,7 @@ export function TransactionList({
             </div>
 
             {/* Sticky Action Footer (Rule 5: Action on Top, Cancel/Destructive on Bottom) */}
-            <div className="sticky bottom-0 bg-[var(--pw-surface-raised)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)] mt-3 flex flex-col gap-2 z-10">
+            <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)]/50 mt-3 flex flex-col gap-2 z-10">
               <Button
                 type="button"
                 className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
@@ -1291,14 +1298,14 @@ export function TransactionList({
                 trigger={
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="destructive"
                     disabled={deletingId === selectedTransaction.transactionId}
-                    className="w-full h-9 text-xs text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 cursor-pointer"
+                    className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
                   >
                     {deletingId === selectedTransaction.transactionId ? (
-                      <LoaderCircle className="size-3.5 mr-1.5 animate-spin" />
+                      <LoaderCircle className="size-4 mr-1.5 animate-spin" />
                     ) : (
-                      <Trash2 className="size-3.5 mr-1.5" />
+                      <Trash2 className="size-4 mr-1.5" />
                     )}
                     {deletingId === selectedTransaction.transactionId ? "กำลังลบ..." : "ลบรายการ"}
                   </Button>

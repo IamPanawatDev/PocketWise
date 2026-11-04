@@ -20,6 +20,7 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import {
   ArrowDown,
@@ -225,13 +226,18 @@ export function TagsView() {
       {isLoading ? (
         <ListRowsSkeleton count={6} />
       ) : !data || data.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-8 text-center">
-          <Tags className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
-          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีแท็ก</p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-            กดปุ่ม &quot;เพิ่มแท็ก&quot; ด้านบนเพื่อเริ่มสร้างแท็กของคุณ
-          </p>
-        </Card>
+        <EmptyState
+          icon={Tags}
+          title="ยังไม่มีแท็กรายการ"
+          description="เพิ่มแท็กเพื่อจัดกลุ่มและค้นหารายการธุรกรรมของคุณได้สะดวกรวดเร็วยิ่งขึ้น"
+          actionLabel="สร้างแท็กแรกของคุณ"
+          actionIcon={Plus}
+          onAction={() => {
+            setEditing(null);
+            reset({ tagName: "", color: "#5865f2" });
+            setIsFormOpen(true);
+          }}
+        />
       ) : (
         <Card className="p-0 overflow-hidden">
           <AnimatedList>

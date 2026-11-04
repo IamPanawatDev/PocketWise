@@ -511,10 +511,7 @@ function SlipReviewContent({
         </Button>
         <Button
           type="button"
-          variant="outline"
-          onClick={handleReject}
-          disabled={rejectMutation.isPending || confirmMutation.isPending}
-          className="w-full sm:w-auto text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          variant="destructive" onClick={handleReject} disabled={rejectMutation.isPending || confirmMutation.isPending} className="w-full sm:w-auto"
         >
           {rejectMutation.isPending ? (
             <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -763,7 +760,7 @@ function StatementReviewContent({
           type="button"
           onClick={handleConfirm}
           disabled={confirmMutation.isPending || selectedItemIds.size === 0}
-          className="w-full sm:w-auto bg-[var(--pw-primary)] text-[var(--pw-primary-foreground)] hover:opacity-90"
+          className="w-full sm:w-auto"
         >
           {confirmMutation.isPending ? (
             <LoaderCircle className="h-4 w-4 animate-spin" />

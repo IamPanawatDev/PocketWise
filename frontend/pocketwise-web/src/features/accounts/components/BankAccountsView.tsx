@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
@@ -282,13 +283,18 @@ export function BankAccountsView() {
       {isLoading ? (
         <CardGridSkeleton count={4} columns="grid-cols-1 sm:grid-cols-2" type="creditCard" />
       ) : !data || data.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-8 text-center">
-          <Landmark className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
-          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีบัญชี</p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-            กดปุ่ม &quot;เพิ่มบัญชี&quot; ด้านบนเพื่อเพิ่มบัญชีธนาคาร เงินสด หรือกระเป๋าเงิน
-          </p>
-        </Card>
+        <EmptyState
+          icon={Landmark}
+          title="ยังไม่มีบัญชีการเงิน"
+          description="เพิ่มบัญชีธนาคาร บัญชีเงินสด หรือกระเป๋าเงินดิจิทัลเพื่อเริ่มต้นติดตามยอดเงินคงเหลือ"
+          actionLabel="เพิ่มบัญชีแรก"
+          actionIcon={Plus}
+          onAction={() => {
+            setEditing(null);
+            reset(initialBankValues);
+            setIsFormOpen(true);
+          }}
+        />
       ) : (
         <AnimatedList className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {data.map((a) => {
