@@ -12,6 +12,7 @@ import { NotificationBell } from "@/features/notifications/components/Notificati
 import { useSignalRNotifications } from "@/features/notifications/hooks/useSignalRNotifications";
 import { useUnreadNotificationCount } from "@/features/notifications/hooks/useNotifications";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { CommandPalette } from "@/components/shared/CommandPalette";
 import { ActiveAnnouncementsBanner } from "@/features/admin-operations/components/ActiveAnnouncementsBanner";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -40,6 +41,7 @@ import {
   Plus,
   ReceiptText,
   Repeat,
+  Search,
   ShieldCheck,
   Sparkles,
   Tags,
@@ -554,11 +556,35 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             />
             <span className="truncate text-base font-bold text-[var(--pw-ink)]">PocketWise</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("pocketwise:open-command-palette"))}
+              className="p-2 rounded-lg text-[var(--pw-ink)]/75 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all flex items-center justify-center cursor-pointer"
+              aria-label="ค้นหาด่วน"
+              title="ค้นหาด่วน (Ctrl+K)"
+            >
+              <Search className="size-5" />
+            </button>
+            <ThemeToggle />
+          </div>
         </header>
 
         {/* Desktop Top-Right Floating Theme Toggle */}
         <div className="fixed top-3 right-6 z-30 hidden md:flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("pocketwise:open-command-palette"))}
+            className="flex items-center gap-2 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/80 px-3 py-1.5 text-xs text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-indigo)]/70 shadow-2xs backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+            aria-label="ค้นหาด่วน (Ctrl+K)"
+            title="ค้นหาด่วน (Ctrl+K)"
+          >
+            <Search className="size-3.5" />
+            <span>ค้นหา...</span>
+            <kbd className="rounded border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] px-1.5 py-0.2 text-[10px] font-mono">
+              Ctrl K
+            </kbd>
+          </button>
           <ThemeToggle />
         </div>
 
@@ -721,6 +747,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           onClose={() => setIsQuickAddOpen(false)}
         />
       </BottomSheet>
+
+      {/* Global Command Palette */}
+      <CommandPalette />
     </div>
   );
 }

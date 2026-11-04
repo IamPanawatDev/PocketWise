@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { tagSchema, type TagFormValues } from "@/schemas/tag.schema";
@@ -28,6 +28,7 @@ import {
   Pencil,
   Plus,
   Save,
+  Search,
   Tags,
   Trash2,
   X,
@@ -42,6 +43,13 @@ export function TagsView() {
 
   const [editing, setEditing] = useState<{ id: number; name: string } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredTags = useMemo(() => {
+    if (!data) return [];
+    if (!searchQuery.trim()) return data;
+    return data.filter((t) => t.tagName.toLowerCase().includes(searchQuery.toLowerCase().trim()));
+  }, [data, searchQuery]);
 
   const {
     register,
@@ -191,6 +199,28 @@ export function TagsView() {
         </div>
       </BottomSheet>
 
+      {/* Search Bar */}
+      <div className="mb-4 max-w-md">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--pw-ink)]/40" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ค้นหาแท็ก..."
+            className="pl-9 pr-8"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--pw-ink)]/40 hover:text-[var(--pw-ink)] p-1"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Tags List */}
       {isLoading ? (
         <ListRowsSkeleton count={6} />
@@ -205,7 +235,7 @@ export function TagsView() {
       ) : (
         <Card className="p-0 overflow-hidden">
           <AnimatedList>
-            {data.map((t, index) => (
+            {filteredTags.map((t, index) => (
               <AnimatedListItem
                 key={t.tagId}
                 className="flex flex-col gap-3 border-b border-[var(--pw-hairline)] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
