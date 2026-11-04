@@ -20,10 +20,12 @@ public class TransactionsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<PagedResult<TransactionResponse>>>> GetAllAsync(
+    public async Task<ActionResult<ApiResponse<TransactionPagedResult<TransactionResponse>>>> GetAllAsync(
         [FromQuery] long? categoryId,
         [FromQuery] long? tagId,
         [FromQuery] long? bankAccountId,
+        [FromQuery] long? creditCardId,
+        [FromQuery] string? sourceType,
         [FromQuery] string? type,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
@@ -40,6 +42,8 @@ public class TransactionsController : ControllerBase
             CategoryId = categoryId,
             TagId = tagId,
             BankAccountId = bankAccountId,
+            CreditCardId = creditCardId,
+            SourceType = sourceType,
             Type = type,
             FromDate = fromDate,
             ToDate = toDate,
@@ -47,7 +51,7 @@ public class TransactionsController : ControllerBase
         };
 
         var result = await _transactionService.GetPagedAsync(userId, filter, page, pageSize, sortBy, sortDesc, cancellationToken);
-        return Ok(ApiResponse<PagedResult<TransactionResponse>>.Ok(result));
+        return Ok(ApiResponse<TransactionPagedResult<TransactionResponse>>.Ok(result));
     }
 
     [HttpGet("{id:long}")]

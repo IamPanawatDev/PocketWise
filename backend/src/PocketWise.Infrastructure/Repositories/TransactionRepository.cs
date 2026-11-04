@@ -36,7 +36,7 @@ public class TransactionRepository : ITransactionRepository
             .AnyAsync(t => t.TransactionId == id && t.UserId == userId, cancellationToken);
     }
 
-    public async Task<PagedResult<Transaction>> GetPagedAsync(long userId, TransactionFilter filter, int page, int pageSize, string sortBy, bool sortDesc, CancellationToken cancellationToken = default)
+    public async Task<TransactionPagedResult<Transaction>> GetPagedAsync(long userId, TransactionFilter filter, int page, int pageSize, string sortBy, bool sortDesc, CancellationToken cancellationToken = default)
     {
         var query = _context.Transactions
             .AsNoTracking()
@@ -101,24 +101,32 @@ public class TransactionRepository : ITransactionRepository
                 (t.Category != null && t.Category.CategoryName.Contains(q)));
         }
 
-        query = ApplySorting(query, sortBy, sortDesc);
-
         var totalItems = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-        var items = await query
+        var incomeSum = await query
+            .Where(t => t.TransactionType == TransactionType.Income)
+            .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0m;
+
+        var expenseSum = await query
+            .Where(t => t.TransactionType == TransactionType.Expense)
+            .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0m;
+
+        var sortedQuery = ApplySorting(query, sortBy, sortDesc);
+
+        var items = await sortedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<Transaction>
-        {
-            Items = items,
-            Page = page,
-            PageSize = pageSize,
-            TotalItems = totalItems,
-            TotalPages = totalPages
-        };
+        return new TransactionPagedResult<Transaction>(
+            items,
+            page,
+            pageSize,
+            totalItems,
+            incomeSum,
+            expenseSum
+        );
     }
 
     public Task AddAsync(Transaction transaction, CancellationToken cancellationToken = default)

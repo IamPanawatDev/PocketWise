@@ -119,7 +119,8 @@ frontend/pocketwise-web/
 - คลาส `.pw-skeleton` รองรับ Shimmer ทั้งใน Light และ Dark Mode
 - **ห้าม** แสดงข้อความ `<p>กำลังโหลด...</p>` หรือ lone spinner ลอยโดดเดี่ยวเด็ดขาด
 
-### มาตรฐาน Modal & BottomSheet Transition:
+### มาตรฐาน Modal, BottomSheet & AlertDialog (Mobile Button Hierarchy):
 - ทุก Modal และ BottomSheet ต้องใช้คลาส `pw-dialog-overlay` และ `pw-bottom-sheet-content` / `pw-dialog-content`
 - จังหวะปิดต้องซิงค์กันที่ 180ms เท่ากันระหว่าง Content และ Backdrop ป้องกันปัญหาการค้าง/สะดุด
-- บน Mobile ปุ่มยืนยันต้องอยู่ด้านบน และปุ่มยกเลิกอยู่ด้านล่างเสมอ ตามมาตรฐานหน้า `/transactions`
+- บน Mobile (`< sm`) ทุกหน้าจอรวมถึง Dialog ยืนยัน/ลบ (`AlertDialog` / `ConfirmDialog`) **ปุ่มยืนยัน/บันทึก/ลบ (Confirm/Action/Delete) ต้องอยู่ข้างบนเสมอ (`order-1`)** และ **ปุ่มยกเลิก (Cancel) ต้องอยู่ข้างล่างเสมอ (`order-2`)** ตามมาตรฐานหน้า `/transactions` ห้ามสลับเอาปุ่มยกเลิกไว้ข้างบนเด็ดขาด
+- ทุกการลบข้อมูล (Delete action) เมื่อกดยืนยันแล้วต้องมี Loading State ชัดเจน ห้ามปล่อยให้หน้านิ่งค้างระหว่างรอ API

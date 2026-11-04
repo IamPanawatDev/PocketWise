@@ -48,6 +48,7 @@ import {
   Sparkles,
   Tags,
   UserRoundCog,
+  User,
   Wallet,
   X,
   LayoutDashboard,
@@ -58,6 +59,8 @@ import {
   Sliders,
   Smartphone,
   Download,
+  Share,
+  PlusSquare,
   Keyboard,
 } from "lucide-react";
 
@@ -169,6 +172,23 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
+  const [maintenanceModeInfo, setMaintenanceModeInfo] = useState<{ message: string; endsAt?: string } | null>(null);
+
+  useEffect(() => {
+    const handleMaintenance = (e: Event) => {
+      const customEvent = e as CustomEvent<{ message: string; data?: { endsAt?: string } }>;
+      setMaintenanceModeInfo({
+        message: customEvent.detail?.message || "ระบบกำลังอยู่ระหว่างปรับปรุงประสิทธิภาพ กรุณากลับมาใหม่อีกครั้งในภายหลัง",
+        endsAt: customEvent.detail?.data?.endsAt,
+      });
+    };
+    window.addEventListener("pocketwise:maintenance-active", handleMaintenance);
+    // Render with Maintenance Mode Guard
+    return (
+) => window.removeEventListener("pocketwise:maintenance-active", handleMaintenance);
+  }, []);
+
+  const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
@@ -189,7 +209,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         setIsInstallable(false);
       }
     } else {
-      toast.info("สำหรับ iOS/Safari: แตะปุ่มแชร์ (Share) แล้วเลือก 'เพิ่มไปยังหน้าจอโฮม' (Add to Home Screen)");
+      setShowIosInstallGuide(true);
     }
   };
 
@@ -358,7 +378,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div className="mt-2.5 rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-br from-[var(--pw-surface-indigo)]/90 to-[var(--pw-surface-onyx)]/90 p-2.5 shadow-xs backdrop-blur-md">
               <div className="flex items-center gap-2.5">
                 <div className="relative flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-sm font-bold text-white shadow-md shadow-[var(--pw-primary)]/20 shrink-0">
-                  {user?.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+                  <User className="size-5 text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
@@ -391,7 +411,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 className="size-11 shrink-0 object-contain drop-shadow"
               />
               <div className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-xs font-bold text-white shadow-md">
-                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+                <User className="size-4.5 text-white" />
               </div>
               <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-[var(--pw-primary)]" />
             </div>
@@ -523,7 +543,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <span className="rounded-full bg-[var(--pw-primary)]/20 px-1.5 py-0.2 text-[9px] font-semibold text-[var(--pw-primary)]">PWA</span>
                   </div>
                   <p className="mt-1 text-[11px] text-[var(--pw-ink)]/65 leading-relaxed">
-                    ติดตั้ง PocketWise ลงบนหน้าจอโฮมเพื่อเปิดใช้งานแบบเต็มจอและเข้าถึงข้อมูลได้รวดเร็วแม้ออฟไลน์
+                    ติดตั้ง PocketWise ลงบนหน้าจอโฮมเพื่อเปิดใช้งานแบบเต็มจอ ไร้แถบเบราว์เซอร์กวนใจ และเข้าถึงหน้าจอได้อย่างรวดเร็ว
                   </p>
                   <Button
                     type="button"

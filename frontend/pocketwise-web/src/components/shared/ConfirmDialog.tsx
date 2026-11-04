@@ -27,11 +27,12 @@ export interface ConfirmDialogProps {
 /**
  * Reusable confirmation dialog (AlertDialog) for destructive / irreversible actions.
  * 
- * UX Standards:
- * 1. Prevents premature closing while an async action (e.g. deletion) is in flight.
- * 2. Displays immediate loading spinner inside the confirm action button during `pending`.
- * 3. Disables cancel and confirm buttons to prevent duplicate triggers.
- * 4. Automatically closes as soon as `pending` transitions back to false.
+ * UX Standards (Strict Master Rule):
+ * 1. Mobile Hierarchy (< sm): Action/Confirm (ลบ/ยืนยัน) MUST be on TOP, Cancel (ยกเลิก) MUST be on BOTTOM.
+ * 2. Prevents premature closing while an async action (e.g. deletion) is in flight.
+ * 3. Displays immediate loading spinner inside the confirm action button during `pending`.
+ * 4. Disables cancel and confirm buttons to prevent duplicate triggers.
+ * 5. Automatically closes as soon as `pending` transitions back to false.
  */
 export function ConfirmDialog({
   trigger,
@@ -82,10 +83,7 @@ export function ConfirmDialog({
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>
-            <X />
-            {cancelLabel}
-          </AlertDialogCancel>
+          {/* Action / Confirm (ลบ/ยืนยัน) is placed first -> displays on TOP on mobile, RIGHT on desktop */}
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={pending}
@@ -103,6 +101,11 @@ export function ConfirmDialog({
               </>
             )}
           </AlertDialogAction>
+          {/* Cancel (ยกเลิก) is placed second -> displays on BOTTOM on mobile, LEFT on desktop */}
+          <AlertDialogCancel disabled={pending}>
+            <X />
+            {cancelLabel}
+          </AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

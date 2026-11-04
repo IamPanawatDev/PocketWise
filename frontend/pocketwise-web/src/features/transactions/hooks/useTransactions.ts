@@ -5,10 +5,10 @@ import { apiClient } from "@/lib/api-client";
 import type {
   CreateTransactionRequest,
   TransactionFilter,
+  TransactionPagedResult,
   TransactionResponse,
   UpdateTransactionRequest,
 } from "@/types/transaction.types";
-import type { PagedResult } from "@/types/api.types";
 
 function buildQuery(
   filter: TransactionFilter,
@@ -41,7 +41,7 @@ export function useTransactions(
   return useQuery({
     queryKey: ["transactions", filter, page, sortBy, sortDesc],
     queryFn: () =>
-      apiClient.get<PagedResult<TransactionResponse>>(`${query}&page=${page}&pageSize=20`),
+      apiClient.get<TransactionPagedResult>(`${query}&page=${page}&pageSize=20`),
   });
 }
 

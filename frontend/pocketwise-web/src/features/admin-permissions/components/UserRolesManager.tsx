@@ -9,6 +9,7 @@ import {
   useAssignUserRolesMutation,
 } from "../hooks/useAdminRoles";
 import { Button } from "@/components/ui/button";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -198,92 +199,92 @@ export function UserRolesManager() {
         )}
       </div>
 
-      {/* Assign Roles Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-[var(--pw-rounded-lg)] bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--pw-hairline)]">
-              <div>
-                <h3 className="text-base font-semibold text-[var(--pw-ink)]">
-                  กำหนดบทบาท: {selectedUser.displayName}
-                </h3>
-                <p className="text-xs text-[var(--pw-ink)]/60">{selectedUser.email}</p>
-              </div>
-              <Button type="button" variant="ghost" size="icon" onClick={closeDialog}>
-                <X className="size-4" />
-              </Button>
+      {/* Assign Roles BottomSheet / Responsive Modal */}
+      <BottomSheet
+        open={Boolean(selectedUser)}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+        title={`กำหนดบทบาท: ${selectedUser?.displayName ?? ""}`}
+        description={selectedUser?.email}
+        className="sm:max-w-md"
+      >
+        <div className="space-y-4 px-5 py-4 sm:px-6">
+          {dialogError && (
+            <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
+              <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
+              <span>{dialogError}</span>
             </div>
+          )}
 
-            {dialogError && (
-              <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
-                <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
-                <span>{dialogError}</span>
-              </div>
-            )}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-[var(--pw-ink)]/80 mb-2">
+              เลือกบทบาทที่ต้องการมอบหมาย:
+            </p>
 
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-[var(--pw-ink)]/80 mb-2">
-                เลือกบทบาทที่ต้องการมอบหมาย:
-              </p>
-
-              {roles.map((role) => {
-                const checked = selectedRoles.includes(role.name);
-                return (
-                  <div
-                    key={role.id}
-                    onClick={() => toggleRole(role.name)}
-                    className={`flex items-center justify-between p-3 rounded-[var(--pw-rounded-sm)] border cursor-pointer transition ${
-                      checked
-                        ? "bg-[var(--pw-primary)]/10 border-[var(--pw-primary)]/50"
-                        : "bg-[var(--pw-canvas)] border-[var(--pw-hairline)] opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-[var(--pw-ink)]">
-                          {role.name}
-                        </span>
-                        {role.name.toUpperCase() === "ADMIN" && (
-                          <ShieldCheck className="size-4 text-amber-400" />
-                        )}
-                      </div>
-                      <p className="text-xs text-[var(--pw-ink)]/60 mt-0.5">
-                        {role.description || `${role.permissionCount} สิทธิ์`}
-                      </p>
+            {roles.map((role) => {
+              const checked = selectedRoles.includes(role.name);
+              return (
+                <div
+                  key={role.id}
+                  onClick={() => toggleRole(role.name)}
+                  className={`flex items-center justify-between p-3 rounded-[var(--pw-rounded-sm)] border cursor-pointer transition ${
+                    checked
+                      ? "bg-[var(--pw-primary)]/10 border-[var(--pw-primary)]/50"
+                      : "bg-[var(--pw-canvas)] border-[var(--pw-hairline)] opacity-80 hover:opacity-100"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-[var(--pw-ink)]">
+                        {role.name}
+                      </span>
+                      {role.name.toUpperCase() === "ADMIN" && (
+                        <ShieldCheck className="size-4 text-amber-400" />
+                      )}
                     </div>
-
-                    <Checkbox
-                      checked={checked}
-                      className="pointer-events-none size-5 rounded-[var(--pw-rounded-xs)]"
-                      aria-hidden="true"
-                    />
+                    <p className="text-xs text-[var(--pw-ink)]/60 mt-0.5">
+                      {role.description || `${role.permissionCount} สิทธิ์`}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
 
-            <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
-              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={closeDialog}>
-                ยกเลิก
-              </Button>
-              <Button
-                type="button"
-                variant="default"
-                className="w-full sm:w-auto"
-                onClick={handleSave}
-                disabled={assignRolesMutation.isPending}
-              >
-                {assignRolesMutation.isPending ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Check className="size-4" />
-                )}
-                บันทึกบทบาท
-              </Button>
-            </div>
+                  <Checkbox
+                    checked={checked}
+                    className="pointer-events-none size-5 rounded-[var(--pw-rounded-xs)]"
+                    aria-hidden="true"
+                  />
+                </div>
+              );
+            })}
           </div>
+
+          <BottomSheetFooter>
+            <Button
+              type="button"
+              variant="default"
+              className="w-full sm:w-auto"
+              onClick={handleSave}
+              disabled={assignRolesMutation.isPending}
+            >
+              {assignRolesMutation.isPending ? (
+                <LoaderCircle className="size-4 animate-spin mr-1.5" />
+              ) : (
+                <Check className="size-4 mr-1.5" />
+              )}
+              บันทึกบทบาท
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={closeDialog}
+              disabled={assignRolesMutation.isPending}
+            >
+              ยกเลิก
+            </Button>
+          </BottomSheetFooter>
         </div>
-      )}
+      </BottomSheet>
     </div>
   );
 }

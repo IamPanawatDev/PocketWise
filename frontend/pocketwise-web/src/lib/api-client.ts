@@ -149,6 +149,21 @@ async function request<T>(
       window.location.href = `/login?from=${encodeURIComponent(window.location.pathname)}`;
     }
 
+        const isMaintenance =
+      res.status === 503 &&
+      ((json as any)?.errorCode === "MAINTENANCE_MODE" || (json as any)?.error?.code === "MAINTENANCE_MODE");
+
+    if (isMaintenance && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("pocketwise:maintenance-active", {
+          detail: {
+            message: (json as any)?.message || (json as any)?.error?.message || "ระบบกำลังอยู่ระหว่างการปรับปรุงประสิทธิภาพ กรุณากลับมาใหม่อีกครั้งในภายหลัง",
+            data: (json as any)?.data,
+          },
+        })
+      );
+    }
+
     const error = json?.error;
     throw new ApiError(
       error?.code ?? "INTERNAL_ERROR",

@@ -8,6 +8,7 @@ import {
   Filter,
   ShieldAlert,
   RotateCcw,
+  LoaderCircle,
   Ban,
   CheckCircle2,
   XCircle,
@@ -45,6 +46,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton, ListRowsSkeleton } from "@/components/shared/Skeletons";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import type { AdminImportJob } from "@/types/admin-operations.types";
 
 export default function AdminImportsPage() {
@@ -255,136 +258,248 @@ export default function AdminImportsPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-[var(--pw-ink)]/70 font-semibold">
-                <th className="py-3 px-4">รหัส / ไฟล์</th>
-                <th className="py-3 px-4">ผู้ส่งนำเข้า</th>
-                <th className="py-3 px-4">ประเภท</th>
-                <th className="py-3 px-4">สถานะ</th>
-                <th className="py-3 px-4">จำนวนรายการ</th>
-                <th className="py-3 px-4">ลองใหม่</th>
-                <th className="py-3 px-4">เวลาสร้าง</th>
-                <th className="py-3 px-4 text-right">การจัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--pw-hairline)]">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-[var(--pw-ink)]/60">
-                    กำลังโหลดงานนำเข้า...
-                  </td>
-                </tr>
-              ) : importsData?.items.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-[var(--pw-ink)]/60">
-                    ไม่พบงานนำเข้าตามเงื่อนไขที่เลือก
-                  </td>
-                </tr>
-              ) : (
-                importsData?.items.map((job) => (
-                  <tr key={job.importJobId} className="hover:bg-[var(--pw-hairline)]/10 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-[var(--pw-ink)] flex items-center gap-1.5">
-                        <FileText className="size-3.5 text-[var(--pw-primary)] shrink-0" />
-                        <span className="truncate max-w-[180px]">{job.fileName || "ไม่มีชื่อไฟล์"}</span>
-                      </div>
-                      <div className="text-[11px] text-[var(--pw-ink)]/50">ID: #{job.importJobId}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="text-[var(--pw-ink)] font-medium">{job.userDisplayName || "-"}</div>
-                      <div className="text-[11px] text-[var(--pw-ink)]/60">{job.userEmail || "-"}</div>
-                    </td>
-                    <td className="py-3.5 px-4 font-medium text-xs">
-                      {job.jobType}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {renderStatusBadge(job.status)}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs">
-                      <div>ทั้งหมด: {job.totalRecords}</div>
-                      <div className="text-[11px] text-[var(--pw-income)]">สำเร็จ: {job.successRecords}</div>
-                      {job.failedRecords > 0 && (
-                        <div className="text-[11px] text-[var(--pw-expense)]">ล้มเหลว: {job.failedRecords}</div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs">
-                      <span className={cn(
-                        "font-semibold",
-                        job.retryCount >= 5 ? "text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/80"
-                      )}>
-                        {job.retryCount} / 5
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-[var(--pw-ink)]/70">
-                      {formatDisplayDateTime(job.createdAt)}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {job.errorMessage && (
-                          <button
-                            onClick={() => setErrorDetailsJob(job)}
-                            className="px-2 py-1 text-xs rounded border border-amber-500/40 text-amber-500 hover:bg-amber-500/10 transition-colors"
-                            title="ดูข้อความข้อผิดพลาด"
-                          >
-                            ดู Error
-                          </button>
-                        )}
-                        {job.status === "Failed" && (
-                          <button
-                            onClick={() => handleRetry(job)}
-                            disabled={job.retryCount >= 5 || retryMutation.isPending}
-                            className="px-2.5 py-1 text-xs rounded border border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20 transition-colors font-medium flex items-center gap-1 disabled:opacity-40"
-                          >
-                            <RotateCcw className="size-3" /> ลองใหม่
-                          </button>
-                        )}
-                        {(job.status === "Pending" || job.status === "Processing" || job.status === "NeedsReview") && (
-                          <button
-                            onClick={() => handleCancel(job)}
-                            disabled={cancelMutation.isPending}
-                            className="px-2.5 py-1 text-xs rounded border border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20 transition-colors font-medium flex items-center gap-1"
-                          >
-                            <Ban className="size-3" /> ยกเลิก
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Loading Skeleton */}
+      {isLoading ? (
+        <>
+          <div className="hidden md:block">
+            <TableSkeleton rows={8} columns={8} />
+          </div>
+          <div className="md:hidden">
+            <ListRowsSkeleton count={5} />
+          </div>
+        </>
+      ) : importsData?.items.length === 0 ? (
+        <div className="rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] p-12 text-center text-[var(--pw-ink)]/60">
+          <FileStack className="mx-auto mb-3 size-10 opacity-30 text-[var(--pw-primary)]" />
+          <p className="text-base font-semibold text-[var(--pw-ink)]">ไม่พบงานนำเข้าตามเงื่อนไขที่เลือก</p>
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+            ลองปรับเปลี่ยนคำค้นหา หรือตัวกรองสถานะและประเภทงานด้านบน
+          </p>
         </div>
-
-        {/* Pagination */}
-        {importsData && importsData.totalPages > 1 && (
-          <div className="p-4 border-t border-[var(--pw-hairline)] flex items-center justify-between text-xs text-[var(--pw-ink)]/70">
-            <span>
-              หน้า {importsData.page} จาก {importsData.totalPages} (ทั้งหมด {importsData.totalItems} รายการ)
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="px-2.5 py-1 rounded border border-[var(--pw-hairline)] bg-[var(--pw-surface)] disabled:opacity-40"
-              >
-                ก่อนหน้า
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(importsData.totalPages, p + 1))}
-                disabled={page >= importsData.totalPages}
-                className="px-2.5 py-1 rounded border border-[var(--pw-hairline)] bg-[var(--pw-surface)] disabled:opacity-40"
-              >
-                ถัดไป
-              </button>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-[var(--pw-ink)]/70 font-semibold">
+                    <th className="py-3 px-4">รหัส / ไฟล์</th>
+                    <th className="py-3 px-4">ผู้ส่งนำเข้า</th>
+                    <th className="py-3 px-4">ประเภท</th>
+                    <th className="py-3 px-4">สถานะ</th>
+                    <th className="py-3 px-4">จำนวนรายการ</th>
+                    <th className="py-3 px-4">ลองใหม่</th>
+                    <th className="py-3 px-4">เวลาสร้าง</th>
+                    <th className="py-3 px-4 text-right">การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--pw-hairline)]">
+                  {importsData?.items.map((job) => (
+                    <tr key={job.importJobId} className="hover:bg-[var(--pw-hairline)]/10 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div className="font-semibold text-[var(--pw-ink)] flex items-center gap-1.5">
+                          <FileText className="size-3.5 text-[var(--pw-primary)] shrink-0" />
+                          <span className="truncate max-w-[180px]">{job.fileName || "ไม่มีชื่อไฟล์"}</span>
+                        </div>
+                        <div className="text-[11px] text-[var(--pw-ink)]/50">ID: #{job.importJobId}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="text-[var(--pw-ink)] font-medium">{job.userDisplayName || "-"}</div>
+                        <div className="text-[11px] text-[var(--pw-ink)]/60">{job.userEmail || "-"}</div>
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-xs">
+                        {job.jobType}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {renderStatusBadge(job.status)}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs">
+                        <div>ทั้งหมด: {job.totalRecords}</div>
+                        <div className="text-[11px] text-[var(--pw-income)]">สำเร็จ: {job.successRecords}</div>
+                        {job.failedRecords > 0 && (
+                          <div className="text-[11px] text-[var(--pw-expense)]">ล้มเหลว: {job.failedRecords}</div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs">
+                        <span className={cn(
+                          "font-semibold",
+                          job.retryCount >= 5 ? "text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/80"
+                        )}>
+                          {job.retryCount} / 5
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-[var(--pw-ink)]/70">
+                        {formatDisplayDateTime(job.createdAt)}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {job.errorMessage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setErrorDetailsJob(job)}
+                              className="h-7 px-2 text-xs border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                              title="ดูข้อความข้อผิดพลาด"
+                            >
+                              ดู Error
+                            </Button>
+                          )}
+                          {job.status === "Failed" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRetry(job)}
+                              disabled={job.retryCount >= 5 || retryMutation.isPending}
+                              className="h-7 px-2.5 text-xs border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20"
+                            >
+                              <RotateCcw className="size-3 mr-1" /> ลองใหม่
+                            </Button>
+                          )}
+                          {(job.status === "Pending" || job.status === "Processing" || job.status === "NeedsReview") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCancel(job)}
+                              disabled={cancelMutation.isPending}
+                              className="h-7 px-2.5 text-xs border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20"
+                            >
+                              <Ban className="size-3 mr-1" /> ยกเลิก
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Mobile Card List View (< md) */}
+          <AnimatedList className="space-y-3 md:hidden">
+            {importsData?.items.map((job) => (
+              <AnimatedListItem key={job.importJobId}>
+                <div className="rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] p-4 shadow-xs space-y-3">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 font-semibold text-sm text-[var(--pw-ink)]">
+                        <FileText className="size-4 text-[var(--pw-primary)] shrink-0" />
+                        <span className="truncate">{job.fileName || "ไม่มีชื่อไฟล์"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--pw-ink)]/60">
+                        <span className="font-mono">#{job.importJobId}</span>
+                        <span>•</span>
+                        <span className="font-medium text-[var(--pw-primary)]">{job.jobType}</span>
+                      </div>
+                    </div>
+                    <div>{renderStatusBadge(job.status)}</div>
+                  </div>
+
+                  {/* User info & Timestamps */}
+                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-[var(--pw-hairline)]/50">
+                    <div>
+                      <span className="text-[10px] text-[var(--pw-ink)]/50 block">ผู้ส่งนำเข้า</span>
+                      <span className="font-medium text-[var(--pw-ink)] truncate block">{job.userDisplayName || "-"}</span>
+                      <span className="text-[10px] text-[var(--pw-ink)]/60 truncate block">{job.userEmail || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[var(--pw-ink)]/50 block">เวลาสร้าง</span>
+                      <span className="text-[var(--pw-ink)]/80 text-[11px] block">{formatDisplayDateTime(job.createdAt)}</span>
+                      <span className="text-[10px] text-[var(--pw-ink)]/50 mt-1 block">ลองใหม่: <strong className={job.retryCount >= 5 ? "text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/80"}>{job.retryCount}/5</strong></span>
+                    </div>
+                  </div>
+
+                  {/* Records statistics */}
+                  <div className="flex items-center justify-between text-xs bg-[var(--pw-canvas)]/60 p-2.5 rounded-xl border border-[var(--pw-hairline)]/60">
+                    <div>
+                      <span className="text-[10px] text-[var(--pw-ink)]/50 block">ทั้งหมด</span>
+                      <span className="font-bold text-[var(--pw-ink)]">{job.totalRecords}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[var(--pw-income)] block">สำเร็จ</span>
+                      <span className="font-bold text-[var(--pw-income)]">{job.successRecords}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[var(--pw-expense)] block">ล้มเหลว</span>
+                      <span className="font-bold text-[var(--pw-expense)]">{job.failedRecords}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-1">
+                    {job.errorMessage && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setErrorDetailsJob(job)}
+                        className="flex-1 h-8 text-xs border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                      >
+                        ดู Error
+                      </Button>
+                    )}
+                    {job.status === "Failed" && (
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleRetry(job)}
+                        disabled={job.retryCount >= 5 || retryMutation.isPending}
+                        className="flex-1 h-8 text-xs"
+                      >
+                        <RotateCcw className="size-3 mr-1" /> ลองใหม่
+                      </Button>
+                    )}
+                    {(job.status === "Pending" || job.status === "Processing" || job.status === "NeedsReview") && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleCancel(job)}
+                        disabled={cancelMutation.isPending}
+                        className="flex-1 h-8 text-xs"
+                      >
+                        <Ban className="size-3 mr-1" /> ยกเลิก
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </AnimatedListItem>
+            ))}
+          </AnimatedList>
+
+          {/* Pagination */}
+          {importsData && importsData.totalPages > 1 && (
+            <div className="p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--pw-ink)]/70">
+              <span>
+                หน้า {importsData.page} จาก {importsData.totalPages} (ทั้งหมด {importsData.totalItems} รายการ)
+              </span>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="flex-1 sm:flex-none h-8 text-xs"
+                >
+                  ก่อนหน้า
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(importsData.totalPages, p + 1))}
+                  disabled={page >= importsData.totalPages}
+                  className="flex-1 sm:flex-none h-8 text-xs"
+                >
+                  ถัดไป
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Error Details Bottom Sheet */}
       <BottomSheet
@@ -438,10 +553,14 @@ export default function AdminImportsPage() {
         )}
       </BottomSheet>
 
-      {/* Confirmation AlertDialog */}
+      {/* Confirmation AlertDialog with Loading State */}
       <AlertDialog
         open={confirmDialog.open}
-        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+        onOpenChange={(open) => {
+          if (!retryMutation.isPending && !cancelMutation.isPending) {
+            setConfirmDialog((prev) => ({ ...prev, open }));
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -450,16 +569,23 @@ export default function AdminImportsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction
+              disabled={retryMutation.isPending || cancelMutation.isPending}
               className={confirmDialog.destructive ? "bg-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/90 text-white" : undefined}
-              onClick={async () => {
-                const action = confirmDialog.onConfirm;
+              onClick={async (e) => {
+                e.preventDefault();
+                await confirmDialog.onConfirm();
                 setConfirmDialog((prev) => ({ ...prev, open: false }));
-                await action();
               }}
             >
+              {(retryMutation.isPending || cancelMutation.isPending) && (
+                <LoaderCircle className="size-4 animate-spin mr-1.5" />
+              )}
               {confirmDialog.confirmLabel || "ยืนยัน"}
             </AlertDialogAction>
-            <AlertDialogCancel onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}>
+            <AlertDialogCancel
+              disabled={retryMutation.isPending || cancelMutation.isPending}
+              onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+            >
               ยกเลิก
             </AlertDialogCancel>
           </AlertDialogFooter>
