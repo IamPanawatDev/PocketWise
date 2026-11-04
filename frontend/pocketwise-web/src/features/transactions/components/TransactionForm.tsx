@@ -443,12 +443,13 @@ export function TransactionForm({
       )}
 
       {/* Hero Amount Input */}
-      <FormField label="จำนวนเงิน (บาท)" htmlFor="transaction-amount" error={errors.amount?.message}>
+      <FormField label="จำนวนเงิน (บาท) — รองรับสูตร เช่น 50+35" htmlFor="transaction-amount" error={errors.amount?.message}>
         <NumberInput
           id="transaction-amount"
+          enableQuickMath={true}
           step="0.01"
           min="0.01"
-          placeholder="0.00"
+          placeholder="0.00 (พิมพ์สูตร เช่น 50+35 ได้)"
           inputMode="decimal"
           prefixNode={<span className="text-xl font-bold text-[var(--pw-ink)]/50">฿</span>}
           className="h-14 text-2xl sm:text-3xl font-extrabold tracking-tight bg-[var(--pw-surface-black)]/35 border-[var(--pw-input-border)] focus:border-[var(--pw-primary)] rounded-[var(--pw-rounded-sm)]"

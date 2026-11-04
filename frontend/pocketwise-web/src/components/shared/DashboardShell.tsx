@@ -12,9 +12,11 @@ import { NotificationBell } from "@/features/notifications/components/Notificati
 import { useSignalRNotifications } from "@/features/notifications/hooks/useSignalRNotifications";
 import { useUnreadNotificationCount } from "@/features/notifications/hooks/useNotifications";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { CommandPalette } from "@/components/shared/CommandPalette";
 import { ActiveAnnouncementsBanner } from "@/features/admin-operations/components/ActiveAnnouncementsBanner";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TransactionForm } from "@/features/transactions/components/TransactionForm";
 import {
@@ -54,6 +56,9 @@ import {
   ShieldAlert,
   Megaphone,
   Sliders,
+  Smartphone,
+  Download,
+  Keyboard,
 } from "lucide-react";
 
 interface NavItem {
@@ -92,15 +97,60 @@ const adminNav: NavItem[] = [
 ];
 
 
-const mobileShortcuts = [
-  { href: "/bank-accounts", label: "บัญชีธนาคาร", icon: Landmark, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
-  { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
-  { href: "/budgets", label: "งบประมาณ", icon: Wallet, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
-  { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
-  { href: "/categories", label: "หมวดหมู่", icon: FolderTree, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
-  { href: "/tags", label: "แท็ก", icon: Tags, color: "text-rose-400", bg: "bg-rose-500/10 border-rose-500/20" },
-  { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
-  { href: "/settings", label: "ตั้งค่าระบบ", icon: Sliders, color: "text-slate-400", bg: "bg-slate-500/10 border-slate-500/20" },
+interface MobileMenuCardItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  bg: string;
+  permission?: string;
+}
+
+interface MobileMenuGroup {
+  title: string;
+  items: MobileMenuCardItem[];
+}
+
+const mobileMenuGroups: MobileMenuGroup[] = [
+  {
+    title: "ธุรกรรม & การเงิน",
+    items: [
+      { href: "/transactions", label: "รายการธุรกรรม", icon: ReceiptText, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
+      { href: "/transfers", label: "โอนเงินระหว่างบัญชี", icon: ArrowRightLeft, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
+      { href: "/imports", label: "นำเข้าสลิป & บิล", icon: FileUp, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
+      { href: "/bank-accounts", label: "บัญชีธนาคาร", icon: Landmark, color: "text-teal-400", bg: "bg-teal-500/10 border-teal-500/20" },
+      { href: "/credit-cards", label: "บัตรเครดิต & รอบบิล", icon: CreditCard, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
+    ],
+  },
+  {
+    title: "วางแผน & วิเคราะห์",
+    items: [
+      { href: "/budgets", label: "งบประมาณ", icon: Wallet, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
+      { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
+      { href: "/reports", label: "รายงานการเงิน", icon: PieChart, color: "text-rose-400", bg: "bg-rose-500/10 border-rose-500/20" },
+    ],
+  },
+  {
+    title: "จัดการ & ตั้งค่า",
+    items: [
+      { href: "/categories", label: "หมวดหมู่รายรับจ่าย", icon: FolderTree, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+      { href: "/tags", label: "แท็กรายการ", icon: Tags, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
+      { href: "/categorization", label: "จัดหมวดอัตโนมัติ", icon: Sparkles, color: "text-fuchsia-400", bg: "bg-fuchsia-500/10 border-fuchsia-500/20", permission: "CATEGORIZATION_VIEW" },
+      { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog, color: "text-slate-400", bg: "bg-slate-500/10 border-slate-500/20" },
+    ],
+  },
+];
+
+const adminMobileShortcuts: MobileMenuCardItem[] = [
+  { href: "/admin/overview", label: "ภาพรวมระบบ", icon: LayoutDashboard, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
+  { href: "/admin/users", label: "จัดการผู้ใช้งาน", icon: Users, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
+  { href: "/admin/imports", label: "งานนำเข้าระบบ", icon: FileStack, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+  { href: "/admin/security-events", label: "ความปลอดภัย", icon: ShieldAlert, color: "text-rose-500", bg: "bg-rose-500/10 border-rose-500/20" },
+  { href: "/admin/announcements", label: "ประกาศระบบ", icon: Megaphone, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
+  { href: "/admin/permissions", label: "สิทธิ์และบทบาท", icon: ShieldCheck, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
+  { href: "/admin/categories", label: "หมวดมาตรฐาน", icon: FolderTree, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
+  { href: "/admin/settings", label: "การตั้งค่าระบบ", icon: Sliders, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
+  { href: "/audit-logs", label: "ประวัติการใช้งาน", icon: History, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -116,12 +166,64 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data: unreadData } = useUnreadNotificationCount();
   const unreadCount = unreadData?.unreadCount ?? 0;
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === "accepted") {
+        setDeferredPrompt(null);
+        setIsInstallable(false);
+      }
+    } else {
+      toast.info("สำหรับ iOS/Safari: แตะปุ่มแชร์ (Share) แล้วเลือก 'เพิ่มไปยังหน้าจอโฮม' (Add to Home Screen)");
+    }
+  };
 
   useEffect(() => {
     const handleOpen = () => setIsQuickAddOpen(true);
     window.addEventListener("pocketwise:open-transaction-form", handleOpen);
     return () => window.removeEventListener("pocketwise:open-transaction-form", handleOpen);
   }, []);
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsShortcutsModalOpen((prev) => !prev);
+      } else if ((e.key === "n" || e.key === "N") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsQuickAddOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
+
 
   const isAdmin = (user?.roles?.includes("Admin") || user?.roles?.includes("SuperAdmin")) ?? false;
 
@@ -203,6 +305,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh">
+      {/* Offline Detection Banner */}
+      <OfflineBanner />
       {/* Mobile Drawer Backdrop with blur and smooth fade */}
       <div
         role="presentation"
@@ -223,8 +327,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           isCollapsed ? "md:w-20" : "md:w-72",
         )}
       >
-        {/* Pinned Top Brand & Greeting (Locked, never scrolls) */}
-        <div className="shrink-0 mb-2">
+        {/* Pinned Top Brand & User Card with Avatar + Bell */}
+        <div className="shrink-0 mb-3">
           <div className={cn("w-full", iconOnly && "md:hidden")}>
             <div className="flex w-full items-center justify-between rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)] px-3 py-2 text-base font-bold text-[var(--pw-on-primary)] shadow-sm">
               <div className="flex min-w-0 items-center gap-2.5">
@@ -249,28 +353,46 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <X className="size-4" />
               </Button>
             </div>
-            <div className="mt-2 flex w-full items-center justify-between gap-1.5 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] p-1.5">
-              <p className="min-w-0 flex-1 truncate px-1 text-sm text-[var(--pw-link)]">
-                {user?.displayName
-                  ? /[\u0E00-\u0E7F]/u.test(user.displayName)
-                    ? `สวัสดี คุณ ${user.displayName}`
-                    : `Welcome, ${user.displayName}`
-                  : "..."}
-              </p>
-              <NotificationBell className="size-8 shrink-0 text-[var(--pw-ink)] hover:text-[var(--pw-primary)]" />
+
+            {/* User Profile Card with Avatar & Notification Bell (Replaces old สวัสดีคุณ box) */}
+            <div className="mt-2.5 rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-br from-[var(--pw-surface-indigo)]/90 to-[var(--pw-surface-onyx)]/90 p-2.5 shadow-xs backdrop-blur-md">
+              <div className="flex items-center gap-2.5">
+                <div className="relative flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-sm font-bold text-white shadow-md shadow-[var(--pw-primary)]/20 shrink-0">
+                  {user?.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-xs sm:text-sm font-semibold text-[var(--pw-ink)]">
+                      {user?.displayName || "ผู้ใช้งาน"}
+                    </p>
+                    {isAdmin && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.2 text-[9px] font-medium text-amber-500 border border-amber-500/25 shrink-0">
+                        <ShieldCheck className="size-2.5" />
+                        Admin
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-[11px] text-[var(--pw-ink)]/55">{user?.email || "กำลังเชื่อมต่อ..."}</p>
+                </div>
+                {/* Notification Bell right inside Avatar Card */}
+                <NotificationBell className="size-8 shrink-0 text-[var(--pw-ink)]/75 hover:text-[var(--pw-primary)]" />
+              </div>
             </div>
           </div>
 
           {iconOnly && (
-            <div className="mb-5 hidden flex-col items-center gap-2 md:flex">
+            <div className="mb-5 hidden flex-col items-center gap-3 md:flex">
               <Image
                 src="/brand-logo.png"
                 alt="PocketWise brand"
-                width={48}
-                height={48}
+                width={44}
+                height={44}
                 priority
-                className="size-12 shrink-0 object-contain drop-shadow"
+                className="size-11 shrink-0 object-contain drop-shadow"
               />
+              <div className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-xs font-bold text-white shadow-md">
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+              </div>
               <NotificationBell className="size-8 text-[var(--pw-ink)] hover:text-[var(--pw-primary)]" />
             </div>
           )}
@@ -278,105 +400,59 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Command Hub Drawer (Mobile Only) */}
         <div className="flex md:hidden flex-col flex-1 min-h-0 overflow-hidden">
-          {/* Mobile User Profile Card */}
-          <div className="mb-3 shrink-0 rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-br from-[var(--pw-surface-indigo)]/90 to-[var(--pw-surface-onyx)]/90 p-3 shadow-xs backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="relative flex size-11 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-base font-bold text-white shadow-md shadow-[var(--pw-primary)]/20 shrink-0">
-                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="truncate text-sm font-semibold text-[var(--pw-ink)]">
-                    {user?.displayName || "ผู้ใช้งาน"}
-                  </p>
-                  {isAdmin && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500 border border-amber-500/25 shrink-0">
-                      <ShieldCheck className="size-3" />
-                      Admin
-                    </span>
-                  )}
-                </div>
-                <p className="truncate text-xs text-[var(--pw-ink)]/55">{user?.email || "กำลังเชื่อมต่อ..."}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Scrollable Shortcuts and All Menus */}
+          {/* Scrollable Grouped Menus (Card Grid Style like Shortcuts) */}
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 space-y-4">
-            {/* Quick Shortcuts Grid */}
-            <div>
-              <p className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--pw-ink)]/50">
-                ทางลัดการเงิน (Shortcuts)
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {mobileShortcuts.map((item) => {
-                  const Icon = item.icon;
-                  const active = pathname.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={closeNavigation}
-                      className={cn(
-                        "group relative flex items-center gap-2.5 rounded-xl border p-2.5 transition-all duration-150 active:scale-95",
-                        active
-                          ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 shadow-xs"
-                          : "border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 hover:bg-[var(--pw-surface-indigo)]/70"
-                      )}
-                    >
-                      <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border", item.bg)}>
-                        <Icon className={cn("size-4", item.color)} />
-                      </div>
-                      <span className={cn("text-xs font-medium truncate", active ? "text-[var(--pw-primary)] font-semibold" : "text-[var(--pw-ink)]/85")}>
-                        {item.label}
-                      </span>
-                      {active && (
-                        <span className="absolute right-2 top-2 size-1.5 rounded-full bg-[var(--pw-primary)]" />
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+            {mobileMenuGroups.map((group) => {
+              const visibleItems = group.items.filter(
+                (item) => !item.permission || isAdmin || user?.permissions?.includes(item.permission)
+              );
+              if (visibleItems.length === 0) return null;
 
-            {/* Core Menus List */}
-            <div>
-              <p className="px-1 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--pw-ink)]/50">
-                เมนูทั้งหมด (All Menus)
-              </p>
-              <nav aria-label="เมนูทั้งหมดบนมือถือ" className="space-y-1 rounded-xl bg-[var(--pw-canvas)]/60 border border-[var(--pw-hairline)] p-1.5">
-                {mainNav
-                  .filter((item) => !item.permission || isAdmin || user?.permissions?.includes(item.permission))
-                  .map((item) => {
-                    const Icon = item.icon;
-                    const active = pathname.startsWith(item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={closeNavigation}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-98",
-                          active
-                            ? "bg-[var(--pw-primary)] text-white shadow-xs"
-                            : "text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)] hover:text-[var(--pw-ink)]"
-                        )}
-                      >
-                        <Icon className="size-4 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    );
-                  })}
-              </nav>
-            </div>
+              return (
+                <div key={group.title} className="space-y-1.5">
+                  <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--pw-ink)]/50">
+                    {group.title}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {visibleItems.map((item) => {
+                      const Icon = item.icon;
+                      const active = pathname.startsWith(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={closeNavigation}
+                          className={cn(
+                            "group relative flex items-center gap-2.5 rounded-xl border p-2.5 transition-all duration-150 active:scale-95",
+                            active
+                              ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 shadow-xs"
+                              : "border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 hover:bg-[var(--pw-surface-indigo)]/70"
+                          )}
+                        >
+                          <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border", item.bg)}>
+                            <Icon className={cn("size-4", item.color)} />
+                          </div>
+                          <span className={cn("text-xs font-medium truncate", active ? "text-[var(--pw-primary)] font-semibold" : "text-[var(--pw-ink)]/85")}>
+                            {item.label}
+                          </span>
+                          {active && (
+                            <span className="absolute right-2 top-2 size-1.5 rounded-full bg-[var(--pw-primary)]" />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
 
-            {/* Admin Section on Mobile */}
+            {/* Admin Section on Mobile with matching 2-column Card Grid */}
             {isAdmin && (
-              <div className="pb-2">
+              <div className="space-y-1.5 pb-1">
                 <button
                   type="button"
                   onClick={() => setIsAdminOpen((open) => !open)}
-                  className="flex w-full items-center justify-between rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 px-3 py-2 text-xs font-semibold text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-indigo)] transition"
+                  className="flex w-full items-center justify-between rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 px-3 py-2 text-xs font-semibold text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-indigo)] transition cursor-pointer"
                   aria-expanded={isAdminOpen}
                   aria-label="ย่อ/ขยายเมนูผู้ดูแลระบบบนมือถือ"
                 >
@@ -400,8 +476,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="mt-1.5 space-y-1 rounded-xl bg-[var(--pw-canvas)]/60 border border-[var(--pw-hairline)] p-1.5">
-                        {adminNav.map((item) => {
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {adminMobileShortcuts.map((item) => {
                           const Icon = item.icon;
                           const active = pathname.startsWith(item.href);
                           return (
@@ -410,14 +486,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                               href={item.href}
                               onClick={closeNavigation}
                               className={cn(
-                                "flex items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-98",
+                                "group relative flex items-center gap-2.5 rounded-xl border p-2.5 transition-all duration-150 active:scale-95",
                                 active
-                                  ? "bg-[var(--pw-primary)] text-white shadow-xs"
-                                  : "text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)] hover:text-[var(--pw-ink)]"
+                                  ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 shadow-xs"
+                                  : "border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 hover:bg-[var(--pw-surface-indigo)]/70"
                               )}
                             >
-                              <Icon className="size-4 shrink-0" />
-                              <span className="truncate">{item.label}</span>
+                              <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border", item.bg)}>
+                                <Icon className={cn("size-4", item.color)} />
+                              </div>
+                              <span className={cn("text-xs font-medium truncate", active ? "text-[var(--pw-primary)] font-semibold" : "text-[var(--pw-ink)]/85")}>
+                                {item.label}
+                              </span>
+                              {active && (
+                                <span className="absolute right-2 top-2 size-1.5 rounded-full bg-[var(--pw-primary)]" />
+                              )}
                             </Link>
                           );
                         })}
@@ -427,9 +510,36 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </AnimatePresence>
               </div>
             )}
+
+            {/* PWA Mobile App Install Card */}
+            <div className="rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-br from-[var(--pw-primary)]/10 via-[var(--pw-surface-indigo)]/80 to-[var(--pw-surface-onyx)]/80 p-3.5 shadow-sm backdrop-blur-md">
+              <div className="flex items-start gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--pw-primary)] text-white shadow-md shadow-[var(--pw-primary)]/25">
+                  <Smartphone className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-[var(--pw-ink)]">ติดตั้งเป็นแอปมือถือ</h4>
+                    <span className="rounded-full bg-[var(--pw-primary)]/20 px-1.5 py-0.2 text-[9px] font-semibold text-[var(--pw-primary)]">PWA</span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-[var(--pw-ink)]/65 leading-relaxed">
+                    ติดตั้ง PocketWise ลงบนหน้าจอโฮมเพื่อเปิดใช้งานแบบเต็มจอและเข้าถึงข้อมูลได้รวดเร็วแม้ออฟไลน์
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleInstallApp}
+                    className="mt-2.5 w-full h-8 text-xs font-semibold gap-1.5 bg-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/90 text-white shadow-xs"
+                  >
+                    <Download className="size-3.5" />
+                    <span>ติดตั้งแอป</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
-
         {/* Desktop Scrollable Navigation Area (Hidden on mobile) */}
         <div className="hidden md:flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
           <TooltipProvider>
@@ -747,6 +857,74 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           onClose={() => setIsQuickAddOpen(false)}
         />
       </BottomSheet>
+      {/* Global Keyboard Shortcuts Cheat Sheet Dialog */}
+      <BottomSheet
+        open={isShortcutsModalOpen}
+        onOpenChange={setIsShortcutsModalOpen}
+        title={
+          <div className="flex items-center gap-2">
+            <Keyboard className="size-5 text-[var(--pw-primary)]" />
+            <span>คีย์ลัดสำหรับคีย์บอร์ด (Keyboard Shortcuts)</span>
+          </div>
+        }
+        description="ทางลัดสำหรับเพิ่มความสะดวกรวดเร็วในการจัดการข้อมูลการเงิน"
+      >
+        <div className="space-y-3 py-1">
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/60">
+              <div className="flex items-center gap-2.5">
+                <kbd className="min-w-7 text-center px-2 py-1 rounded-md border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] text-xs font-mono font-bold text-[var(--pw-ink)] shadow-2xs">
+                  N
+                </kbd>
+                <span className="text-xs text-[var(--pw-ink)] font-medium">บันทึกรายการด่วน (New Transaction)</span>
+              </div>
+              <span className="text-[11px] text-[var(--pw-ink)]/50">ทุกหน้าจอ</span>
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/60">
+              <div className="flex items-center gap-2.5">
+                <kbd className="min-w-7 text-center px-2 py-1 rounded-md border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] text-xs font-mono font-bold text-[var(--pw-ink)] shadow-2xs">
+                  Ctrl + K
+                </kbd>
+                <span className="text-xs text-[var(--pw-ink)] font-medium">เปิด Command Palette / ค้นหาด่วน</span>
+              </div>
+              <span className="text-[11px] text-[var(--pw-ink)]/50">ทุกหน้าจอ</span>
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/60">
+              <div className="flex items-center gap-2.5">
+                <kbd className="min-w-7 text-center px-2 py-1 rounded-md border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] text-xs font-mono font-bold text-[var(--pw-ink)] shadow-2xs">
+                  ?
+                </kbd>
+                <span className="text-xs text-[var(--pw-ink)] font-medium">แสดงคู่มือคีย์ลัด (Shortcuts Cheat Sheet)</span>
+              </div>
+              <span className="text-[11px] text-[var(--pw-ink)]/50">ทุกหน้าจอ</span>
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/60">
+              <div className="flex items-center gap-2.5">
+                <kbd className="min-w-7 text-center px-2 py-1 rounded-md border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] text-xs font-mono font-bold text-[var(--pw-ink)] shadow-2xs">
+                  Esc
+                </kbd>
+                <span className="text-xs text-[var(--pw-ink)] font-medium">ปิดหน้าต่าง / ยกเลิก (Close Modal)</span>
+              </div>
+              <span className="text-[11px] text-[var(--pw-ink)]/50">ทุกหน้าต่าง</span>
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/60">
+              <div className="flex items-center gap-2.5">
+                <kbd className="min-w-7 text-center px-2 py-1 rounded-md border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] text-xs font-mono font-bold text-[var(--pw-ink)] shadow-2xs">
+                  + - * / =
+                </kbd>
+                <span className="text-xs text-[var(--pw-ink)] font-medium">คำนวณเงินด่วน (Quick Math เช่น 85+15)</span>
+              </div>
+              <span className="text-[11px] text-[var(--pw-ink)]/50">ช่องใส่ยอดเงิน</span>
+            </div>
+          </div>
+        </div>
+      </BottomSheet>
+
+
 
       {/* Global Command Palette */}
       <CommandPalette />

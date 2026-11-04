@@ -148,6 +148,7 @@
 | 8.0.4 | Standardized Unified Loading & Skeleton Architecture | ✅ | D47: สร้าง src/components/ui/skeleton.tsx, reusable presets ใน Skeletons.tsx, .pw-skeleton shimmer ใน globals.css ครอบคลุมทั้ง 32 routes |
 | 8.0.5 | Smooth Modal & BottomSheet Transition Standards | ✅ | D48: Custom CSS keyframes ซิงค์เวลาปิด 180ms เท่ากันระหว่าง Content และ Overlay, แก้ปัญหาจังหวะปิดค้าง/สะดุด (hanging glitch) |
 | 8.0.6 | Branding, Ambient Background & Responsive BottomSheet Layout | ✅ | D49: Ambient background (Light 0.75, Dark 0.15), จัดปุ่มยืนยันอยู่บนและปุ่มยกเลิกอยู่ล่างใน BottomSheet มือถือ, เปลี่ยน logo & favicon แบรนด์ PocketWise |
+| 8.0.7 | Full UI/UX Modernization & Handover Documentation | ✅ | PR #50–#54: Command Palette (Ctrl+K), Filter Drawer, Button Loading States, Skeletons, Mobile Hub Drawer, Recurring Summary, Upcoming Bills, Credit Card Canvas, Segmented Categories/Tags, Settings Danger Zone — เอกสารส่งต่องานสรุปที่ /docs/UI_MODERNIZATION_HANDOVER.md |
 | 8.1 | 📦 Mvc.Testing + integration tests ครบ | ⬜ | |
 | 8.2 | 📦 Playwright (FE E2E — เมื่อใช้) | ⬜ | |
 | 8.3 | Security review (rate limiting, upload guard, secrets ผ่านหมด) | ⬜ | Tech_Stack §8 |

@@ -27,6 +27,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 3. **ห้ามติดตั้ง Library หรือ Package อื่นเพิ่มเติมจนกว่าจะได้รับคำสั่ง (Strict Dependency Policy)**
    - ห้ามรันคำสั่ง `npm install`, `yarn add`, `pnpm add` เพื่อเพิ่ม library อื่นๆ นอกเหนือจากที่มีอยู่เดิมโดยเด็ดขาด จนกว่าจะได้รับคำสั่งหรือการอนุญาตที่ชัดเจนจากผู้ใช้
 
+4. **ตรวจสอบและต่อยอดจาก UI Modernization Handover Guide เสมอ**
+   - งานปรับปรุง UI/UX ทั้งหมดของระบบ (Command Palette `Ctrl+K`, Filter Drawer, Button Loading States, Skeletons, Mobile Hub Drawer, Recurring Summary, Credit Card Canvas, Segmented Categories/Tags ฯลฯ) สรุปไว้ใน [`/docs/UI_MODERNIZATION_HANDOVER.md`](file:///D:/Projects/PocketWise/docs/UI_MODERNIZATION_HANDOVER.md) แล้ว
+   - **ห้ามรื้อทำใหม่ หรือทำซ้ำในสิ่งที่ทำเสร็จแล้ว**: AI ต้องศึกษาเอกสาร Handover ก่อนปรับปรุงหรือต่อเติมหน้าจอใดๆ เสมอ
+
 ---
 
 ## 📁 2. คู่มือตำแหน่งไฟล์ (Code Placement Guide) — ต้องเขียนไว้ที่โฟลเดอร์ไหน?

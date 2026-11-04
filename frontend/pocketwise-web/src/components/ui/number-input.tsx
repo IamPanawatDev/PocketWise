@@ -1,14 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Calculator, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { evaluateMathExpression, isMathExpression } from "@/lib/math-parser";
 
 export interface NumberInputProps
   extends Omit<React.ComponentProps<"input">, "type"> {
   stepper?: boolean;
   prefixNode?: React.ReactNode;
   suffixNode?: React.ReactNode;
+  enableQuickMath?: boolean;
 }
 
 function getPrecision(val: number | string | undefined): number {
@@ -36,14 +38,14 @@ function calculateNextValue(
   const minNum =
     minProp !== undefined && minProp !== ""
       ? typeof minProp === "number"
-        ? minProp
-        : parseFloat(String(minProp))
+      ? minProp
+      : parseFloat(String(minProp))
       : -Infinity;
   const maxNum =
     maxProp !== undefined && maxProp !== ""
       ? typeof maxProp === "number"
-        ? maxProp
-        : parseFloat(String(maxProp))
+      ? maxProp
+      : parseFloat(String(maxProp))
       : Infinity;
 
   const currentNum = currentStr === "" ? 0 : parseFloat(currentStr);
@@ -64,9 +66,13 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       max,
       disabled,
       stepper = true,
+      enableQuickMath = false,
       prefixNode,
       suffixNode,
       placeholder = "0",
+      onChange,
+      onKeyDown,
+      onBlur,
       ...props
     },
     ref
@@ -74,6 +80,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     const inputRef = React.useRef<HTMLInputElement | null>(null);
     const holdTimerRef = React.useRef<NodeJS.Timeout | null>(null);
     const repeatTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+    const [mathPreview, setMathPreview] = React.useState<number | null>(null);
 
     const setRefs = React.useCallback(
       (element: HTMLInputElement | null) => {
@@ -86,6 +93,33 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       },
       [ref]
     );
+
+    const applyMathResult = React.useCallback((computedVal: number) => {
+      const input = inputRef.current;
+      if (!input || disabled) return;
+
+      const strVal = String(computedVal);
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value"
+      )?.set;
+
+      if (nativeSetter) {
+        nativeSetter.call(input, strVal);
+      } else {
+        input.value = strVal;
+      }
+
+      const tracker = (input as unknown as { _valueTracker?: { setValue: (v: string) => void } })
+        ._valueTracker;
+      if (tracker) {
+        tracker.setValue("");
+      }
+
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      setMathPreview(null);
+    }, [disabled]);
 
     const triggerValueChange = React.useCallback(
       (direction: "up" | "down") => {
@@ -146,6 +180,37 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       return () => stopHold();
     }, [stopHold]);
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (enableQuickMath) {
+        const val = e.target.value;
+        if (isMathExpression(val)) {
+          const evaluated = evaluateMathExpression(val);
+          setMathPreview(evaluated);
+        } else {
+          setMathPreview(null);
+        }
+      }
+      onChange?.(e);
+    };
+
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (enableQuickMath && (e.key === "Enter" || e.key === "=")) {
+        if (mathPreview !== null) {
+          e.preventDefault();
+          applyMathResult(mathPreview);
+          return;
+        }
+      }
+      onKeyDown?.(e);
+    };
+
+    const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      if (enableQuickMath && mathPreview !== null) {
+        applyMathResult(mathPreview);
+      }
+      onBlur?.(e);
+    };
+
     return (
       <div className="relative flex w-full items-center">
         {prefixNode && (
@@ -156,7 +221,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
         <input
           ref={setRefs}
-          type="number"
+          type={enableQuickMath ? "text" : "number"}
           inputMode={props.inputMode ?? (step && String(step).includes(".") ? "decimal" : "numeric")}
           placeholder={placeholder}
           step={step}
@@ -164,16 +229,33 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           max={max}
           disabled={disabled}
           data-slot="number-input"
+          onChange={handleInputChange}
+          onKeyDown={handleInputKeyDown}
+          onBlur={handleInputBlur}
           className={cn(
             "h-11 w-full min-w-0 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-input-border)] bg-[var(--pw-input-surface)] px-4 py-2 text-base text-[var(--pw-ink)] transition-colors outline-none placeholder:text-[var(--pw-ink)]/55 focus-visible:border-[var(--pw-primary)] focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[var(--pw-magenta)] aria-invalid:ring-2 aria-invalid:ring-[var(--pw-magenta)]/30 md:text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
             prefixNode ? "pl-9" : undefined,
-            stepper || suffixNode ? "pr-10" : undefined,
+            stepper || suffixNode || mathPreview !== null ? "pr-24 sm:pr-28" : undefined,
             className
           )}
           {...props}
         />
 
-        {suffixNode && !stepper && (
+        {/* Quick Math Live Calculated Result Badge */}
+        {mathPreview !== null && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => applyMathResult(mathPreview)}
+            className="absolute right-9 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-[var(--pw-primary)] text-white shadow-md hover:bg-[var(--pw-primary)]/90 active:scale-95 transition-all cursor-pointer"
+            title="คลิกหรือกด Enter เพื่อคำนวณยอดเงิน"
+          >
+            <Calculator className="size-3" />
+            <span>= {mathPreview}฿</span>
+          </button>
+        )}
+
+        {suffixNode && !stepper && mathPreview === null && (
           <div className="pointer-events-none absolute right-3 flex items-center text-sm text-[var(--pw-ink)]/50">
             {suffixNode}
           </div>

@@ -44,7 +44,7 @@ import {
   useReportSummary,
   useReportTrends,
 } from "@/features/reports/hooks/useReports";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { ReportContentSkeleton } from "@/components/shared/Skeletons";
 import type { ReportPeriod } from "@/types/report.types";
 import {
@@ -263,18 +263,30 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<"csv" | "json">("csv");
   const [exportType, setExportType] = useState<"full" | "transactions">("full");
+  const [exportMonthMode, setExportMonthMode] = useState<"current" | "specific">("current");
+  const [selectedExportMonth, setSelectedExportMonth] = useState<string>(() => monthOptions[0]?.value || "");
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
-    if (!validRange) {
+    let targetFromUtc = fromUtc;
+    let targetToUtc = toUtc;
+
+    if (exportMonthMode === "specific") {
+      const selected = monthOptions.find((m) => m.value === selectedExportMonth);
+      if (selected) {
+        targetFromUtc = thailandDateBoundaryToUtcIso(selected.from, false);
+        targetToUtc = thailandDateBoundaryToUtcIso(selected.to, true);
+      }
+    } else if (!validRange) {
       toast.error(rangeMessage || "กรุณาเลือกช่วงวันที่ให้ถูกต้องก่อนส่งออก");
       return;
     }
+
     try {
       setIsExporting(true);
       await exportReportFile({
-        fromDate: fromUtc,
-        toDate: toUtc,
+        fromDate: targetFromUtc,
+        toDate: targetToUtc,
         format: exportFormat,
         type: exportType,
         categoryId,
@@ -1169,151 +1181,205 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         </>
       )}
 
-      {/* Export Report Modal */}
-      {isExportOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
-          <div className="w-full max-w-md rounded-[var(--pw-rounded-lg)] bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--pw-hairline)]">
-              <div className="flex items-center gap-2">
-                <FileDown className="size-5 text-[var(--pw-primary)]" />
-                <h3 className="text-base font-semibold text-[var(--pw-ink)]">
-                  ส่งออกข้อมูลรายงาน (Export Report)
-                </h3>
-              </div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setIsExportOpen(false)}>
-                <X className="size-4" />
-              </Button>
-            </div>
-
-            <p className="text-xs text-[var(--pw-ink)]/70">
-              ดาวน์โหลดรายงานข้อมูลสรุปและรายการธุรกรรมในช่วงเวลาที่คุณเลือก
-            </p>
-
-            <div className="p-3 rounded-lg bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)] space-y-1.5 text-xs">
-              <div className="flex justify-between">
-                <span className="text-[var(--pw-ink)]/60">ช่วงวันที่:</span>
-                <span className="font-mono text-[var(--pw-ink)]">{fromDate} ถึง {toDate}</span>
-              </div>
-              {categoryId && (
-                <div className="flex justify-between">
-                  <span className="text-[var(--pw-ink)]/60">หมวดหมู่:</span>
-                  <span className="text-[var(--pw-ink)]">
-                    {categories?.find((c) => c.categoryId === categoryId)?.categoryName ?? "-"}
-                  </span>
-                </div>
-              )}
-              {tagId && (
-                <div className="flex justify-between">
-                  <span className="text-[var(--pw-ink)]/60">แท็ก:</span>
-                  <span className="text-[var(--pw-ink)]">
-                    {tags?.find((t) => t.tagId === tagId)?.tagName ?? "-"}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-[var(--pw-ink)] mb-1.5 block">
-                  เนื้อหาที่ต้องการส่งออก (Export Scope)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setExportType("full")}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-[var(--pw-rounded-sm)] border text-xs font-medium text-center transition-colors cursor-pointer",
-                      exportType === "full"
-                        ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
-                        : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
-                    )}
-                  >
-                    <span>รายงานฉบับเต็ม</span>
-                    <span className="text-[10px] text-[var(--pw-ink)]/50 mt-0.5">ภาพรวม + ทุกรายการ</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setExportType("transactions")}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-[var(--pw-rounded-sm)] border text-xs font-medium text-center transition-colors cursor-pointer",
-                      exportType === "transactions"
-                        ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
-                        : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
-                    )}
-                  >
-                    <span>เฉพาะรายการธุรกรรม</span>
-                    <span className="text-[10px] text-[var(--pw-ink)]/50 mt-0.5">ตารางรายการดิบ</span>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-[var(--pw-ink)] mb-1.5 block">
-                  รูปแบบไฟล์ (File Format)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat("csv")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 p-3 rounded-[var(--pw-rounded-sm)] border text-xs font-medium transition-colors cursor-pointer",
-                      exportFormat === "csv"
-                        ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
-                        : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
-                    )}
-                  >
-                    <FileSpreadsheet className="size-4 shrink-0" />
-                    <span>CSV (Excel)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat("json")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 p-3 rounded-[var(--pw-rounded-sm)] border text-xs font-medium transition-colors cursor-pointer",
-                      exportFormat === "json"
-                        ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
-                        : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
-                    )}
-                  >
-                    <FileJson className="size-4 shrink-0" />
-                    <span>JSON (Data)</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
-              <Button
+      {/* Export Report Responsive BottomSheet / Modal */}
+      <BottomSheet
+        open={isExportOpen}
+        onOpenChange={setIsExportOpen}
+        title={
+          <div className="flex items-center gap-2">
+            <FileDown className="size-5 text-[var(--pw-primary)]" />
+            <span>ส่งออกข้อมูลรายงาน (Export Report)</span>
+          </div>
+        }
+        description="ดาวน์โหลดสรุปภาพรวมรายรับ-รายจ่าย รายหมวดหมู่ หรือรายการธุรกรรมประจำเดือน"
+      >
+        <div className="space-y-4">
+          {/* Export Mode / Month Selector */}
+          <div>
+            <label className="text-xs font-medium text-[var(--pw-ink)] mb-1.5 block">
+              เลือกช่วงเดือนที่ต้องการส่งออก
+            </label>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <button
                 type="button"
-                variant="ghost"
-                className="w-full sm:w-auto text-xs"
-                onClick={() => setIsExportOpen(false)}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                type="button"
-                variant="default"
-                className="w-full sm:w-auto text-xs gap-1.5"
-                onClick={handleExport}
-                disabled={isExporting}
-              >
-                {isExporting ? (
-                  <>
-                    <LoaderCircle className="size-4 animate-spin" />
-                    กำลังสร้างไฟล์...
-                  </>
-                ) : (
-                  <>
-                    <Download className="size-4" />
-                    ดาวน์โหลดไฟล์
-                  </>
+                onClick={() => setExportMonthMode("current")}
+                className={cn(
+                  "p-2.5 rounded-[var(--pw-rounded-sm)] border text-xs font-medium text-center transition-all cursor-pointer",
+                  exportMonthMode === "current"
+                    ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
+                    : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
                 )}
-              </Button>
+              >
+                <span>ตามช่วงที่ดูอยู่</span>
+                <span className="block text-[10px] text-[var(--pw-ink)]/50 mt-0.5 font-mono truncate">
+                  {fromDate} ถึง {toDate}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportMonthMode("specific")}
+                className={cn(
+                  "p-2.5 rounded-[var(--pw-rounded-sm)] border text-xs font-medium text-center transition-all cursor-pointer",
+                  exportMonthMode === "specific"
+                    ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
+                    : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
+                )}
+              >
+                <span>เลือกรายเดือนเฉพาะ</span>
+                <span className="block text-[10px] text-[var(--pw-ink)]/50 mt-0.5">
+                  สรุปประจำเดือน
+                </span>
+              </button>
+            </div>
+
+            {exportMonthMode === "specific" && (
+              <div className="mt-2">
+                <Select value={selectedExportMonth} onValueChange={setSelectedExportMonth}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="เลือกเดือน" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56">
+                    {monthOptions.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Active Filter Context */}
+          <div className="p-3 rounded-lg bg-[var(--pw-surface-black)]/60 border border-[var(--pw-hairline)] space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-[var(--pw-ink)]/60">ช่วงเวลาส่งออก:</span>
+              <span className="font-mono text-[var(--pw-ink)] font-medium">
+                {exportMonthMode === "specific"
+                  ? monthOptions.find((m) => m.value === selectedExportMonth)?.label ?? selectedExportMonth
+                  : `${fromDate} ถึง ${toDate}`}
+              </span>
+            </div>
+            {categoryId && (
+              <div className="flex justify-between">
+                <span className="text-[var(--pw-ink)]/60">หมวดหมู่:</span>
+                <span className="text-[var(--pw-ink)]">
+                  {categories?.find((c) => c.categoryId === categoryId)?.categoryName ?? "-"}
+                </span>
+              </div>
+            )}
+            {tagId && (
+              <div className="flex justify-between">
+                <span className="text-[var(--pw-ink)]/60">แท็ก:</span>
+                <span className="text-[var(--pw-ink)]">
+                  {tags?.find((t) => t.tagId === tagId)?.tagName ?? "-"}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Scope Selector */}
+          <div>
+            <label className="text-xs font-medium text-[var(--pw-ink)] mb-1.5 block">
+              เนื้อหาที่ต้องการส่งออก (Export Scope)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setExportType("full")}
+                className={cn(
+                  "flex flex-col items-center justify-center p-3 rounded-[var(--pw-rounded-sm)] border text-xs font-medium text-center transition-colors cursor-pointer",
+                  exportType === "full"
+                    ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
+                    : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
+                )}
+              >
+                <span>รายงานฉบับเต็ม</span>
+                <span className="text-[10px] text-[var(--pw-ink)]/50 mt-0.5">ภาพรวมสรุป + รายหมวด + ทุกรายการ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportType("transactions")}
+                className={cn(
+                  "flex flex-col items-center justify-center p-3 rounded-[var(--pw-rounded-sm)] border text-xs font-medium text-center transition-colors cursor-pointer",
+                  exportType === "transactions"
+                    ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
+                    : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
+                )}
+              >
+                <span>เฉพาะรายการธุรกรรม</span>
+                <span className="text-[10px] text-[var(--pw-ink)]/50 mt-0.5">ตารางรายการย่อยสำหรับ Excel</span>
+              </button>
             </div>
           </div>
+
+          {/* Format Selector */}
+          <div>
+            <label className="text-xs font-medium text-[var(--pw-ink)] mb-1.5 block">
+              รูปแบบไฟล์ (File Format)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setExportFormat("csv")}
+                className={cn(
+                  "flex items-center justify-center gap-2 p-3 rounded-[var(--pw-rounded-sm)] border text-xs font-medium transition-colors cursor-pointer",
+                  exportFormat === "csv"
+                    ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
+                    : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
+                )}
+              >
+                <FileSpreadsheet className="size-4 shrink-0 text-emerald-400" />
+                <span>CSV (Excel ภาษาไทย)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportFormat("json")}
+                className={cn(
+                  "flex items-center justify-center gap-2 p-3 rounded-[var(--pw-rounded-sm)] border text-xs font-medium transition-colors cursor-pointer",
+                  exportFormat === "json"
+                    ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
+                    : "border-[var(--pw-hairline)] bg-[var(--pw-surface-black)] text-[var(--pw-ink)]/70 hover:border-[var(--pw-primary)]/50"
+                )}
+              >
+                <FileJson className="size-4 shrink-0 text-sky-400" />
+                <span>JSON (Raw Data)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* BottomSheetFooter: Confirm TOP on Mobile, Cancel BOTTOM */}
+          <BottomSheetFooter>
+            <Button
+              type="button"
+              variant="default"
+              className="gap-1.5"
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" />
+                  กำลังส่งออกรายงาน...
+                </>
+              ) : (
+                <>
+                  <Download className="size-4" />
+                  ดาวน์โหลดรายงาน
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsExportOpen(false)}
+              disabled={isExporting}
+            >
+              ยกเลิก
+            </Button>
+          </BottomSheetFooter>
         </div>
-      )}
+      </BottomSheet>
     </div>
   );
 }
