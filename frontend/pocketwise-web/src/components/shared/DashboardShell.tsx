@@ -990,7 +990,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <Share className="size-5 shrink-0 text-blue-400 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm text-[var(--pw-ink)]">
-                    ขั้นตอนที่ 1: แตะปุ่ม "แชร์" หรือเมนู "..."
+                    ขั้นตอนที่ 1: แตะปุ่ม &quot;แชร์&quot; หรือเมนู &quot;...&quot;
                   </p>
                   <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
                     แตะที่ไอคอนแชร์ <Share className="size-3.5 inline mx-0.5 text-blue-400" /> ที่มุมบนขวาของ Chrome หรือแตะที่ไอคอนเมนูสามจุด (...) ที่มุมล่างขวา
@@ -1002,10 +1002,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <PlusSquare className="size-5 shrink-0 text-emerald-400 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm text-[var(--pw-ink)]">
-                    ขั้นตอนที่ 2: เลือก "เพิ่มไปยังหน้าจอโฮม"
+                    ขั้นตอนที่ 2: เลือก &quot;เพิ่มไปยังหน้าจอโฮม&quot;
                   </p>
                   <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
-                    เลื่อนรายการเมนูลงมา แล้วเลือกคำสั่ง <span className="font-semibold text-emerald-400">"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</span>
+                    เลื่อนรายการเมนูลงมา แล้วเลือกคำสั่ง <span className="font-semibold text-emerald-400">&quot;เพิ่มไปยังหน้าจอโฮม&quot; (Add to Home Screen)</span>
                   </p>
                 </div>
               </div>
@@ -1016,10 +1016,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-[var(--pw-ink)]">
-                    ขั้นตอนที่ 3: แตะ "เพิ่ม" (Add)
+                    ขั้นตอนที่ 3: แตะ &quot;เพิ่ม&quot; (Add)
                   </p>
                   <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
-                    ตรวจสอบชื่อแอปเป็น "PocketWise" แล้วแตะปุ่ม "เพิ่ม" ที่มุมบนขวา ไอคอนแอปจะไปปรากฏบนหน้าจอโฮมของคุณทันที
+                    ตรวจสอบชื่อแอปเป็น &quot;PocketWise&quot; แล้วแตะปุ่ม &quot;เพิ่ม&quot; ที่มุมบนขวา ไอคอนแอปจะไปปรากฏบนหน้าจอโฮมของคุณทันที
                   </p>
                 </div>
               </div>
@@ -1042,10 +1042,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <PlusSquare className="size-5 shrink-0 text-emerald-400 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm text-[var(--pw-ink)]">
-                    ขั้นตอนที่ 2: เลือก "เพิ่มไปยังหน้าจอโฮม"
+                    ขั้นตอนที่ 2: เลือก &quot;เพิ่มไปยังหน้าจอโฮม&quot;
                   </p>
                   <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
-                    เลื่อนหน้าต่างขึ้นมา แล้วแตะที่ <span className="font-semibold text-emerald-400">"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</span>
+                    เลื่อนหน้าต่างขึ้นมา แล้วแตะที่ <span className="font-semibold text-emerald-400">&quot;เพิ่มไปยังหน้าจอโฮม&quot; (Add to Home Screen)</span>
                   </p>
                 </div>
               </div>
@@ -1056,10 +1056,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-[var(--pw-ink)]">
-                    ขั้นตอนที่ 3: แตะปุ่ม "เพิ่ม"
+                    ขั้นตอนที่ 3: แตะปุ่ม &quot;เพิ่ม&quot;
                   </p>
                   <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
-                    แตะปุ่ม "เพิ่ม" (Add) ที่มุมขวาบนเพื่อนำแอปไปไว้บนหน้าจอโฮมของคุณ
+                    แตะปุ่ม &quot;เพิ่ม&quot; (Add) ที่มุมขวาบนเพื่อนำแอปไปไว้บนหน้าจอโฮมของคุณ
                   </p>
                 </div>
               </div>
@@ -1073,7 +1073,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     ติดตั้งผ่านแถบที่อยู่เบราว์เซอร์ (Address Bar)
                   </p>
                   <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
-                    คลิกที่ไอคอน "ติดตั้ง PocketWise" บริเวณขวาสุดของช่องใส่ URL ในเบราว์เซอร์ Chrome หรือ Edge หรือเลือกเมนู "..." &gt; "ติดตั้งแอป"
+                    คลิกที่ไอคอน &quot;ติดตั้ง PocketWise&quot; บริเวณขวาสุดของช่องใส่ URL ในเบราว์เซอร์ Chrome หรือ Edge หรือเลือกเมนู &quot;...&quot; &gt; &quot;ติดตั้งแอป&quot;
                   </p>
                 </div>
               </div>
