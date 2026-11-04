@@ -78,13 +78,13 @@ const mainNav: NavItem[] = [
   { href: "/budgets", label: "งบประมาณ", icon: Wallet },
   { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard },
   { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat },
-  { href: "/categorization", label: "จัดหมวดอัตโนมัติ", icon: Sparkles, permission: "CATEGORIZATION_VIEW" },
+  { href: "/categorization", label: "จัดหมวด AI", icon: Sparkles, permission: "CATEGORIZATION_VIEW" },
   { href: "/reports", label: "รายงาน", icon: PieChart },
   { href: "/categories", label: "หมวดหมู่", icon: FolderTree },
   { href: "/tags", label: "แท็ก", icon: Tags },
   { href: "/bank-accounts", label: "บัญชี", icon: Landmark },
   { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
-  { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog },
+  { href: "/settings", label: "ตั้งค่าบัญชี", icon: UserRoundCog },
 ];
 
 const adminNav: NavItem[] = [
@@ -118,11 +118,11 @@ const mobileMenuGroups: MobileMenuGroup[] = [
   {
     title: "ธุรกรรม & การเงิน",
     items: [
-      { href: "/transactions", label: "รายการธุรกรรม", icon: ReceiptText, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
-      { href: "/transfers", label: "โอนเงินระหว่างบัญชี", icon: ArrowRightLeft, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
-      { href: "/imports", label: "นำเข้าสลิป & บิล", icon: FileUp, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
+      { href: "/transactions", label: "รายการ", icon: ReceiptText, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
+      { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
+      { href: "/imports", label: "นำเข้าสลิป", icon: FileUp, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
       { href: "/bank-accounts", label: "บัญชีธนาคาร", icon: Landmark, color: "text-teal-400", bg: "bg-teal-500/10 border-teal-500/20" },
-      { href: "/credit-cards", label: "บัตรเครดิต & รอบบิล", icon: CreditCard, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
+      { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
     ],
   },
   {
@@ -136,10 +136,10 @@ const mobileMenuGroups: MobileMenuGroup[] = [
   {
     title: "จัดการ & ตั้งค่า",
     items: [
-      { href: "/categories", label: "หมวดหมู่รายรับจ่าย", icon: FolderTree, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+      { href: "/categories", label: "หมวดหมู่", icon: FolderTree, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
       { href: "/tags", label: "แท็กรายการ", icon: Tags, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
-      { href: "/categorization", label: "จัดหมวดอัตโนมัติ", icon: Sparkles, color: "text-fuchsia-400", bg: "bg-fuchsia-500/10 border-fuchsia-500/20", permission: "CATEGORIZATION_VIEW" },
-      { href: "/settings", label: "ตั้งค่าและโปรไฟล์", icon: UserRoundCog, color: "text-slate-400", bg: "bg-slate-500/10 border-slate-500/20" },
+      { href: "/categorization", label: "จัดหมวด AI", icon: Sparkles, color: "text-fuchsia-400", bg: "bg-fuchsia-500/10 border-fuchsia-500/20", permission: "CATEGORIZATION_VIEW" },
+      { href: "/settings", label: "ตั้งค่าบัญชี", icon: UserRoundCog, color: "text-slate-400", bg: "bg-slate-500/10 border-slate-500/20" },
     ],
   },
 ];
