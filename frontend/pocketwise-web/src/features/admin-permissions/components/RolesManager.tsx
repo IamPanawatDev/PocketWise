@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormField } from "@/components/ui/form-field";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import {
   AlertCircle,
   Check,
@@ -229,84 +230,85 @@ export function RolesManager() {
         })}
       </AnimatedList>
 
-      {/* Create / Edit Role Modal */}
-      {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-[var(--pw-rounded-lg)] bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--pw-hairline)]">
-              <h3 className="text-base font-semibold text-[var(--pw-ink)]">
-                {editingRole ? `แก้ไขบทบาท: ${editingRole.name}` : "เพิ่มบทบาทใหม่"}
-              </h3>
-              <Button type="button" variant="ghost" size="icon" onClick={closeDialog}>
-                <X className="size-4" />
-              </Button>
+      {/* Create / Edit Role BottomSheet / Responsive Modal */}
+      <BottomSheet
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+        title={editingRole ? `แก้ไขบทบาท: ${editingRole.name}` : "เพิ่มบทบาทใหม่"}
+        description={editingRole ? "แก้ไขชื่อหรือเปิด/ปิดการใช้งานบทบาทนี้" : "กำหนดชื่อและหน้าที่ความรับผิดชอบของบทบาทใหม่"}
+        className="sm:max-w-md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4 sm:px-6">
+          {formError && (
+            <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
+              <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
+              <span>{formError}</span>
             </div>
+          )}
 
-            {formError && (
-              <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
-                <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
-                <span>{formError}</span>
-              </div>
-            )}
+          <FormField label="ชื่อบทบาท *" htmlFor="role-name">
+            <Input
+              id="role-name"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="เช่น Manager, Auditor, Editor"
+              disabled={editingRole?.name.toUpperCase() === "ADMIN"}
+              autoFocus
+            />
+          </FormField>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <FormField label="ชื่อบทบาท *" htmlFor="role-name">
-                <Input
-                  id="role-name"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="เช่น Manager, Auditor, Editor"
-                  disabled={editingRole?.name.toUpperCase() === "ADMIN"}
-                  autoFocus
-                />
-              </FormField>
+          <FormField label="คำอธิบายบทบาท" htmlFor="role-desc">
+            <Input
+              id="role-desc"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder="ระบุหน้าที่ความรับผิดชอบของบทบาทนี้"
+            />
+          </FormField>
 
-              <FormField label="คำอธิบายบทบาท" htmlFor="role-desc">
-                <Input
-                  id="role-desc"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="ระบุหน้าที่ความรับผิดชอบของบทบาทนี้"
-                />
-              </FormField>
-
-              <div className="flex items-center gap-2.5 pt-2">
-                <Checkbox
-                  id="role-active"
-                  checked={formIsActive}
-                  onCheckedChange={(checked) => setFormIsActive(Boolean(checked))}
-                  disabled={editingRole?.name.toUpperCase() === "ADMIN"}
-                />
-                <Label
-                  htmlFor="role-active"
-                  className="mb-0 cursor-pointer text-sm font-medium leading-none text-[var(--pw-ink)] select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  เปิดใช้งานบทบาทนี้
-                </Label>
-              </div>
-
-              <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
-                <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={closeDialog}>
-                  ยกเลิก
-                </Button>
-                <Button
-                  type="submit"
-                  variant="default"
-                  className="w-full sm:w-auto"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                >
-                  {createMutation.isPending || updateMutation.isPending ? (
-                    <LoaderCircle className="size-4 animate-spin" />
-                  ) : (
-                    <Check className="size-4" />
-                  )}
-                  {editingRole ? "บันทึกการแก้ไข" : "สร้างบทบาท"}
-                </Button>
-              </div>
-            </form>
+          <div className="flex items-center gap-2.5 pt-2">
+            <Checkbox
+              id="role-active"
+              checked={formIsActive}
+              onCheckedChange={(checked) => setFormIsActive(Boolean(checked))}
+              disabled={editingRole?.name.toUpperCase() === "ADMIN"}
+            />
+            <Label
+              htmlFor="role-active"
+              className="mb-0 cursor-pointer text-sm font-medium leading-none text-[var(--pw-ink)] select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              เปิดใช้งานบทบาทนี้
+            </Label>
           </div>
-        </div>
-      )}
+
+          <BottomSheetFooter>
+            <Button
+              type="submit"
+              variant="default"
+              className="w-full sm:w-auto"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {createMutation.isPending || updateMutation.isPending ? (
+                <LoaderCircle className="size-4 animate-spin mr-1.5" />
+              ) : (
+                <Check className="size-4 mr-1.5" />
+              )}
+              {editingRole ? "บันทึกการแก้ไข" : "สร้างบทบาท"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={closeDialog}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              ยกเลิก
+            </Button>
+          </BottomSheetFooter>
+        </form>
+      </BottomSheet>
     </div>
   );
 }

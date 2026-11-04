@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "com.pocketwise.app",
-    name: "PocketWise — ระบบบันทึกรายรับรายจ่ายอัจฉริยะ",
+    name: "PocketWise",
     short_name: "PocketWise",
     description: "แพลตฟอร์มบันทึกรายรับรายจ่าย สแกนสลิปธนาคาร และวางแผนการเงินส่วนบุคคล",
     start_url: "/",

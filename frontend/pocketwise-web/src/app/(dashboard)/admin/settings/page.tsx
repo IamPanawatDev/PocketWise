@@ -38,6 +38,9 @@ import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { TableSkeleton, ListRowsSkeleton } from "@/components/shared/Skeletons";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import type { SystemSettingItem } from "@/types/admin-operations.types";
 
 const getCategoryBadge = (key: string) => {
@@ -70,12 +73,6 @@ export default function AdminSettingsPage() {
   const [editingSetting, setEditingSetting] = useState<SystemSettingItem | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
-  };
 
   useEffect(() => {
     if (maintenance) {
@@ -161,25 +158,6 @@ export default function AdminSettingsPage() {
       transition={{ duration: 0.25 }}
       className="space-y-6"
     >
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="p-3.5 rounded-xl border border-[var(--pw-income)]/40 bg-[var(--pw-income)]/15 backdrop-blur-md text-[var(--pw-income)] text-sm flex items-center justify-between shadow-lg"
-          >
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 shrink-0" />
-              <span>{toastMessage}</span>
-            </div>
-            <button onClick={() => setToastMessage(null)}>
-              <X className="size-4 opacity-70 hover:opacity-100" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -257,12 +235,12 @@ export default function AdminSettingsPage() {
             <label className="block font-semibold text-xs text-[var(--pw-ink)] mb-1">
               รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้ (Allowlisted User IDs)
             </label>
-            <input
+            <Input
               type="text"
               value={allowedUserIdsStr}
-              onChange={(e) => setAllowedUserIdsStr(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowedUserIdsStr(e.target.value)}
               placeholder="เช่น 1, 2, 5 (คั่นด้วยเครื่องหมายจุลภาค)"
-              className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
+              className="w-full h-9 text-xs sm:text-sm bg-transparent"
             />
             <p className="text-[11px] text-[var(--pw-ink)]/50 mt-1">
               ผู้ใช้ที่มีบทบาท Admin จะได้รับอนุญาตให้เข้าใช้งานเสมอโดยอัตโนมัติ
@@ -312,78 +290,142 @@ export default function AdminSettingsPage() {
           </p>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-[var(--pw-hairline)]">
-          <table className="w-full text-left border-collapse text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-[var(--pw-ink)]/70 font-semibold text-xs">
-                <th className="py-2.5 px-4">คีย์การตั้งค่า (Key)</th>
-                <th className="py-2.5 px-4">ค่าปัจจุบัน (Value)</th>
-                <th className="py-2.5 px-4">คำอธิบาย</th>
-                <th className="py-2.5 px-4">อัปเดตล่าสุด</th>
-                <th className="py-2.5 px-4 text-right">แก้ไข</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--pw-hairline)]">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-[var(--pw-ink)]/60">
-                    กำลังโหลดการตั้งค่าระบบ...
-                  </td>
-                </tr>
-              ) : settings.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-[var(--pw-ink)]/60">
-                    ไม่พบรายการตั้งค่าระบบ
-                  </td>
-                </tr>
-              ) : (
-                settings.map((item) => {
-                  const badge = getCategoryBadge(item.settingKey);
-                  return (
-                    <tr
-                      key={item.settingKey}
-                      className="hover:bg-[var(--pw-hairline)]/10 transition-colors"
-                    >
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="font-mono font-bold text-xs text-[var(--pw-ink)]">
-                            {item.settingKey}
-                          </span>
+        {/* Loading Skeletons */}
+        {isLoading ? (
+          <>
+            <div className="hidden md:block">
+              <TableSkeleton rows={8} columns={5} />
+            </div>
+            <div className="md:hidden">
+              <ListRowsSkeleton count={5} />
+            </div>
+          </>
+        ) : settings.length === 0 ? (
+          <div className="py-8 text-center text-[var(--pw-ink)]/60 text-xs">
+            ไม่พบรายการตั้งค่าระบบ
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-[var(--pw-hairline)]">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-[var(--pw-ink)]/70 font-semibold text-xs">
+                    <th className="py-2.5 px-4">คีย์การตั้งค่า (Key)</th>
+                    <th className="py-2.5 px-4">ค่าปัจจุบัน (Value)</th>
+                    <th className="py-2.5 px-4">คำอธิบาย</th>
+                    <th className="py-2.5 px-4">อัปเดตล่าสุด</th>
+                    <th className="py-2.5 px-4 text-right">แก้ไข</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--pw-hairline)]">
+                  {settings.map((item) => {
+                    const badge = getCategoryBadge(item.settingKey);
+                    return (
+                      <tr
+                        key={item.settingKey}
+                        className="hover:bg-[var(--pw-hairline)]/10 transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-mono font-bold text-xs text-[var(--pw-ink)]">
+                              {item.settingKey}
+                            </span>
+                            <span
+                              className={cn(
+                                "inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-medium border",
+                                badge.color
+                              )}
+                            >
+                              {badge.label}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-xs max-w-xs truncate text-[var(--pw-primary)] font-semibold">
+                          {item.settingValue}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/70 max-w-xs">
+                          {item.description || "-"}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/60">
+                          {formatDisplayDateTime(item.updatedAt)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleOpenEditSetting(item)}
+                            className="size-8"
+                            title="แก้ไขค่านี้"
+                          >
+                            <Edit2 className="size-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card List View (< md) */}
+            <AnimatedList className="space-y-3 md:hidden">
+              {settings.map((item) => {
+                const badge = getCategoryBadge(item.settingKey);
+                return (
+                  <AnimatedListItem key={item.settingKey}>
+                    <div className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] p-3.5 space-y-2.5 shadow-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
                           <span
                             className={cn(
-                              "inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-medium border",
+                              "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border mb-1",
                               badge.color
                             )}
                           >
                             {badge.label}
                           </span>
+                          <h4 className="font-mono font-bold text-xs text-[var(--pw-ink)] break-all">
+                            {item.settingKey}
+                          </h4>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 font-mono text-xs max-w-xs truncate text-[var(--pw-primary)]">
-                        {item.settingValue}
-                      </td>
-                      <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/70 max-w-xs">
-                        {item.description || "-"}
-                      </td>
-                      <td className="py-3 px-4 text-xs text-[var(--pw-ink)]/60">
-                        {formatDisplayDateTime(item.updatedAt)}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleOpenEditSetting(item)}
-                          className="p-1.5 rounded-lg border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-all duration-150 active:scale-95"
-                          title="แก้ไขค่านี้"
+                          className="h-7 px-2.5 text-xs shrink-0 gap-1"
                         >
-                          <Edit2 className="size-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                          <Edit2 className="size-3" />
+                          <span>แก้ไข</span>
+                        </Button>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-[var(--pw-canvas)]/60 border border-[var(--pw-hairline)]/50">
+                        <span className="text-[10px] text-[var(--pw-ink)]/50 block mb-0.5">ค่าปัจจุบัน (Value):</span>
+                        <p className="font-mono text-xs font-semibold text-[var(--pw-primary)] break-all">
+                          {item.settingValue}
+                        </p>
+                      </div>
+
+                      {item.description && (
+                        <p className="text-xs text-[var(--pw-ink)]/70 leading-relaxed">
+                          {item.description}
+                        </p>
+                      )}
+
+                      <div className="text-[10px] text-[var(--pw-ink)]/50 pt-1 border-t border-[var(--pw-hairline)]/50 flex justify-between">
+                        <span>อัปเดตล่าสุด:</span>
+                        <span>{formatDisplayDateTime(item.updatedAt)}</span>
+                      </div>
+                    </div>
+                  </AnimatedListItem>
+                );
+              })}
+            </AnimatedList>
+          </>
+        )}
       </div>
 
       {/* ---------------------------------------------------------------- */}

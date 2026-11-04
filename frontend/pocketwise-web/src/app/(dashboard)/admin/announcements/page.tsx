@@ -9,6 +9,7 @@ import {
   Trash2,
   Calendar,
   Clock,
+  LoaderCircle,
   ShieldAlert,
   Users,
   CheckCircle2,
@@ -52,6 +53,7 @@ import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
+import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import type { Announcement, AnnouncementTarget } from "@/types/admin-operations.types";
 
 export default function AdminAnnouncementsPage() {
@@ -250,21 +252,19 @@ export default function AdminAnnouncementsPage() {
           </div>
         </div>
 
-        <button
+        <Button
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--pw-primary)] text-white text-xs sm:text-sm font-semibold shadow-xs hover:opacity-90 transition-all duration-150 active:scale-95"
+          className="gap-2 shadow-xs"
         >
           <Plus className="size-4" />
           <span>สร้างประกาศใหม่</span>
-        </button>
+        </Button>
       </div>
 
       {/* Announcements List */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="py-16 text-center text-xs text-[var(--pw-ink)]/60">
-            กำลังโหลดข้อมูลประกาศ...
-          </div>
+          <ListRowsSkeleton count={4} />
         ) : announcements.length === 0 ? (
           <div className="p-12 text-center rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/60 text-[var(--pw-ink)]/60 space-y-3">
             <Megaphone className="size-10 mx-auto text-[var(--pw-ink)]/30" />
@@ -319,20 +319,26 @@ export default function AdminAnnouncementsPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                    <button
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
                       onClick={() => handleOpenEdit(item)}
-                      className="p-1.5 rounded-lg border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-all duration-150 active:scale-95"
+                      className="size-8"
                       title="แก้ไขประกาศ"
                     >
                       <Edit2 className="size-3.5" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
                       onClick={() => handleDelete(item)}
-                      className="p-1.5 rounded-lg border border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/15 transition-all duration-150 active:scale-95"
+                      className="size-8 border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10"
                       title="ลบประกาศ"
                     >
                       <Trash2 className="size-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -558,10 +564,12 @@ export default function AdminAnnouncementsPage() {
         </form>
       </BottomSheet>
 
-      {/* Delete Confirmation AlertDialog */}
+      {/* Delete Confirmation AlertDialog with Loading State */}
       <AlertDialog
         open={Boolean(deleteTarget)}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => {
+          if (!deleteMutation.isPending && !open) setDeleteTarget(null);
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -572,12 +580,22 @@ export default function AdminAnnouncementsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction
+              disabled={deleteMutation.isPending}
               className="bg-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/90 text-white"
-              onClick={handleConfirmDelete}
+              onClick={async (e) => {
+                e.preventDefault();
+                await handleConfirmDelete();
+              }}
             >
+              {deleteMutation.isPending && (
+                <LoaderCircle className="size-4 animate-spin mr-1.5" />
+              )}
               ลบประกาศ
             </AlertDialogAction>
-            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>
+            <AlertDialogCancel
+              disabled={deleteMutation.isPending}
+              onClick={() => setDeleteTarget(null)}
+            >
               ยกเลิก
             </AlertDialogCancel>
           </AlertDialogFooter>

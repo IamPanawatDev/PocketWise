@@ -1,7 +1,7 @@
 "use client";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { formatDateTime } from "@/lib/utils";
+import { formatDisplayDateTime } from "@/lib/date-utils";
 import type { AuditLogResponse } from "@/types/audit-log.types";
 import { CheckCircle2, Clock, FileCode, Layers, Tag, User } from "lucide-react";
 
@@ -82,7 +82,7 @@ export function AuditLogDetailDialog({
           <div className="flex items-center gap-2 text-sm">
             <Clock className="size-4 shrink-0 text-[var(--pw-ink)]/60" />
             <span className="text-[var(--pw-ink)]/70">วันเวลา:</span>
-            <span className="font-semibold text-[var(--pw-ink)]">{formatDateTime(log.occurredAt)}</span>
+            <span className="font-semibold text-[var(--pw-ink)]">{formatDisplayDateTime(log.occurredAt)}</span>
           </div>
 
           <div className="flex items-center gap-2 text-sm">

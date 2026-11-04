@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatDateTime } from "@/lib/utils";
+import { formatDisplayDateTime } from "@/lib/date-utils";
 import type { AuditLogResponse } from "@/types/audit-log.types";
 import {
   ChevronLeft,
@@ -127,7 +127,7 @@ export function AuditLogTable({
                     className="transition-colors hover:bg-white/[0.03]"
                   >
                     <td className="whitespace-nowrap px-4 py-3 text-[var(--pw-ink)]/80">
-                      {formatDateTime(log.occurredAt)}
+                      {formatDisplayDateTime(log.occurredAt)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${badge.className}`}>
@@ -205,7 +205,7 @@ export function AuditLogTable({
                   </div>
                   <div>
                     <span className="text-[var(--pw-ink)]/40">เมื่อ: </span>
-                    <span>{formatDateTime(log.occurredAt)}</span>
+                    <span>{formatDisplayDateTime(log.occurredAt)}</span>
                   </div>
                 </div>
               </Card>

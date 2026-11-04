@@ -181,6 +181,14 @@ flowchart LR
   - แถบโหมดปรับปรุงระบบ (Maintenance Mode) จัดปุ่มเต็มความกว้างบนมือถือ แตะง่าย
   - ปุ่มรีเฟรชข้อมูลมีแอนิเมชัน `RefreshCw` หมุนขณะโหลดข้อมูล
 
+- **การปรับปรุงความสมบูรณ์ระดับระบบล่าสุด (Full-Stack UI Modernization Completion)**:
+  - **PWA App Name**: ปรับชื่อแอปใน `manifest.ts` เป็น `"PocketWise"` แบบกระชับและตรงตามมาตรฐานการติดตั้งลงหน้าจอโฮม
+  - **หน้างานนำเข้าแอดมิน (`/admin/imports`)**: เพิ่ม **Mobile Card List View** (`AnimatedList`), Skeleton Shimmer (`TableSkeleton` / `ListRowsSkeleton`), สถานะการลองใหม่, ปรับปุ่ม Action ทั้งหมดเป็น shared `Button` พร้อม Loading State ใน Dialog ยกเลิก/ลองใหม่
+  - **หน้าสิทธิ์และบทบาท (`/admin/permissions`)**: แปลง Modal ในแท็บจัดการบทบาท (`RolesManager`) และมอบหมายบทบาท (`UserRolesManager`) ให้กลายเป็น **Responsive BottomSheet** เต็มรูปแบบ คุมลำดับปุ่มบันทึก/ยกเลิกด้วย `BottomSheetFooter`
+  - **หน้าตั้งค่าแอดมิน (`/admin/settings`)**: เพิ่ม **Mobile Card List View** สำหรับตาราง Key-Value, แทนที่ข้อความโหลดด้วย Skeleton, แทนที่ Native Input ด้วย shared `Input` และคลีนโค้ด Toast
+  - **หน้าประกาศแอดมิน (`/admin/announcements`)**: ปรับปรุง Skeleton shimmer, แปลง Native Buttons ทั้งหมดเป็น shared `Button`, เพิ่ม Loading Spinner และ Disabled State ในหน้าต่างยืนยันลบประกาศ
+  - **หน้าประวัติ (`/audit-logs`)**: ซิงค์การแสดงผลวันที่และเวลาทั้งหมดใน `AuditLogTable` และ `AuditLogDetailDialog` เข้ากับ Helper กลาง `formatDisplayDateTime` (`Asia/Bangkok`, ค.ศ.)
+
 ## 📜 4. ประวัติการ Deploy และ PR ที่เกี่ยวข้อง (PR History)
 
 | Pull Request | Commit | รายละเอียดสำคัญ |
