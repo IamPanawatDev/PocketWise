@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
@@ -280,22 +281,14 @@ export function TransfersView() {
       {isLoading ? (
         <CardGridSkeleton count={4} columns="grid-cols-1" />
       ) : !transfers || transfers.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-8 sm:p-12 text-center border-[var(--pw-hairline)] bg-[var(--pw-surface)]/70">
-          <ArrowRightLeft className="mb-3 size-12 opacity-30 text-[var(--pw-primary)]" />
-          <p className="font-semibold text-base text-[var(--pw-ink)]">ยังไม่มีประวัติการโอนเงิน</p>
-          <p className="mt-1 text-xs sm:text-sm text-[var(--pw-ink)]/60 max-w-sm">
-            กดปุ่ม &quot;บันทึกการโอนเงิน&quot; ด้านบนเพื่อบันทึกรายการโยกย้ายเงินระหว่างบัญชีของคุณ
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={handleOpenNewTransfer}
-          >
-            <Plus className="size-4 mr-1.5" />
-            เริ่มโอนเงินรายการแรก
-          </Button>
-        </Card>
+        <EmptyState
+          icon={ArrowRightLeft}
+          title="ยังไม่มีประวัติการโอนเงิน"
+          description="บันทึกรายการโยกย้ายเงินระหว่างบัญชีของคุณ เช่น ถอนเงินสด หรือโอนเงินเข้ากระเป๋าเงินดิจิทัล"
+          actionLabel="เริ่มโอนเงินรายการแรก"
+          actionIcon={Plus}
+          onAction={handleOpenNewTransfer}
+        />
       ) : (
         <AnimatedList className="space-y-3 sm:space-y-4">
           {transfers.map((group) => {
