@@ -11,7 +11,7 @@ import { ApiError } from "@/lib/api-client";
 import {
   cn,
   formatCurrency,
-  formatDateTime,
+
   getReadableTextColor,
   isGregorianDateInput,
   thailandDateBoundaryToUtcIso,
@@ -1017,7 +1017,7 @@ export function TransactionList({
                           </p>
                         )}
                         <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-                          {formatDateTime(t.transactionDate)}
+                          {formatDisplayDateTime(t.transactionDate)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">

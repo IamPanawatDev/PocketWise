@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -723,16 +724,18 @@ export function RecurringTransactionsView() {
           {error instanceof ApiError ? error.message : "โหลดรายการไม่สำเร็จ"}
         </p>
       ) : !data?.length ? (
-        <Card className="flex flex-col items-center justify-center p-8 text-center">
-          <Repeat className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
-          <p className="font-medium text-[var(--pw-ink)]">
-            ยังไม่มีรายการประจำ
-          </p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-            กดปุ่ม &quot;เพิ่มรายการประจำ&quot;
-            ด้านบนเพื่อตั้งค่ารายการอัตโนมัติตามรอบเวลา
-          </p>
-        </Card>
+        <EmptyState
+          icon={Repeat}
+          title="ยังไม่มีรายการประจำ"
+          description="ตั้งค่ารายการบิล ค่าบริการ หรือรายรับประจำเพื่อบันทึกรายการอัตโนมัติล่วงหน้า"
+          actionLabel="เพิ่มรายการประจำแรก"
+          actionIcon={Plus}
+          onAction={() => {
+            reset(initialValues(toThailandDateInputValue(new Date())));
+            setEditing(null);
+            setIsFormOpen(true);
+          }}
+        />
       ) : (
         <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {data.map((item) => {

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { formatDateTime } from "@/lib/utils";
+import { formatDisplayDateTime } from "@/lib/date-utils";
 import { toast } from "sonner";
 import {
   useAuditLogSettings,
@@ -189,7 +189,7 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
                   <span className="text-xs text-[var(--pw-ink)]/60">ข้อมูลประวัติเก่าที่สุด</span>
                   <p className="mt-1 text-xs font-semibold text-[var(--pw-ink)]">
                     {settings?.oldestLogDate ? (
-                      formatDateTime(settings.oldestLogDate)
+                      formatDisplayDateTime(settings.oldestLogDate)
                     ) : (
                       <span className="text-[var(--pw-ink)]/40">ยังไม่มีข้อมูล</span>
                     )}
@@ -201,7 +201,7 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
                   <span className="text-xs text-[var(--pw-ink)]/60">ข้อมูลประวัติล่าสุด</span>
                   <p className="mt-1 text-xs font-semibold text-[var(--pw-ink)]">
                     {settings?.latestLogDate ? (
-                      formatDateTime(settings.latestLogDate)
+                      formatDisplayDateTime(settings.latestLogDate)
                     ) : (
                       <span className="text-[var(--pw-ink)]/40">ยังไม่มีข้อมูล</span>
                     )}
@@ -212,7 +212,7 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
 
               {settings?.updatedAt && (
                 <p className="text-[11px] text-[var(--pw-ink)]/50">
-                  อัปเดตการตั้งค่าล่าสุดเมื่อ: {formatDateTime(settings.updatedAt)}
+                  อัปเดตการตั้งค่าล่าสุดเมื่อ: {formatDisplayDateTime(settings.updatedAt)}
                   {settings.updatedByUserId && ` (โดยผู้ใช้ #${settings.updatedByUserId})`}
                 </p>
               )}
