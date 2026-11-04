@@ -262,7 +262,7 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
 
               <div className="flex items-center justify-between border-t border-rose-500/20 pt-3">
                 <span className="text-xs text-rose-400/90">
-                  ⚠️ คำสั่งนี้จะทำการลบข้อมูลออกจาก SQL Server ทันที
+                  ⚠️ คำสั่งนี้จะทำการลบข้อมูลออกจากฐานข้อมูลทันที
                 </span>
 
                 <ConfirmDialog

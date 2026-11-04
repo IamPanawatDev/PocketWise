@@ -189,6 +189,23 @@ flowchart LR
   - **หน้าประกาศแอดมิน (`/admin/announcements`)**: ปรับปรุง Skeleton shimmer, แปลง Native Buttons ทั้งหมดเป็น shared `Button`, เพิ่ม Loading Spinner และ Disabled State ในหน้าต่างยืนยันลบประกาศ
   - **หน้าประวัติ (`/audit-logs`)**: ซิงค์การแสดงผลวันที่และเวลาทั้งหมดใน `AuditLogTable` และ `AuditLogDetailDialog` เข้ากับ Helper กลาง `formatDisplayDateTime` (`Asia/Bangkok`, ค.ศ.)
 
+### 3.13 PWA Install Guide on iOS, Offline Action Queue & Statement Mobile View
+- **แก้ปัญหาปุ่ม "ติดตั้งแอป" บน iPhone (iOS Chrome & Safari)**:
+  - แก้ไขปัญหาการกดปุ่มแล้วไม่ตอบสนองบน iOS เนื่องจาก WebKit ไม่รองรับ `beforeinstallprompt`
+  - เพิ่ม **Install Guide BottomSheet** แสดงขั้นตอนการติดตั้งลงหน้าจอโฮมอย่างละเอียดและตรงตามเบราว์เซอร์จริง:
+    - **Google Chrome บน iOS**: แตะไอคอนแชร์ (Share) หรือเมนูสามจุด `...` ➔ เลือก "เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen) ➔ แตะ "เพิ่ม" (Add)
+    - **Safari บน iOS**: แตะไอคอนแชร์ `Share` ที่แถบเครื่องมือล่าง ➔ แตะ "เพิ่มไปยังหน้าจอโฮม" ➔ แตะ "เพิ่ม"
+    - **Desktop / อื่นๆ**: แนะนำให้คลิกไอคอน Install ที่แถบ Address Bar
+- **ระบบบันทึกรายการแบบออฟไลน์ (Offline Action Queue)**:
+  - สร้าง `src/lib/offline-queue.ts` สำหรับจัดเก็บคิวธุรกรรมที่บันทึกขณะไม่มีอินเทอร์เน็ต
+  - เมื่อผู้ใช้ออฟไลน์และกดบันทึกรายการ: ระบบจะเก็บรายการลง Offline Queue ใน LocalStorage และแจ้งเตือนผู้ใช้ด้วย Toast อย่างชัดเจน
+  - `OfflineBanner.tsx`: แสดงสถานะและจำนวนรายการที่รอซิงค์ เมื่อตรวจพบว่าเชื่อมต่ออินเทอร์เน็ตได้แล้ว (`online` event) ระบบจะส่งข้อมูลขึ้น API อัตโนมัติ พร้อมแจ้งเตือน Toast สรุปจำนวนรายการที่ซิงค์สำเร็จ และรีเฟรชข้อมูลในระบบทันที
+- **หน้านำเข้าใบแจ้งยอดบัตรเครดิต (`/imports` - Statement Import)**:
+  - เพิ่ม **Mobile Card List View** (`md:hidden`) สำหรับตรวจสอบรายการในใบแจ้งยอดบนมือถือ หมดปัญหา Table เลื่อนซ้ายขวา
+  - ใช้ shared `Input` และ `Select` พร้อมอัปเดต Design tokens เป็น `--pw-primary`, `--pw-expense`, `--pw-green`
+- **Audit Log Modal Cleanup**:
+  - แก้ไขข้อความใน `AuditLogSettingsModal.tsx` จากเดิมที่ระบุว่า "SQL Server" ให้เป็น "ฐานข้อมูล" ตรงตามสถาปัตยกรรม PostgreSQL
+
 ## 📜 4. ประวัติการ Deploy และ PR ที่เกี่ยวข้อง (PR History)
 
 | Pull Request | Commit | รายละเอียดสำคัญ |
