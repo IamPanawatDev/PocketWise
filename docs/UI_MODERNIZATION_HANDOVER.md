@@ -173,6 +173,9 @@ flowchart LR
 - **กล่องแจ้งเตือน (`NotificationBell.tsx`)**:
   - บน Mobile (`< sm`): แปลง Popover ให้กลายเป็น **BottomSheet เต็มจอจากขอบล่าง** ใช้งานสะดวกด้วยนิ้วโป้ง พร้อมปุ่ม "อ่านทั้งหมด" และ Tab สลับ "ทั้งหมด" / "ยังไม่อ่าน"
   - ใช้ helper กลาง `formatRelativeTime` จาก `@/lib/date-utils` แทนการคำนวณซ้ำ
+- **มาตรฐานลำดับปุ่มและสถานะการลบบนมือถือ (Mobile Button Hierarchy & Deletion Loading)**:
+  - **ลำดับปุ่มยืนยัน/ยกเลิก (`AlertDialog` / `ConfirmDialog`)**: บนหน้าจอโทรศัพท์มือถือ (`< sm`) ปุ่มยืนยัน/ลบ (`AlertDialogAction`) ถูกบังคับให้อยู่ข้างบนเสมอ (`order-1`) และปุ่มยกเลิก (`AlertDialogCancel`) อยู่ข้างล่างเสมอ (`order-2`) เพื่อความสะดวกและสอดคล้องกับทั้งระบบ
+  - **Deletion Loading Feedback**: ทุกการกดลบรายการ (Transactions, Budgets, Recurring, Rules ฯลฯ) มี Loading State ชัดเจน (Spinner / Disabled / Toast) ทันทีหลังกดยืนยัน ไม่ปล่อยให้หน้าจอนิ่งค้างระหว่างรอการตอบกลับจาก API
 - **หน้าภาพรวมแอดมิน (`/admin/overview`)**:
   - ปรับการ์ดสรุป Operations (งานนำเข้าข้อมูล และ เหตุการณ์ความปลอดภัย 24 ชม.) ให้เป็น Responsive Grid (`grid-cols-2 sm:grid-cols-4`) ป้องกันข้อความภาษาไทยตัดคำเบียดกันบนจอมือถือ
   - แถบโหมดปรับปรุงระบบ (Maintenance Mode) จัดปุ่มเต็มความกว้างบนมือถือ แตะง่าย
@@ -187,7 +190,7 @@ flowchart LR
 | **PR #52** | `847bb71` | Mobile-first transactions, reports, wallet cards, budgets, and button loading |
 | **PR #53** | `195e570` | Mobile hub drawer, recurring monthly summary, upcoming 7-day bills banner |
 | **PR #54** | `a870277` | Global Command Palette (Ctrl+K), Categories tabs & search, Tags search, Settings polish |
-| **PR #55** | *WIP* | Monthly Report Export, PWA Standalone & Offline Banner, Quick Math parser, Keyboard shortcuts, Sidebar profile bell, Grouped mobile shortcut cards |
+| **PR #55** | `13cf5e5` | Mobile UI Overhaul: Transfers, Categories, Imports, Admin Users & Events, Notification Drawer, Admin Overview, Deletion Loading, and Mobile Button Hierarchy |
 
 *สถานะปัจจุบัน: Branch `develop` พร้อมสำหรับตรวจสอบและ Merge เข้าสู่ `main`*
 

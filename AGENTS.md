@@ -35,8 +35,11 @@
 5. **มาตรฐาน UI, Modal, BottomSheet, Responsive, Animation และ Date (UI & UX Master Standard)**:
    - **Desktop Modal vs Mobile BottomSheet**:
      - ทุก Dialog หรือ Modal บนหน้าจอ Desktop (`sm` ขึ้นไป) **ต้องแสดงผลเป็น BottomSheet บนหน้าจอโทรศัพท์มือถือ (`< sm`) เท่านั้น** โดยใช้ component กลาง `@/components/ui/bottom-sheet` (ซึ่งรองรับ responsive modal/bottom-sheet ภายในตัว)
-   - **ลำดับปุ่มใน BottomSheet บน Mobile**:
-     - บน Mobile BottomSheet **ปุ่มยืนยัน/บันทึก (Confirm/Action) ต้องอยู่ข้างบน** และ **ปุ่มยกเลิก/ปิด (Cancel) ต้องอยู่ข้างล่างเสมอ** (ใช้ `BottomSheetFooter` ที่จัดการ flex-col และสลับ order ตามมาตรฐานเพื่อความสะดวกในการใช้นิ้วโป้งกด)
+   - **ลำดับปุ่มใน BottomSheet และ Alert Dialog บน Mobile (Mobile Button Hierarchy Rule)**:
+     - บนหน้าจอโทรศัพท์มือถือ (`< sm`) ทุก Dialog, BottomSheet, Modal, และหน้าต่างยืนยันการลบ/ดำเนินการ (`AlertDialog` / `ConfirmDialog`):
+       - **ปุ่มยืนยัน / บันทึก / ลบ (Confirm/Action/Delete) ต้องอยู่ข้างบนเสมอ (`order-1` หรือวางก่อน)**
+       - **ปุ่มยกเลิก / ปิด (Cancel) ต้องอยู่ข้างล่างเสมอ (`order-2` หรือวางหลัง)**
+       - **เหตุผล & กฎตายตัว**: เพื่อให้สอดคล้องกันทั้งเว็บและสะดวกต่อการใช้นิ้วโป้งกดบนมือถือ (ใช้ `data-slot="alert-dialog-action"` และ `data-slot="alert-dialog-cancel"` หรือ `BottomSheetFooter` ที่คุม `order` อัตโนมัติ) ห้ามสลับเอาปุ่มยกเลิกไว้ข้างบนเด็ดขาด
    - **สไตล์ Glassmorphism (Dark / Light Theme)**:
      - ทั้ง Modal บน Desktop และ BottomSheet บน Mobile ต้องใช้ดีไซน์สไตล์ **Glassmorphism** (`backdrop-blur-2xl`, translucent surface, subtle hairline border, glow effect)
      - **ต้องคำนึงถึง Theme Dark และ Light เสมอ**: สีตัวอักษรและคอนทราสต์ต้องคมชัด อ่านง่าย ไม่กลืนกับพื้นหลังทั้งใน Dark Mode (`var(--pw-surface-indigo)/90`) และ Light Mode (`var(--pw-surface)/90`)
@@ -56,7 +59,8 @@
        - **ตัวเลขสรุปผลยอดเงิน**: ใช้ `AnimatedNumber` จาก `@/components/ui/animated-number` เพื่อ animate ตัวเลขหมุนขึ้นอย่างนุ่มนวล
    - **การแจ้งเตือนและการยืนยัน (AlertDialog & Toast Standard - ห้ามใช้ Browser Native)**:
      - **ห้ามใช้ `window.confirm()` หรือ `window.alert()` ของเบราว์เซอร์โดยเด็ดขาด**: เพราะทำลาย UX และดูไม่เป็นมืออาชีพ
-     - **ต้องใช้ `AlertDialog` หรือ `ConfirmDialog` จาก `@/components/ui/alert-dialog` เสมอ** ซึ่งรองรับ Glassmorphism, Responsive (BottomSheet บน Mobile, Centered Dialog บน Desktop) และจัดลำดับปุ่ม Confirm บน / Cancel ล่าง
+     - **ต้องใช้ `AlertDialog` หรือ `ConfirmDialog` จาก `@/components/ui/alert-dialog` เสมอ** ซึ่งรองรับ Glassmorphism, Responsive (BottomSheet บน Mobile, Centered Dialog บน Desktop) และบังคับลำดับปุ่มยืนยัน/ลบอยู่บน ปุ่มยกเลิกอยู่ล่างเสมอ
+     - **ต้องมี Loading State ขณะลบรายการ**: เมื่อกดยืนยันการลบหรือดำเนินการที่ต้องรอ API ต้องแสดง Loading Spinner / Disabled State ไม่ปล่อยให้หน้าจอนิ่งค้างจนผู้ใช้รู้สึกว่าระบบค้าง
      - **ต้องมี Toast Feedback เสมอ**: ทุกการดำเนินการสำคัญ (เช่น เพิกถอนเซสชัน, ลบรายการ, บันทึกข้อมูล, รีเซ็ตรหัสผ่าน, เปลี่ยนสถานะ) ต้องเรียกใช้ `toast.success(...)` เมื่อสำเร็จ หรือ `toast.error(...)` เมื่อเกิดข้อผิดพลาด ผ่าน `sonner` ห้ามปล่อยให้การทำงานเงียบหายไปโดยไม่มี Feedback
    - **การใช้งาน Dropdown / Select (ห้ามใช้ Native `<select>`)**:
      - **ห้ามใช้ native `<select>` และ `<option>` เด็ดขาด**: เนื่องจากบนเบราว์เซอร์หรือมือถือบางรุ่น OS จะบังคับสไตล์พื้นหลังเป็นสีขาวจนตัวหนังสือกลืนมองไม่เห็น (White on White)

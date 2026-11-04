@@ -82,10 +82,10 @@ function AlertDialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDiv
     <div
       className={cn(
         "mt-6 flex flex-col gap-2.5 w-full pt-3 border-t border-[var(--pw-hairline)]",
-        // Mobile button order: Confirm button (Action) is TOP (order 1), Cancel button is BOTTOM (order 2)
-        "[&>*:first-child]:order-1 [&>*:last-child]:order-2",
-        // Desktop: Side-by-side right aligned
-        "sm:flex-row sm:justify-end sm:gap-3 sm:[&>*:first-child]:order-none sm:[&>*:last-child]:order-none [&>*]:w-full sm:[&>*]:w-auto",
+        // Mobile button order: Action/Confirm button (ลบ/ยืนยัน) MUST be on TOP (order-1), Cancel (ยกเลิก) MUST be on BOTTOM (order-2)
+        "[&>[data-slot='alert-dialog-action']]:order-1 [&>[data-slot='alert-dialog-cancel']]:order-2",
+        // Desktop: Cancel on left (order-1), Action/Confirm on right (order-2)
+        "sm:flex-row sm:justify-end sm:gap-3 sm:[&>[data-slot='alert-dialog-action']]:order-2 sm:[&>[data-slot='alert-dialog-cancel']]:order-1 [&>*]:w-full sm:[&>*]:w-auto",
         className,
       )}
       {...props}
@@ -99,6 +99,7 @@ function AlertDialogAction({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
   return (
     <AlertDialogPrimitive.Action
+      data-slot="alert-dialog-action"
       className={cn(
         "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-magenta)] px-6 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 w-full sm:w-auto [&_svg]:size-4",
         className,
@@ -114,6 +115,7 @@ function AlertDialogCancel({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
   return (
     <AlertDialogPrimitive.Cancel
+      data-slot="alert-dialog-cancel"
       className={cn(
         "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] px-6 py-2.5 text-sm font-medium text-[var(--pw-ink)] transition hover:bg-[var(--pw-hairline)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/50 w-full sm:w-auto [&_svg]:size-4",
         className,
