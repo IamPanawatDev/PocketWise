@@ -101,8 +101,8 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableS
 }
 
 // Health check endpoints for hosting platforms (Render, etc.)
-app.MapGet("/", () => Results.Ok(new { status = "healthy", service = "PocketWise API", timestamp = DateTime.UtcNow }));
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "PocketWise API", timestamp = DateTime.UtcNow }));
+app.MapMethods("/", ["GET", "HEAD"], () => Results.Ok(new { status = "healthy", service = "PocketWise API", timestamp = DateTime.UtcNow }));
+app.MapMethods("/health", ["GET", "HEAD"], () => Results.Ok(new { status = "healthy", service = "PocketWise API", timestamp = DateTime.UtcNow }));
 
 if (!app.Environment.IsDevelopment())
 {
