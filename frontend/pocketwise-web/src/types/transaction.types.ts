@@ -1,5 +1,7 @@
 // Transaction types (sync with backend DTOs.Transactions + Domain.Enums)
 
+import type { PagedResult } from "./api.types";
+
 export type TransactionType = "income" | "expense" | "transfer";
 export type SourceType = "manual" | "slip" | "cardStatement" | "recurring";
 export type TransactionStatus = "draft" | "confirmed" | "void";
@@ -55,4 +57,10 @@ export interface TransactionFilter {
   fromDate?: string;
   toDate?: string;
   q?: string;
+}
+
+export interface TransactionPagedResult extends PagedResult<TransactionResponse> {
+  totalIncome: number;
+  totalExpense: number;
+  netBalance: number;
 }

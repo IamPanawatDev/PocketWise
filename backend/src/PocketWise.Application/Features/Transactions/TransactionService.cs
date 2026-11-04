@@ -36,21 +36,21 @@ public class TransactionService : ITransactionService
         return entity is null ? null : Map(entity);
     }
 
-    public async Task<PagedResult<TransactionResponse>> GetPagedAsync(long userId, TransactionFilter filter, int page, int pageSize, string sortBy, bool sortDesc, CancellationToken cancellationToken = default)
+    public async Task<TransactionPagedResult<TransactionResponse>> GetPagedAsync(long userId, TransactionFilter filter, int page, int pageSize, string sortBy, bool sortDesc, CancellationToken cancellationToken = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
         var result = await _repository.GetPagedAsync(userId, filter, page, pageSize, sortBy, sortDesc, cancellationToken);
 
-        return new PagedResult<TransactionResponse>
-        {
-            Items = result.Items.Select(Map).ToList(),
-            Page = result.Page,
-            PageSize = result.PageSize,
-            TotalItems = result.TotalItems,
-            TotalPages = result.TotalPages
-        };
+        return new TransactionPagedResult<TransactionResponse>(
+            result.Items.Select(Map).ToList(),
+            result.Page,
+            result.PageSize,
+            result.TotalItems,
+            result.TotalIncome,
+            result.TotalExpense
+        );
     }
 
     public async Task<TransactionResponse> CreateAsync(long userId, CreateTransactionRequest request, CancellationToken cancellationToken = default)

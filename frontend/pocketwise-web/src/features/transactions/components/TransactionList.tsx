@@ -170,11 +170,18 @@ export function TransactionList({
     return count;
   }, [filter, sortBy, sortDesc, activeQuickPeriod]);
 
-    const { totalIncome, totalExpense, netBalance } = useMemo(() => {
-    if (!data?.items) return { totalIncome: 0, totalExpense: 0, netBalance: 0 };
+   const { totalIncome, totalExpense, netBalance } = useMemo(() => {
+    if (!data) return { totalIncome: 0, totalExpense: 0, netBalance: 0 };
+    if (typeof data.totalIncome === "number" && typeof data.totalExpense === "number") {
+      return {
+        totalIncome: data.totalIncome,
+        totalExpense: data.totalExpense,
+        netBalance: data.netBalance ?? (data.totalIncome - data.totalExpense),
+      };
+    }
     let income = 0;
     let expense = 0;
-    for (const item of data.items) {
+    for (const item of data.items || []) {
       if (item.transactionType === "income") income += item.amount;
       else if (item.transactionType === "expense") expense += item.amount;
     }
@@ -230,7 +237,7 @@ export function TransactionList({
       <div className="mb-3.5 block sm:hidden">
         <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/80 p-2.5 shadow-xs backdrop-blur-md">
           <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[var(--pw-hairline)]/60 text-[11px] text-[var(--pw-ink)]/60">
-            <span className="font-medium">สรุปในหน้านี้ ({data?.totalItems ?? data?.items?.length ?? 0} รายการ)</span>
+            <span className="font-medium">สรุปตามเงื่อนไข ({data?.totalItems ?? 0} รายการ)</span>
             <Link
               href="/reports"
               className="inline-flex items-center gap-0.5 text-[var(--pw-primary)] font-semibold hover:underline"
@@ -266,7 +273,7 @@ export function TransactionList({
       <div className="mb-4 hidden sm:grid sm:grid-cols-3 sm:gap-4">
         <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 p-3 sm:p-4 shadow-xs backdrop-blur-xs transition hover:border-[var(--pw-green)]/40">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายรับในหน้านี้</span>
+            <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายรับรวมทั้งหมด</span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-green)]/15 text-[var(--pw-green)]">
               <ArrowUpRight className="size-4" />
             </div>
@@ -278,7 +285,7 @@ export function TransactionList({
 
         <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 p-3 sm:p-4 shadow-xs backdrop-blur-xs transition hover:border-[var(--pw-expense)]/40">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายจ่ายในหน้านี้</span>
+            <span className="text-xs font-medium text-[var(--pw-ink)]/70">รายจ่ายรวมทั้งหมด</span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]">
               <ArrowDownRight className="size-4" />
             </div>
@@ -290,7 +297,7 @@ export function TransactionList({
 
         <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 p-3 sm:p-4 shadow-xs backdrop-blur-xs transition hover:border-[var(--pw-primary)]/40">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[var(--pw-ink)]/70">ยอดคงเหลือสุทธิในหน้านี้</span>
+            <span className="text-xs font-medium text-[var(--pw-ink)]/70">ยอดคงเหลือสุทธิ</span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]">
               <ReceiptText className="size-4" />
             </div>
