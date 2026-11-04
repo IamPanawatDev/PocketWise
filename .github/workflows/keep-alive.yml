@@ -1,0 +1,40 @@
+name: Render Keep-Alive Pinger
+
+on:
+  schedule:
+    # Runs every 14 minutes between 01:00 UTC and 16:59 UTC (08:00 - 23:59 Bangkok time, UTC+7)
+    # Allows Render Free Web Service to sleep during nighttime (00:00 - 08:00 Bangkok time)
+    # saving instance hours (~496 hrs/mo used vs 750 hrs free quota)
+    - cron: '*/14 1-16 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI for testing
+
+jobs:
+  keep-alive:
+    name: Ping Render Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping PocketWise Backend API
+        run: |
+          echo "=================================================="
+          echo "Keep-Alive Triggered at (UTC): $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "Bangkok Time approx: $(TZ='Asia/Bangkok' date '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "Target: https://pocketwise-api-zo94.onrender.com/health"
+          echo "=================================================="
+          
+          # Attempt ping with 30s timeout (handles spin-up if awake transition occurs)
+          HTTP_STATUS=$(curl -s -o /tmp/health_response.json -w "%{http_code}" --max-time 35 "https://pocketwise-api-zo94.onrender.com/health")
+          
+          echo "HTTP Response Status Code: $HTTP_STATUS"
+          if [ -f /tmp/health_response.json ]; then
+            echo "Response Body:"
+            cat /tmp/health_response.json
+            echo ""
+          fi
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "SUCCESS: PocketWise API is active and healthy."
+          else
+            echo "WARNING: Received status $HTTP_STATUS (expected 200). Retrying once with verbose output..."
+            curl -i -v --max-time 45 "https://pocketwise-api-zo94.onrender.com/health" || exit 1
+          fi
