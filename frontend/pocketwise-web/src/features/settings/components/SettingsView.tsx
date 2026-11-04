@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
 import { Controller, useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,17 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import {
   AlertCircle,
   AlertTriangle,
@@ -47,8 +36,6 @@ import {
   Mail,
   Save,
   Settings2,
-  Sun,
-  Moon,
   Sliders,
   Trash2,
   UserRound,
@@ -447,39 +434,24 @@ export function SettingsView() {
               รายการ ธนาคาร บัตร งบ แผนผ่อน รายการประจำ และใบแจ้งยอดจะถูกซ่อนอย่างถาวรจากการใช้งาน
               พร้อมออกจากระบบทุกอุปกรณ์ ข้อมูลโปรไฟล์ การตั้งค่า หมวดหมู่ แท็ก และประวัติการแจ้งเตือน/นำเข้าจะยังคงอยู่
             </p>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <ConfirmDialog
+              title="ยืนยันล้างข้อมูลการเงิน?"
+              description="การดำเนินการนี้จะ soft-delete ข้อมูลการเงินของคุณและออกจากระบบทุก session ไม่สามารถกู้คืนผ่านแอปได้ ต้องการดำเนินการต่อหรือไม่"
+              confirmLabel="ยืนยันล้างข้อมูล"
+              pending={resetData.isPending}
+              onConfirm={() => {
+                resetData.mutate(undefined, {
+                  onSuccess: () => toast.success("ล้างข้อมูลการเงินแล้ว"),
+                  onError: (error) => toast.error(error instanceof ApiError ? error.message : "ล้างข้อมูลไม่สำเร็จ"),
+                });
+              }}
+              trigger={
                 <Button type="button" variant="destructive" disabled={resetData.isPending}>
                   {resetData.isPending ? <LoaderCircle className="animate-spin" /> : <Trash2 />}
                   ล้างข้อมูลการเงิน
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>ยืนยันล้างข้อมูลการเงิน?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    การดำเนินการนี้จะ soft-delete ข้อมูลการเงินของคุณและออกจากระบบทุก session
-                    ไม่สามารถกู้คืนผ่านแอปได้ ต้องการดำเนินการต่อหรือไม่
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                  <AlertDialogAction
-                    disabled={resetData.isPending}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      resetData.mutate(undefined, {
-                        onSuccess: () => toast.success("ล้างข้อมูลการเงินแล้ว"),
-                        onError: (error) => toast.error(error instanceof ApiError ? error.message : "ล้างข้อมูลไม่สำเร็จ"),
-                      });
-                    }}
-                  >
-                    {resetData.isPending ? <LoaderCircle className="animate-spin" /> : <Trash2 />}
-                    ยืนยันล้างข้อมูล
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              }
+            />
           </Card>
         </>
       )}

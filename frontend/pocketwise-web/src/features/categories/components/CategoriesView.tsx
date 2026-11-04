@@ -1,7 +1,7 @@
 "use client";
 
 import { Controller, useForm } from "react-hook-form";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { categorySchema, type CategoryFormValues } from "@/schemas/category.schema";
 import { zodResolver } from "@/lib/zod-resolver";
@@ -33,6 +33,7 @@ import {
   Pencil,
   Plus,
   Save,
+  Search,
   Shield,
   Trash2,
   X,
@@ -54,6 +55,23 @@ export function CategoriesView() {
 
   const [editing, setEditing] = useState<{ id: number; name: string; type: string } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "expense" | "income">("all");
+
+  const filteredCategories = useMemo(() => {
+    if (!data) return [];
+    return data.filter((c) => {
+      const matchesSearch = !searchQuery.trim() || c.categoryName.toLowerCase().includes(searchQuery.toLowerCase().trim());
+      const matchesType =
+        typeFilter === "all" ||
+        (typeFilter === "expense" && c.categoryType?.toLowerCase() === "expense") ||
+        (typeFilter === "income" && c.categoryType?.toLowerCase() === "income");
+      return matchesSearch && matchesType;
+    });
+  }, [data, searchQuery, typeFilter]);
+
+  const expenseCount = data?.filter((c) => c.categoryType?.toLowerCase() === "expense").length ?? 0;
+  const incomeCount = data?.filter((c) => c.categoryType?.toLowerCase() === "income").length ?? 0;
 
   const {
     register,
@@ -280,6 +298,68 @@ export function CategoriesView() {
         </div>
       </BottomSheet>
 
+      {/* Search & Segmented Filter Bar */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--pw-ink)]/40" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ค้นหาหมวดหมู่..."
+            className="pl-9 pr-8"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--pw-ink)]/40 hover:text-[var(--pw-ink)] p-1"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Type Segmented Buttons */}
+        <div className="flex items-center gap-1.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/70 p-1">
+          <button
+            type="button"
+            onClick={() => setTypeFilter("all")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+              typeFilter === "all"
+                ? "bg-[var(--pw-primary)] text-white shadow-xs"
+                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            ทั้งหมด ({data?.length ?? 0})
+          </button>
+          <button
+            type="button"
+            onClick={() => setTypeFilter("expense")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+              typeFilter === "expense"
+                ? "bg-rose-500 text-white shadow-xs"
+                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            รายจ่าย ({expenseCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setTypeFilter("income")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+              typeFilter === "income"
+                ? "bg-emerald-500 text-white shadow-xs"
+                : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            รายรับ ({incomeCount})
+          </button>
+        </div>
+      </div>
+
       {/* Categories List */}
       {isLoading ? (
         <ListRowsSkeleton count={6} />
@@ -294,7 +374,7 @@ export function CategoriesView() {
       ) : (
         <Card className="p-0 overflow-hidden">
           <AnimatedList>
-            {data.map((c) => {
+            {filteredCategories.map((c) => {
               const index = data.findIndex(
                 (category) => category.categoryId === c.categoryId,
               );
