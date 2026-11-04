@@ -18,7 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { FormField } from "@/components/ui/form-field";
 import {
   Select,
@@ -27,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatDisplayDateTime } from "@/lib/date-utils";
 import { useImportJobs } from "@/features/imports/hooks/useImports";
 import type { ImportJobResponse } from "@/types/import.types";
 import { ReviewImportModal } from "./ReviewImportModal";
@@ -45,35 +47,20 @@ export function ImportJobsTab() {
 
   const activeFilterCount = typeFilter !== "all" ? 1 : 0;
 
-  const formatDate = (isoStr?: string | null) => {
-    if (!isoStr) return "-";
-    try {
-      return new Intl.DateTimeFormat("th-TH", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(isoStr));
-    } catch {
-      return isoStr;
-    }
-  };
-
   const handleResetFilter = () => {
     setTypeFilter("all");
     setPage(1);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Filter header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h3 className="text-base font-semibold text-[var(--pw-text-primary)]">
+          <h3 className="text-base sm:text-lg font-semibold text-[var(--pw-ink)]">
             ประวัติการนำเข้าข้อมูล
           </h3>
-          <p className="text-xs text-[var(--pw-text-secondary)]">
+          <p className="text-xs text-[var(--pw-ink)]/65">
             ติดตามสถานะของงานนำเข้าสลิปและใบแจ้งยอดบัตรเครดิตทั้งหมด
           </p>
         </div>
@@ -84,10 +71,10 @@ export function ImportJobsTab() {
           size="sm"
           onClick={() => setIsFilterSheetOpen(true)}
           className={cn(
-            "relative gap-2 cursor-pointer transition-all",
+            "relative gap-2 cursor-pointer transition-all h-9 text-xs sm:text-sm",
             activeFilterCount > 0
               ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
-              : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]",
+              : "border-[var(--pw-hairline)] bg-[var(--pw-surface)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)]",
           )}
         >
           <Filter className="h-4 w-4" />
@@ -102,8 +89,8 @@ export function ImportJobsTab() {
 
       {/* Active filter chips */}
       {activeFilterCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-xs text-[var(--pw-text-muted)]">ตัวกรองที่ใช้งาน:</span>
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[var(--pw-ink)]/75">
+          <span className="text-[var(--pw-ink)]/50">ตัวกรองที่ใช้งาน:</span>
           {typeFilter !== "all" && (
             <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-link)]/30 bg-[var(--pw-link)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-link)]">
               ประเภท: {typeFilter === "slip" ? "สลิปโอนเงิน" : "ใบแจ้งยอดบัตรเครดิต"}
@@ -127,12 +114,12 @@ export function ImportJobsTab() {
         </div>
       )}
 
-      {/* Table */}
-      <Card className="p-0 bg-[var(--pw-surface-black)] border border-[var(--pw-hairline)] overflow-hidden">
+      {/* Desktop Table View (hidden on mobile) */}
+      <Card className="hidden md:block p-0 bg-[var(--pw-surface)] border border-[var(--pw-hairline)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 text-[var(--pw-text-muted)]">
+              <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 text-[var(--pw-ink)]/60 font-semibold">
                 <th className="py-3 px-4">วันที่ทำรายการ</th>
                 <th className="py-3 px-4">ประเภทงาน</th>
                 <th className="py-3 px-4">ชื่อไฟล์</th>
@@ -147,8 +134,8 @@ export function ImportJobsTab() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="border-b border-[var(--pw-hairline)]">
-                    <td className="py-3 px-4"><Skeleton className="h-4 w-20" /></td>
-                    <td className="py-3 px-4"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                    <td className="py-3 px-4"><Skeleton className="h-4 w-24" /></td>
+                    <td className="py-3 px-4"><Skeleton className="h-5 w-20 rounded-full" /></td>
                     <td className="py-3 px-4"><Skeleton className="h-4 w-32" /></td>
                     <td className="py-3 px-4 text-center"><Skeleton className="h-4 w-8 mx-auto" /></td>
                     <td className="py-3 px-4 text-center"><Skeleton className="h-4 w-8 mx-auto" /></td>
@@ -161,9 +148,9 @@ export function ImportJobsTab() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="py-12 text-center text-[var(--pw-text-muted)]"
+                    className="py-12 text-center text-[var(--pw-ink)]/60"
                   >
-                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-40 text-[var(--pw-primary)]" />
                     <p>ยังไม่มีประวัติการนำเข้าข้อมูล</p>
                   </td>
                 </tr>
@@ -175,46 +162,46 @@ export function ImportJobsTab() {
                   return (
                     <tr
                       key={job.importJobId}
-                      className="hover:bg-[var(--pw-surface-indigo)]/20 transition-colors"
+                      className="hover:bg-white/[0.03] transition-colors"
                     >
-                      <td className="py-3 px-4 font-medium text-[var(--pw-text-primary)] whitespace-nowrap">
-                        {formatDate(job.createdAt)}
+                      <td className="py-3 px-4 font-medium text-[var(--pw-ink)] whitespace-nowrap">
+                        {formatDisplayDateTime(job.createdAt)}
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-medium text-[10px] bg-[var(--pw-surface-indigo)] text-[var(--pw-text-primary)] border border-[var(--pw-hairline)]">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-medium text-[10px] bg-[var(--pw-surface-indigo)]/50 text-[var(--pw-ink)] border border-[var(--pw-hairline)]">
                           {isSlip ? (
-                            <Receipt className="h-3 w-3 text-[var(--pw-accent-primary)]" />
+                            <Receipt className="h-3 w-3 text-[var(--pw-primary)]" />
                           ) : (
-                            <CreditCard className="h-3 w-3 text-[var(--pw-accent-primary)]" />
+                            <CreditCard className="h-3 w-3 text-[var(--pw-primary)]" />
                           )}
                           {isSlip ? "สลิปโอนเงิน" : "ใบแจ้งยอด"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-[var(--pw-text-primary)] max-w-[200px] truncate">
+                      <td className="py-3 px-4 text-[var(--pw-ink)] max-w-[200px] truncate">
                         {job.fileName}
                       </td>
-                      <td className="py-3 px-4 text-center text-[var(--pw-text-primary)] font-medium">
+                      <td className="py-3 px-4 text-center text-[var(--pw-ink)] font-medium">
                         {job.totalRecords}
                       </td>
-                      <td className="py-3 px-4 text-center text-[var(--pw-accent-green)] font-medium">
+                      <td className="py-3 px-4 text-center text-[var(--pw-green)] font-medium">
                         {job.importedRecords}
                       </td>
-                      <td className="py-3 px-4 text-center text-[var(--pw-accent-yellow)] font-medium">
+                      <td className="py-3 px-4 text-center text-amber-400 font-medium">
                         {job.duplicateRecords}
                       </td>
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         {statusLower === "completed" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-accent-green)]/10 text-[var(--pw-accent-green)]">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-green)]/15 text-[var(--pw-green)] border border-[var(--pw-green)]/20">
                             <CheckCircle2 className="h-3 w-3" />
                             เสร็จสมบูรณ์
                           </span>
                         ) : statusLower === "needsreview" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-accent-yellow)]/10 text-[var(--pw-accent-yellow)]">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">
                             <Clock className="h-3 w-3" />
                             รอตรวจสอบ
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-accent-red)]/10 text-[var(--pw-accent-red)]">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] border border-[var(--pw-expense)]/20">
                             <AlertCircle className="h-3 w-3" />
                             {job.errorMessage ? "พบข้อผิดพลาด" : "ล้มเหลว"}
                           </span>
@@ -233,7 +220,7 @@ export function ImportJobsTab() {
                             ตรวจสอบ
                           </Button>
                         ) : (
-                          <span className="text-[var(--pw-text-muted)]">-</span>
+                          <span className="text-[var(--pw-ink)]/40">-</span>
                         )}
                       </td>
                     </tr>
@@ -243,38 +230,150 @@ export function ImportJobsTab() {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination footer */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between p-3 border-t border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/10 text-xs">
-            <span className="text-[var(--pw-text-muted)]">
-              หน้า {page} จาก {totalPages}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="h-7 w-7 p-0 cursor-pointer"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="h-7 w-7 p-0 cursor-pointer"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-        )}
       </Card>
+
+      {/* Mobile Card List View (visible on mobile only) */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="p-4 space-y-3 border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-5 w-24 rounded-full" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <Skeleton className="h-4 w-44" />
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[var(--pw-hairline)]">
+                <Skeleton className="h-8 rounded" />
+                <Skeleton className="h-8 rounded" />
+                <Skeleton className="h-8 rounded" />
+              </div>
+            </Card>
+          ))
+        ) : jobs.length === 0 ? (
+          <Card className="flex flex-col items-center justify-center p-8 text-center border-[var(--pw-hairline)] bg-[var(--pw-surface)]/70">
+            <FileText className="h-10 w-10 opacity-30 text-[var(--pw-primary)] mb-2" />
+            <p className="font-semibold text-sm text-[var(--pw-ink)]">ยังไม่มีประวัติการนำเข้าข้อมูล</p>
+            <p className="text-xs text-[var(--pw-ink)]/50 mt-1">
+              สลิปและใบแจ้งยอดที่นำเข้าจะแสดงประวัติที่นี่
+            </p>
+          </Card>
+        ) : (
+          <AnimatedList className="space-y-3">
+            {jobs.map((job) => {
+              const isSlip = job.importType.toLowerCase() === "slip";
+              const statusLower = job.status.toLowerCase();
+
+              return (
+                <AnimatedListItem key={job.importJobId}>
+                  <Card className="p-3.5 border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 hover:border-[var(--pw-primary)]/40 transition-colors">
+                    <div className="flex flex-col gap-2.5">
+                      {/* Top Row: Type Badge + Status Pill */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-medium text-[11px] bg-[var(--pw-surface-indigo)]/50 text-[var(--pw-ink)] border border-[var(--pw-hairline)]">
+                          {isSlip ? (
+                            <Receipt className="h-3 w-3 text-[var(--pw-primary)]" />
+                          ) : (
+                            <CreditCard className="h-3 w-3 text-[var(--pw-primary)]" />
+                          )}
+                          {isSlip ? "สลิปโอนเงิน" : "ใบแจ้งยอด"}
+                        </span>
+
+                        {statusLower === "completed" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-green)]/15 text-[var(--pw-green)] border border-[var(--pw-green)]/20">
+                            <CheckCircle2 className="h-3 w-3" />
+                            เสร็จสมบูรณ์
+                          </span>
+                        ) : statusLower === "needsreview" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                            <Clock className="h-3 w-3" />
+                            รอตรวจสอบ
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] border border-[var(--pw-expense)]/20">
+                            <AlertCircle className="h-3 w-3" />
+                            {job.errorMessage ? "พบข้อผิดพลาด" : "ล้มเหลว"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* File Name & Time */}
+                      <div>
+                        <p className="text-xs font-semibold text-[var(--pw-ink)] truncate">
+                          {job.fileName}
+                        </p>
+                        <p className="text-[10px] text-[var(--pw-ink)]/50 mt-0.5">
+                          {formatDisplayDateTime(job.createdAt)}
+                        </p>
+                      </div>
+
+                      {/* Metrics Summary Grid */}
+                      <div className="grid grid-cols-3 gap-1.5 rounded-lg bg-[var(--pw-surface-indigo)]/20 p-2 text-center border border-[var(--pw-hairline)]/50">
+                        <div>
+                          <span className="text-[10px] text-[var(--pw-ink)]/50 block">ทั้งหมด</span>
+                          <span className="text-xs font-bold text-[var(--pw-ink)]">{job.totalRecords}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-[var(--pw-green)] block">นำเข้า</span>
+                          <span className="text-xs font-bold text-[var(--pw-green)]">{job.importedRecords}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-amber-400 block">ซ้ำ</span>
+                          <span className="text-xs font-bold text-amber-400">{job.duplicateRecords}</span>
+                        </div>
+                      </div>
+
+                      {/* Action Button if Needs Review */}
+                      {statusLower === "needsreview" && (
+                        <Button
+                          type="button"
+                          className="w-full h-9 text-xs font-semibold gap-1.5 mt-1"
+                          onClick={() => setReviewingJob(job)}
+                        >
+                          <Eye className="size-3.5" />
+                          ตรวจสอบและยืนยันรายการ
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                </AnimatedListItem>
+              );
+            })}
+          </AnimatedList>
+        )}
+      </div>
+
+      {/* Pagination footer */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-xs text-[var(--pw-ink)]/70">
+          <span>
+            หน้า {page} จาก {totalPages}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="h-8 w-8 p-0 cursor-pointer"
+              aria-label="หน้าก่อนหน้า"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="h-8 w-8 p-0 cursor-pointer"
+              aria-label="หน้าถัดไป"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Filter BottomSheet */}
       <BottomSheet
@@ -283,7 +382,7 @@ export function ImportJobsTab() {
         title="ตัวกรองประวัติการนำเข้า"
         description="กรองประวัติตามประเภทงานนำเข้า เช่น สลิปโอนเงิน หรือใบแจ้งยอดบัตรเครดิต"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] space-y-4">
+        <div className="space-y-4 pt-1">
           <FormField label="ประเภทงานนำเข้า">
             <Select
               value={typeFilter}
@@ -303,26 +402,26 @@ export function ImportJobsTab() {
             </Select>
           </FormField>
 
-          <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
+          <BottomSheetFooter>
             <Button
               type="button"
-              variant="ghost"
+              onClick={() => setIsFilterSheetOpen(false)}
+              className="h-11 sm:h-10 font-semibold cursor-pointer"
+            >
+              นำตัวกรองไปใช้
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => {
                 handleResetFilter();
                 setIsFilterSheetOpen(false);
               }}
-              className="w-full sm:w-auto cursor-pointer"
+              className="h-11 sm:h-10 cursor-pointer"
             >
               ล้างตัวกรอง
             </Button>
-            <Button
-              type="button"
-              onClick={() => setIsFilterSheetOpen(false)}
-              className="w-full sm:w-auto bg-[var(--pw-link)] text-white hover:brightness-110 cursor-pointer"
-            >
-              เสร็จสิ้น
-            </Button>
-          </div>
+          </BottomSheetFooter>
         </div>
       </BottomSheet>
 

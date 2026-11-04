@@ -900,9 +900,15 @@ export function TransactionList({
               <AnimatedListItem key={t.transactionId}>
                 {/* 1. Mobile Compact List Row (< sm) */}
                 <div
-                  onClick={() => setSelectedTransaction(t)}
-                  className="sm:hidden flex items-center justify-between p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-raised)] active:scale-[0.98] transition-all cursor-pointer backdrop-blur-xs gap-3"
+                  onClick={() => deletingId !== t.transactionId && setSelectedTransaction(t)}
+                  className={cn("sm:hidden relative flex items-center justify-between p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-raised)] active:scale-[0.98] transition-all cursor-pointer backdrop-blur-xs gap-3 overflow-hidden", deletingId === t.transactionId && "pointer-events-none opacity-60")}
                 >
+                  {deletingId === t.transactionId && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--pw-surface)]/85 backdrop-blur-xs gap-2 text-xs font-semibold text-[var(--pw-expense)]">
+                      <LoaderCircle className="size-4 animate-spin" />
+                      <span>กำลังลบรายการ...</span>
+                    </div>
+                  )}
                   <div
                     className={cn(
                       "flex size-10 shrink-0 items-center justify-center rounded-xl",
@@ -976,7 +982,8 @@ export function TransactionList({
                 {/* 2. Desktop Card Grid (>= sm) */}
                 <div
                   className={cn(
-                    "hidden sm:flex relative flex-col justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80 backdrop-blur-xs h-full",
+                    "hidden sm:flex relative flex-col justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80 backdrop-blur-xs h-full overflow-hidden",
+                    deletingId === t.transactionId && "pointer-events-none opacity-60",
                     t.transactionType === "expense"
                       ? "border-l-4 border-l-[var(--pw-expense)]"
                       : t.transactionType === "income"
@@ -984,6 +991,12 @@ export function TransactionList({
                         : "border-l-4 border-l-[var(--pw-link)]",
                   )}
                 >
+                  {deletingId === t.transactionId && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[var(--pw-surface)]/85 backdrop-blur-xs gap-1.5 text-xs font-semibold text-[var(--pw-expense)]">
+                      <LoaderCircle className="size-5 animate-spin" />
+                      <span>กำลังลบรายการ...</span>
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -1096,14 +1109,15 @@ export function TransactionList({
                       pending={deletingId === t.transactionId}
                       onConfirm={() => {
                         setDeletingId(t.transactionId);
+                        const toastId = toast.loading("กำลังลบรายการ...");
                         remove.mutate(t.transactionId, {
                           onSuccess: () => {
                             setDeletingId(null);
-                            toast.success("ลบรายการแล้ว");
+                            toast.success("ลบรายการแล้ว", { id: toastId });
                           },
                           onError: (e) => {
                             setDeletingId(null);
-                            toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ");
+                            toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ", { id: toastId });
                           },
                         });
                       }}
@@ -1254,15 +1268,16 @@ export function TransactionList({
                 onConfirm={() => {
                   const id = selectedTransaction.transactionId;
                   setDeletingId(id);
+                  const toastId = toast.loading("กำลังลบรายการ...");
                   remove.mutate(id, {
                     onSuccess: () => {
                       setDeletingId(null);
                       setSelectedTransaction(null);
-                      toast.success("ลบรายการแล้ว");
+                      toast.success("ลบรายการแล้ว", { id: toastId });
                     },
                     onError: (e) => {
                       setDeletingId(null);
-                      toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ");
+                      toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ", { id: toastId });
                     },
                   });
                 }}

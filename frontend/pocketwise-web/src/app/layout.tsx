@@ -90,6 +90,15 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "PocketWise",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 const jsonLd = {

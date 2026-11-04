@@ -190,7 +190,7 @@ export default function AdminSecurityEventsPage() {
 
       {/* Events Timeline / Table */}
       <div className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-[var(--pw-ink)]/70 font-semibold">
@@ -275,6 +275,74 @@ export default function AdminSecurityEventsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Security Event Cards List (visible on mobile only) */}
+        <div className="md:hidden divide-y divide-[var(--pw-hairline)]">
+          {isLoading ? (
+            <div className="py-10 text-center text-[var(--pw-ink)]/60 text-xs">
+              กำลังโหลดประวัติเหตุการณ์ความปลอดภัย...
+            </div>
+          ) : eventsData?.items.length === 0 ? (
+            <div className="py-10 text-center text-[var(--pw-ink)]/60 text-xs">
+              ไม่พบเหตุการณ์ตามเงื่อนไขที่ค้นหา
+            </div>
+          ) : (
+            eventsData?.items.map((ev) => (
+              <div key={ev.securityEventId} className="p-3.5 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  {renderEventBadge(ev.eventType, ev.succeeded)}
+                  {ev.succeeded ? (
+                    <span className="inline-flex items-center gap-1 text-[var(--pw-income)] text-xs font-semibold">
+                      <CheckCircle2 className="size-3.5" /> สำเร็จ
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[var(--pw-expense)] text-xs font-semibold">
+                      <XCircle className="size-3.5" /> ล้มเหลว
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--pw-ink)]/50">
+                    <Clock className="size-3" />
+                    <span>{formatDisplayDateTime(ev.occurredAt)}</span>
+                  </div>
+
+                  {ev.targetUserDisplayName && (
+                    <div className="text-[var(--pw-ink)] font-medium">
+                      เป้าหมาย: {ev.targetUserDisplayName}
+                      {ev.targetUserEmail && (
+                        <span className="text-[var(--pw-ink)]/50 text-[11px] ml-1">({ev.targetUserEmail})</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--pw-ink)]/70">
+                    <span>
+                      ผู้กระทำ: {ev.actorUserDisplayName ?? "ระบบ / ผู้ใช้"}
+                    </span>
+                    {ev.ipAddress && (
+                      <span className="font-mono text-[var(--pw-ink)]/50">
+                        IP: {ev.ipAddress}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {(ev.detailsJson || ev.userAgent) && (
+                  <div className="pt-1 border-t border-[var(--pw-hairline)]/40 flex justify-end">
+                    <button
+                      onClick={() => setSelectedEvent(ev)}
+                      className="px-2.5 py-1 text-xs rounded border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-colors flex items-center gap-1"
+                    >
+                      <FileCode className="size-3" /> ดูรายละเอียด / JSON
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pagination */}

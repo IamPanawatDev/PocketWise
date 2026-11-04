@@ -388,7 +388,7 @@ export default function AdminUsersPage() {
 
       {/* Users Table */}
       <div className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 text-[var(--pw-ink)]/70 font-semibold text-xs">
@@ -518,6 +518,120 @@ export default function AdminUsersPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile User Cards List (visible on mobile only) */}
+        <div className="md:hidden divide-y divide-[var(--pw-hairline)]">
+          {isLoading ? (
+            <div className="py-10 text-center text-[var(--pw-ink)]/60">
+              <RefreshCw className="size-5 animate-spin text-[var(--pw-primary)] mx-auto mb-2" />
+              <span className="text-xs">กำลังโหลดรายชื่อผู้ใช้...</span>
+            </div>
+          ) : !usersData?.items || usersData.items.length === 0 ? (
+            <div className="py-10 text-center text-[var(--pw-ink)]/60 text-xs">
+              ไม่พบผู้ใช้งานที่ตรงตามเงื่อนไข
+            </div>
+          ) : (
+            usersData.items.map((u) => {
+              const isSelf = currentUser?.id === u.id;
+              return (
+                <div key={u.id} className="p-3.5 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="size-8 rounded-full bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-bold flex items-center justify-center text-xs shrink-0">
+                        {u.displayName.slice(0, 1).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-xs sm:text-sm text-[var(--pw-ink)] truncate">{u.displayName}</span>
+                          {isSelf && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-[var(--pw-primary)]/20 text-[var(--pw-primary)]">
+                              คุณ
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-[var(--pw-ink)]/60 truncate">{u.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 shrink-0">
+                      {u.roles.map((r) => (
+                        <span
+                          key={r}
+                          className={cn(
+                            "px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase",
+                            r === "Admin"
+                              ? "bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]"
+                              : "bg-[var(--pw-hairline)]/40 text-[var(--pw-ink)]/80"
+                          )}
+                        >
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                    {u.isSuspended ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-bold bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]">
+                        <UserX className="size-3" /> ระงับใช้งาน
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-bold bg-[var(--pw-income)]/15 text-[var(--pw-income)]">
+                        <UserCheck className="size-3" /> ปกติ
+                      </span>
+                    )}
+
+                    {u.isEmailVerified ? (
+                      <span className="inline-flex items-center gap-1 text-[var(--pw-income)] font-medium">
+                        <CheckCircle className="size-3" /> ยืนยันอีเมลแล้ว
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-amber-500 font-medium">
+                        <AlertTriangle className="size-3" /> ยังไม่ยืนยันอีเมล
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-[10px] text-[var(--pw-ink)]/50">
+                    เข้าสู่ระบบล่าสุด: {formatDisplayDateTime(u.lastLoginAt, "ไม่เคยเข้าสู่ระบบ")}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1 border-t border-[var(--pw-hairline)]/40">
+                    <button
+                      onClick={() => {
+                        setSelectedUserId(u.id);
+                        setActiveDetailTab("profile");
+                      }}
+                      className="flex-1 py-1.5 text-xs font-medium rounded border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-all text-center"
+                    >
+                      ตรวจสอบข้อมูล
+                    </button>
+                    {u.isSuspended ? (
+                      <button
+                        onClick={() => handleConfirmUnsuspend(u)}
+                        disabled={unsuspendMutation.isPending}
+                        className="px-3 py-1.5 text-xs font-medium rounded border border-[var(--pw-income)]/40 bg-[var(--pw-income)]/10 text-[var(--pw-income)] hover:bg-[var(--pw-income)]/20 transition-all"
+                      >
+                        ยกเลิกระงับ
+                      </button>
+                    ) : isSelf ? (
+                      <span className="text-[11px] text-[var(--pw-ink)]/40 px-2 py-1 select-none">
+                        (บัญชีของคุณ)
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenSuspendModal(u)}
+                        className="px-3 py-1.5 text-xs font-medium rounded border border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20 transition-all"
+                      >
+                        ระงับบัญชี
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Pagination */}

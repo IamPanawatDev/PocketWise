@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { transferSchema, type TransferFormValues } from "@/schemas/transfer.schema";
@@ -9,16 +9,15 @@ import { useCreateTransfer, useTransfers } from "@/features/transfers/hooks/useT
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { ApiError } from "@/lib/api-client";
 import {
-  formatCurrency,
-  formatDateTime,
   thailandDateTimeInputToUtcIso,
   toThailandDateTimeInputValue,
 } from "@/lib/utils";
+import { formatDisplayDateTime } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { NumberInput } from "@/components/ui/number-input";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import {
   Select,
   SelectContent,
@@ -31,7 +30,20 @@ import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
-import { ArrowRightLeft, LoaderCircle, Plus, Send, X } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowRightLeft,
+  Building2,
+  CheckCircle2,
+  Clock,
+  LoaderCircle,
+  Plus,
+  Repeat,
+  Send,
+  Wallet,
+  X,
+} from "lucide-react";
+import type { TransferResponse } from "@/types/transfer.types";
 
 export function TransfersView() {
   const { data: transfers, isLoading } = useTransfers();
@@ -55,9 +67,28 @@ export function TransfersView() {
   }, [setValue]);
 
   const closeForm = () => {
-    setValue("amount", "" as unknown as number);
-    setValue("reference", null);
+    reset({
+      fromBankAccountId: undefined as unknown as number,
+      toBankAccountId: undefined as unknown as number,
+      amount: "" as unknown as number,
+      transferDate: toThailandDateTimeInputValue(new Date()),
+      reference: null,
+    });
     setIsFormOpen(false);
+  };
+
+  const handleOpenNewTransfer = () => {
+    setValue("transferDate", toThailandDateTimeInputValue(new Date()));
+    setIsFormOpen(true);
+  };
+
+  const handleRepeatTransfer = (group: TransferResponse) => {
+    setValue("fromBankAccountId", group.fromBankAccountId);
+    setValue("toBankAccountId", group.toBankAccountId);
+    setValue("amount", group.amount);
+    setValue("reference", group.reference ? `โอนซ้ำ: ${group.reference}` : "โอนซ้ำ");
+    setValue("transferDate", toThailandDateTimeInputValue(new Date()));
+    setIsFormOpen(true);
   };
 
   const onSubmit = (values: TransferFormValues) => {
@@ -77,30 +108,51 @@ export function TransfersView() {
     );
   };
 
+  // Quick summary calculation
+  const totalAmount = useMemo(() => {
+    if (!transfers) return 0;
+    return transfers.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [transfers]);
+
   return (
-    <div>
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
+          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl text-[var(--pw-ink)]">
             <ArrowRightLeft className="size-6 text-[var(--pw-primary)]" />
             โอนเงินระหว่างบัญชี
           </h1>
-          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
+          <p className="mt-1 text-xs text-[var(--pw-ink)]/65 sm:text-sm">
             บันทึกการโยกย้ายเงินระหว่างบัญชีของคุณ เช่น ถอนเงินสด หรือโอนเข้ากระเป๋าเงิน
           </p>
         </div>
         <Button
-          className="w-full sm:w-auto"
-          onClick={() => {
-            setValue("transferDate", toThailandDateTimeInputValue(new Date()));
-            setIsFormOpen(true);
-          }}
+          className="w-full sm:w-auto h-11 sm:h-10 text-sm font-semibold shadow-sm"
+          onClick={handleOpenNewTransfer}
         >
-          <Plus />
+          <Plus className="size-4 mr-1.5" />
           บันทึกการโอนเงิน
         </Button>
       </div>
+
+      {/* Summary Card for Mobile & Desktop */}
+      {transfers && transfers.length > 0 && (
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-4">
+          <Card className="p-3.5 sm:p-4 bg-[var(--pw-surface-indigo)]/20 border-[var(--pw-hairline)]">
+            <span className="text-xs text-[var(--pw-ink)]/60 block">รายการโอนทั้งหมด</span>
+            <span className="mt-1 text-lg sm:text-xl font-bold text-[var(--pw-ink)] block">
+              <AnimatedNumber value={transfers.length} /> <span className="text-xs font-normal text-[var(--pw-ink)]/60">รายการ</span>
+            </span>
+          </Card>
+          <Card className="p-3.5 sm:p-4 bg-[var(--pw-surface-indigo)]/20 border-[var(--pw-hairline)]">
+            <span className="text-xs text-[var(--pw-ink)]/60 block">ยอดรวมการโอน</span>
+            <span className="mt-1 text-lg sm:text-xl font-bold text-[var(--pw-primary)] block truncate">
+              <AnimatedNumber value={totalAmount} /> <span className="text-xs font-normal text-[var(--pw-ink)]/60">฿</span>
+            </span>
+          </Card>
+        </div>
+      )}
 
       {/* Form in BottomSheet */}
       <BottomSheet
@@ -112,132 +164,240 @@ export function TransfersView() {
         title="บันทึกการโอนเงินระหว่างบัญชี"
         description="ระบุบัญชีต้นทาง ปลายทาง และจำนวนเงินที่ต้องการโอน"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField label="จากบัญชี" htmlFor="transfer-from" error={errors.fromBankAccountId?.message}>
-                <Controller
-                  control={control}
-                  name="fromBankAccountId"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value ? String(field.value) : undefined}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                    >
-                      <SelectTrigger id="transfer-from"><SelectValue placeholder="— เลือกบัญชีต้นทาง —" /></SelectTrigger>
-                      <SelectContent>
-                        {accounts?.map((account) => (
-                          <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
-                            {account.accountName} ({account.bankName})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </FormField>
-              <FormField label="ไปยังบัญชี" htmlFor="transfer-to" error={errors.toBankAccountId?.message}>
-                <Controller
-                  control={control}
-                  name="toBankAccountId"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value ? String(field.value) : undefined}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                    >
-                      <SelectTrigger id="transfer-to"><SelectValue placeholder="— เลือกบัญชีปลายทาง —" /></SelectTrigger>
-                      <SelectContent>
-                        {accounts?.map((account) => (
-                          <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
-                            {account.accountName} ({account.bankName})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </FormField>
-              <FormField label="จำนวนเงิน" htmlFor="transfer-amount" error={errors.amount?.message}>
-                <NumberInput id="transfer-amount" step="0.01" min="0.01" placeholder="0" {...register("amount")} />
-              </FormField>
-              <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)" htmlFor="transfer-date" error={errors.transferDate?.message}>
-                <Controller
-                  control={control}
-                  name="transferDate"
-                  render={({ field }) => (
-                    <DateTimeInput
-                      id="transfer-date"
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                    />
-                  )}
-                />
-              </FormField>
-              <FormField label="คำอธิบาย / อ้างอิง (ไม่บังคับ)" htmlFor="transfer-reference" className="sm:col-span-2">
-                <Input id="transfer-reference" placeholder="เช่น ถอนเงินสดไว้ใช้, โอนเข้า e-wallet" {...register("reference")} />
-              </FormField>
-            </div>
-
-            <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
-              <Button type="submit" disabled={create.isPending} className="w-full sm:w-auto">
-                {create.isPending ? (
-                  <LoaderCircle className="animate-spin size-4 mr-1.5" />
-                ) : (
-                  <Send className="size-4 mr-1.5" />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField label="จากบัญชีต้นทาง" htmlFor="transfer-from" error={errors.fromBankAccountId?.message}>
+              <Controller
+                control={control}
+                name="fromBankAccountId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value ? String(field.value) : undefined}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger id="transfer-from" className="w-full">
+                      <SelectValue placeholder="— เลือกบัญชีต้นทาง —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts?.map((account) => (
+                        <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
+                          {account.accountName} ({account.bankName})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
-                บันทึกการโอนเงิน
-              </Button>
-              <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
-                <X className="size-4 mr-1.5" />
-                ยกเลิก
-              </Button>
-            </div>
-          </form>
-        </div>
+              />
+            </FormField>
+
+            <FormField label="ไปยังบัญชีปลายทาง" htmlFor="transfer-to" error={errors.toBankAccountId?.message}>
+              <Controller
+                control={control}
+                name="toBankAccountId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value ? String(field.value) : undefined}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger id="transfer-to" className="w-full">
+                      <SelectValue placeholder="— เลือกบัญชีปลายทาง —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts?.map((account) => (
+                        <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
+                          {account.accountName} ({account.bankName})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
+
+            <FormField label="จำนวนเงิน (บาท)" htmlFor="transfer-amount" error={errors.amount?.message}>
+              <NumberInput
+                id="transfer-amount"
+                step="0.01"
+                min="0.01"
+                placeholder="0.00"
+                enableQuickMath
+                {...register("amount")}
+              />
+            </FormField>
+
+            <FormField label="วันที่และเวลา (เวลาไทย)" htmlFor="transfer-date" error={errors.transferDate?.message}>
+              <Controller
+                control={control}
+                name="transferDate"
+                render={({ field }) => (
+                  <DateTimeInput
+                    id="transfer-date"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
+            </FormField>
+
+            <FormField label="คำอธิบาย / อ้างอิง (ไม่บังคับ)" htmlFor="transfer-reference" className="sm:col-span-2">
+              <Input
+                id="transfer-reference"
+                placeholder="เช่น ถอนเงินสดไว้ใช้, โอนเข้า e-wallet"
+                {...register("reference")}
+              />
+            </FormField>
+          </div>
+
+          {/* Standard BottomSheetFooter: Confirm TOP, Cancel BOTTOM on mobile */}
+          <BottomSheetFooter>
+            <Button
+              type="submit"
+              disabled={create.isPending}
+              className="h-11 sm:h-10 font-semibold"
+            >
+              {create.isPending ? (
+                <LoaderCircle className="animate-spin size-4 mr-1.5" />
+              ) : (
+                <Send className="size-4 mr-1.5" />
+              )}
+              บันทึกการโอนเงิน
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeForm}
+              className="h-11 sm:h-10"
+            >
+              <X className="size-4 mr-1.5" />
+              ยกเลิก
+            </Button>
+          </BottomSheetFooter>
+        </form>
       </BottomSheet>
 
       {/* Transfers History */}
       {isLoading ? (
         <CardGridSkeleton count={4} columns="grid-cols-1" />
       ) : !transfers || transfers.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-8 text-center">
-          <ArrowRightLeft className="mb-2 size-10 opacity-35 text-[var(--pw-primary)]" />
-          <p className="font-medium text-[var(--pw-ink)]">ยังไม่มีประวัติการโอนเงิน</p>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-            กดปุ่ม &quot;บันทึกการโอนเงิน&quot; ด้านบนเพื่อบันทึกรายการโอนเงินระหว่างบัญชี
+        <Card className="flex flex-col items-center justify-center p-8 sm:p-12 text-center border-[var(--pw-hairline)] bg-[var(--pw-surface)]/70">
+          <ArrowRightLeft className="mb-3 size-12 opacity-30 text-[var(--pw-primary)]" />
+          <p className="font-semibold text-base text-[var(--pw-ink)]">ยังไม่มีประวัติการโอนเงิน</p>
+          <p className="mt-1 text-xs sm:text-sm text-[var(--pw-ink)]/60 max-w-sm">
+            กดปุ่ม &quot;บันทึกการโอนเงิน&quot; ด้านบนเพื่อบันทึกรายการโยกย้ายเงินระหว่างบัญชีของคุณ
           </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={handleOpenNewTransfer}
+          >
+            <Plus className="size-4 mr-1.5" />
+            เริ่มโอนเงินรายการแรก
+          </Button>
         </Card>
       ) : (
-        <AnimatedList className="space-y-4">
+        <AnimatedList className="space-y-3 sm:space-y-4">
           {transfers.map((group) => {
             const fromAcc = accounts?.find((a) => a.bankAccountId === group.fromBankAccountId);
             const toAcc = accounts?.find((a) => a.bankAccountId === group.toBankAccountId);
+            const isConfirmed = group.status === "confirmed";
+
             return (
               <AnimatedListItem key={group.transferGroupId}>
-                <Card className="p-4 sm:p-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-base font-semibold sm:text-lg">
-                        {fromAcc ? `${fromAcc.accountName} (${fromAcc.bankName})` : "บัญชีต้นทาง"} →{" "}
-                        {toAcc ? `${toAcc.accountName} (${toAcc.bankName})` : "บัญชีปลายทาง"}
-                      </p>
-                      <p className="text-xs text-[var(--pw-ink)]/50">
-                        {formatDateTime(group.transferDate || group.createdAt)}
-                      </p>
-                      {group.reference && (
-                        <p className="mt-1 text-xs text-[var(--pw-ink)]/70">
-                          อ้างอิง: {group.reference}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <p className="text-base font-bold text-[var(--pw-ink)] sm:text-lg">
-                        <AnimatedNumber value={group.amount} />
-                      </p>
-                      <span className="inline-block mt-1 rounded-full bg-[var(--pw-surface-indigo)] px-2.5 py-0.5 text-[10px] text-[var(--pw-ink)]/70">
-                        {group.status === "confirmed" ? "สำเร็จ" : group.status}
+                <Card className="p-3.5 sm:p-5 border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 hover:border-[var(--pw-primary)]/40 transition-colors">
+                  <div className="flex flex-col gap-3">
+                    {/* Visual Route Header (From -> To) */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-1 items-center gap-2 min-w-0">
+                        {/* Source Account Box */}
+                        <div className="flex items-center gap-1.5 min-w-0 rounded-lg bg-[var(--pw-surface-indigo)]/30 px-2.5 py-1.5 border border-[var(--pw-hairline)]">
+                          <Building2 className="size-3.5 shrink-0 text-[var(--pw-primary)]" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-[var(--pw-ink)] truncate max-w-[100px] sm:max-w-[160px]">
+                              {fromAcc ? fromAcc.accountName : "บัญชีต้นทาง"}
+                            </p>
+                            {fromAcc?.bankName && (
+                              <p className="text-[10px] text-[var(--pw-ink)]/50 truncate">
+                                {fromAcc.bankName}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Arrow Route Indicator */}
+                        <div className="shrink-0 flex items-center justify-center size-6 rounded-full bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
+                          <ArrowRight className="size-3.5" />
+                        </div>
+
+                        {/* Destination Account Box */}
+                        <div className="flex items-center gap-1.5 min-w-0 rounded-lg bg-[var(--pw-surface-indigo)]/30 px-2.5 py-1.5 border border-[var(--pw-hairline)]">
+                          <Wallet className="size-3.5 shrink-0 text-[var(--pw-green)]" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-[var(--pw-ink)] truncate max-w-[100px] sm:max-w-[160px]">
+                              {toAcc ? toAcc.accountName : "บัญชีปลายทาง"}
+                            </p>
+                            {toAcc?.bankName && (
+                              <p className="text-[10px] text-[var(--pw-ink)]/50 truncate">
+                                {toAcc.bankName}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status Pill */}
+                      <span
+                        className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          isConfirmed
+                            ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)] border border-[var(--pw-green)]/20"
+                            : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                        }`}
+                      >
+                        {isConfirmed ? (
+                          <>
+                            <CheckCircle2 className="size-3" />
+                            สำเร็จ
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="size-3" />
+                            {group.status}
+                          </>
+                        )}
                       </span>
+                    </div>
+
+                    {/* Amount & Time Details */}
+                    <div className="flex items-end justify-between border-t border-[var(--pw-hairline)]/50 pt-2.5 mt-0.5">
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] text-[var(--pw-ink)]/50">
+                          {formatDisplayDateTime(group.transferDate || group.createdAt)}
+                        </p>
+                        {group.reference && (
+                          <p className="text-xs text-[var(--pw-ink)]/75 line-clamp-1">
+                            <span className="text-[var(--pw-ink)]/45">บันทึก:</span> {group.reference}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2.5">
+                        <p className="text-base sm:text-lg font-bold text-[var(--pw-ink)]">
+                          <AnimatedNumber value={group.amount} /> <span className="text-xs font-normal text-[var(--pw-ink)]/60">฿</span>
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRepeatTransfer(group)}
+                          className="h-8 px-2 text-xs text-[var(--pw-link)] hover:text-[var(--pw-ink)] hover:bg-[var(--pw-link)]/10"
+                          title="โอนซ้ำรายการนี้"
+                          aria-label={`โอนซ้ำรายการจำนวน ${group.amount} บาท`}
+                        >
+                          <Repeat className="size-3.5 mr-1" />
+                          <span className="hidden sm:inline">โอนอีกครั้ง</span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </Card>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CreditCard, FileUp, History, Receipt } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { cn } from "@/lib/utils";
 import { SlipImportTab } from "./SlipImportTab";
 import { StatementImportTab } from "./StatementImportTab";
 import { ImportJobsTab } from "./ImportJobsTab";
@@ -13,53 +14,59 @@ export function ImportsView() {
   const [activeTab, setActiveTab] = useState<ImportTab>("slip");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-[var(--pw-text-primary)]">
+        <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl text-[var(--pw-ink)]">
           <FileUp className="size-6 text-[var(--pw-primary)]" />
           นำเข้าข้อมูล (Imports)
         </h1>
+        <p className="mt-1 text-xs text-[var(--pw-ink)]/65 sm:text-sm">
+          อัปโหลดสลิปโอนเงิน สแกน AI และนำเข้าใบแจ้งยอดบัตรเครดิต
+        </p>
       </div>
 
-      {/* Tabs navigation */}
-      <div className="flex border-b border-[var(--pw-hairline)] space-x-2">
+      {/* Responsive Segmented Tabs Bar */}
+      <div className="flex rounded-xl bg-[var(--pw-surface-indigo)]/30 p-1 border border-[var(--pw-hairline)] w-full overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab("slip")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-3 py-2 text-xs sm:text-sm font-medium transition-all whitespace-nowrap cursor-pointer",
             activeTab === "slip"
-              ? "border-[var(--pw-accent-primary)] text-[var(--pw-accent-primary)]"
-              : "border-transparent text-[var(--pw-text-muted)] hover:text-[var(--pw-text-primary)]"
-          }`}
+              ? "bg-[var(--pw-primary)] text-white shadow-sm"
+              : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-white/[0.04]",
+          )}
         >
-          <Receipt className="h-4 w-4" />
+          <Receipt className="size-4 shrink-0" />
           <span>สลิปโอนเงิน</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("statement")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-3 py-2 text-xs sm:text-sm font-medium transition-all whitespace-nowrap cursor-pointer",
             activeTab === "statement"
-              ? "border-[var(--pw-accent-primary)] text-[var(--pw-accent-primary)]"
-              : "border-transparent text-[var(--pw-text-muted)] hover:text-[var(--pw-text-primary)]"
-          }`}
+              ? "bg-[var(--pw-primary)] text-white shadow-sm"
+              : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-white/[0.04]",
+          )}
         >
-          <CreditCard className="h-4 w-4" />
-          <span>ใบแจ้งยอดบัตรเครดิต</span>
+          <CreditCard className="size-4 shrink-0" />
+          <span>ใบแจ้งยอดบัตร</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("jobs")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-3 py-2 text-xs sm:text-sm font-medium transition-all whitespace-nowrap cursor-pointer",
             activeTab === "jobs"
-              ? "border-[var(--pw-accent-primary)] text-[var(--pw-accent-primary)]"
-              : "border-transparent text-[var(--pw-text-muted)] hover:text-[var(--pw-text-primary)]"
-          }`}
+              ? "bg-[var(--pw-primary)] text-white shadow-sm"
+              : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-white/[0.04]",
+          )}
         >
-          <History className="h-4 w-4" />
+          <History className="size-4 shrink-0" />
           <span>ประวัติการนำเข้า</span>
         </button>
       </div>

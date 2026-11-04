@@ -12,6 +12,8 @@ const PUBLIC_PAGES = [
   ...AUTH_PAGES,
   "/privacy-policy",
   "/terms",
+  "/manifest.webmanifest",
+  "/manifest.json",
 ];
 
 export function proxy(request: NextRequest) {
@@ -55,6 +57,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
 };
