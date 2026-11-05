@@ -17,7 +17,7 @@ ASP.NET Core Web API on .NET 10 — Clean Architecture      [backend/]
   ├── PocketWise.Infrastructure   # EF Core 10 + SQL Server, Repositories
   └── PocketWise.Api              # Controllers, Hubs, Middleware, JWT Auth
   ▼
-SQL Server (Microsoft SQL Server 2025, database: PocketWiseDb)
+PostgreSQL (Local Docker: 5432 / Production: Supabase)
 ```
 
 ## Tech Stack
@@ -26,12 +26,13 @@ SQL Server (Microsoft SQL Server 2025, database: PocketWiseDb)
 |---|---|
 | Frontend | Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, ESLint 9 |
 | Backend | .NET 10 (ASP.NET Core Web API), EF Core 10.0.13, ASP.NET Core Identity (JWT + Refresh Token) |
-| Database | Microsoft SQL Server 2025 (localhost / `PocketWiseDb`) |
+| Database | PostgreSQL (Local Docker postgres:16-alpine / Supabase) |
+| Monitoring | UptimeRobot (Free Plan - 24/7 Keep-Alive Pinger ทุก 5 นาที) |
 | Real-time | ASP.NET Core SignalR (server) + `@microsoft/signalr` (^10.0.11 client) |
 | UI/Animation | Tailwind CSS 4, shadcn/ui, `motion` (^14.5.0), `recharts` (^3.10.1) |
-| Testing | xUnit + WebApplicationFactory / Playwright (ตาม phase) |
+| Testing | xUnit + WebApplicationFactory / Playwright (Brave Browser Visible UI) |
 
-รายละเอียดเต็ม: [`docs/Tech_Stack.md`](docs/Tech_Stack.md)
+รายละเอียดเต็ม: [docs/Tech_Stack.md](docs/Tech_Stack.md) และสารบัญเครื่องมือฉบับสมบูรณ์: [docs/TOOLS_REFERENCE.md](docs/TOOLS_REFERENCE.md)
 
 ## เริ่มต้นใช้งาน (Development)
 

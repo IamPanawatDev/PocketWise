@@ -53,13 +53,16 @@ The frontend must never connect directly to PostgreSQL. All data access goes thr
 | Authentication | ASP.NET Core Identity or a carefully designed external identity provider | Password hashing, account lifecycle, roles/claims, and secure sign-in. Decide cookie/BFF vs bearer-token architecture before implementation. |
 | Validation | FluentValidation (optional) + domain validation | Validate API inputs and enforce business rules server-side. Avoid duplicating rules without a clear source of truth. |
 | Logging | Microsoft.Extensions.Logging with structured logging; Serilog optional | Diagnostic logs with useful correlation IDs. Never log passwords, tokens, or full sensitive financial data. |
-| Testing | xUnit, integration-test WebApplicationFactory, and Playwright | Unit tests, API integration tests, and browser end-to-end tests. |
+| Testing | xUnit, integration-test WebApplicationFactory, and Playwright (Brave Browser Visible UI Testing) | Unit tests, API integration tests, and visible browser end-to-end tests via Brave (headless: false). |
+| External Monitoring | UptimeRobot (Free Plan) | 24/7 Health Monitoring & Keep-Alive pinger (HTTP GET /health every 5 minutes to prevent Render free instance sleep). |
 | Code quality | ESLint, Prettier, .editorconfig, dotnet format | Consistent style and maintainable code. |
 | Version control | Git + GitHub or another Git host | Branches, pull requests, issues, and code review. |
 | CI | GitHub Actions (or equivalent) | Build, lint, test, and validate pull requests. |
-| Local environment | Visual Studio / VS Code, Node.js LTS, .NET SDK, SQL Server Developer or LocalDB, SSMS | Development, debugging, and database administration. |
+| Local environment | Visual Studio / VS Code, Node.js LTS, .NET SDK, PostgreSQL (Docker), Brave Browser | Development, debugging, and database administration. |
 | API testing | Bruno, Postman, or Swagger UI | Save requests and test authentication and API behavior. |
 | Design / planning | Figma, diagrams.net (draw.io), Markdown | UI mockups, ER diagrams, flow diagrams, and technical decisions. |
+
+> 📖 **คู่มืออ้างอิงเครื่องมือฉบับสมบูรณ์ (All Tools & Technologies Catalog)**: ดูรายละเอียดเชิงลึกของทุกเครื่องมือได้ที่ [/docs/TOOLS_REFERENCE.md](file:///D:/Projects/PocketWise/docs/TOOLS_REFERENCE.md)
 
 ### Version policy
 
