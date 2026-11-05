@@ -2,12 +2,15 @@ name: Render Keep-Alive Pinger
 
 on:
   schedule:
-    # Standard 5-field cron: runs every 5 minutes continuously.
+    # Runs every 10 minutes at minutes ending in 2 (:02, :12, :22, :32, :42, :52).
+    # Using non-round offset minutes bypasses GitHub Actions peak queue congestion (which spikes at :00, :05, :10).
     # Daytime warming (08:00 - 23:59 Bangkok time, UTC+7) is handled inside the job script.
     # Nighttime (00:00 - 08:00 Bangkok time) skips pinging to allow Render Free Web Service to sleep,
     # saving instance hours (~496 hrs/mo used vs 750 hrs free quota).
-    - cron: '*/5 * * * *'
+    - cron: '2,12,22,32,42,52 * * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI / CLI for testing
+
+permissions: {}
 
 jobs:
   keep-alive:
