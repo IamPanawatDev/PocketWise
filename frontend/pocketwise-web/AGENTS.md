@@ -31,6 +31,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
    - งานปรับปรุง UI/UX ทั้งหมดของระบบ (Command Palette `Ctrl+K`, Filter Drawer, Button Loading States, Skeletons, Mobile Hub Drawer, Recurring Summary, Credit Card Canvas, Segmented Categories/Tags ฯลฯ) สรุปไว้ใน [`/docs/UI_MODERNIZATION_HANDOVER.md`](file:///D:/Projects/PocketWise/docs/UI_MODERNIZATION_HANDOVER.md) แล้ว
    - **ห้ามรื้อทำใหม่ หรือทำซ้ำในสิ่งที่ทำเสร็จแล้ว**: AI ต้องศึกษาเอกสาร Handover ก่อนปรับปรุงหรือต่อเติมหน้าจอใดๆ เสมอ
 
+5. **กฎปุ่ม Loading State เติมสีทึบ และการทดสอบ QA (UI Standards & QA Rule)**
+   - **กฎปุ่ม Loading State เติมสีทึบ (Solid Filled Button Loading Rule)**: ทุกปุ่ม Action หรือปุ่มหลักที่มีสถานะ Loading (เช่น กำลังบันทึก, กำลังอัปโหลด, กำลังอ่านข้อมูล OCR, กำลังลบ หรือกำลังประมวลผล) **ต้องใช้สไตล์พื้นหลังแบบเติมสีทึบ (Solid Filled Background)** เสมอ เช่น `bg-emerald-600 hover:bg-emerald-700 text-white font-bold`, `bg-blue-600 text-white font-bold`, หรือ `bg-rose-600 hover:bg-rose-700 text-white font-bold` พร้อมเงา `shadow-md` ห้ามใช้ปุ่มโปร่งแสงหรือ Ghost/Outline ขณะ loading ที่กลืนกับพื้นหลัง; สถานะ disabled ขณะ loading ต้องคงความทึบแสง (`disabled:opacity-85`) และสีตัวหนังสือสีขาว (`disabled:text-white`); ต้องมี Spinner Icon (`<Loader2 className="size-4 animate-spin text-white" />`) คู่กับข้อความบอกสถานะชัดเจนเสมอ
+   - **กฎการทดสอบ QA Step 5 ผ่าน Brave Browser UI (Headed Mode Required)**: ในขั้นตอนการทดสอบ **Step 5 (QA Browser Testing)** การทดสอบหน้าจอ UI และ User Flow ทั้งหมด **ต้องเปิดผ่าน Brave Browser ในโหมด UI จริง (Headed Mode) เสมอ (ห้ามใช้โหมด Headless โดยเด็ดขาด)** เพื่อให้ผู้ใช้สามารถมองเห็นขั้นตอนการทดสอบ การคลิกปุ่ม การกรอกฟอร์ม และปฏิกิริยาของระบบทุกขั้นตอนได้อย่างโปร่งใสและตรวจสอบได้จริง
+
 ---
 
 ## 📁 2. คู่มือตำแหน่งไฟล์ (Code Placement Guide) — ต้องเขียนไว้ที่โฟลเดอร์ไหน?

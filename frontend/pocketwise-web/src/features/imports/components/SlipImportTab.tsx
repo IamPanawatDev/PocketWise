@@ -99,6 +99,9 @@ export function SlipImportTab() {
   const [isDragging, setIsDragging] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isConfirmingAll, setIsConfirmingAll] = useState(false);
+  const [isRejectingCurrent, setIsRejectingCurrent] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
+  const [isReadingFiles, setIsReadingFiles] = useState(false);
 
   // UX States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -230,6 +233,8 @@ export function SlipImportTab() {
 
   // Handle batch file addition and background processing
   const handleProcessFiles = async (files: FileList | File[]) => {
+    setIsReadingFiles(true);
+    try {
     const fileArray = Array.from(files).filter(
       (f) => f.type.startsWith("image/") || f.name.match(/\.(jpe?g|png|webp|pdf)$/i)
     );
@@ -324,6 +329,9 @@ export function SlipImportTab() {
           );
         }
       })();
+    }
+    } finally {
+      setIsReadingFiles(false);
     }
   };
 
@@ -526,26 +534,31 @@ export function SlipImportTab() {
   const handleRemoveOrRejectCurrent = async () => {
     if (!currentItem) return;
 
-    if (currentItem.slipData) {
-      try {
-        await rejectMutation.mutateAsync(currentItem.slipData.slipImportFileId);
-        toast.info(`ปฏิเสธสลิปใบที่ ${currentIndex + 1} เรียบร้อยแล้ว`);
-      } catch {}
-    }
-
-    if (currentItem.previewUrl) {
-      try {
-        URL.revokeObjectURL(currentItem.previewUrl);
-      } catch {}
-    }
-
-    setBatchItems((prev) => {
-      const next = prev.filter((it) => it.id !== currentItem.id);
-      if (currentIndex >= next.length) {
-        setCurrentIndex(Math.max(0, next.length - 1));
+    setIsRejectingCurrent(true);
+    try {
+      if (currentItem.slipData) {
+        try {
+          await rejectMutation.mutateAsync(currentItem.slipData.slipImportFileId);
+          toast.info(`ปฏิเสธสลิปใบที่ ${currentIndex + 1} เรียบร้อยแล้ว`);
+        } catch {}
       }
-      return next;
-    });
+
+      if (currentItem.previewUrl) {
+        try {
+          URL.revokeObjectURL(currentItem.previewUrl);
+        } catch {}
+      }
+
+      setBatchItems((prev) => {
+        const next = prev.filter((it) => it.id !== currentItem.id);
+        if (currentIndex >= next.length) {
+          setCurrentIndex(Math.max(0, next.length - 1));
+        }
+        return next;
+      });
+    } finally {
+      setIsRejectingCurrent(false);
+    }
   };
 
   // Confirm All Ready Slips
@@ -626,18 +639,23 @@ export function SlipImportTab() {
 
   // Clear Entire Batch
   const handleClearAll = () => {
-    batchItems.forEach((it) => {
-      if (it.previewUrl) {
-        try {
-          URL.revokeObjectURL(it.previewUrl);
-        } catch {}
-      }
-    });
-    setBatchItems([]);
-    setCurrentIndex(0);
-    setIsLightboxOpen(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    if (appendFileInputRef.current) appendFileInputRef.current.value = "";
+    setIsClearingAll(true);
+    try {
+      batchItems.forEach((it) => {
+        if (it.previewUrl) {
+          try {
+            URL.revokeObjectURL(it.previewUrl);
+          } catch {}
+        }
+      });
+      setBatchItems([]);
+      setCurrentIndex(0);
+      setIsLightboxOpen(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (appendFileInputRef.current) appendFileInputRef.current.value = "";
+    } finally {
+      setIsClearingAll(false);
+    }
   };
 
   return (
@@ -718,12 +736,22 @@ export function SlipImportTab() {
           <Button
             type="button"
             size="lg"
-            className="mt-6 gap-2 bg-gradient-to-r from-[var(--pw-primary)] to-blue-500 text-white font-bold shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer min-h-[44px] px-6"
+            disabled={isReadingFiles}
+            className="mt-6 gap-2 bg-gradient-to-r from-[var(--pw-primary)] to-blue-500 text-white font-bold shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer min-h-[44px] px-6 disabled:opacity-85 disabled:text-white"
             onClick={() => fileInputRef.current?.click()}
           >
-            <ImageIcon className="size-5" />
-            <span>เลือกสลิปจากอัลบั้ม (หลายไฟล์ได้)</span>
-            <ArrowRight className="size-4" />
+            {isReadingFiles ? (
+              <>
+                <Loader2 className="size-5 animate-spin text-white" />
+                <span>กำลังประมวลผลไฟล์...</span>
+              </>
+            ) : (
+              <>
+                <ImageIcon className="size-5" />
+                <span>เลือกสลิปจากอัลบั้ม (หลายไฟล์ได้)</span>
+                <ArrowRight className="size-4" />
+              </>
+            )}
           </Button>
 
           <span className="text-[11px] text-[var(--pw-ink)]/40 mt-3">
@@ -765,21 +793,31 @@ export function SlipImportTab() {
                   type="button"
                   variant="outline"
                   size="sm"
+                  disabled={isReadingFiles}
                   onClick={() => appendFileInputRef.current?.click()}
-                  className="h-8 gap-1.5 text-xs font-semibold border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] cursor-pointer"
+                  className="h-8 gap-1.5 text-xs font-semibold border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] cursor-pointer disabled:opacity-85"
                 >
-                  <Plus className="size-3.5" />
-                  <span>เพิ่มสลิป</span>
+                  {isReadingFiles ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="size-3.5" />
+                  )}
+                  <span>{isReadingFiles ? "กำลังประมวลผล..." : "เพิ่มสลิป"}</span>
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
+                  disabled={isClearingAll}
                   onClick={handleClearAll}
-                  className="h-8 text-xs text-[var(--pw-ink)]/55 hover:text-[var(--pw-accent-red)] cursor-pointer"
+                  className="h-8 text-xs text-[var(--pw-ink)]/55 hover:text-[var(--pw-accent-red)] cursor-pointer disabled:opacity-85"
                 >
-                  <RotateCcw className="size-3 mr-1" />
-                  ล้างคิว
+                  {isClearingAll ? (
+                    <Loader2 className="size-3 mr-1 animate-spin" />
+                  ) : (
+                    <RotateCcw className="size-3 mr-1" />
+                  )}
+                  <span>{isClearingAll ? "กำลังล้างคิว..." : "ล้างคิว"}</span>
                 </Button>
               </div>
             </div>
@@ -869,7 +907,7 @@ export function SlipImportTab() {
                 size="sm"
                 disabled={currentIndex === 0}
                 onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-                className="h-10 min-w-10 gap-1 text-xs font-semibold border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] cursor-pointer disabled:opacity-30"
+                className="h-10 min-w-10 gap-1 text-xs font-semibold border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] cursor-pointer disabled:opacity-50"
               >
                 <ChevronLeft className="size-4" />
                 <span className="hidden sm:inline">ก่อนหน้า</span>
@@ -885,7 +923,7 @@ export function SlipImportTab() {
                 size="sm"
                 disabled={currentIndex === batchItems.length - 1}
                 onClick={() => setCurrentIndex((prev) => Math.min(batchItems.length - 1, prev + 1))}
-                className="h-10 min-w-10 gap-1 text-xs font-semibold border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] cursor-pointer disabled:opacity-30"
+                className="h-10 min-w-10 gap-1 text-xs font-semibold border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] cursor-pointer disabled:opacity-50"
               >
                 <span className="hidden sm:inline">ถัดไป</span>
                 <ChevronRight className="size-4" />
@@ -899,14 +937,16 @@ export function SlipImportTab() {
                 size="sm"
                 onClick={handleConfirmAll}
                 disabled={isConfirmingAll}
-                className="min-h-[40px] gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer"
+                className="min-h-[40px] gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
               >
                 {isConfirmingAll ? (
-                  <Loader2 className="size-3.5 animate-spin" />
+                  <Loader2 className="size-3.5 animate-spin text-white" />
                 ) : (
                   <CheckCheck className="size-3.5 stroke-[2.5]" />
                 )}
-                <span>บันทึกทั้งหมด ({batchStats.ready} ใบ)</span>
+                <span>
+                  {isConfirmingAll ? "กำลังบันทึกทั้งหมด..." : `บันทึกทั้งหมด (${batchStats.ready} ใบ)`}
+                </span>
               </Button>
             )}
           </div>
@@ -1408,22 +1448,35 @@ export function SlipImportTab() {
                     {currentItem.status !== "confirmed" ? (
                       <Button
                         type="button"
-                        className="w-full min-h-[44px] gap-2 bg-[var(--pw-green)] text-[var(--pw-on-green)] hover:brightness-110 font-bold active:scale-[0.98] transition-transform shadow-md cursor-pointer order-1"
+                        className={cn(
+                          "w-full min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all shadow-md cursor-pointer order-1 text-white",
+                          currentItem.status === "uploading"
+                            ? "bg-blue-600 hover:bg-blue-700 disabled:opacity-85 disabled:bg-blue-600 disabled:text-white"
+                            : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+                        )}
                         disabled={isActionLoading || currentItem.status === "uploading"}
                         onClick={handleConfirmCurrent}
                       >
-                        {isActionLoading ? (
-                          <Loader2 className="size-4 animate-spin" />
+                        {currentItem.status === "uploading" ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin text-white" />
+                            <span>กำลังอ่านข้อมูลสลิป...</span>
+                          </>
+                        ) : isActionLoading ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin text-white" />
+                            <span>กำลังบันทึก...</span>
+                          </>
                         ) : (
-                          <Check className="size-4 stroke-[3]" />
+                          <>
+                            <Check className="size-4 stroke-[3]" />
+                            <span>
+                              {batchItems.length > 1
+                                ? "บันทึกสลิปนี้และไปใบถัดไป"
+                                : "ยืนยันและบันทึกรายการ"}
+                            </span>
+                          </>
                         )}
-                        <span>
-                          {isActionLoading
-                            ? "กำลังบันทึก..."
-                            : batchItems.length > 1
-                            ? "บันทึกสลิปนี้และไปใบถัดไป"
-                            : "ยืนยันและบันทึกรายการ"}
-                        </span>
                       </Button>
                     ) : (
                       <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-xs font-semibold flex items-center justify-between order-1">
@@ -1450,17 +1503,20 @@ export function SlipImportTab() {
                     {batchStats.ready > 1 && (
                       <Button
                         type="button"
-                        variant="outline"
-                        className="w-full min-h-[44px] gap-2 border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 font-bold active:scale-[0.98] transition-transform cursor-pointer order-2"
+                        className="w-full min-h-[44px] gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold active:scale-[0.98] transition-transform cursor-pointer order-2 shadow-md disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
                         disabled={isConfirmingAll}
                         onClick={handleConfirmAll}
                       >
                         {isConfirmingAll ? (
-                          <Loader2 className="size-4 animate-spin" />
+                          <Loader2 className="size-4 animate-spin text-white" />
                         ) : (
                           <CheckCheck className="size-4 stroke-[2.5]" />
                         )}
-                        <span>บันทึกทุกสลิปที่อ่านสำเร็จพร้อมกัน ({batchStats.ready} ใบ)</span>
+                        <span>
+                          {isConfirmingAll
+                            ? "กำลังบันทึกทั้งหมด..."
+                            : `บันทึกทุกสลิปที่อ่านสำเร็จพร้อมกัน (${batchStats.ready} ใบ)`}
+                        </span>
                       </Button>
                     )}
 
@@ -1470,7 +1526,8 @@ export function SlipImportTab() {
                         <Button
                           type="button"
                           variant="ghost"
-                          className="w-full sm:w-auto min-h-[44px] gap-1.5 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-indigo)] cursor-pointer order-1 sm:order-none"
+                          className="w-full sm:w-auto min-h-[44px] gap-1.5 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-indigo)] cursor-pointer order-1 sm:order-none disabled:opacity-50"
+                          disabled={isActionLoading || isRejectingCurrent}
                           onClick={handleSkipCurrent}
                         >
                           <SkipForward className="size-4" />
@@ -1480,13 +1537,25 @@ export function SlipImportTab() {
 
                       <Button
                         type="button"
-                        variant="ghost"
-                        className="w-full sm:w-auto min-h-[44px] gap-1.5 text-xs text-[var(--pw-accent-red)] hover:bg-[var(--pw-accent-red)]/10 cursor-pointer order-2 sm:order-none"
+                        variant={isRejectingCurrent ? "default" : "ghost"}
+                        className={cn(
+                          "w-full sm:w-auto min-h-[44px] gap-1.5 text-xs cursor-pointer order-2 sm:order-none transition-all",
+                          isRejectingCurrent
+                            ? "bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md disabled:opacity-85 disabled:bg-rose-600 disabled:text-white"
+                            : "text-[var(--pw-accent-red)] hover:bg-[var(--pw-accent-red)]/10 font-semibold"
+                        )}
+                        disabled={isRejectingCurrent || isActionLoading}
                         onClick={handleRemoveOrRejectCurrent}
                       >
-                        <Trash2 className="size-4" />
+                        {isRejectingCurrent ? (
+                          <Loader2 className="size-4 animate-spin text-white" />
+                        ) : (
+                          <Trash2 className="size-4" />
+                        )}
                         <span>
-                          {currentItem.status === "confirmed"
+                          {isRejectingCurrent
+                            ? "กำลังลบออกจากคิว..."
+                            : currentItem.status === "confirmed"
                             ? "ลบออกจากคิว"
                             : "ข้าม/ลบสลิปนี้ออกจากคิว"}
                         </span>

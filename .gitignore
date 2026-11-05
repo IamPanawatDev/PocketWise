@@ -62,3 +62,7 @@ desktop.ini
 # Uploads
 App_Data/uploads/
 **/App_Data/uploads/
+
+# E2E Test Screenshots
+tests/e2e/screenshots_qa/
+tests/e2e/screenshots/

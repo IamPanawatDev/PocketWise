@@ -62,6 +62,11 @@
      - **ต้องใช้ `AlertDialog` หรือ `ConfirmDialog` จาก `@/components/ui/alert-dialog` เสมอ** ซึ่งรองรับ Glassmorphism, Responsive (BottomSheet บน Mobile, Centered Dialog บน Desktop) และบังคับลำดับปุ่มยืนยัน/ลบอยู่บน ปุ่มยกเลิกอยู่ล่างเสมอ
      - **ต้องมี Loading State ขณะลบรายการ**: เมื่อกดยืนยันการลบหรือดำเนินการที่ต้องรอ API ต้องแสดง Loading Spinner / Disabled State ไม่ปล่อยให้หน้าจอนิ่งค้างจนผู้ใช้รู้สึกว่าระบบค้าง
      - **ต้องมี Toast Feedback เสมอ**: ทุกการดำเนินการสำคัญ (เช่น เพิกถอนเซสชัน, ลบรายการ, บันทึกข้อมูล, รีเซ็ตรหัสผ่าน, เปลี่ยนสถานะ) ต้องเรียกใช้ `toast.success(...)` เมื่อสำเร็จ หรือ `toast.error(...)` เมื่อเกิดข้อผิดพลาด ผ่าน `sonner` ห้ามปล่อยให้การทำงานเงียบหายไปโดยไม่มี Feedback
+   - **กฎปุ่ม Loading State เติมสีทึบ (Solid Filled Button Loading Rule)**:
+     - ทุกปุ่ม Action หรือปุ่มหลักที่มีสถานะ Loading (เช่น กำลังบันทึก, กำลังอัปโหลด, กำลังอ่านข้อมูล OCR, กำลังลบ, หรือกำลังประมวลผล) **ต้องใช้สไตล์พื้นหลังแบบเติมสีทึบ (Solid Filled Background)** เสมอ เช่น `bg-emerald-600 hover:bg-emerald-700 text-white font-bold`, `bg-blue-600 text-white font-bold`, หรือ `bg-rose-600 hover:bg-rose-700 text-white font-bold` พร้อมเงา `shadow-md`
+     - **ห้าม** ใช้ปุ่มแบบโปร่งแสงหรือสไตล์ Ghost/Outline ที่ไม่มีสีพื้นหลังทึบขณะ Loading เพราะจะกลืนกับพื้นหลัง Glassmorphism และทำให้ผู้ใช้มองไม่เห็นสถานะการทำงาน
+     - **สถานะ Disabled ขณะ Loading**: ต้องคงความทึบแสงไว้ชัดเจน (`disabled:opacity-85`) พร้อมระบุสีตัวหนังสือ `disabled:text-white` และสีพื้นหลังเดิม (เช่น `disabled:bg-emerald-600`) ป้องกันไม่ให้ปุ่มโปร่งแสงจนมองไม่เห็นตัวหนังสือหรือไอคอน
+     - **Spinner และข้อความระบุสถานะ**: ต้องมี Spinner Icon (`<Loader2 className="size-4 animate-spin text-white" />`) คู่กับข้อความบอกสถานะที่ชัดเจน (เช่น "กำลังบันทึก...", "กำลังอ่านข้อมูลสลิป...", "กำลังลบออกจากคิว...") เสมอ
    - **การใช้งาน Dropdown / Select (ห้ามใช้ Native `<select>`)**:
      - **ห้ามใช้ native `<select>` และ `<option>` เด็ดขาด**: เนื่องจากบนเบราว์เซอร์หรือมือถือบางรุ่น OS จะบังคับสไตล์พื้นหลังเป็นสีขาวจนตัวหนังสือกลืนมองไม่เห็น (White on White)
      - **ต้องใช้ shared shadcn `Select` จาก `@/components/ui/select` เท่านั้น**: เพื่อให้พื้นหลังและสีตัวหนังสือปรับตาม Theme Dark / Light อย่างถูกต้อง 100%
@@ -105,6 +110,7 @@
 7. **ขั้นตอนการปฏิบัติงาน 6 ขั้นตอนเคร่งครัด (Mandatory 6-Step Multi-Agent Execution Rule)**:
    - ทุกงานพัฒนาต้องดำเนินการตาม 6 ขั้นตอนโดยใช้ **Agent เฉพาะทางคนละตัว (Dedicated Specialized Subagents)** เท่านั้น: **1. Orchestrator (Lead Project Manager / Parent Agent รับบรีฟและคุมภาพรวม)** ➔ **2. System Planner (Chief Architect & Test Designer Subagent วางแผน ออกแบบ Contract และ Test Scenarios)** ➔ **3. Parallel Implementers (Specialized Developer Subagents แยกสายงาน Backend / Frontend / DB รันคู่ขนานพร้อมกัน)** ➔ **4. Review & Remediation (Code Reviewer & Build Engineer Subagent ตรวจ Static, Lint, Build แก้จนผ่าน 100%)** ➔ **5. QA Browser Testing Agent (Subagent รัน Local เปิดเบราว์เซอร์ทดสอบจริงทั้ง Success & Error)** ➔ **6. DevOps & Deployment (Release Engineer Subagent นำโค้ดขึ้น Production ผ่าน Strict PR-Based Protocol)**
    - **กฎเหล็กหยุดรอคำสั่ง (Dev ถึง Step 5 เท่านั้น — ห้ามทำ Step 6 เองเด็ดขาด)**: ในทุกงานพัฒนา AI ต้องดำเนินการถึงแค่ **Step 5 (QA Browser Testing)** เท่านั้น เมื่อทดสอบผ่าน 100% แล้ว **ต้องหยุดและรายงานผลให้ผู้ใช้ทราบทันที ห้ามข้ามไปทำ Step 6 (Deploy/PR) โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้เป็นกรณีไป** (เช่น "deploy", "เอาขึ้น production", "เปิด PR ได้เลย")
+   - **กฎการทดสอบ QA Step 5 ผ่าน Brave Browser UI (Headed Mode Required)**: ในขั้นตอน **Step 5 (QA Browser Testing)** การทดสอบหน้าจอ UI และ User Flow ทั้งหมด **ต้องเปิดผ่าน Brave Browser ในโหมด UI จริง (Headed Mode) เสมอ (ห้ามใช้โหมด Headless โดยเด็ดขาด)** เพื่อให้ผู้ใช้สามารถมองเห็นขั้นตอนการทดสอบ การคลิกปุ่ม การกรอกฟอร์ม และปฏิกิริยาของระบบทุกขั้นตอนได้อย่างโปร่งใส เรียลไทม์ และตรวจสอบได้จริง
    - ห้ามใช้ Agent ตัวเดียวรวบทำงานทุกขั้นตอน, ห้ามข้ามขั้นตอนการวางแผน, และห้ามข้ามการทดสอบด้วย QA Agent เด็ดขาด
 
 ---
