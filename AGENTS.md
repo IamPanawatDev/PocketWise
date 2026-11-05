@@ -102,8 +102,8 @@
 
 ---
 
-7. **ขั้นตอนการปฏิบัติงาน 6 ขั้นตอนเคร่งครัด (Mandatory 6-Step Execution Rule)**:
-   - ทุกงานพัฒนาต้องดำเนินการตาม 6 ขั้นตอนเท่านั้น: **1. Agent หลัก (มอบหมายและรวมผล)** ➔ **2. Planner (วางแผนและออกแบบ Test Cases)** ➔ **3. Implementer (ลงมือทำ)** ➔ **4. Review & Remediation (ตรวจความถูกต้อง Static, Lint, Build และแก้ไขจนผ่าน 100%)** ➔ **5. QA Browser Testing Agent (รัน Local เปิดเบราว์เซอร์ทดสอบจริงทั้ง Success & Error)** ➔ **6. Deployment Protocol (Deploy สู่ Production ผ่าน PR เมื่อ QA ผ่าน 100%)** ห้ามข้ามขั้นตอนการวางแผน การทดสอบด้วย QA Agent หรือกระบวนการ Deploy เด็ดขาด
+7. **ขั้นตอนการปฏิบัติงาน 6 ขั้นตอนเคร่งครัด (Mandatory 6-Step Multi-Agent Execution Rule)**:
+   - ทุกงานพัฒนาต้องดำเนินการตาม 6 ขั้นตอนโดยใช้ **Agent เฉพาะทางคนละตัว (Dedicated Specialized Subagents)** เท่านั้น: **1. Orchestrator (Lead Project Manager / Parent Agent รับบรีฟและคุมภาพรวม)** ➔ **2. System Planner (Chief Architect & Test Designer Subagent วางแผน ออกแบบ Contract และ Test Scenarios)** ➔ **3. Parallel Implementers (Specialized Developer Subagents แยกสายงาน Backend / Frontend / DB รันคู่ขนานพร้อมกัน)** ➔ **4. Review & Remediation (Code Reviewer & Build Engineer Subagent ตรวจ Static, Lint, Build แก้จนผ่าน 100%)** ➔ **5. QA Browser Testing Agent (Subagent รัน Local เปิดเบราว์เซอร์ทดสอบจริงทั้ง Success & Error)** ➔ **6. DevOps & Deployment (Release Engineer Subagent นำโค้ดขึ้น Production ผ่าน Strict PR-Based Protocol เมื่อ QA ผ่าน 100%)** ห้ามใช้ Agent ตัวเดียวรวบทำงานทุกขั้นตอน, ห้ามข้ามขั้นตอนการวางแผน, ห้ามข้ามการทดสอบด้วย QA Agent, และห้ามข้ามกระบวนการ Deploy เด็ดขาด
 
 ---
 
@@ -190,50 +190,66 @@
 
 ---
 
-## 📋 5. ลำดับขั้นตอนการทำงานแบบ 6 ขั้นตอน (Mandatory 6-Step Agent Workflow)
+## 📋 5. ลำดับขั้นตอนการทำงานแบบ 6 ขั้นตอน (Mandatory 6-Step Multi-Agent Workflow)
 
-ทุกคำสั่งหรืองานพัฒนา (Feature, Refactor, Bug Fix หรือ Optimization) AI **ต้องปฏิบัติตามลำดับ 6 ขั้นตอนนี้อย่างเคร่งครัดเท่านั้น**:
+ทุกคำสั่งหรืองานพัฒนา (Feature, Refactor, Bug Fix หรือ Optimization) AI **ต้องปฏิบัติตามลำดับ 6 ขั้นตอนโดยใช้ Agent เฉพาะทางคนละตัว และพัฒนาคู่ขนานใน Step 3 อย่างเคร่งครัด**:
 
 ```mermaid
 flowchart TD
-    Step1["1. Agent หลัก (Orchestrator)\nรับคำสั่ง ทำความเข้าใจ มอบหมายงาน และรวบรวมผลลัพธ์"] --> Step2["2. Planner (วางแผนงาน)\nวิเคราะห์ผลกระทบ เจาะโค้ดเดิม วางแผนเป็นขั้นตอน และออกแบบ Test Scenarios ทั้ง Success & Error"]
-    Step2 --> Step3["3. Implementer (ลงมือปฏิบัติการ)\nเขียนโค้ดตามแผน แก้ไขไฟล์ที่เกี่ยวข้อง และรักษา Code Quality"]
-    Step3 --> Step4["4. Review & Remediation (ตรวจงานและแก้ไข)\nตรวจความถูกต้อง Type Safety, Build, Lint และแก้จนผ่าน 100%"]
+    Step1["1. Orchestrator (Lead Project Manager - Parent Agent)\nรับคำสั่ง ทำความเข้าใจ มอบหมายงาน และรวบรวมสรุปผลลัพธ์คุยกับผู้ใช้"] --> Step2["2. System Planner (Chief Architect & Test Designer - Subagent)\nวิเคราะห์ Codebase, กำหนด Data Contract (API DTOs), แตก Task ย่อย\nและออกแบบ Test Scenarios ทั้ง Success & Error"]
+    
+    subgraph Step3 ["3. Parallel Implementers (แยกพัฒนาคู่ขนาน - Subagents)"]
+        direction LR
+        DevBackend["Backend Specialist Agent\nเขียน C# .NET 10, Service, DTO, Unit Test"]
+        DevFrontend["Frontend Specialist Agent\nเขียน Next.js, UI Component, Hooks, CSS"]
+        DevDB["Database / Schema Specialist\n(ถ้ามี) ทำ Migration, Schema Script"]
+    end
+
+    Step2 --> Step3
+    DevBackend --> Step4["4. Review & Remediation (Code Reviewer & Build Engineer - Subagent)\nรวมงาน ตรวจ Type Safety, รัน dotnet build, npm lint/build\nและแก้ไขจุดบกพร่องทางเทคนิคจนผ่าน 100%"]
+    DevFrontend --> Step4
+    DevDB --> Step4
+
     Step4 --> Check1{"พบปัญหา\nBuild/Lint?"}
     Check1 -- "พบข้อผิดพลาด" --> Step4
-    Check1 -- "ผ่านสมบูรณ์" --> Step5["5. QA Browser Testing Agent\nสร้าง Agent 1 ตัว รัน Local และเปิด Browser ทดสอบจริง 2 กรณี:\n1. กรณี Error (Validation/Edge Case ป้องกันเว็บพัง)\n2. กรณี Success (ทดลองกรอก/คลิก Flow ทำงานได้จริง)"]
+    Check1 -- "ผ่านสมบูรณ์" --> Step5["5. QA Browser Testing Agent (Subagent)\nสร้าง Agent 1 ตัว รัน Local และเปิด Browser จริง (Playwright/Chrome) ทดสอบ 2 กรณี:\n1. กรณี Error (Validation/Edge Case ป้องกันเว็บพัง)\n2. กรณี Success (ทดลองกรอก/คลิก Flow ทำงานได้จริง)"]
+    
     Step5 --> Check2{"ผลการทดสอบ QA\nผ่าน 100% หรือไม่?"}
     Check2 -- "ไม่ผ่าน / เว็บพัง / Bug" --> Step3
-    Check2 -- "ผ่านสมบูรณ์ 100%" --> Step6["6. Deployment Protocol (Deploy สู่ Production)\nดำเนินการตาม Strict PR-Based Deployment Protocol\n(Commit develop ➔ PR เข้า main ➔ CI Pass ➔ Merge)"]
-    Step6 --> Done["Agent หลักสรุปผลส่งมอบงานให้ผู้ใช้ พร้อม URL"]
+    Check2 -- "ผ่านสมบูรณ์ 100%" --> Step6["6. DevOps & Release Engineer (Subagent)\nดำเนินการตาม Strict PR-Based Deployment Protocol\n(Commit develop ➔ PR เข้า main ➔ เฝ้า CI ➔ Merge production)"]
+    Step6 --> Done["Orchestrator สรุปผลส่งมอบงานให้ผู้ใช้ พร้อม URL"]
 ```
 
-### รายละเอียดหน้าที่ในแต่ละขั้นตอน:
-1. **Agent หลัก (Orchestrator — มอบหมายและรวมผล):**
-   - รับคำขอ/คำสั่งจากผู้ใช้ ตีความความต้องการให้อย่างแม่นยำ
-   - ควบคุมกระบวนการและมอบหมายงานตามลำดับขั้นตอน (Step 1 ถึง Step 6)
+### รายละเอียดหน้าที่และข้อกำหนดของ Agent ในแต่ละขั้นตอน:
+1. **Agent หลัก (Orchestrator — Lead Project Manager / Parent Agent):**
+   - รับคำขอ/คำสั่งจากผู้ใช้ ตีความความต้องการอย่างแม่นยำ
+   - ควบคุมกระบวนการและมอบหมายงานตามลำดับขั้นตอน (Step 1 ถึง Step 6) ผ่าน `invoke_subagent`
    - รวบรวมสรุปผลงานสุดท้ายอย่างกระชับ ชัดเจน และส่งมอบให้กับผู้ใช้
-2. **Planner (ผู้วางแผนงาน):**
+2. **System Planner (Chief Architect & Test Designer — Subagent ตัวที่ 1):**
    - ศึกษา Codebase ที่เกี่ยวข้องทั้งฝั่ง Backend, Frontend และ Database
-   - ตรวจสอบผลกระทบ สัญญา API (Contract) และประเมินจุดเสี่ยง
-   - จัดทำแผนงานทีละขั้นตอน (Step-by-step Plan) ก่อนลงมือทำจริงเสมอ
-   - **ต้องกำหนด Test Scenarios ไว้ล่วงหน้าให้ชัดเจน**: ทั้งกรณี Success (Happy Path) และ Error (Validation / Negative Path) เพื่อส่งต่อให้ QA Agent ในขั้นตอนที่ 5
-3. **Implementer (ผู้ลงมือทำ):**
-   - เขียน/แก้ไขโค้ดตามแผนงานที่กำหนดไว้อย่างแม่นยำ
-   - ยึดหลัก Clean Architecture, Design System Tokens (`--pw-*`), และ Master Rules ทั้งหมด
-   - ทำงานเฉพาะจุดที่ได้รับมอบหมาย ไม่แก้ไขไฟล์นอกขอบเขตโดยไม่จำเป็น
-4. **Review & Remediation (ตรวจงานทางเทคนิคและแก้ไขจนผ่าน 100%):**
+   - **กำหนด Data Contracts (API Request/Response DTOs) ให้ชัดเจนตั้งแต่ขั้นตอนนี้** เพื่อปลดล็อกให้ Implementers ใน Step 3 พัฒนาคู่ขนานกันได้ทันทีโดยไม่ติดบล็อก
+   - วาง Dependency Graph แตกชิ้นงานย่อย ระบุชัดเจนว่าส่วนใดทำพร้อมกันได้ ส่วนใดมี Hard Dependency ต้องรอทำตามลำดับ
+   - **ต้องออกแบบ Test Scenarios ไว้ล่วงหน้าให้ชัดเจน**: ทั้งกรณี Success (Happy Path) และ Error (Validation / Negative Path) เพื่อส่งต่อให้ QA Agent ในขั้นตอนที่ 5
+3. **Parallel Implementers (Specialized Developer Subagents — แยกพัฒนาคู่ขนานใน Step 3):**
+   - **หลักการทำงานคู่ขนาน (Parallel Dev)**: สั่งรัน Subagent แยกตามความเชี่ยวชาญพร้อมกัน (Fan-Out) เพื่อลดเวลาพัฒนาลงสูงสุด (ประหยัดเวลาได้ 40-60%):
+     - **Backend Specialist Agent**: รับผิดชอบ C# .NET 10, Web API Controllers, Application Services, Domain Models, Unit Tests
+     - **Frontend Specialist Agent**: รับผิดชอบ Next.js 16, React Components, Hooks, Design System Tokens (`--pw-*`), Glassmorphism, BottomSheet
+     - **Database Specialist Agent** (หากมีงาน Schema): จัดการ EF Core Code-First Migrations และ SQL Scripts
+   - **กฎการทำคู่ขนาน**:
+     - หากทั้งสองฝั่งทำงานตาม Data Contract ที่ Planner กำหนดไว้ใน Step 2 ให้รันพร้อมกันทันที
+     - หากส่วนงานใดมี Hard Dependency จริงๆ (เช่น ต้องสร้าง Table Entity ให้เสร็จก่อนจึงจะเขียน Query ได้) ให้จัดลำดับ A ➔ B เฉพาะคู่นั้น
+4. **Review & Remediation (Code Reviewer & Build Engineer — Subagent ตัวที่ 4):**
+   - รวมผลงาน (Fan-In) และตรวจทานความถูกต้องของโค้ดทั้งหมด (Code Review)
    - รันตรวจสอบ Build (`dotnet build` / `npm run build`), Linter (`npm run lint`), และ Type Check (`tsc --noEmit`)
    - ตรวจสอบความถูกต้องของ Data Contract, Responsive Design, และ Theme Dark/Light
    - หากพบข้อผิดพลาด, Warning, Build Failed หรือ Logic ผิดเพี้ยน ต้องลงมือแก้ไขและรันตรวจซ้ำจนผ่านสมบูรณ์ 100%
-5. **QA Browser Testing Agent (ตัวแทนทดสอบผ่านเบราว์เซอร์จริง):**
+5. **QA Browser Testing Agent (ตัวแทนทดสอบผ่านเบราว์เซอร์จริง — Subagent ตัวที่ 5):**
    - **การสร้าง Agent**: สร้าง Subagent 1 ตัว (Role: `QA Browser Tester` เช่น ผ่าน `invoke_subagent`)
    - **การดำเนินการ**: สั่งรัน Local server (หากยังไม่ได้รัน) และเปิดเบราว์เซอร์จริง (Playwright / Chromium / Brave) เข้าไปคลิกและทดสอบสิ่งที่แก้ไขตามแผนงานจากขั้นตอนที่ 2
    - **ต้องทดสอบ 2 กรณีอย่างเคร่งครัด**:
      1. **กรณี Error (Validation & Edge Cases)**: ทดสอบกรอกข้อมูลผิดฟอร์แมต, ป้อนค่าว่าง, ใส่ข้อมูลเกินขอบเขต หรือกระทำการผิดเงื่อนไข เพื่อยืนยันว่าระบบแจ้งเตือนชัดเจนและ**เว็บไม่พังจริงๆ (ไม่มี Uncaught Exception, จอดำ, หรือ Blank Screen)**
      2. **กรณี Success (Happy Path)**: เข้าไปทดลองกรอกข้อมูลจริง, คลิกปุ่ม, สลับแท็บ/ช่วงเวลา, บันทึกรายการ เพื่อยืนยันว่าฟังก์ชันทำงานได้ถูกต้อง ข้อมูลแสดงผลถูกต้อง และ Flow ราบรื่น
    - **เกณฑ์ผ่าน**: ผลการทดสอบต้องผ่านครบ 100% และไม่มีข้อผิดพลาดหลงเหลือ จึงจะเข้าสู่ขั้นตอนที่ 6
-6. **Deployment Protocol (การ Deploy สู่ Production):**
-   - ดำเนินการตาม **Strict PR-Based Deployment Protocol** (10 ขั้นตอน: Pre-commit, Build Quality Gates, Zero Schema Drift, Commit develop, Push develop, Create PR, CI Pass, Merge main, Sync local branches)
+6. **DevOps & Release Engineer (ผู้รับผิดชอบการ Deploy — Subagent ตัวที่ 6):**
+   - รับผิดชอบดำเนินการตาม **Strict PR-Based Deployment Protocol** (10 ขั้นตอน: Pre-commit, Build Quality Gates, Zero Schema Drift, Commit develop, Push develop, Create PR, CI Pass, Merge main, Sync local branches)
    - **ห้ามข้ามไป Deploy ก่อนที่ขั้นตอนที่ 5 (QA Browser Testing) จะยืนยันผลผ่าน 100% โดยเด็ดขาด**
-
