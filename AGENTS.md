@@ -103,7 +103,9 @@
 ---
 
 7. **ขั้นตอนการปฏิบัติงาน 6 ขั้นตอนเคร่งครัด (Mandatory 6-Step Multi-Agent Execution Rule)**:
-   - ทุกงานพัฒนาต้องดำเนินการตาม 6 ขั้นตอนโดยใช้ **Agent เฉพาะทางคนละตัว (Dedicated Specialized Subagents)** เท่านั้น: **1. Orchestrator (Lead Project Manager / Parent Agent รับบรีฟและคุมภาพรวม)** ➔ **2. System Planner (Chief Architect & Test Designer Subagent วางแผน ออกแบบ Contract และ Test Scenarios)** ➔ **3. Parallel Implementers (Specialized Developer Subagents แยกสายงาน Backend / Frontend / DB รันคู่ขนานพร้อมกัน)** ➔ **4. Review & Remediation (Code Reviewer & Build Engineer Subagent ตรวจ Static, Lint, Build แก้จนผ่าน 100%)** ➔ **5. QA Browser Testing Agent (Subagent รัน Local เปิดเบราว์เซอร์ทดสอบจริงทั้ง Success & Error)** ➔ **6. DevOps & Deployment (Release Engineer Subagent นำโค้ดขึ้น Production ผ่าน Strict PR-Based Protocol เมื่อ QA ผ่าน 100%)** ห้ามใช้ Agent ตัวเดียวรวบทำงานทุกขั้นตอน, ห้ามข้ามขั้นตอนการวางแผน, ห้ามข้ามการทดสอบด้วย QA Agent, และห้ามข้ามกระบวนการ Deploy เด็ดขาด
+   - ทุกงานพัฒนาต้องดำเนินการตาม 6 ขั้นตอนโดยใช้ **Agent เฉพาะทางคนละตัว (Dedicated Specialized Subagents)** เท่านั้น: **1. Orchestrator (Lead Project Manager / Parent Agent รับบรีฟและคุมภาพรวม)** ➔ **2. System Planner (Chief Architect & Test Designer Subagent วางแผน ออกแบบ Contract และ Test Scenarios)** ➔ **3. Parallel Implementers (Specialized Developer Subagents แยกสายงาน Backend / Frontend / DB รันคู่ขนานพร้อมกัน)** ➔ **4. Review & Remediation (Code Reviewer & Build Engineer Subagent ตรวจ Static, Lint, Build แก้จนผ่าน 100%)** ➔ **5. QA Browser Testing Agent (Subagent รัน Local เปิดเบราว์เซอร์ทดสอบจริงทั้ง Success & Error)** ➔ **6. DevOps & Deployment (Release Engineer Subagent นำโค้ดขึ้น Production ผ่าน Strict PR-Based Protocol)**
+   - **กฎเหล็กหยุดรอคำสั่ง (Dev ถึง Step 5 เท่านั้น — ห้ามทำ Step 6 เองเด็ดขาด)**: ในทุกงานพัฒนา AI ต้องดำเนินการถึงแค่ **Step 5 (QA Browser Testing)** เท่านั้น เมื่อทดสอบผ่าน 100% แล้ว **ต้องหยุดและรายงานผลให้ผู้ใช้ทราบทันที ห้ามข้ามไปทำ Step 6 (Deploy/PR) โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้เป็นกรณีไป** (เช่น "deploy", "เอาขึ้น production", "เปิด PR ได้เลย")
+   - ห้ามใช้ Agent ตัวเดียวรวบทำงานทุกขั้นตอน, ห้ามข้ามขั้นตอนการวางแผน, และห้ามข้ามการทดสอบด้วย QA Agent เด็ดขาด
 
 ---
 
@@ -192,7 +194,7 @@
 
 ## 📋 5. ลำดับขั้นตอนการทำงานแบบ 6 ขั้นตอน (Mandatory 6-Step Multi-Agent Workflow)
 
-ทุกคำสั่งหรืองานพัฒนา (Feature, Refactor, Bug Fix หรือ Optimization) AI **ต้องปฏิบัติตามลำดับ 6 ขั้นตอนโดยใช้ Agent เฉพาะทางคนละตัว และพัฒนาคู่ขนานใน Step 3 อย่างเคร่งครัด**:
+ทุกคำสั่งหรืองานพัฒนา (Feature, Refactor, Bug Fix หรือ Optimization) AI **ต้องปฏิบัติตามลำดับ 6 ขั้นตอนโดยใช้ Agent เฉพาะทางคนละตัว พัฒนาคู่ขนานใน Step 3 และหยุดรอคำสั่งผู้ใช้เมื่อจบ Step 5 เสมอ**:
 
 ```mermaid
 flowchart TD
@@ -216,8 +218,11 @@ flowchart TD
     
     Step5 --> Check2{"ผลการทดสอบ QA\nผ่าน 100% หรือไม่?"}
     Check2 -- "ไม่ผ่าน / เว็บพัง / Bug" --> Step3
-    Check2 -- "ผ่านสมบูรณ์ 100%" --> Step6["6. DevOps & Release Engineer (Subagent)\nดำเนินการตาม Strict PR-Based Deployment Protocol\n(Commit develop ➔ PR เข้า main ➔ เฝ้า CI ➔ Merge production)"]
-    Step6 --> Done["Orchestrator สรุปผลส่งมอบงานให้ผู้ใช้ พร้อม URL"]
+    Check2 -- "ผ่านสมบูรณ์ 100%" --> Pause["🛑 หยุดรอคำสั่ง: Orchestrator สรุปผล QA พร้อมหลักฐานส่งให้ผู้ใช้\n(ห้ามทำ Step 6 ต่อเองเด็ดขาด)"]
+    Pause --> UserDecision{"ผู้ใช้สั่ง\nDeploy หรือไม่?"}
+    UserDecision -- "ยังไม่สั่ง / สั่งแก้เพิ่ม" --> Step1
+    UserDecision -- "สั่ง Deploy / เปิด PR" --> Step6["6. DevOps & Release Engineer (Subagent)\nดำเนินการตาม Strict PR-Based Deployment Protocol\n(Commit develop ➔ PR เข้า main ➔ เฝ้า CI ➔ Merge production)"]
+    Step6 --> Done["Orchestrator สรุปผลส่งมอบงาน Production ให้ผู้ใช้ พร้อม URL"]
 ```
 
 ### รายละเอียดหน้าที่และข้อกำหนดของ Agent ในแต่ละขั้นตอน:
@@ -249,7 +254,9 @@ flowchart TD
    - **ต้องทดสอบ 2 กรณีอย่างเคร่งครัด**:
      1. **กรณี Error (Validation & Edge Cases)**: ทดสอบกรอกข้อมูลผิดฟอร์แมต, ป้อนค่าว่าง, ใส่ข้อมูลเกินขอบเขต หรือกระทำการผิดเงื่อนไข เพื่อยืนยันว่าระบบแจ้งเตือนชัดเจนและ**เว็บไม่พังจริงๆ (ไม่มี Uncaught Exception, จอดำ, หรือ Blank Screen)**
      2. **กรณี Success (Happy Path)**: เข้าไปทดลองกรอกข้อมูลจริง, คลิกปุ่ม, สลับแท็บ/ช่วงเวลา, บันทึกรายการ เพื่อยืนยันว่าฟังก์ชันทำงานได้ถูกต้อง ข้อมูลแสดงผลถูกต้อง และ Flow ราบรื่น
-   - **เกณฑ์ผ่าน**: ผลการทดสอบต้องผ่านครบ 100% และไม่มีข้อผิดพลาดหลงเหลือ จึงจะเข้าสู่ขั้นตอนที่ 6
+   - **เกณฑ์ผ่าน**: ผลการทดสอบต้องผ่านครบ 100% และไม่มีข้อผิดพลาดหลงเหลือ
+   - **🛑 กฎหยุดรอคำสั่ง (Mandatory Stop & Report)**: เมื่อ QA ทดสอบผ่าน 100% แล้ว **ให้หยุดทำงานทันทีและรายงานผลให้ผู้ใช้ทราบ ห้ามข้ามไปทำ Step 6 โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้**
 6. **DevOps & Release Engineer (ผู้รับผิดชอบการ Deploy — Subagent ตัวที่ 6):**
+   - **จะเริ่มทำงานได้ก็ต่อเมื่อได้รับคำสั่ง "Deploy" จากผู้ใช้โดยตรงเท่านั้น**
    - รับผิดชอบดำเนินการตาม **Strict PR-Based Deployment Protocol** (10 ขั้นตอน: Pre-commit, Build Quality Gates, Zero Schema Drift, Commit develop, Push develop, Create PR, CI Pass, Merge main, Sync local branches)
-   - **ห้ามข้ามไป Deploy ก่อนที่ขั้นตอนที่ 5 (QA Browser Testing) จะยืนยันผลผ่าน 100% โดยเด็ดขาด**
+   - **ห้าม Deploy สู่ Production โดยไม่ผ่านความเห็นชอบของผู้ใช้เป็นกรณีไปโดยเด็ดขาด**
