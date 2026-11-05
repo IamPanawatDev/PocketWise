@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -125,6 +126,16 @@ export function RolePermissionsMatrix() {
     }));
   };
 
+  const handleReset = () => {
+    if (!activeRoleId) return;
+    setDirtyPermissionsMap((prev) => {
+      const copy = { ...prev };
+      delete copy[activeRoleId];
+      return copy;
+    });
+    toast.info("ยกเลิกการเปลี่ยนแปลงสิทธิ์แล้ว");
+  };
+
   const handleSave = async () => {
     if (!activeRoleId) return;
     try {
@@ -188,7 +199,7 @@ export function RolePermissionsMatrix() {
                 setSelectedRoleIdState(Number(val));
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="min-h-[44px] sm:min-h-0">
                 <SelectValue placeholder="เลือกบทบาท" />
               </SelectTrigger>
               <SelectContent>
@@ -213,7 +224,7 @@ export function RolePermissionsMatrix() {
             variant="default"
             disabled={!isDirty || updatePermissionsMutation.isPending}
             onClick={handleSave}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
           >
             {updatePermissionsMutation.isPending ? (
               <LoaderCircle className="size-4 animate-spin" />
@@ -327,6 +338,57 @@ export function RolePermissionsMatrix() {
           })}
         </div>
       )}
+
+      {/* Sticky Floating Save Bar on Mobile (< sm) */}
+      <AnimatePresence>
+        {isDirty && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-4 inset-x-4 z-40 sm:hidden rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/95 backdrop-blur-xl p-3 shadow-2xl flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-[var(--pw-ink)] truncate">มีการแก้ไขสิทธิ์</p>
+                <p className="text-[11px] text-[var(--pw-ink)]/60 truncate">
+                  {activeSelectedIds.length} สิทธิ์ที่เลือก
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                disabled={updatePermissionsMutation.isPending}
+                className="min-h-[44px] px-3 text-xs"
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={handleSave}
+                disabled={updatePermissionsMutation.isPending}
+                className="min-h-[44px] px-3.5 text-xs font-semibold"
+              >
+                {updatePermissionsMutation.isPending ? (
+                  <LoaderCircle className="size-4 animate-spin mr-1" />
+                ) : (
+                  <Save className="size-4 mr-1" />
+                )}
+                บันทึก
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

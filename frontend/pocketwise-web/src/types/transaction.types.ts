@@ -47,6 +47,10 @@ export interface CreateTransactionRequest {
 
 export type UpdateTransactionRequest = CreateTransactionRequest;
 
+export interface BulkDeleteTransactionsRequest {
+  transactionIds: number[];
+}
+
 export interface TransactionFilter {
   categoryId?: number;
   tagId?: number;

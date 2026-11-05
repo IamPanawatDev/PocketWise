@@ -10,4 +10,5 @@ public interface ITransactionService
     Task<TransactionResponse> CreateAsync(long userId, CreateTransactionRequest request, CancellationToken cancellationToken = default);
     Task<TransactionResponse?> UpdateAsync(long id, long userId, UpdateTransactionRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(long id, long userId, CancellationToken cancellationToken = default);
+    Task<int> BulkDeleteAsync(long userId, IReadOnlyList<long> ids, CancellationToken ct = default);
 }

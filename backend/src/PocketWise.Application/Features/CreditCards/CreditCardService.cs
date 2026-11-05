@@ -28,13 +28,20 @@ public class CreditCardService : ICreditCardService
     public async Task<IReadOnlyList<CreditCardResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
     {
         var entities = await _repository.GetAllAsync(userId, cancellationToken);
-        return entities.Select(Map).ToList();
+        var balances = await _repository.GetCurrentBalancesAsync(userId, cancellationToken);
+        return entities.Select(e => Map(e, balances.GetValueOrDefault(e.CreditCardId, 0m))).ToList();
     }
 
     public async Task<CreditCardResponse?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default)
     {
         var entity = await _repository.GetByIdAsync(id, userId, cancellationToken);
-        return entity is null ? null : Map(entity);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var balance = await _repository.GetCurrentBalanceAsync(id, userId, cancellationToken);
+        return Map(entity, balance);
     }
 
     public async Task<CreditCardResponse> CreateAsync(long userId, CreateCreditCardRequest request, CancellationToken cancellationToken = default)
@@ -76,7 +83,7 @@ public class CreditCardService : ICreditCardService
                 cancellationToken);
         }
 
-        return Map(entity);
+        return Map(entity, 0m);
     }
 
     public async Task<CreditCardResponse?> UpdateAsync(long id, long userId, UpdateCreditCardRequest request, CancellationToken cancellationToken = default)
@@ -135,7 +142,8 @@ public class CreditCardService : ICreditCardService
                 cancellationToken);
         }
 
-        return Map(entity);
+        var balance = await _repository.GetCurrentBalanceAsync(id, userId, cancellationToken);
+        return Map(entity, balance);
     }
 
     public async Task<bool> DeleteAsync(long id, long userId, CancellationToken cancellationToken = default)
@@ -168,7 +176,7 @@ public class CreditCardService : ICreditCardService
         return true;
     }
 
-    private static CreditCardResponse Map(CreditCard entity)
+    private static CreditCardResponse Map(CreditCard entity, decimal currentBalance = 0m)
     {
         return new CreditCardResponse
         {
@@ -179,6 +187,10 @@ public class CreditCardService : ICreditCardService
             BillingDay = entity.BillingDay,
             PaymentDueDay = entity.PaymentDueDay,
             CreditLimit = entity.CreditLimit,
+            CurrentBalance = currentBalance,
+            AvailableCredit = entity.CreditLimit.HasValue
+                ? Math.Max(0, entity.CreditLimit.Value - currentBalance)
+                : null,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt
         };

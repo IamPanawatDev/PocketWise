@@ -24,7 +24,9 @@ import { NumberInput } from "@/components/ui/number-input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -178,29 +180,89 @@ export function TransactionForm({
     }
   }, [defaultValues, isDirty, reset]);
 
+  const transactionType = useWatch({ control, name: "transactionType" });
+  const selectedTagIds = useWatch({ control, name: "tagIds" });
+  const currentBankAccountId = useWatch({ control, name: "bankAccountId" });
+  const currentCreditCardId = useWatch({ control, name: "creditCardId" });
+
   useEffect(() => {
     if (!editing) {
       setValue("transactionDate", toThailandDateTimeInputValue(new Date()));
     }
   }, [editing, setValue]);
 
-  // Auto-select bank account: works even when user has multiple accounts!
+  // Auto-select payment method: works with saved preferences
   useEffect(() => {
     if (
       !editing &&
-      bankAccounts &&
-      bankAccounts.length > 0 &&
-      getValues("bankAccountId") == null
+      (bankAccounts || creditCards) &&
+      getValues("bankAccountId") == null &&
+      getValues("creditCardId") == null
     ) {
-      const lastUsed = typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
-      const matched = lastUsed ? bankAccounts.find((a) => String(a.bankAccountId) === lastUsed) : null;
-      const defaultAccount = matched ?? bankAccounts[0];
-      setValue("bankAccountId", defaultAccount.bankAccountId, { shouldDirty: false });
-    }
-  }, [bankAccounts, editing, getValues, setValue]);
+      const lastMethod = typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_payment_method") : null;
+      if (lastMethod) {
+        if (lastMethod === "none") {
+          return;
+        }
+        if (lastMethod.startsWith("account-") && bankAccounts && bankAccounts.length > 0) {
+          const id = Number(lastMethod.replace("account-", ""));
+          if (bankAccounts.some((a) => a.bankAccountId === id)) {
+            setValue("bankAccountId", id, { shouldDirty: false });
+            return;
+          }
+        }
+        if (lastMethod.startsWith("card-") && transactionType === "expense" && creditCards && creditCards.length > 0) {
+          const id = Number(lastMethod.replace("card-", ""));
+          if (creditCards.some((c) => c.creditCardId === id && c.isActive)) {
+            setValue("creditCardId", id, { shouldDirty: false });
+            return;
+          }
+        }
+      }
 
-  const selectedTagIds = useWatch({ control, name: "tagIds" });
-  const transactionType = useWatch({ control, name: "transactionType" });
+      const lastUsed = typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
+      if (bankAccounts && bankAccounts.length > 0) {
+        const matched = lastUsed ? bankAccounts.find((a) => String(a.bankAccountId) === lastUsed) : null;
+        const defaultAccount = matched ?? bankAccounts[0];
+        setValue("bankAccountId", defaultAccount.bankAccountId, { shouldDirty: false });
+      }
+    }
+  }, [bankAccounts, creditCards, editing, getValues, setValue, transactionType]);
+
+  const paymentMethodValue = useMemo(() => {
+    if (transactionType === "expense" && currentCreditCardId) {
+      return `card-${currentCreditCardId}`;
+    }
+    if (currentBankAccountId) {
+      return `account-${currentBankAccountId}`;
+    }
+    return "none";
+  }, [currentBankAccountId, currentCreditCardId, transactionType]);
+
+  const handlePaymentMethodChange = (value: string) => {
+    if (value === "none") {
+      setValue("bankAccountId", null, { shouldDirty: true });
+      setValue("creditCardId", null, { shouldDirty: true });
+      try {
+        localStorage.setItem("pocketwise_last_payment_method", "none");
+      } catch {}
+    } else if (value.startsWith("account-")) {
+      const id = Number(value.replace("account-", ""));
+      setValue("bankAccountId", id, { shouldDirty: true });
+      setValue("creditCardId", null, { shouldDirty: true });
+      try {
+        localStorage.setItem("pocketwise_last_payment_method", value);
+        localStorage.setItem("pocketwise_last_bank_account_id", String(id));
+      } catch {}
+    } else if (value.startsWith("card-")) {
+      const id = Number(value.replace("card-", ""));
+      setValue("creditCardId", id, { shouldDirty: true });
+      setValue("bankAccountId", null, { shouldDirty: true });
+      try {
+        localStorage.setItem("pocketwise_last_payment_method", value);
+      } catch {}
+    }
+  };
   const selectedCategoryId = useWatch({ control, name: "categoryId" });
   const transactionDate = useWatch({ control, name: "transactionDate" });
   const description = useWatch({ control, name: "description" });
@@ -302,9 +364,18 @@ export function TransactionForm({
       recordCategoryUsage(values.categoryId);
     }
 
-    if (values.bankAccountId) {
+    if (values.creditCardId) {
       try {
+        localStorage.setItem("pocketwise_last_payment_method", `card-${values.creditCardId}`);
+      } catch {}
+    } else if (values.bankAccountId) {
+      try {
+        localStorage.setItem("pocketwise_last_payment_method", `account-${values.bankAccountId}`);
         localStorage.setItem("pocketwise_last_bank_account_id", String(values.bankAccountId));
+      } catch {}
+    } else {
+      try {
+        localStorage.setItem("pocketwise_last_payment_method", "none");
       } catch {}
     }
 
@@ -620,68 +691,44 @@ export function TransactionForm({
         )}
       </div>
 
-      {/* Accounts & Cards Selection (Compact Grid with Auto-Select) */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <FormField label="บัญชี" htmlFor="transaction-account">
-          <Controller
-            control={control}
-            name="bankAccountId"
-            render={({ field }) => (
-              <Select
-                value={field.value == null ? "none" : String(field.value)}
-                onValueChange={(value) => {
-                  const id = value === "none" ? null : Number(value);
-                  field.onChange(id);
-                  if (id !== null) {
-                    setValue("creditCardId", null);
-                    try {
-                      localStorage.setItem("pocketwise_last_bank_account_id", String(id));
-                    } catch {}
-                  }
-                }}
-              >
-                <SelectTrigger id="transaction-account"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                  {bankAccounts?.map((account) => (
-                    <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
-                      {account.accountName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Consolidated Payment Method */}
+      <FormField label="ช่องทางชำระเงิน" htmlFor="transaction-payment-method">
+        <Select
+          value={paymentMethodValue}
+          onValueChange={handlePaymentMethodChange}
+        >
+          <SelectTrigger id="transaction-payment-method">
+            <SelectValue placeholder="— เลือกช่องทางชำระเงิน —" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">💵 เงินสด / ไม่ระบุ</SelectItem>
+            {bankAccounts && bankAccounts.length > 0 && (
+              <SelectGroup>
+                <SelectLabel className="text-xs font-semibold text-[var(--pw-ink)]/60 px-2 py-1.5">
+                  🏦 บัญชีธนาคาร
+                </SelectLabel>
+                {bankAccounts.map((account) => (
+                  <SelectItem key={account.bankAccountId} value={`account-${account.bankAccountId}`}>
+                    {account.accountName}{account.bankName ? ` (${account.bankName})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             )}
-          />
-        </FormField>
-
-        {transactionType === "expense" && (
-          <FormField label="บัตรเครดิต" htmlFor="transaction-credit-card">
-            <Controller
-              control={control}
-              name="creditCardId"
-              render={({ field }) => (
-                <Select
-                  value={field.value == null ? "none" : String(field.value)}
-                  onValueChange={(value) => {
-                    field.onChange(value === "none" ? null : Number(value));
-                    if (value !== "none") setValue("bankAccountId", null);
-                  }}
-                >
-                  <SelectTrigger id="transaction-credit-card"><SelectValue placeholder="— ไม่ระบุ —" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                    {creditCards?.filter((card) => card.isActive).map((card) => (
-                      <SelectItem key={card.creditCardId} value={String(card.creditCardId)}>
-                        {card.cardName} · {card.bankName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </FormField>
-        )}
-      </div>
+            {transactionType === "expense" && creditCards && creditCards.filter((card) => card.isActive).length > 0 && (
+              <SelectGroup>
+                <SelectLabel className="text-xs font-semibold text-[var(--pw-ink)]/60 px-2 py-1.5">
+                  💳 บัตรเครดิต
+                </SelectLabel>
+                {creditCards.filter((card) => card.isActive).map((card) => (
+                  <SelectItem key={card.creditCardId} value={`card-${card.creditCardId}`}>
+                    {card.cardName} · {card.bankName}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+          </SelectContent>
+        </Select>
+      </FormField>
 
       {/* Tags Section (Collapsible) */}
       {tags && tags.length > 0 && (

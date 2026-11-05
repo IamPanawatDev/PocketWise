@@ -28,7 +28,14 @@ public class TransactionRepository : ITransactionRepository
             .FirstOrDefaultAsync(t => t.TransactionId == id && t.UserId == userId && !t.IsDeleted, cancellationToken);
     }
 
-    
+    public async Task<IReadOnlyList<Transaction>> GetByIdsAsync(IEnumerable<long> ids, long userId, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.Distinct().ToList();
+        return await _context.Transactions
+            .Where(t => idList.Contains(t.TransactionId) && t.UserId == userId && !t.IsDeleted)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> ExistsAsync(long id, long userId, CancellationToken cancellationToken = default)
     {
         return await _context.Transactions
@@ -146,6 +153,18 @@ public class TransactionRepository : ITransactionRepository
         transaction.IsDeleted = true;
         transaction.UpdatedAt = DateTime.UtcNow;
         _context.Transactions.Update(transaction);
+        return Task.CompletedTask;
+    }
+
+    public Task SoftDeleteRangeAsync(IEnumerable<Transaction> transactions, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var transaction in transactions)
+        {
+            transaction.IsDeleted = true;
+            transaction.UpdatedAt = now;
+            _context.Transactions.Update(transaction);
+        }
         return Task.CompletedTask;
     }
 

@@ -11,6 +11,7 @@ export interface BankAccountResponse {
   accountType: AccountType;
   isActive: boolean;
   createdAt: string;
+  currentBalance?: number;
 }
 
 export interface CreateBankAccountRequest {

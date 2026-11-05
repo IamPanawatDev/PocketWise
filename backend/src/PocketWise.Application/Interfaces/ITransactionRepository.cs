@@ -7,10 +7,12 @@ namespace PocketWise.Application.Interfaces;
 public interface ITransactionRepository
 {
     Task<Transaction?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Transaction>> GetByIdsAsync(IEnumerable<long> ids, long userId, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(long id, long userId, CancellationToken cancellationToken = default);
     Task<TransactionPagedResult<Transaction>> GetPagedAsync(long userId, TransactionFilter filter, int page, int pageSize, string sortBy, bool sortDesc, CancellationToken cancellationToken = default);
     Task AddAsync(Transaction transaction, CancellationToken cancellationToken = default);
     Task UpdateAsync(Transaction transaction, CancellationToken cancellationToken = default);
     Task SoftDeleteAsync(Transaction transaction, CancellationToken cancellationToken = default);
+    Task SoftDeleteRangeAsync(IEnumerable<Transaction> transactions, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

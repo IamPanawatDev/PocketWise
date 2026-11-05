@@ -25,9 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import {
@@ -332,9 +332,13 @@ export function BankAccountsView() {
                       </div>
                     </div>
 
-                    {/* Middle: Masked Account Number */}
-                    <div className="relative z-10 my-2">
-                      <p className="font-mono text-sm sm:text-base tracking-widest text-white/85 drop-shadow-xs">
+                    {/* Middle: Current Balance & Masked Account Number */}
+                    <div className="relative z-10 my-3">
+                      <span className="text-[11px] text-white/65 font-medium block">ยอดเงินคงเหลือ</span>
+                      <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-sm mt-0.5">
+                        <AnimatedNumber value={a.currentBalance ?? 0} currency="THB" />
+                      </div>
+                      <p className="font-mono text-xs sm:text-sm tracking-widest text-white/70 drop-shadow-xs mt-2">
                         {a.accountNumberMasked || "•••• •••• ••••"}
                       </p>
                     </div>

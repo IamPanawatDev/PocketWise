@@ -621,10 +621,8 @@ export function CategorizationView() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                        {categories
-                          ?.filter((category) => category.isSystem)
-                          .map((category) => (
-                            <SelectItem key={category.categoryId} value={String(category.categoryId)}>
+                        {categories?.map((category) => (
+                          <SelectItem key={category.categoryId} value={String(category.categoryId)}>
                               {category.categoryName}
                             </SelectItem>
                           ))}

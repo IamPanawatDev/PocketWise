@@ -29,13 +29,20 @@ public class BankAccountService : IBankAccountService
     public async Task<IReadOnlyList<BankAccountResponse>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
     {
         var entities = await _repository.GetAllAsync(userId, cancellationToken);
-        return entities.Select(Map).ToList();
+        var balances = await _repository.GetBalancesAsync(userId, cancellationToken);
+        return entities.Select(e => Map(e, balances.GetValueOrDefault(e.BankAccountId, 0m))).ToList();
     }
 
     public async Task<BankAccountResponse?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default)
     {
         var entity = await _repository.GetByIdAsync(id, userId, cancellationToken);
-        return entity is null ? null : Map(entity);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var balance = await _repository.GetBalanceAsync(id, userId, cancellationToken);
+        return Map(entity, balance);
     }
 
     public async Task<BankAccountResponse> CreateAsync(long userId, CreateBankAccountRequest request, CancellationToken cancellationToken = default)
@@ -75,7 +82,7 @@ public class BankAccountService : IBankAccountService
                 cancellationToken);
         }
 
-        return Map(entity);
+        return Map(entity, 0m);
     }
 
     public async Task<BankAccountResponse?> UpdateAsync(long id, long userId, UpdateBankAccountRequest request, CancellationToken cancellationToken = default)
@@ -131,7 +138,8 @@ public class BankAccountService : IBankAccountService
                 cancellationToken);
         }
 
-        return Map(entity);
+        var balance = await _repository.GetBalanceAsync(id, userId, cancellationToken);
+        return Map(entity, balance);
     }
 
     public async Task<bool> DeleteAsync(long id, long userId, CancellationToken cancellationToken = default)
@@ -169,7 +177,7 @@ public class BankAccountService : IBankAccountService
         return true;
     }
 
-    private static BankAccountResponse Map(BankAccount entity)
+    private static BankAccountResponse Map(BankAccount entity, decimal currentBalance = 0m)
     {
         return new BankAccountResponse
         {
@@ -179,6 +187,7 @@ public class BankAccountService : IBankAccountService
             AccountName = entity.AccountName,
             AccountNumberMasked = entity.AccountNumberMasked,
             AccountType = entity.AccountType,
+            CurrentBalance = currentBalance,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt
         };

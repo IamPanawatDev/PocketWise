@@ -682,7 +682,7 @@ export function SystemCategoriesManager() {
                 <label className="text-xs font-medium text-[var(--pw-ink)] mb-1.5 block">
                   ไอคอน (Icon)
                 </label>
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 max-h-44 overflow-y-auto p-1.5 border border-[var(--pw-hairline)] rounded-[var(--pw-rounded-sm)] bg-[var(--pw-surface-black)]">
+                <div className="grid grid-cols-5 xs:grid-cols-6 sm:grid-cols-8 gap-2 sm:gap-1.5 max-h-48 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-1.5 border border-[var(--pw-hairline)] rounded-[var(--pw-rounded-sm)] bg-[var(--pw-surface-black)]">
                   {AVAILABLE_ICONS.map((item) => {
                     const IconComponent = item.icon;
                     const isSelected = formIcon.toLowerCase() === item.name.toLowerCase();
@@ -693,7 +693,7 @@ export function SystemCategoriesManager() {
                         onClick={() => setFormIcon(item.name)}
                         title={item.label}
                         className={cn(
-                          "flex size-9 items-center justify-center rounded-md border text-sm transition-all",
+                          "flex size-10 sm:size-9 items-center justify-center rounded-md border text-sm transition-all active:scale-95",
                           isSelected
                             ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/20 text-[var(--pw-primary)] ring-1 ring-[var(--pw-primary)]"
                             : "border-transparent text-[var(--pw-ink)]/60 hover:bg-[var(--pw-surface-indigo)] hover:text-[var(--pw-ink)]"
@@ -723,21 +723,21 @@ export function SystemCategoriesManager() {
                 </div>
               )}
 
-              {/* Form Buttons */}
-              <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
-                <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={closeDialog}>
-                  ยกเลิก
-                </Button>
+              {/* Form Buttons: Confirm on TOP, Cancel on BOTTOM on mobile */}
+              <div className="flex flex-col gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
                 <Button
                   type="submit"
                   variant="default"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto min-h-[44px]"
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   {(createMutation.isPending || updateMutation.isPending) && (
                     <LoaderCircle className="size-4 animate-spin mr-1.5" />
                   )}
                   {editingCategory ? "บันทึกการแก้ไข" : "สร้างหมวดหมู่"}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full sm:w-auto min-h-[44px]" onClick={closeDialog}>
+                  ยกเลิก
                 </Button>
               </div>
             </form>

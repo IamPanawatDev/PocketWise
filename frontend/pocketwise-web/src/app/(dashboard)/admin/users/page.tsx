@@ -1,26 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import {
   User,
   Users,
   Search,
-  Filter,
   ShieldAlert,
   UserCheck,
   UserX,
   Mail,
   KeyRound,
   Laptop,
-  Globe,
-  Clock,
   AlertTriangle,
   X,
   CheckCircle,
   RefreshCw,
-  LogOut,
-  History,
   SlidersHorizontal,
   RotateCcw,
 } from "lucide-react";
@@ -41,7 +36,6 @@ import { cn } from "@/lib/utils";
 import {
   formatDisplayDate,
   formatDisplayDateTime,
-  formatRelativeTime,
 } from "@/lib/date-utils";
 import { toast } from "sonner";
 import {
@@ -63,7 +57,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
-import type { AdminUserListItem } from "@/types/admin-operations.types";
+import { ListRowsSkeleton } from "@/components/shared/Skeletons";
+import type { AdminUserListItem, AdminUserDetail } from "@/types/admin-operations.types";
 
 export default function AdminUsersPage() {
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
@@ -107,7 +102,7 @@ export default function AdminUsersPage() {
     pageSize: 15,
   };
 
-  const { data: usersData, isLoading, refetch } = useAdminUsersQuery(filters);
+  const { data: usersData, isLoading } = useAdminUsersQuery(filters);
   const { data: userDetail, isLoading: isDetailLoading } =
     useAdminUserDetailQuery(selectedUserId);
   const { data: userSessions = [], isLoading: isSessionsLoading } =
@@ -180,8 +175,8 @@ export default function AdminUsersPage() {
       const name = suspendTarget.displayName;
       setSuspendTarget(null);
       toast.success(`ระงับบัญชีผู้ใช้ ${name} เรียบร้อยแล้ว`);
-    } catch (err: any) {
-      toast.error(err?.message || "เกิดข้อผิดพลาดในการระงับบัญชี");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "เกิดข้อผิดพลาดในการระงับบัญชี");
     }
   };
 
@@ -196,14 +191,14 @@ export default function AdminUsersPage() {
         try {
           await unsuspendMutation.mutateAsync(user.id);
           toast.success(`ยกเลิกการระงับบัญชี ${user.displayName} เรียบร้อยแล้ว`);
-        } catch (err: any) {
-          toast.error(err?.message || "เกิดข้อผิดพลาดในการยกเลิกการระงับบัญชี");
+        } catch (err: unknown) {
+          toast.error((err as Error)?.message || "เกิดข้อผิดพลาดในการยกเลิกการระงับบัญชี");
         }
       },
     });
   };
 
-  const handleManualVerify = (detail: any) => {
+  const handleManualVerify = (detail: AdminUserDetail) => {
     setConfirmDialog({
       open: true,
       title: "อนุมัติยืนยันอีเมลให้ผู้ใช้",
@@ -214,8 +209,8 @@ export default function AdminUsersPage() {
         try {
           await manualVerifyMutation.mutateAsync(detail.id);
           toast.success("อนุมัติยืนยันที่อยู่อีเมลเรียบร้อยแล้ว");
-        } catch (err: any) {
-          toast.error(err?.message || "ไม่สามารถยืนยันอีเมลได้");
+        } catch (err: unknown) {
+          toast.error((err as Error)?.message || "ไม่สามารถยืนยันอีเมลได้");
         }
       },
     });
@@ -225,8 +220,8 @@ export default function AdminUsersPage() {
     try {
       await resendVerificationMutation.mutateAsync(userId);
       toast.success("ส่งอีเมลยืนยันตัวตนเรียบร้อยแล้ว");
-    } catch (err: any) {
-      toast.error(err?.message || "ไม่สามารถส่งอีเมลยืนยันได้");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "ไม่สามารถส่งอีเมลยืนยันได้");
     }
   };
 
@@ -237,8 +232,8 @@ export default function AdminUsersPage() {
       if (res?.resetToken) {
         console.log(`[Admin Token Generated]: ${res.resetToken}`);
       }
-    } catch (err: any) {
-      toast.error(err?.message || "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้");
     }
   };
 
@@ -253,8 +248,8 @@ export default function AdminUsersPage() {
         try {
           await revokeSessionMutation.mutateAsync({ userId, tokenId });
           toast.success("เพิกถอนเซสชันเรียบร้อยแล้ว");
-        } catch (err: any) {
-          toast.error(err?.message || "เกิดข้อผิดพลาดในการเพิกถอนเซสชัน");
+        } catch (err: unknown) {
+          toast.error((err as Error)?.message || "เกิดข้อผิดพลาดในการเพิกถอนเซสชัน");
         }
       },
     });
@@ -271,8 +266,8 @@ export default function AdminUsersPage() {
         try {
           await revokeAllSessionsMutation.mutateAsync(userId);
           toast.success("บังคับออกจากระบบทุกอุปกรณ์เรียบร้อยแล้ว");
-        } catch (err: any) {
-          toast.error(err?.message || "เกิดข้อผิดพลาดในการเพิกถอนเซสชันทั้งหมด");
+        } catch (err: unknown) {
+          toast.error((err as Error)?.message || "เกิดข้อผิดพลาดในการเพิกถอนเซสชันทั้งหมด");
         }
       },
     });
@@ -332,7 +327,7 @@ export default function AdminUsersPage() {
             type="button"
             onClick={() => setShowFilterSheet(true)}
             className={cn(
-              "px-3.5 py-2 text-xs sm:text-sm rounded-lg border flex items-center gap-2 font-medium shrink-0 transition-all duration-150 active:scale-95",
+              "min-h-[44px] sm:min-h-0 px-3.5 py-2 text-xs sm:text-sm rounded-lg border flex items-center gap-2 font-medium shrink-0 transition-all duration-150 active:scale-95",
               activeFilterCount > 0
                 ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold shadow-xs"
                 : "border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
@@ -487,7 +482,7 @@ export default function AdminUsersPage() {
                               setSelectedUserId(u.id);
                               setActiveDetailTab("profile");
                             }}
-                            className="px-2.5 py-1 text-xs rounded border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-all duration-150 active:scale-95"
+                            className="px-2.5 py-1 text-xs font-semibold rounded border border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20 hover:border-[var(--pw-primary)]/60 transition-all duration-150 active:scale-95 shadow-xs"
                           >
                             ตรวจสอบ
                           </button>
@@ -598,13 +593,13 @@ export default function AdminUsersPage() {
                     เข้าสู่ระบบล่าสุด: {formatDisplayDateTime(u.lastLoginAt, "ไม่เคยเข้าสู่ระบบ")}
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1 border-t border-[var(--pw-hairline)]/40">
+                  <div className="flex items-center gap-2.5 pt-1.5 border-t border-[var(--pw-hairline)]/40">
                     <button
                       onClick={() => {
                         setSelectedUserId(u.id);
                         setActiveDetailTab("profile");
                       }}
-                      className="flex-1 py-1.5 text-xs font-medium rounded border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-all text-center"
+                      className="flex-1 min-h-[44px] px-3 py-2 text-xs font-semibold rounded-lg border border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20 active:scale-95 transition-all text-center flex items-center justify-center shadow-xs"
                     >
                       ตรวจสอบข้อมูล
                     </button>
@@ -612,18 +607,18 @@ export default function AdminUsersPage() {
                       <button
                         onClick={() => handleConfirmUnsuspend(u)}
                         disabled={unsuspendMutation.isPending}
-                        className="px-3 py-1.5 text-xs font-medium rounded border border-[var(--pw-income)]/40 bg-[var(--pw-income)]/10 text-[var(--pw-income)] hover:bg-[var(--pw-income)]/20 transition-all"
+                        className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg border border-[var(--pw-income)]/40 bg-[var(--pw-income)]/10 text-[var(--pw-income)] hover:bg-[var(--pw-income)]/20 active:scale-95 transition-all flex items-center justify-center shrink-0"
                       >
                         ยกเลิกระงับ
                       </button>
                     ) : isSelf ? (
-                      <span className="text-[11px] text-[var(--pw-ink)]/40 px-2 py-1 select-none">
+                      <span className="min-h-[44px] inline-flex items-center text-[11px] text-[var(--pw-ink)]/40 px-3 py-2 select-none">
                         (บัญชีของคุณ)
                       </span>
                     ) : (
                       <button
                         onClick={() => handleOpenSuspendModal(u)}
-                        className="px-3 py-1.5 text-xs font-medium rounded border border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20 transition-all"
+                        className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg border border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20 active:scale-95 transition-all flex items-center justify-center shrink-0"
                       >
                         ระงับบัญชี
                       </button>
@@ -637,22 +632,22 @@ export default function AdminUsersPage() {
 
         {/* Pagination */}
         {usersData && usersData.totalPages > 1 && (
-          <div className="p-3 border-t border-[var(--pw-hairline)] flex items-center justify-between text-xs text-[var(--pw-ink)]/70">
-            <div>
+          <div className="p-3 sm:p-4 border-t border-[var(--pw-hairline)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--pw-ink)]/70">
+            <div className="text-center sm:text-left">
               หน้า {usersData.page} จาก {usersData.totalPages} ({usersData.totalItems} บัญชี)
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-2.5 py-1 rounded border border-[var(--pw-hairline)] bg-[var(--pw-surface)] disabled:opacity-40"
+                className="flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 sm:h-9 px-4 sm:px-3 py-2 sm:py-1 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] font-medium disabled:opacity-40 active:scale-95 transition-all text-center flex items-center justify-center"
               >
                 ก่อนหน้า
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(usersData.totalPages, p + 1))}
                 disabled={page >= usersData.totalPages}
-                className="px-2.5 py-1 rounded border border-[var(--pw-hairline)] bg-[var(--pw-surface)] disabled:opacity-40"
+                className="flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 sm:h-9 px-4 sm:px-3 py-2 sm:py-1 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] font-medium disabled:opacity-40 active:scale-95 transition-all text-center flex items-center justify-center"
               >
                 ถัดไป
               </button>
@@ -1042,14 +1037,16 @@ export default function AdminUsersPage() {
                     <button
                       onClick={() => handleRevokeAllSessions(selectedUserId!)}
                       disabled={revokeAllSessionsMutation.isPending}
-                      className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/25 transition-all duration-150 active:scale-95"
+                      className="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-1 text-xs font-semibold rounded-lg bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/25 active:scale-95 transition-all flex items-center justify-center"
                     >
                       บังคับออกจากระบบทุกเครื่อง
                     </button>
                   )}
                 </div>
 
-                {userSessions.length === 0 ? (
+                {isSessionsLoading ? (
+                  <ListRowsSkeleton count={3} />
+                ) : userSessions.length === 0 ? (
                   <div className="py-8 text-center text-xs text-[var(--pw-ink)]/60">
                     ไม่พบเซสชันที่บันทึกไว้
                   </div>
@@ -1086,7 +1083,7 @@ export default function AdminUsersPage() {
                           <button
                             onClick={() => handleRevokeSession(selectedUserId!, session.id)}
                             disabled={revokeSessionMutation.isPending}
-                            className="px-2.5 py-1 text-xs rounded border border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 transition-colors"
+                            className="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-1 text-xs rounded-lg border border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 active:scale-95 transition-all flex items-center justify-center shrink-0"
                           >
                             เพิกถอน
                           </button>

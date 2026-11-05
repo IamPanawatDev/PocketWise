@@ -8,6 +8,8 @@ export interface CreditCardResponse {
   creditLimit: number | null;
   isActive: boolean;
   createdAt: string;
+  currentBalance?: number;
+  availableCredit?: number | null;
 }
 
 export interface CreditCardRequest {

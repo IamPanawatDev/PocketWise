@@ -101,6 +101,14 @@ public class TransactionsController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("bulk-delete")]
+    public async Task<ActionResult<ApiResponse<int>>> BulkDeleteAsync([FromBody] BulkDeleteTransactionsRequest request, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        var deletedCount = await _transactionService.BulkDeleteAsync(userId, request.TransactionIds, cancellationToken);
+        return Ok(ApiResponse<int>.Ok(deletedCount));
+    }
+
     private long GetUserId()
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);

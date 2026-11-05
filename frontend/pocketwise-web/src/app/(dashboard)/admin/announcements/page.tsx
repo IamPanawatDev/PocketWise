@@ -1,19 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import {
   Megaphone,
   Plus,
   Edit2,
   Trash2,
-  Calendar,
+
   Clock,
   LoaderCircle,
   ShieldAlert,
-  Users,
-  CheckCircle2,
-  XCircle,
+
+
+
   X,
   Target,
 } from "lucide-react";
@@ -28,7 +28,7 @@ import { useAdminRoles } from "@/features/admin-permissions/hooks/useAdminRoles"
 import { cn } from "@/lib/utils";
 import {
   formatDisplayDateTime,
-  formatDisplayDate,
+
   toThailandDateTimeInputValue,
 } from "@/lib/date-utils";
 import { toast } from "sonner";
@@ -58,7 +58,7 @@ import type { Announcement, AnnouncementTarget } from "@/types/admin-operations.
 
 export default function AdminAnnouncementsPage() {
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
-  const { data: announcements = [], isLoading, refetch } = useAdminAnnouncementsQuery();
+  const { data: announcements = [], isLoading } = useAdminAnnouncementsQuery();
   const { data: roles = [] } = useAdminRoles();
 
   const createMutation = useCreateAnnouncementMutation();
@@ -131,7 +131,7 @@ export default function AdminAnnouncementsPage() {
   const handleTargetChange = (
     index: number,
     field: keyof AnnouncementTarget,
-    value: any
+    value: AnnouncementTarget[keyof AnnouncementTarget]
   ) => {
     const updated = [...targets];
     updated[index] = { ...updated[index], [field]: value };
@@ -177,9 +177,9 @@ export default function AdminAnnouncementsPage() {
         toast.success("สร้างประกาศระบบใหม่เรียบร้อยแล้ว");
       }
       setIsModalOpen(false);
-    } catch (err: any) {
-      setFormError(err?.message || "เกิดข้อผิดพลาดในการบันทึกประกาศ");
-      toast.error(err?.message || "เกิดข้อผิดพลาดในการบันทึกประกาศ");
+    } catch (err: unknown) {
+      setFormError((err as Error)?.message || "เกิดข้อผิดพลาดในการบันทึกประกาศ");
+      toast.error((err as Error)?.message || "เกิดข้อผิดพลาดในการบันทึกประกาศ");
     }
   };
 
@@ -193,8 +193,8 @@ export default function AdminAnnouncementsPage() {
       await deleteMutation.mutateAsync(deleteTarget.announcementId);
       toast.success(`ลบประกาศ "${deleteTarget.title}" เรียบร้อยแล้ว`);
       setDeleteTarget(null);
-    } catch (err: any) {
-      toast.error(err?.message || "เกิดข้อผิดพลาดในการลบประกาศ");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "เกิดข้อผิดพลาดในการลบประกาศ");
     }
   };
 
@@ -324,7 +324,7 @@ export default function AdminAnnouncementsPage() {
                       variant="outline"
                       size="icon"
                       onClick={() => handleOpenEdit(item)}
-                      className="size-8"
+                      className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:size-8"
                       title="แก้ไขประกาศ"
                     >
                       <Edit2 className="size-3.5" />
@@ -334,7 +334,7 @@ export default function AdminAnnouncementsPage() {
                       variant="outline"
                       size="icon"
                       onClick={() => handleDelete(item)}
-                      className="size-8 border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10"
+                      className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:size-8 border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10"
                       title="ลบประกาศ"
                     >
                       <Trash2 className="size-3.5" />
@@ -463,14 +463,14 @@ export default function AdminAnnouncementsPage() {
                   key={idx}
                   className="p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 flex flex-wrap items-center gap-2"
                 >
-                  <div className="w-48">
+                  <div className="w-full sm:w-48">
                     <Select
                       value={rule.targetType}
                       onValueChange={(val) =>
-                        handleTargetChange(idx, "targetType", val as any)
+                        handleTargetChange(idx, "targetType", val as AnnouncementTarget["targetType"])
                       }
                     >
-                      <SelectTrigger className="h-9 text-xs">
+                      <SelectTrigger className="min-h-[44px] sm:min-h-0 sm:h-9 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -483,14 +483,14 @@ export default function AdminAnnouncementsPage() {
                   </div>
 
                   {rule.targetType === "Role" && (
-                    <div className="w-44">
+                    <div className="w-full sm:w-44">
                       <Select
                         value={rule.roleId ? String(rule.roleId) : ""}
                         onValueChange={(val) =>
                           handleTargetChange(idx, "roleId", Number(val))
                         }
                       >
-                        <SelectTrigger className="h-9 text-xs">
+                        <SelectTrigger className="min-h-[44px] sm:min-h-0 sm:h-9 text-xs">
                           <SelectValue placeholder="เลือกบทบาท..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -512,7 +512,7 @@ export default function AdminAnnouncementsPage() {
                       onChange={(e) =>
                         handleTargetChange(idx, "userId", e.target.value ? Number(e.target.value) : undefined)
                       }
-                      className="w-28 px-2.5 py-1.5 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] text-xs"
+                      className="w-full sm:w-28 min-h-[44px] sm:min-h-0 px-2.5 py-1.5 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] text-xs"
                     />
                   )}
 
@@ -520,7 +520,7 @@ export default function AdminAnnouncementsPage() {
                     <button
                       type="button"
                       onClick={() => handleRemoveTargetRule(idx)}
-                      className="p-1 rounded text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 ml-auto"
+                      className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 p-2 sm:p-1 rounded-lg text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 active:scale-95 transition-all flex items-center justify-center ml-auto"
                     >
                       <X className="size-4" />
                     </button>

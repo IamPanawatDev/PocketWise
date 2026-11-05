@@ -9,6 +9,8 @@ public class CreditCardResponse
     public byte? BillingDay { get; set; }
     public byte? PaymentDueDay { get; set; }
     public decimal? CreditLimit { get; set; }
+    public decimal CurrentBalance { get; set; }
+    public decimal? AvailableCredit { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 }

@@ -16,7 +16,6 @@ import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { CommandPalette } from "@/components/shared/CommandPalette";
 import { ActiveAnnouncementsBanner } from "@/features/admin-operations/components/ActiveAnnouncementsBanner";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { TransactionForm } from "@/features/transactions/components/TransactionForm";
 import {
@@ -72,20 +71,42 @@ interface NavItem {
   permission?: string;
 }
 
-const mainNav: NavItem[] = [
-  { href: "/transactions", label: "รายการ", icon: ReceiptText },
-  { href: "/imports", label: "นำเข้าข้อมูล", icon: FileUp },
-  { href: "/budgets", label: "งบประมาณ", icon: Wallet },
-  { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard },
-  { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat },
-  { href: "/categorization", label: "จัดหมวด AI", icon: Sparkles, permission: "CATEGORIZATION_VIEW" },
-  { href: "/reports", label: "รายงาน", icon: PieChart },
-  { href: "/categories", label: "หมวดหมู่", icon: FolderTree },
-  { href: "/tags", label: "แท็ก", icon: Tags },
-  { href: "/bank-accounts", label: "บัญชี", icon: Landmark },
-  { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
-  { href: "/settings", label: "ตั้งค่าบัญชี", icon: UserRoundCog },
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: "ธุรกรรม & บัญชี",
+    items: [
+      { href: "/transactions", label: "รายการ", icon: ReceiptText },
+      { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
+      { href: "/imports", label: "นำเข้าข้อมูล", icon: FileUp },
+      { href: "/bank-accounts", label: "บัญชี", icon: Landmark },
+      { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard },
+    ],
+  },
+  {
+    title: "การวางแผน & วิเคราะห์",
+    items: [
+      { href: "/budgets", label: "งบประมาณ", icon: Wallet },
+      { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat },
+      { href: "/reports", label: "รายงาน", icon: PieChart },
+    ],
+  },
+  {
+    title: "การจัดการ & ตั้งค่า",
+    items: [
+      { href: "/categories", label: "หมวดหมู่", icon: FolderTree },
+      { href: "/tags", label: "แท็ก", icon: Tags },
+      { href: "/categorization", label: "จัดหมวด AI", icon: Sparkles, permission: "CATEGORIZATION_VIEW" },
+      { href: "/settings", label: "ตั้งค่าบัญชี", icon: UserRoundCog },
+    ],
+  },
 ];
+
+
 
 const adminNav: NavItem[] = [
   { href: "/admin/overview", label: "ภาพรวมระบบ", tooltip: "ภาพรวมระบบ (Admin)", icon: LayoutDashboard },
@@ -170,8 +191,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const unreadCount = unreadData?.unreadCount ?? 0;
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<(Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> }) | null>(null);
+
   const [maintenanceModeInfo, setMaintenanceModeInfo] = useState<{ message: string; endsAt?: string } | null>(null);
 
   useEffect(() => {
@@ -202,18 +223,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     const isChrome = /CriOS/i.test(ua);
     const isStandaloneMode = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
-    setDeviceInfo({
-      isIos: isIosDevice,
-      isIosChrome: isIosDevice && isChrome,
-      isStandalone: Boolean(isStandaloneMode),
-    });
+    const timer = setTimeout(() => {
+      setDeviceInfo({
+        isIos: isIosDevice,
+        isIosChrome: isIosDevice && isChrome,
+        isStandalone: Boolean(isStandaloneMode),
+      });
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
+      setDeferredPrompt(e as Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> });
+
     };
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
@@ -225,7 +249,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       const choice = await deferredPrompt.userChoice;
       if (choice.outcome === "accepted") {
         setDeferredPrompt(null);
-        setIsInstallable(false);
+
       }
     } else {
       setShowIosInstallGuide(true);
@@ -268,9 +292,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isError) {
-      window.location.href = `/login?from=${encodeURIComponent(pathname)}`;
+      router.push(`/login?from=${encodeURIComponent(pathname)}`);
     }
-  }, [isError, pathname]);
+  }, [isError, pathname, router]);
 
   useEffect(() => {
     if (!isMobileOpen) return;
@@ -583,10 +607,26 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="hidden md:flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
           <TooltipProvider>
             <nav aria-label="เมนูหลัก" className="space-y-1 rounded-[var(--pw-rounded-sm)] bg-[var(--pw-canvas)] p-2">
-              {/* เมนูทั่วไป */}
-              {mainNav
-                .filter((item) => !item.permission || isAdmin || user?.permissions?.includes(item.permission))
-                .map(renderNavItem)}
+              {/* เมนูทั่วไปจัดตามกลุ่ม */}
+              {navGroups.map((group, groupIndex) => {
+                const visibleItems = group.items.filter(
+                  (item) => !item.permission || isAdmin || user?.permissions?.includes(item.permission)
+                );
+                if (visibleItems.length === 0) return null;
+
+                return (
+                  <div key={group.title} className={cn("space-y-1", groupIndex > 0 && "pt-2")}>
+                    {iconOnly ? (
+                      groupIndex > 0 && <div className="my-1.5 border-t border-[var(--pw-hairline)]" />
+                    ) : (
+                      <div className="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--pw-ink)]/50 select-none">
+                        {group.title}
+                      </div>
+                    )}
+                    {visibleItems.map(renderNavItem)}
+                  </div>
+                );
+              })}
 
               {/* กลุ่มเมนู Admin */}
               {isAdmin && (
@@ -745,6 +785,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
+            {maintenanceModeInfo && (
+              <div className="mb-4 rounded-xl border border-[var(--pw-expense)]/30 bg-[var(--pw-expense)]/10 p-3 sm:p-4 text-xs sm:text-sm text-[var(--pw-expense)] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="size-4 shrink-0" />
+                  <span>{maintenanceModeInfo.message}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setMaintenanceModeInfo(null)}
+                  className="min-h-[36px] px-3 text-xs shrink-0"
+                >
+                  ปิด
+                </Button>
+              </div>
+            )}
             <ActiveAnnouncementsBanner />
             {children}
           </motion.div>
