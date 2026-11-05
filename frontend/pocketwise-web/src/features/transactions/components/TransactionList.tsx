@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTransactions, useDeleteTransaction } from "@/features/transactions/hooks/useTransactions";
 import type { TransactionFilter, TransactionResponse } from "@/types/transaction.types";
-import { ApiError } from "@/lib/api-client";
+import { apiClient, ApiError } from "@/lib/api-client";
 import {
   cn,
   formatCurrency,
@@ -26,7 +27,6 @@ import { useTags } from "@/features/tags/hooks/useTags";
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { useCreditCards } from "@/features/credit-cards/hooks/useCreditCards";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
@@ -48,6 +48,8 @@ import { formatDisplayDate, formatDisplayDateTime, getRecentMonthOptions } from 
 import {
   ArrowDownRight,
   Calendar,
+  Check,
+  CheckSquare,
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
@@ -120,6 +122,78 @@ export function TransactionList({
   const { data, isLoading } = useTransactions(filter, page, sortBy, sortDesc);
   const remove = useDeleteTransaction();
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+
+  // Multi-select & Bulk Delete state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode((prev) => {
+      if (prev) {
+        setSelectedIds(new Set());
+      }
+      return !prev;
+    });
+  };
+
+  const toggleSelectItem = (id: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllCurrentPage = () => {
+    if (!data?.items) return;
+    const pageIds = data.items.map((i) => i.transactionId);
+    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    const count = selectedIds.size;
+    const toastId = toast.loading(`กำลังลบ ${count} รายการ...`);
+    try {
+      const ids = Array.from(selectedIds);
+      try {
+        await apiClient.post("/api/v1/transactions/bulk-delete", { transactionIds: ids });
+      } catch {
+        await Promise.all(ids.map((id) => apiClient.delete(`/api/v1/transactions/${id}`)));
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["budgets"] }),
+        queryClient.invalidateQueries({ queryKey: ["reports"] }),
+      ]);
+      toast.success(`ลบ ${count} รายการแล้ว`, { id: toastId });
+      setSelectedIds(new Set());
+      setIsSelectionMode(false);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "ลบรายการไม่สำเร็จ", { id: toastId });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const handleFilterChange = (patch: Partial<TransactionFilter>) => {
     setFilter((f) => ({ ...f, ...patch }));
@@ -472,6 +546,22 @@ export function TransactionList({
                 {activeFilterCount}
               </span>
             )}
+          </Button>
+
+          <Button
+            type="button"
+            variant={isSelectionMode ? "default" : "outline"}
+            className={cn(
+              "shrink-0 gap-1.5 font-medium transition-all shadow-xs",
+              isSelectionMode
+                ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)] hover:bg-[var(--pw-primary)]/90"
+                : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]"
+            )}
+            onClick={toggleSelectionMode}
+            aria-label={isSelectionMode ? "ยกเลิกโหมดเลือกหลายรายการ" : "เปิดโหมดเลือกหลายรายการ"}
+          >
+            <CheckSquare className="size-4" />
+            <span className="hidden sm:inline">{isSelectionMode ? "เสร็จสิ้น" : "เลือกหลายรายการ"}</span>
           </Button>
         </div>
 
@@ -914,13 +1004,39 @@ export function TransactionList({
               <AnimatedListItem key={t.transactionId}>
                 {/* 1. Mobile Compact List Row (< sm) */}
                 <div
-                  onClick={() => deletingId !== t.transactionId && setSelectedTransaction(t)}
-                  className={cn("sm:hidden relative flex items-center justify-between p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-raised)] active:scale-[0.98] transition-all cursor-pointer backdrop-blur-xs gap-3 overflow-hidden", deletingId === t.transactionId && "pointer-events-none opacity-60")}
+                  onClick={() => {
+                    if (deletingId === t.transactionId) return;
+                    if (isSelectionMode) {
+                      toggleSelectItem(t.transactionId);
+                    } else {
+                      setSelectedTransaction(t);
+                    }
+                  }}
+                  className={cn(
+                    "sm:hidden relative flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer backdrop-blur-xs gap-3 overflow-hidden",
+                    deletingId === t.transactionId && "pointer-events-none opacity-60",
+                    isSelectionMode && selectedIds.has(t.transactionId)
+                      ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 ring-1 ring-[var(--pw-primary)]"
+                      : "border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-raised)] active:scale-[0.98]"
+                  )}
                 >
                   {deletingId === t.transactionId && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--pw-surface)]/85 backdrop-blur-xs gap-2 text-xs font-semibold text-[var(--pw-expense)]">
                       <LoaderCircle className="size-4 animate-spin" />
                       <span>กำลังลบรายการ...</span>
+                    </div>
+                  )}
+
+                  {isSelectionMode && (
+                    <div
+                      className={cn(
+                        "flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
+                        selectedIds.has(t.transactionId)
+                          ? "bg-[var(--pw-primary)] border-[var(--pw-primary)] text-white shadow-xs"
+                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)]/50"
+                      )}
+                    >
+                      {selectedIds.has(t.transactionId) && <Check className="size-3.5 stroke-[3]" />}
                     </div>
                   )}
                   <div
@@ -995,9 +1111,19 @@ export function TransactionList({
 
                 {/* 2. Desktop Card Grid (>= sm) */}
                 <div
+                  onClick={() => {
+                    if (isSelectionMode && deletingId !== t.transactionId) {
+                      toggleSelectItem(t.transactionId);
+                    }
+                  }}
                   className={cn(
-                    "hidden sm:flex relative flex-col justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80 backdrop-blur-xs h-full overflow-hidden",
+                    "hidden sm:flex relative flex-col justify-between rounded-lg border bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 backdrop-blur-xs h-full overflow-hidden",
+                    isSelectionMode && "cursor-pointer hover:border-[var(--pw-primary)]/70",
+                    !isSelectionMode && "hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80",
                     deletingId === t.transactionId && "pointer-events-none opacity-60",
+                    isSelectionMode && selectedIds.has(t.transactionId)
+                      ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 ring-2 ring-[var(--pw-primary)]/40"
+                      : "border-[var(--pw-hairline)]",
                     t.transactionType === "expense"
                       ? "border-l-4 border-l-[var(--pw-expense)]"
                       : t.transactionType === "income"
@@ -1013,19 +1139,34 @@ export function TransactionList({
                   )}
                   <div>
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        {t.description ? (
-                          <p className="break-words font-semibold text-base text-[var(--pw-ink)]">
-                            {t.description}
-                          </p>
-                        ) : (
-                          <p className="break-words text-sm italic font-normal text-[var(--pw-ink)]/40">
-                            (ไม่ระบุรายละเอียด)
-                          </p>
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        {isSelectionMode && (
+                          <div
+                            onClick={(e) => toggleSelectItem(t.transactionId, e)}
+                            className={cn(
+                              "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border transition-colors cursor-pointer",
+                              selectedIds.has(t.transactionId)
+                                ? "bg-[var(--pw-primary)] border-[var(--pw-primary)] text-white shadow-xs"
+                                : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)]/50 hover:border-[var(--pw-primary)]"
+                            )}
+                          >
+                            {selectedIds.has(t.transactionId) && <Check className="size-3.5 stroke-[3]" />}
+                          </div>
                         )}
-                        <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-                          {formatDisplayDateTime(t.transactionDate)}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          {t.description ? (
+                            <p className="break-words font-semibold text-base text-[var(--pw-ink)]">
+                              {t.description}
+                            </p>
+                          ) : (
+                            <p className="break-words text-sm italic font-normal text-[var(--pw-ink)]/40">
+                              (ไม่ระบุรายละเอียด)
+                            </p>
+                          )}
+                          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+                            {formatDisplayDateTime(t.transactionDate)}
+                          </p>
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
                         <span
@@ -1103,50 +1244,52 @@ export function TransactionList({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 border-t border-[var(--pw-hairline)] pt-3">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-8 text-xs px-3"
-                      onClick={() => {
-                        setEditing(t);
-                        setShowForm(false);
-                      }}
-                    >
-                      <Pencil className="size-3.5" />
-                      แก้ไข
-                    </Button>
-                    <ConfirmDialog
-                      title="ลบรายการนี้?"
-                      description="การลบจะไม่สามารถย้อนกลับได้"
-                      confirmLabel="ลบ"
-                      pending={deletingId === t.transactionId}
-                      onConfirm={() => {
-                        setDeletingId(t.transactionId);
-                        const toastId = toast.loading("กำลังลบรายการ...");
-                        remove.mutate(t.transactionId, {
-                          onSuccess: () => {
-                            setDeletingId(null);
-                            toast.success("ลบรายการแล้ว", { id: toastId });
-                          },
-                          onError: (e) => {
-                            setDeletingId(null);
-                            toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ", { id: toastId });
-                          },
-                        });
-                      }}
-                      trigger={
-                        <Button size="sm" variant="destructive" className="h-8 text-xs px-3" disabled={deletingId === t.transactionId}>
-                          {deletingId === t.transactionId ? (
-                            <LoaderCircle className="size-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-3.5" />
-                          )}
-                          {deletingId === t.transactionId ? "กำลังลบ..." : "ลบ"}
-                        </Button>
-                      }
-                    />
-                  </div>
+                  {!isSelectionMode && (
+                    <div className="flex items-center justify-end gap-2 border-t border-[var(--pw-hairline)] pt-3">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-8 text-xs px-3"
+                        onClick={() => {
+                          setEditing(t);
+                          setShowForm(false);
+                        }}
+                      >
+                        <Pencil className="size-3.5" />
+                        แก้ไข
+                      </Button>
+                      <ConfirmDialog
+                        title="ลบรายการนี้?"
+                        description="การลบจะไม่สามารถย้อนกลับได้"
+                        confirmLabel="ลบ"
+                        pending={deletingId === t.transactionId}
+                        onConfirm={() => {
+                          setDeletingId(t.transactionId);
+                          const toastId = toast.loading("กำลังลบรายการ...");
+                          remove.mutate(t.transactionId, {
+                            onSuccess: () => {
+                              setDeletingId(null);
+                              toast.success("ลบรายการแล้ว", { id: toastId });
+                            },
+                            onError: (e) => {
+                              setDeletingId(null);
+                              toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ", { id: toastId });
+                            },
+                          });
+                        }}
+                        trigger={
+                          <Button size="sm" variant="destructive" className="h-8 text-xs px-3" disabled={deletingId === t.transactionId}>
+                            {deletingId === t.transactionId ? (
+                              <LoaderCircle className="size-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="size-3.5" />
+                            )}
+                            {deletingId === t.transactionId ? "กำลังลบ..." : "ลบ"}
+                          </Button>
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               </AnimatedListItem>
             ))}
@@ -1315,6 +1458,73 @@ export function TransactionList({
           </div>
         )}
       </BottomSheet>
+
+      {/* Floating Action Bar for Multi-Select Bulk Actions */}
+      {isSelectionMode && (
+        <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/95 p-3 sm:p-4 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 sm:size-7 items-center justify-center rounded-full bg-[var(--pw-primary)] text-xs font-bold text-white shadow-xs">
+                {selectedIds.size}
+              </span>
+              <span className="text-xs sm:text-sm font-semibold text-[var(--pw-ink)]">
+                เลือกแล้ว {selectedIds.size} รายการ
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 sm:h-9 text-xs"
+                onClick={handleSelectAllCurrentPage}
+              >
+                {data?.items && data.items.length > 0 && data.items.every((i) => selectedIds.has(i.transactionId))
+                  ? "ยกเลิกเลือกทั้งหมด"
+                  : "เลือกทั้งหมดในหน้านี้"}
+              </Button>
+
+              <ConfirmDialog
+                title={`ลบรายการที่เลือก ${selectedIds.size} รายการ?`}
+                description="การลบจะไม่สามารถย้อนกลับได้ ข้อมูลธุรกรรมทั้งหมดที่เลือกจะถูกลบออกจากระบบอย่างถาวร"
+                confirmLabel={isBulkDeleting ? "กำลังลบ..." : `ลบ ${selectedIds.size} รายการ`}
+                pending={isBulkDeleting}
+                onConfirm={handleBulkDelete}
+                trigger={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    className="h-8 sm:h-9 text-xs font-semibold gap-1.5 shadow-xs"
+                    disabled={selectedIds.size === 0 || isBulkDeleting}
+                  >
+                    {isBulkDeleting ? (
+                      <LoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3.5" />
+                    )}
+                    <span>ลบ {selectedIds.size > 0 ? `${selectedIds.size} รายการ` : ""}</span>
+                  </Button>
+                }
+              />
+
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 sm:h-9 text-xs"
+                onClick={() => {
+                  setIsSelectionMode(false);
+                  setSelectedIds(new Set());
+                }}
+              >
+                ยกเลิก
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

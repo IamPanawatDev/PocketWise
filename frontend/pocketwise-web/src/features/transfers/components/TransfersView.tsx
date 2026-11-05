@@ -34,6 +34,7 @@ import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import {
   ArrowRight,
   ArrowRightLeft,
+  ArrowUpDown,
   Building2,
   CheckCircle2,
   Clock,
@@ -51,12 +52,14 @@ export function TransfersView() {
   const { data: accounts } = useBankAccounts();
   const create = useCreateTransfer();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [swapAnimationCount, setSwapAnimationCount] = useState(0);
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
+    getValues,
     reset,
     formState: { errors },
   } = useForm<TransferFormValues>({
@@ -66,6 +69,16 @@ export function TransfersView() {
   useEffect(() => {
     setValue("transferDate", toThailandDateTimeInputValue(new Date()));
   }, [setValue]);
+
+  const handleSwapAccounts = () => {
+    const fromId = getValues("fromBankAccountId");
+    const toId = getValues("toBankAccountId");
+    if (!fromId && !toId) return;
+
+    setSwapAnimationCount((prev) => prev + 1);
+    setValue("fromBankAccountId", toId, { shouldValidate: Boolean(toId), shouldDirty: true });
+    setValue("toBankAccountId", fromId, { shouldValidate: Boolean(fromId), shouldDirty: true });
+  };
 
   const closeForm = () => {
     reset({
@@ -166,54 +179,84 @@ export function TransfersView() {
         description="ระบุบัญชีต้นทาง ปลายทาง และจำนวนเงินที่ต้องการโอน"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="จากบัญชีต้นทาง" htmlFor="transfer-from" error={errors.fromBankAccountId?.message}>
-              <Controller
-                control={control}
-                name="fromBankAccountId"
-                render={({ field }) => (
-                  <Select
-                    value={field.value ? String(field.value) : undefined}
-                    onValueChange={(value) => field.onChange(Number(value))}
-                  >
-                    <SelectTrigger id="transfer-from" className="w-full">
-                      <SelectValue placeholder="— เลือกบัญชีต้นทาง —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts?.map((account) => (
-                        <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
-                          {account.accountName} ({account.bankName})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
+          {/* Account Selection with 1-tap Swap */}
+          <div className="rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/10 p-3 sm:p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-start">
+              <FormField label="จากบัญชีต้นทาง" htmlFor="transfer-from" error={errors.fromBankAccountId?.message}>
+                <Controller
+                  control={control}
+                  name="fromBankAccountId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ? String(field.value) : undefined}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                    >
+                      <SelectTrigger id="transfer-from" className="w-full">
+                        <SelectValue placeholder="— เลือกบัญชีต้นทาง —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts?.map((account) => (
+                          <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
+                            {account.accountName} ({account.bankName})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
 
-            <FormField label="ไปยังบัญชีปลายทาง" htmlFor="transfer-to" error={errors.toBankAccountId?.message}>
-              <Controller
-                control={control}
-                name="toBankAccountId"
-                render={({ field }) => (
-                  <Select
-                    value={field.value ? String(field.value) : undefined}
-                    onValueChange={(value) => field.onChange(Number(value))}
-                  >
-                    <SelectTrigger id="transfer-to" className="w-full">
-                      <SelectValue placeholder="— เลือกบัญชีปลายทาง —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts?.map((account) => (
-                        <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
-                          {account.accountName} ({account.bankName})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
+              {/* 1-tap Swap Button between From & To accounts */}
+              <div className="flex flex-col items-center justify-center sm:pt-6">
+                <button
+                  type="button"
+                  onClick={handleSwapAccounts}
+                  className="group relative inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center gap-2 rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 px-3.5 py-2 text-xs font-medium text-[var(--pw-ink)]/75 shadow-xs transition-all duration-200 hover:border-[var(--pw-primary)]/40 hover:bg-[var(--pw-surface-indigo)]/50 hover:text-[var(--pw-primary)] active:scale-95 sm:size-10 sm:min-h-[40px] sm:p-0"
+                  title="สลับบัญชีต้นทางและปลายทาง (1-tap swap)"
+                  aria-label="สลับบัญชีต้นทางและปลายทาง"
+                >
+                  <ArrowUpDown
+                    className="size-4 text-[var(--pw-primary)] transition-transform duration-300 ease-in-out sm:hidden"
+                    style={{ transform: `rotate(${swapAnimationCount * 180}deg)` }}
+                  />
+                  <ArrowRightLeft
+                    className="hidden size-4 text-[var(--pw-primary)] transition-transform duration-300 ease-in-out sm:block"
+                    style={{ transform: `rotate(${swapAnimationCount * 180}deg)` }}
+                  />
+                  <span className="sm:hidden font-medium">สลับบัญชีต้นทาง ⇄ ปลายทาง</span>
+                </button>
+                <span className="hidden sm:block text-[10px] text-[var(--pw-ink)]/50 mt-1 select-none">
+                  สลับบัญชี
+                </span>
+              </div>
+
+              <FormField label="ไปยังบัญชีปลายทาง" htmlFor="transfer-to" error={errors.toBankAccountId?.message}>
+                <Controller
+                  control={control}
+                  name="toBankAccountId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ? String(field.value) : undefined}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                    >
+                      <SelectTrigger id="transfer-to" className="w-full">
+                        <SelectValue placeholder="— เลือกบัญชีปลายทาง —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts?.map((account) => (
+                          <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>
+                            {account.accountName} ({account.bankName})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
             <FormField label="จำนวนเงิน (บาท)" htmlFor="transfer-amount" error={errors.amount?.message}>
               <NumberInput

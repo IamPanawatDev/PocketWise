@@ -6,6 +6,8 @@ public interface IBankAccountRepository
 {
     Task<BankAccount?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BankAccount>> GetAllAsync(long userId, CancellationToken cancellationToken = default);
+    Task<Dictionary<long, decimal>> GetBalancesAsync(long userId, CancellationToken cancellationToken = default);
+    Task<decimal> GetBalanceAsync(long bankAccountId, long userId, CancellationToken cancellationToken = default);
     Task AddAsync(BankAccount account, CancellationToken cancellationToken = default);
     Task UpdateAsync(BankAccount account, CancellationToken cancellationToken = default);
     Task<bool> HasTransactionsAsync(long id, CancellationToken cancellationToken = default);

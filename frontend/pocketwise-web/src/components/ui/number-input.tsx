@@ -81,7 +81,6 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     const holdTimerRef = React.useRef<NodeJS.Timeout | null>(null);
     const repeatTimerRef = React.useRef<NodeJS.Timeout | null>(null);
     const [mathPreview, setMathPreview] = React.useState<number | null>(null);
-    const [keyboardMode, setKeyboardMode] = React.useState<"decimal" | "text">("decimal");
 
     const setRefs = React.useCallback(
       (element: HTMLInputElement | null) => {
@@ -268,7 +267,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           <input
             ref={setRefs}
             type={enableQuickMath ? "text" : "number"}
-            inputMode={props.inputMode ?? (enableQuickMath ? keyboardMode : step && String(step).includes(".") ? "decimal" : "numeric")}
+            inputMode={props.inputMode ?? (enableQuickMath ? "decimal" : step && String(step).includes(".") ? "decimal" : "numeric")}
             placeholder={placeholder}
             step={step}
             min={min}
@@ -281,25 +280,11 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
             className={cn(
               "h-11 w-full min-w-0 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-input-border)] bg-[var(--pw-input-surface)] px-4 py-2 text-base text-[var(--pw-ink)] transition-colors outline-none placeholder:text-[var(--pw-ink)]/55 focus-visible:border-[var(--pw-primary)] focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)]/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[var(--pw-magenta)] aria-invalid:ring-2 aria-invalid:ring-[var(--pw-magenta)]/30 md:text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
               prefixNode ? "pl-9" : undefined,
-              stepper || suffixNode || mathPreview !== null ? "pr-24 sm:pr-28" : undefined,
+              suffixNode ? "pr-10" : stepper ? "pr-3 sm:pr-10" : undefined,
               className
             )}
             {...props}
           />
-
-          {/* Quick Math Live Calculated Result Badge */}
-          {mathPreview !== null && (
-            <button
-              type="button"
-              tabIndex={-1}
-              onClick={() => applyMathResult(mathPreview)}
-              className="absolute right-9 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-[var(--pw-primary)] text-white shadow-md hover:bg-[var(--pw-primary)]/90 active:scale-95 transition-all cursor-pointer"
-              title="คลิกหรือกด Enter เพื่อคำนวณยอดเงิน"
-            >
-              <Calculator className="size-3" />
-              <span>= {mathPreview}฿</span>
-            </button>
-          )}
 
           {suffixNode && !stepper && mathPreview === null && (
             <div className="pointer-events-none absolute right-3 flex items-center text-sm text-[var(--pw-ink)]/50">
@@ -310,7 +295,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           {stepper && (
             <div
               className={cn(
-                "absolute right-1 top-1 bottom-1 flex w-7 flex-col overflow-hidden rounded-r-[calc(var(--pw-rounded-sm)-4px)] border-l border-[var(--pw-input-border)]/25 bg-[var(--pw-input-surface)]",
+                "hidden sm:flex absolute right-1 top-1 bottom-1 w-7 flex-col overflow-hidden rounded-r-[calc(var(--pw-rounded-sm)-4px)] border-l border-[var(--pw-input-border)]/25 bg-[var(--pw-input-surface)]",
                 disabled && "opacity-40 pointer-events-none"
               )}
             >
@@ -356,40 +341,42 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
         {/* Quick Math Operator Accessory Toolbar for Mobile & Desktop */}
         {enableQuickMath && (
-          <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto text-xs">
-            <span className="text-[10px] text-[var(--pw-ink)]/50 shrink-0 flex items-center gap-1 mr-0.5 select-none">
-              <Calculator className="size-3 text-[var(--pw-primary)]" />
+          <div className="flex items-center gap-1.5 pt-1 overflow-x-auto text-xs pb-0.5 no-scrollbar">
+            <span className="text-[11px] font-medium text-[var(--pw-ink)]/60 shrink-0 flex items-center gap-1 mr-1 select-none">
+              <Calculator className="size-3.5 text-[var(--pw-primary)]" />
               <span>สูตร:</span>
             </span>
-            {["+", "-", "*", "/", "(", ")"].map((op) => (
+            <div className="flex items-center gap-1.5 shrink-0">
+              {["+", "-", "*", "/", "(", ")"].map((op) => (
+                <button
+                  key={op}
+                  type="button"
+                  tabIndex={-1}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleInsertOperator(op);
+                  }}
+                  className="h-9 min-w-[38px] px-2.5 rounded-lg border border-[var(--pw-hairline)] dark:border-white/20 bg-[var(--pw-card)] dark:bg-slate-800/95 text-sm font-bold font-mono text-[var(--pw-ink)] hover:bg-[var(--pw-primary)]/20 hover:border-[var(--pw-primary)]/50 active:scale-95 active:bg-[var(--pw-primary)]/30 transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-xs select-none"
+                  aria-label={`ใส่เครื่องหมาย ${op}`}
+                >
+                  {op === "*" ? "×" : op === "/" ? "÷" : op}
+                </button>
+              ))}
+            </div>
+
+            {/* Prominent Calculation Result Action Button */}
+            {mathPreview !== null && (
               <button
-                key={op}
                 type="button"
                 tabIndex={-1}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleInsertOperator(op);
-                }}
-                className="size-7 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/90 text-sm font-semibold font-mono text-[var(--pw-ink)] hover:bg-[var(--pw-primary)]/20 hover:border-[var(--pw-primary)]/40 active:scale-90 transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-xs select-none"
-                aria-label={`ใส่เครื่องหมาย ${op}`}
+                onClick={() => applyMathResult(mathPreview)}
+                className="h-9 px-3 rounded-lg text-xs font-mono font-bold bg-[var(--pw-primary)] text-white shadow-xs hover:bg-[var(--pw-primary)]/90 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 ml-auto cursor-pointer animate-in fade-in zoom-in-95 duration-150"
+                title="คลิกหรือกด Enter เพื่อใช้ยอดนี้"
               >
-                {op === "*" ? "×" : op === "/" ? "÷" : op}
+                <span>= {mathPreview}฿</span>
+                <span className="text-[10px] bg-white/25 px-1 py-0.2 rounded font-sans">ใช้ยอดนี้</span>
               </button>
-            ))}
-
-            {/* Keyboard Mode Switcher: 123 vs Text */}
-            <button
-              type="button"
-              tabIndex={-1}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                setKeyboardMode((m) => (m === "decimal" ? "text" : "decimal"));
-              }}
-              className="h-7 px-2 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] text-[10px] font-medium text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] active:scale-95 transition-all shrink-0 cursor-pointer select-none ml-1"
-              title="สลับแป้นพิมพ์ตัวเลข / ข้อความ"
-            >
-              {keyboardMode === "decimal" ? "แป้น 123" : "แป้นข้อความ"}
-            </button>
+            )}
           </div>
         )}
       </div>

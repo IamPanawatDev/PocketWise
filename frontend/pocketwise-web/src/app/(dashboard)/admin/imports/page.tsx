@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+
 import {
   FileStack,
   Search,
-  Filter,
+
   ShieldAlert,
   RotateCcw,
+  SlidersHorizontal,
   LoaderCircle,
   Ban,
   CheckCircle2,
@@ -16,7 +17,7 @@ import {
   AlertCircle,
   X,
   FileText,
-  User,
+
 } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import {
@@ -57,6 +58,15 @@ export default function AdminImportsPage() {
   const [selectedJobType, setSelectedJobType] = useState("");
   const [page, setPage] = useState(1);
   const [errorDetailsJob, setErrorDetailsJob] = useState<AdminImportJob | null>(null);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+
+  const activeFilterCount = (selectedStatus ? 1 : 0) + (selectedJobType ? 1 : 0);
+
+  const resetFilters = () => {
+    setSelectedStatus("");
+    setSelectedJobType("");
+    setPage(1);
+  };
 
   const filters = {
     q: searchQuery || undefined,
@@ -66,7 +76,7 @@ export default function AdminImportsPage() {
     pageSize: 15,
   };
 
-  const { data: importsData, isLoading, refetch } = useAdminImportsQuery(filters);
+  const { data: importsData, isLoading } = useAdminImportsQuery(filters);
   const retryMutation = useRetryImportJobMutation();
   const cancelMutation = useCancelImportJobMutation();
 
@@ -118,8 +128,8 @@ export default function AdminImportsPage() {
         try {
           await retryMutation.mutateAsync(job.importJobId);
           toast.success(`งาน #${job.importJobId} ถูกส่งกลับเข้าคิวประมวลผลใหม่เรียบร้อยแล้ว`);
-        } catch (err: any) {
-          toast.error(err?.message || "เกิดข้อผิดพลาดในการลองใหม่");
+        } catch (err: unknown) {
+          toast.error((err as Error)?.message || "เกิดข้อผิดพลาดในการลองใหม่");
         }
       },
     });
@@ -136,8 +146,8 @@ export default function AdminImportsPage() {
         try {
           await cancelMutation.mutateAsync(job.importJobId);
           toast.success(`ยกเลิกงาน #${job.importJobId} เรียบร้อยแล้ว`);
-        } catch (err: any) {
-          toast.error(err?.message || "เกิดข้อผิดพลาดในการยกเลิก");
+        } catch (err: unknown) {
+          toast.error((err as Error)?.message || "เกิดข้อผิดพลาดในการยกเลิก");
         }
       },
     });
@@ -199,10 +209,11 @@ export default function AdminImportsPage() {
       </div>
 
       {/* Search & Filters */}
-      <div className="p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-sm space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="p-3 sm:p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-3">
+        {/* Desktop Grid Filters (sm:) */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-3">
           <div className="relative">
-            <Search className="size-4 text-[var(--pw-ink)]/50 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="size-4 text-[var(--pw-ink)]/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="ค้นหาชื่อไฟล์ หรือผู้ใช้งาน..."
@@ -255,6 +266,73 @@ export default function AdminImportsPage() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        {/* Mobile Filter Bar (< sm) */}
+        <div className="sm:hidden space-y-2.5">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="size-4 text-[var(--pw-ink)]/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อไฟล์ หรือผู้ใช้งาน..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-9 pr-3 min-h-[44px] text-xs rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFilterSheet(true)}
+              className={cn(
+                "min-h-[44px] px-3.5 py-2 text-xs rounded-lg border flex items-center gap-1.5 font-medium shrink-0 transition-all active:scale-95",
+                activeFilterCount > 0
+                  ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold shadow-xs"
+                  : "border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
+              )}
+              aria-label="เปิดตัวกรองงานนำเข้า"
+            >
+              <SlidersHorizontal className="size-4" />
+              <span>ตัวกรอง</span>
+              {activeFilterCount > 0 && (
+                <span className="flex size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[11px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Active Filter Chips */}
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-[var(--pw-ink)]/75">
+              <span className="font-medium text-[var(--pw-ink)]/60">ตัวกรอง:</span>
+              {selectedStatus && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-0.5 text-[11px]">
+                  สถานะ: {selectedStatus}
+                  <button onClick={() => { setSelectedStatus(""); setPage(1); }} className="hover:text-[var(--pw-expense)]">
+                    <X className="size-3" />
+                  </button>
+                </span>
+              )}
+              {selectedJobType && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-0.5 text-[11px]">
+                  ประเภท: {selectedJobType}
+                  <button onClick={() => { setSelectedJobType(""); setPage(1); }} className="hover:text-[var(--pw-expense)]">
+                    <X className="size-3" />
+                  </button>
+                </span>
+              )}
+              <button
+                onClick={resetFilters}
+                className="text-xs text-[var(--pw-primary)] hover:underline ml-1 font-medium"
+              >
+                ล้างทั้งหมด
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -339,7 +417,7 @@ export default function AdminImportsPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => setErrorDetailsJob(job)}
-                              className="h-7 px-2 text-xs border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                              className="h-7 px-2.5 text-xs font-medium border border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 active:scale-95 transition-all shadow-xs"
                               title="ดูข้อความข้อผิดพลาด"
                             >
                               ดู Error
@@ -351,7 +429,7 @@ export default function AdminImportsPage() {
                               size="sm"
                               onClick={() => handleRetry(job)}
                               disabled={job.retryCount >= 5 || retryMutation.isPending}
-                              className="h-7 px-2.5 text-xs border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20"
+                              className="h-7 px-2.5 text-xs font-semibold border border-[var(--pw-primary)]/50 bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 active:scale-95 transition-all shadow-xs"
                             >
                               <RotateCcw className="size-3 mr-1" /> ลองใหม่
                             </Button>
@@ -362,7 +440,7 @@ export default function AdminImportsPage() {
                               size="sm"
                               onClick={() => handleCancel(job)}
                               disabled={cancelMutation.isPending}
-                              className="h-7 px-2.5 text-xs border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20"
+                              className="h-7 px-2.5 text-xs font-semibold border border-[var(--pw-expense)]/50 bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/25 active:scale-95 transition-all shadow-xs"
                             >
                               <Ban className="size-3 mr-1" /> ยกเลิก
                             </Button>
@@ -435,7 +513,7 @@ export default function AdminImportsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => setErrorDetailsJob(job)}
-                        className="flex-1 h-8 text-xs border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                        className="flex-1 min-h-[44px] text-xs border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
                       >
                         ดู Error
                       </Button>
@@ -447,9 +525,9 @@ export default function AdminImportsPage() {
                         size="sm"
                         onClick={() => handleRetry(job)}
                         disabled={job.retryCount >= 5 || retryMutation.isPending}
-                        className="flex-1 h-8 text-xs"
+                        className="flex-1 min-h-[44px] text-xs"
                       >
-                        <RotateCcw className="size-3 mr-1" /> ลองใหม่
+                        <RotateCcw className="size-4 mr-1.5" /> ลองใหม่
                       </Button>
                     )}
                     {(job.status === "Pending" || job.status === "Processing" || job.status === "NeedsReview") && (
@@ -459,9 +537,9 @@ export default function AdminImportsPage() {
                         size="sm"
                         onClick={() => handleCancel(job)}
                         disabled={cancelMutation.isPending}
-                        className="flex-1 h-8 text-xs"
+                        className="flex-1 min-h-[44px] text-xs"
                       >
-                        <Ban className="size-3 mr-1" /> ยกเลิก
+                        <Ban className="size-4 mr-1.5" /> ยกเลิก
                       </Button>
                     )}
                   </div>
@@ -482,7 +560,7 @@ export default function AdminImportsPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="flex-1 sm:flex-none h-8 text-xs"
+                  className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0 sm:h-8 text-xs"
                 >
                   ก่อนหน้า
                 </Button>
@@ -491,7 +569,7 @@ export default function AdminImportsPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(importsData.totalPages, p + 1))}
                   disabled={page >= importsData.totalPages}
-                  className="flex-1 sm:flex-none h-8 text-xs"
+                  className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0 sm:h-8 text-xs"
                 >
                   ถัดไป
                 </Button>
@@ -551,6 +629,86 @@ export default function AdminImportsPage() {
             </BottomSheetFooter>
           </div>
         )}
+      </BottomSheet>
+
+      {/* Mobile Filter BottomSheet */}
+      <BottomSheet
+        open={showFilterSheet}
+        onOpenChange={setShowFilterSheet}
+        title="ตัวกรองงานนำเข้า"
+        description="เลือกสถานะและประเภทงานเพื่อคัดกรองข้อมูล"
+        className="sm:max-w-md"
+      >
+        <div className="space-y-4 py-2">
+          <div>
+            <label className="text-xs font-semibold text-[var(--pw-ink)] block mb-1.5">
+              สถานะ (Status)
+            </label>
+            <Select
+              value={selectedStatus || "ALL"}
+              onValueChange={(val) => {
+                setSelectedStatus(val === "ALL" ? "" : val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="ทุกสถานะ (All Statuses)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">ทุกสถานะ (All Statuses)</SelectItem>
+                <SelectItem value="Pending">รอดำเนินการ (Pending)</SelectItem>
+                <SelectItem value="Processing">กำลังประมวลผล (Processing)</SelectItem>
+                <SelectItem value="Completed">สำเร็จ (Completed)</SelectItem>
+                <SelectItem value="Failed">ล้มเหลว (Failed)</SelectItem>
+                <SelectItem value="Cancelled">ยกเลิกแล้ว (Cancelled)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-[var(--pw-ink)] block mb-1.5">
+              ประเภทงาน (Job Type)
+            </label>
+            <Select
+              value={selectedJobType || "ALL"}
+              onValueChange={(val) => {
+                setSelectedJobType(val === "ALL" ? "" : val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="ทุกประเภทงาน (All Types)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">ทุกประเภทงาน (All Types)</SelectItem>
+                <SelectItem value="Slip">สลิปการโอนเงิน (Slip)</SelectItem>
+                <SelectItem value="Statement">ใบแจ้งยอดบัตรเครดิต (Statement)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <BottomSheetFooter>
+            <Button
+              type="button"
+              className="w-full min-h-[44px]"
+              onClick={() => setShowFilterSheet(false)}
+            >
+              ใช้งานตัวกรอง
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-[44px]"
+              onClick={() => {
+                resetFilters();
+                setShowFilterSheet(false);
+              }}
+            >
+              <RotateCcw className="size-3.5 mr-1" />
+              ล้างตัวกรอง
+            </Button>
+          </BottomSheetFooter>
+        </div>
       </BottomSheet>
 
       {/* Confirmation AlertDialog with Loading State */}

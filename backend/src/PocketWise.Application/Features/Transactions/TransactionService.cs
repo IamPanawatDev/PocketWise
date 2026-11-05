@@ -1,6 +1,7 @@
 using FluentValidation;
 using PocketWise.Application.DTOs;
 using PocketWise.Application.DTOs.Transactions;
+using PocketWise.Application.Features.Notifications.DTOs;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
 using PocketWise.Domain.Enums;
@@ -15,19 +16,22 @@ public class TransactionService : ITransactionService
     private readonly IValidator<UpdateTransactionRequest> _updateValidator;
     private readonly ICategoryRuleService _categoryRuleService;
     private readonly IAuditLogService? _auditLogService;
+    private readonly INotificationSender? _notificationSender;
 
     public TransactionService(
         ITransactionRepository repository,
         IValidator<CreateTransactionRequest> createValidator,
         IValidator<UpdateTransactionRequest> updateValidator,
         ICategoryRuleService categoryRuleService,
-        IAuditLogService? auditLogService = null)
+        IAuditLogService? auditLogService = null,
+        INotificationSender? notificationSender = null)
     {
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _categoryRuleService = categoryRuleService;
         _auditLogService = auditLogService;
+        _notificationSender = notificationSender;
     }
 
     public async Task<TransactionResponse?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default)
@@ -59,7 +63,7 @@ public class TransactionService : ITransactionService
 
         long? categoryId = request.CategoryId;
 
-        // จัดหมวดอัตโนมัติ (D33): ถ้า user ไม่ได้เลือกหมวด → auto-apply จากกฎ/ร้านค้า
+        // จัดหมวดอัตโนมัติ (D31): ถ้า user ไม่ได้เลือกหมวด → auto-apply จากกฎ/ร้านค้า
         if (!categoryId.HasValue && !string.IsNullOrWhiteSpace(request.Description))
         {
             var suggestion = await _categoryRuleService.SuggestCategoryAsync(userId, request.Description, cancellationToken);
@@ -247,6 +251,72 @@ public class TransactionService : ITransactionService
         }
 
         return true;
+    }
+
+    public async Task<int> BulkDeleteAsync(long userId, IReadOnlyList<long> ids, CancellationToken ct = default)
+    {
+        if (ids == null || ids.Count == 0)
+        {
+            return 0;
+        }
+
+        var distinctIds = ids.Distinct().ToList();
+        var transactions = await _repository.GetByIdsAsync(distinctIds, userId, ct);
+
+        if (transactions.Count != distinctIds.Count)
+        {
+            throw new BusinessException("NOT_FOUND", "ไม่พบรายการธุรกรรมบางรายการ หรือคุณไม่มีสิทธิ์ในการลบ");
+        }
+
+        await _repository.SoftDeleteRangeAsync(transactions, ct);
+        await _repository.SaveChangesAsync(ct);
+
+        if (_auditLogService != null)
+        {
+            try
+            {
+                foreach (var entity in transactions)
+                {
+                    await _auditLogService.LogAsync(
+                        userId,
+                        AuditAction.Delete,
+                        "Transactions",
+                        entity.TransactionId.ToString(),
+                        new
+                        {
+                            entity.TransactionType,
+                            entity.Amount,
+                            entity.CurrencyCode,
+                            entity.TransactionDate,
+                            entity.Description,
+                            IsDeleted = true,
+                            Bulk = true
+                        },
+                        ct);
+                }
+            }
+            catch
+            {
+                // Graceful fallback: do not fail bulk transaction deletion if audit logging fails
+            }
+        }
+
+        if (_notificationSender != null)
+        {
+            try
+            {
+                await _notificationSender.SendRefreshHintToUserAsync(
+                    userId,
+                    new RefreshHintPayload { EntityType = "Transactions", Hint = "bulk-deleted" },
+                    ct);
+            }
+            catch
+            {
+                // Graceful fallback
+            }
+        }
+
+        return transactions.Count;
     }
 
     private static TransactionResponse Map(Transaction entity)

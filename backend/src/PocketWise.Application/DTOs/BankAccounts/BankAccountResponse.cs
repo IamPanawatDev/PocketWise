@@ -10,6 +10,7 @@ public class BankAccountResponse
     public string AccountName { get; set; } = string.Empty;
     public string? AccountNumberMasked { get; set; }
     public AccountType AccountType { get; set; }
+    public decimal CurrentBalance { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 }

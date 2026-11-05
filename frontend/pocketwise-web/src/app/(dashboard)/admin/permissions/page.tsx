@@ -50,8 +50,8 @@ export default function AdminPermissionsPage() {
         </div>
       </div>
 
-      {/* Tabs with Animated Sliding Indicator */}
-      <div className="flex flex-wrap border-b border-[var(--pw-hairline)] gap-2">
+      {/* Tabs with Animated Sliding Indicator (Horizontal Scrollable on Mobile) */}
+      <div className="flex border-b border-[var(--pw-hairline)] gap-2 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         {(
           [
             { key: "matrix", label: "ตารางสิทธิ์ (Permission Matrix)", icon: KeyRound },
@@ -67,7 +67,7 @@ export default function AdminPermissionsPage() {
               type="button"
               onClick={() => setActiveTab(t.key)}
               className={cn(
-                "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition active:scale-95",
+                "relative flex items-center gap-2 px-4 py-2.5 min-h-[44px] text-sm font-medium transition shrink-0 whitespace-nowrap active:scale-95",
                 isActive
                   ? "text-[var(--pw-primary)] font-semibold"
                   : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"

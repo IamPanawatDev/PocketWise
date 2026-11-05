@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
+using PocketWise.Domain.Enums;
 using PocketWise.Infrastructure.Persistence;
 
 namespace PocketWise.Infrastructure.Repositories;
@@ -27,6 +28,24 @@ public class CreditCardRepository : ICreditCardRepository
             .Where(c => c.UserId == userId && !c.IsDeleted)
             .OrderBy(c => c.CardName)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Dictionary<long, decimal>> GetCurrentBalancesAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.UserId == userId && !t.IsDeleted && t.CreditCardId != null && t.TransactionType == TransactionType.Expense)
+            .GroupBy(t => t.CreditCardId!.Value)
+            .Select(g => new { CardId = g.Key, Total = g.Sum(t => t.Amount) })
+            .ToDictionaryAsync(x => x.CardId, x => x.Total, cancellationToken);
+    }
+
+    public async Task<decimal> GetCurrentBalanceAsync(long creditCardId, long userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.UserId == userId && !t.IsDeleted && t.CreditCardId == creditCardId && t.TransactionType == TransactionType.Expense)
+            .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0m;
     }
 
     public Task AddAsync(CreditCard creditCard, CancellationToken cancellationToken = default)

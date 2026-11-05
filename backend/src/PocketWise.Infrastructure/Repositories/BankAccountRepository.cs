@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
+using PocketWise.Domain.Enums;
 using PocketWise.Infrastructure.Persistence;
 
 namespace PocketWise.Infrastructure.Repositories;
@@ -27,6 +28,60 @@ public class BankAccountRepository : IBankAccountRepository
             .Where(b => b.UserId == userId)
             .OrderBy(b => b.AccountName)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Dictionary<long, decimal>> GetBalancesAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var txs = await _context.Transactions
+            .AsNoTracking()
+            .Include(t => t.TransferGroup)
+            .Where(t => t.UserId == userId && !t.IsDeleted && t.BankAccountId != null)
+            .Select(t => new
+            {
+                t.BankAccountId,
+                t.TransactionType,
+                t.Amount,
+                ToBankAccountId = t.TransferGroup != null ? t.TransferGroup.ToBankAccountId : (long?)null,
+                FromBankAccountId = t.TransferGroup != null ? t.TransferGroup.FromBankAccountId : (long?)null
+            })
+            .ToListAsync(cancellationToken);
+
+        var result = new Dictionary<long, decimal>();
+        foreach (var group in txs.GroupBy(t => t.BankAccountId!.Value))
+        {
+            decimal balance = 0;
+            foreach (var t in group)
+            {
+                if (t.TransactionType == TransactionType.Income)
+                {
+                    balance += t.Amount;
+                }
+                else if (t.TransactionType == TransactionType.Expense)
+                {
+                    balance -= t.Amount;
+                }
+                else if (t.TransactionType == TransactionType.Transfer)
+                {
+                    if (t.ToBankAccountId == group.Key)
+                    {
+                        balance += t.Amount;
+                    }
+                    else if (t.FromBankAccountId == group.Key)
+                    {
+                        balance -= t.Amount;
+                    }
+                }
+            }
+            result[group.Key] = balance;
+        }
+
+        return result;
+    }
+
+    public async Task<decimal> GetBalanceAsync(long bankAccountId, long userId, CancellationToken cancellationToken = default)
+    {
+        var balances = await GetBalancesAsync(userId, cancellationToken);
+        return balances.GetValueOrDefault(bankAccountId, 0m);
     }
 
     public Task AddAsync(BankAccount account, CancellationToken cancellationToken = default)

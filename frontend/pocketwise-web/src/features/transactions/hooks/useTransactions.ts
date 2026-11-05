@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import type {
+  BulkDeleteTransactionsRequest,
   CreateTransactionRequest,
   TransactionFilter,
   TransactionPagedResult,
@@ -54,6 +55,8 @@ export function useCreateTransaction() {
       qc.invalidateQueries({ queryKey: ["transactions"] }),
       qc.invalidateQueries({ queryKey: ["budgets"] }),
       qc.invalidateQueries({ queryKey: ["reports"] }),
+      qc.invalidateQueries({ queryKey: ["bank-accounts"] }),
+      qc.invalidateQueries({ queryKey: ["credit-cards"] }),
     ]),
   });
 }
@@ -67,6 +70,8 @@ export function useUpdateTransaction() {
       qc.invalidateQueries({ queryKey: ["transactions"] }),
       qc.invalidateQueries({ queryKey: ["budgets"] }),
       qc.invalidateQueries({ queryKey: ["reports"] }),
+      qc.invalidateQueries({ queryKey: ["bank-accounts"] }),
+      qc.invalidateQueries({ queryKey: ["credit-cards"] }),
     ]),
   });
 }
@@ -80,6 +85,23 @@ export function useDeleteTransaction() {
       qc.invalidateQueries({ queryKey: ["transactions"] }),
       qc.invalidateQueries({ queryKey: ["budgets"] }),
       qc.invalidateQueries({ queryKey: ["reports"] }),
+      qc.invalidateQueries({ queryKey: ["bank-accounts"] }),
+      qc.invalidateQueries({ queryKey: ["credit-cards"] }),
+    ]),
+  });
+}
+
+export function useBulkDeleteTransactions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BulkDeleteTransactionsRequest) =>
+      apiClient.post<number>("/api/v1/transactions/bulk-delete", body),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ["transactions"] }),
+      qc.invalidateQueries({ queryKey: ["budgets"] }),
+      qc.invalidateQueries({ queryKey: ["reports"] }),
+      qc.invalidateQueries({ queryKey: ["bank-accounts"] }),
+      qc.invalidateQueries({ queryKey: ["credit-cards"] }),
     ]),
   });
 }

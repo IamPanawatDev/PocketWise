@@ -14,9 +14,8 @@ import { creditCardSchema, type CreditCardFormValues } from "@/schemas/credit-ca
 import type { CreditCardResponse } from "@/types/credit-card.types";
 import { zodResolver } from "@/lib/zod-resolver";
 import { ApiError } from "@/lib/api-client";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
@@ -27,7 +26,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Calendar, ChevronRight, CreditCard, LoaderCircle, Pencil, Plus, ReceiptText, Save, Trash2, X } from "lucide-react";
+import { ChevronRight, CreditCard, LoaderCircle, Pencil, Plus, ReceiptText, Save, Trash2, X } from "lucide-react";
 
 const emptyValues: CreditCardFormValues = {
   bankName: "",
@@ -199,62 +198,105 @@ export function CreditCardsView() {
         />
       ) : (
         <AnimatedList className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {data.map((card) => (
-            <AnimatedListItem key={card.creditCardId}>
-              <div className="flex flex-col gap-3 h-full">
-                <TiltCard className="relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 border border-white/15 min-h-[170px] flex flex-col justify-between transition-transform">
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/20 via-transparent to-purple-500/20 pointer-events-none" />
-                  
-                  <div className="relative z-10 flex items-start justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-widest text-white/70 font-medium">{card.bankName}</p>
-                      <h3 className="text-lg font-bold tracking-tight text-white mt-0.5">{card.cardName}</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-6 rounded bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 shadow-inner border border-amber-300/40 relative overflow-hidden flex items-center justify-center">
-                        <div className="w-full h-px bg-amber-900/40 absolute top-2" />
-                        <div className="w-full h-px bg-amber-900/40 absolute bottom-2" />
-                        <div className="h-full w-px bg-amber-900/40" />
+          {data.map((card) => {
+            const used = card.currentBalance ?? 0;
+            const limit = card.creditLimit;
+            const available = card.availableCredit !== undefined && card.availableCredit !== null
+              ? card.availableCredit
+              : (limit != null ? Math.max(0, limit - used) : null);
+            const usagePercent = limit && limit > 0
+              ? Math.min(100, Math.max(0, (used / limit) * 100))
+              : 0;
+
+            return (
+              <AnimatedListItem key={card.creditCardId}>
+                <div className="flex flex-col gap-3 h-full">
+                  <TiltCard className="relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 border border-white/15 min-h-[190px] flex flex-col justify-between transition-transform">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/20 via-transparent to-purple-500/20 pointer-events-none" />
+                    
+                    <div className="relative z-10 flex items-start justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-widest text-white/70 font-medium">{card.bankName}</p>
+                        <h3 className="text-lg font-bold tracking-tight text-white mt-0.5">{card.cardName}</h3>
                       </div>
-                      <CreditCard className="size-5 text-white/75" />
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-6 rounded bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 shadow-inner border border-amber-300/40 relative overflow-hidden flex items-center justify-center">
+                          <div className="w-full h-px bg-amber-900/40 absolute top-2" />
+                          <div className="w-full h-px bg-amber-900/40 absolute bottom-2" />
+                          <div className="h-full w-px bg-amber-900/40" />
+                        </div>
+                        <CreditCard className="size-5 text-white/75" />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="relative z-10 my-3">
-                    <p className="font-mono text-base tracking-widest text-white/90 drop-shadow-sm">
-                      {card.cardNumberMasked || "•••• •••• •••• ••••"}
-                    </p>
-                  </div>
-
-                  <div className="relative z-10 flex items-end justify-between pt-2 text-xs text-white/80 border-t border-white/10">
-                    <div>
-                      <span className="text-[10px] text-white/50 block">วงเงินบัตร</span>
-                      <span className="font-semibold text-white">
-                        {card.creditLimit != null ? (
-                          <AnimatedNumber value={card.creditLimit} />
-                        ) : (
-                          "ไม่จำกัดวงเงิน"
-                        )}
-                      </span>
+                    <div className="relative z-10 my-2">
+                      <p className="font-mono text-sm sm:text-base tracking-widest text-white/90 drop-shadow-sm">
+                        {card.cardNumberMasked || "•••• •••• •••• ••••"}
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] text-white/50 block">รอบบิล / กำหนดชำระ</span>
-                      <span>วันที่ {card.billingDay ?? "-"} / {card.paymentDueDay ?? "-"}</span>
-                    </div>
-                  </div>
 
-                  <div className="relative z-10 flex items-center justify-between pt-2 border-t border-white/10 text-xs">
-                    <Link
-                      href={`/transactions?creditCardId=${card.creditCardId}`}
-                      className="inline-flex items-center gap-1 text-white/80 hover:text-white transition-colors font-medium hover:underline"
-                    >
-                      <ReceiptText className="size-3.5" />
-                      <span>ดูประวัติธุรกรรม</span>
-                      <ChevronRight className="size-3" />
-                    </Link>
-                    <span className="text-[10px] text-white/50">บัตรเครดิต</span>
-                  </div>
-                </TiltCard>
+                    {/* Current Balance / Used & Available Credit */}
+                    <div className="relative z-10 my-2 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] text-white/60 block">ยอดที่ใช้ไป</span>
+                        <span className="text-base sm:text-lg font-extrabold text-white">
+                          <AnimatedNumber value={used} currency="THB" />
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-white/60 block">วงเงินคงเหลือ</span>
+                        <span className="text-base sm:text-lg font-bold text-white">
+                          {available != null ? (
+                            <AnimatedNumber value={available} currency="THB" />
+                          ) : (
+                            "ไม่จำกัด"
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Credit Usage Progress Bar */}
+                    {limit != null && limit > 0 && (
+                      <div className="relative z-10 my-2 space-y-1.5">
+                        <div className="flex justify-between items-center text-[10px] text-white/70">
+                          <span>ใช้วงเงิน {usagePercent.toFixed(1)}%</span>
+                          <span>วงเงินเต็ม {formatCurrency(limit, "THB")}</span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-black/40 border border-white/10">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              usagePercent >= 90
+                                ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                                : usagePercent >= 75
+                                  ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+                                  : "bg-gradient-to-r from-emerald-400 to-cyan-400"
+                            )}
+                            style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="relative z-10 flex items-center justify-between pt-2 text-xs text-white/80 border-t border-white/10">
+                      <div>
+                        <span className="text-[10px] text-white/50 block">รอบบิล / กำหนดชำระ</span>
+                        <span>วันที่ {card.billingDay ?? "-"} / {card.paymentDueDay ?? "-"}</span>
+                      </div>
+                      <span className="text-[10px] text-white/50">บัตรเครดิต</span>
+                    </div>
+
+                    <div className="relative z-10 flex items-center justify-between pt-2 border-t border-white/10 text-xs">
+                      <Link
+                        href={`/transactions?creditCardId=${card.creditCardId}`}
+                        className="inline-flex items-center gap-1 text-white/80 hover:text-white transition-colors font-medium hover:underline"
+                      >
+                        <ReceiptText className="size-3.5" />
+                        <span>ดูประวัติธุรกรรม</span>
+                        <ChevronRight className="size-3" />
+                      </Link>
+                    </div>
+                  </TiltCard>
 
                 <div className="flex gap-2 justify-end px-1">
                   <Button size="sm" variant="secondary" className="flex-1 sm:flex-none text-xs" onClick={() => startEdit(card)}><Pencil className="size-3.5" />แก้ไข</Button>
@@ -271,8 +313,9 @@ export function CreditCardsView() {
                   />
                 </div>
               </div>
-          </AnimatedListItem>
-          ))}
+              </AnimatedListItem>
+            );
+          })}
         </AnimatedList>
       )}
     </div>

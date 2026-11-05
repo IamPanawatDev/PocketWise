@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Bar,
@@ -117,6 +117,16 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
   const [period, setPeriod] = useState<ReportPeriod>("monthly");
   const monthOptions = useMemo(() => getRecentMonthOptions(24, 1), []);
   const [isCustomDateMode, setIsCustomDateMode] = useState(false);
+  const [isNarrowMobile, setIsNarrowMobile] = useState(false);
+
+  useEffect(() => {
+    const checkNarrowMobile = () => {
+      setIsNarrowMobile(window.innerWidth < 375);
+    };
+    checkNarrowMobile();
+    window.addEventListener("resize", checkNarrowMobile);
+    return () => window.removeEventListener("resize", checkNarrowMobile);
+  }, []);
 
   const currentMonthValue = useMemo(() => {
     if (!fromDate) return "all";
@@ -1047,7 +1057,14 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
               {trendPoints.length ? (
                 <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trendPoints} margin={{ top: 8, right: 8, left: -14, bottom: 8 }}>
+                    <BarChart
+                      data={trendPoints}
+                      margin={
+                        isNarrowMobile
+                          ? { top: 8, right: 4, left: -20, bottom: 20 }
+                          : { top: 8, right: 8, left: -14, bottom: 20 }
+                      }
+                    >
                       <CartesianGrid stroke="var(--pw-hairline)" strokeDasharray="3 3" />
                       <XAxis
                         dataKey="label"
@@ -1055,11 +1072,11 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                         angle={-25}
                         textAnchor="end"
                         height={50}
-                        tick={{ fill: "var(--pw-ink)", fontSize: 11 }}
+                        tick={{ fill: "var(--pw-ink)", fontSize: isNarrowMobile ? 10 : 11 }}
                       />
                       <YAxis
-                        width={44}
-                        tick={{ fill: "var(--pw-ink)", fontSize: 11 }}
+                        width={36}
+                        tick={{ fill: "var(--pw-ink)", fontSize: isNarrowMobile ? 10 : 11 }}
                         tickFormatter={(v) => {
                           if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
                           if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
@@ -1067,7 +1084,11 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                         }}
                       />
                       <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      <Legend
+                        layout="horizontal"
+                        verticalAlign="bottom"
+                        wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                      />
                       <Bar
                         dataKey="income"
                         name="รายรับ"
@@ -1106,15 +1127,15 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
               </div>
               {activeCurrency.categoryBreakdown.length ? (
                 <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
-                  <div className="h-60 sm:h-64 min-w-0 flex items-center justify-center">
+                  <div className="h-64 sm:h-72 min-w-0 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={activeCurrency.categoryBreakdown}
                           dataKey="amount"
                           nameKey="categoryName"
-                          innerRadius={52}
-                          outerRadius={88}
+                          innerRadius={isNarrowMobile ? 38 : 52}
+                          outerRadius={isNarrowMobile ? 66 : 88}
                           paddingAngle={2}
                           isAnimationActive={true}
                           animationDuration={850}
@@ -1125,6 +1146,11 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                           ))}
                         </Pie>
                         <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
+                        <Legend
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>

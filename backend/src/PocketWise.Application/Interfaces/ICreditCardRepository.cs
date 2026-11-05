@@ -6,6 +6,8 @@ public interface ICreditCardRepository
 {
     Task<CreditCard?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CreditCard>> GetAllAsync(long userId, CancellationToken cancellationToken = default);
+    Task<Dictionary<long, decimal>> GetCurrentBalancesAsync(long userId, CancellationToken cancellationToken = default);
+    Task<decimal> GetCurrentBalanceAsync(long creditCardId, long userId, CancellationToken cancellationToken = default);
     Task AddAsync(CreditCard creditCard, CancellationToken cancellationToken = default);
     Task UpdateAsync(CreditCard creditCard, CancellationToken cancellationToken = default);
     Task SoftDeleteAsync(CreditCard creditCard, CancellationToken cancellationToken = default);
