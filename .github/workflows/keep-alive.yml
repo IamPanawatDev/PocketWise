@@ -2,12 +2,8 @@ name: Render Keep-Alive Pinger
 
 on:
   schedule:
-    # Runs every 10 minutes at minutes ending in 2 (:02, :12, :22, :32, :42, :52).
-    # Using non-round offset minutes bypasses GitHub Actions peak queue congestion (which spikes at :00, :05, :10).
-    # Daytime warming (08:00 - 23:59 Bangkok time, UTC+7) is handled inside the job script.
-    # Nighttime (00:00 - 08:00 Bangkok time) skips pinging to allow Render Free Web Service to sleep,
-    # saving instance hours (~496 hrs/mo used vs 750 hrs free quota).
-    - cron: '2,12,22,32,42,52 * * * *'
+    # Runs every 10 minutes 24/7 to keep the PocketWise backend alive continuously.
+    - cron: '*/10 * * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI / CLI for testing
 
 permissions: {}
@@ -18,25 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check Time Window and Ping PocketWise Backend API
+      - name: Ping PocketWise Backend API (24/7 Continuous)
         run: |
           echo "=================================================="
           echo "Keep-Alive Triggered at (UTC): $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           BANGKOK_TIME=$(TZ='Asia/Bangkok' date '+%Y-%m-%d %H:%M:%S %Z')
-          HOUR_BANGKOK=$(TZ='Asia/Bangkok' date +%-H)
-          echo "Bangkok Time: $BANGKOK_TIME (Hour: $HOUR_BANGKOK)"
+          echo "Bangkok Time: $BANGKOK_TIME"
+          echo "Target: https://pocketwise-api-zo94.onrender.com/health"
           echo "=================================================="
 
-          # Check if current time is nighttime in Bangkok (00:00 - 07:59)
-          if [ "$HOUR_BANGKOK" -ge 0 ] && [ "$HOUR_BANGKOK" -lt 8 ]; then
-            echo "🌙 Nighttime in Bangkok ($HOUR_BANGKOK:00). Skipping ping to allow Render free instance to sleep."
-            exit 0
-          fi
-
-          echo "☀️ Daytime in Bangkok ($HOUR_BANGKOK:00). Pinging Render to keep service warm..."
-          echo "Target: https://pocketwise-api-zo94.onrender.com/health"
-
-          # Attempt ping with 35s timeout (handles spin-up if cold start occurs)
+          # Ping Render Health Check (24/7 - keep service warm)
           HTTP_STATUS=$(curl -s -o /tmp/health_response.json -w "%{http_code}" --max-time 35 "https://pocketwise-api-zo94.onrender.com/health")
 
           echo "HTTP Response Status Code: $HTTP_STATUS"
