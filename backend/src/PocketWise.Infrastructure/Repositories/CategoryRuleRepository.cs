@@ -45,7 +45,6 @@ public class CategoryRuleRepository : ICategoryRuleRepository
 
         var rules = await _context.CategoryRules
             .AsNoTracking()
-            .Include(r => r.Category)
             .Where(r => (r.UserId == userId || r.UserId == null) && r.IsActive)
             .ToListAsync(cancellationToken);
 

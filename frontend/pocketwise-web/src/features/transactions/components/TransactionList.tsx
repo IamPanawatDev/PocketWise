@@ -1409,8 +1409,10 @@ export function TransactionList({
                 onClick={() => {
                   const itemToEdit = selectedTransaction;
                   setSelectedTransaction(null);
-                  setEditing(itemToEdit);
-                  setShowForm(true);
+                  setTimeout(() => {
+                    setEditing(itemToEdit);
+                    setShowForm(true);
+                  }, 150);
                 }}
               >
                 <Pencil className="size-4 mr-1.5" />

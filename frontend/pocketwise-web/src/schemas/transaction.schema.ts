@@ -11,10 +11,10 @@ export const transactionSchema = z.object({
       isThailandDateTimeInput,
       "กรุณาระบุวันที่และเวลาเป็นปี ค.ศ. (หากใช้ปี พ.ศ. กรุณาแปลงเป็น ค.ศ.)",
     ),
-  description: z.string().max(500).nullable(),
-  categoryId: z.number().nullable(),
-  bankAccountId: z.number().nullable(),
-  creditCardId: z.number().nullable(),
+  description: z.string().max(500).nullable().optional(),
+  categoryId: z.number().nullable().optional(),
+  bankAccountId: z.number().nullable().optional(),
+  creditCardId: z.number().nullable().optional(),
   tagIds: z.array(z.number()).max(20, "แท็กต้องไม่เกิน 20 รายการ"),
 });
 

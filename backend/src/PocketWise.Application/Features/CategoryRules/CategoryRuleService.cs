@@ -243,6 +243,7 @@ public class CategoryRuleService : ICategoryRuleService
                 exactRule.CategoryId != categoryId)
             {
                 exactRule.CategoryId = categoryId;
+                exactRule.Category = null!;
                 exactRule.UpdatedAt = DateTime.UtcNow;
                 await _repository.UpdateAsync(exactRule, cancellationToken);
                 await _repository.SaveChangesAsync(cancellationToken);
@@ -251,12 +252,16 @@ public class CategoryRuleService : ICategoryRuleService
             return;
         }
 
+        var ruleName = $"เรียนรู้: {trimmed}";
+        if (ruleName.Length > 150) ruleName = ruleName[..150];
+        var pattern = trimmed.Length > 300 ? trimmed[..300] : trimmed;
+
         var rule = new CategoryRule
         {
             UserId = userId,
-            RuleName = $"เรียนรู้: {trimmed}",
+            RuleName = ruleName,
             MatchType = CategoryMatchType.Description,
-            MatchPattern = trimmed,
+            MatchPattern = pattern,
             CategoryId = categoryId,
             Priority = 100,
             IsActive = true,

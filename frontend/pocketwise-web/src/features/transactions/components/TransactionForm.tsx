@@ -345,7 +345,7 @@ export function TransactionForm({
   };
 
   const handleSelectCategory = (catId: number | null) => {
-    setValue("categoryId", catId, { shouldDirty: true });
+    setValue("categoryId", catId, { shouldDirty: true, shouldValidate: true });
     if (catId) {
       recordCategoryUsage(catId);
     }
@@ -354,6 +354,7 @@ export function TransactionForm({
   const onSubmit = (values: TransactionFormValues) => {
     const payload = {
       ...values,
+      description: values.description ?? null,
       categoryId: values.categoryId ?? null,
       bankAccountId: values.bankAccountId ?? null,
       creditCardId: values.creditCardId ?? null,
@@ -384,6 +385,7 @@ export function TransactionForm({
         { id: editing.transactionId, body: payload },
         {
           onSuccess: () => {
+            reset();
             onClose();
             toast.success("บันทึกรายการแล้ว");
           },
@@ -399,6 +401,17 @@ export function TransactionForm({
             type: values.transactionType,
             categoryId: values.categoryId,
             description: values.description || "",
+          });
+          reset({
+            transactionType: "expense",
+            amount: "" as unknown as number,
+            currencyCode: settings?.currencyCode ?? "THB",
+            transactionDate: toThailandDateTimeInputValue(new Date()),
+            description: "",
+            categoryId: null,
+            bankAccountId: null,
+            creditCardId: null,
+            tagIds: [],
           });
           onClose();
           if ((res as unknown as { isOfflineQueued?: boolean })?.isOfflineQueued) {
@@ -598,6 +611,7 @@ export function TransactionForm({
                     value={field.value == null ? "none" : String(field.value)}
                     onValueChange={(value) => {
                       const id = value === "none" ? null : Number(value);
+                      field.onChange(id);
                       handleSelectCategory(id);
                     }}
                   >
