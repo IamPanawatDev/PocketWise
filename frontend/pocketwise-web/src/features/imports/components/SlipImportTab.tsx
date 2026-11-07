@@ -494,19 +494,35 @@ export function SlipImportTab() {
         recordCategoryUsage(Number(currentItem.categoryId));
       }
 
-      toast.success(`บันทึกสลิปใบที่ ${currentIndex + 1} เรียบร้อยแล้ว`);
-
-      // Update state for current item
-      setBatchItems((prev) =>
-        prev.map((it, idx) => (idx === currentIndex ? { ...it, status: "confirmed" } : it))
+      toast.success(
+        batchItems.length > 1
+          ? `บันทึกสลิปใบที่ ${currentIndex + 1} เรียบร้อยแล้ว`
+          : "บันทึกสลิปเรียบร้อยแล้ว"
       );
 
-      // Auto advance to next ready slip if available, or next slip
-      const nextReadyIdx = batchItems.findIndex((it, idx) => idx > currentIndex && it.status === "ready");
-      if (nextReadyIdx !== -1) {
-        setCurrentIndex(nextReadyIdx);
-      } else if (currentIndex < batchItems.length - 1) {
-        setCurrentIndex(currentIndex + 1);
+      // Clean up current item preview URL
+      if (currentItem.previewUrl) {
+        try {
+          URL.revokeObjectURL(currentItem.previewUrl);
+        } catch {}
+      }
+
+      // Remove confirmed slip from batch queue to clear form
+      const nextBatch = batchItems.filter((_, idx) => idx !== currentIndex);
+      if (nextBatch.length === 0) {
+        setBatchItems([]);
+        setCurrentIndex(0);
+        setIsLightboxOpen(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        if (appendFileInputRef.current) appendFileInputRef.current.value = "";
+      } else {
+        setBatchItems(nextBatch);
+        const nextReadyIdx = nextBatch.findIndex((it) => it.status === "ready");
+        if (nextReadyIdx !== -1) {
+          setCurrentIndex(nextReadyIdx);
+        } else {
+          setCurrentIndex(Math.min(currentIndex, nextBatch.length - 1));
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกรายการ";
@@ -630,6 +646,29 @@ export function SlipImportTab() {
           label: "ดูรายงาน →",
           onClick: () => router.push("/reports"),
         },
+      });
+
+      // Revoke preview URLs of confirmed slips
+      readyItems.forEach((it) => {
+        if (it.previewUrl) {
+          try {
+            URL.revokeObjectURL(it.previewUrl);
+          } catch {}
+        }
+      });
+
+      // Remove confirmed slips from batch
+      setBatchItems((prev) => {
+        const remaining = prev.filter((it) => !readyItems.some((r) => r.id === it.id));
+        if (remaining.length === 0) {
+          setCurrentIndex(0);
+          setIsLightboxOpen(false);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          if (appendFileInputRef.current) appendFileInputRef.current.value = "";
+        } else {
+          setCurrentIndex(0);
+        }
+        return remaining;
       });
     }
     if (failCount > 0) {

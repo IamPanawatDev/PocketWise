@@ -98,10 +98,17 @@ public class TransactionService : ITransactionService
 
         await _repository.AddAsync(entity, cancellationToken);
 
-        // จัดหมวดอัตโนมัติ (D31): auto-learn เมื่อ user เลือกหมวดเองให้ description
+        // จัดหมวดอัตโนมัติ (D31): auto-learn เมื่อ user เลือกหมวดเองให้ description (best-effort)
         if (categoryId.HasValue && request.CategoryId.HasValue && !string.IsNullOrWhiteSpace(request.Description))
         {
-            await _categoryRuleService.LearnFromManualAsync(userId, request.Description, categoryId.Value, cancellationToken);
+            try
+            {
+                await _categoryRuleService.LearnFromManualAsync(userId, request.Description, categoryId.Value, cancellationToken);
+            }
+            catch
+            {
+                // Ignore auto-learn errors so primary transaction creation never fails
+            }
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
@@ -160,8 +167,11 @@ public class TransactionService : ITransactionService
         entity.TransactionDate = request.TransactionDate;
         entity.Description = request.Description;
         entity.CategoryId = request.CategoryId;
+        entity.Category = null;
         entity.BankAccountId = request.BankAccountId;
+        entity.BankAccount = null;
         entity.CreditCardId = request.CreditCardId;
+        entity.CreditCard = null;
         entity.UpdatedAt = DateTime.UtcNow;
 
         // Replace tags: remove existing and add new ones
@@ -176,10 +186,17 @@ public class TransactionService : ITransactionService
 
         await _repository.UpdateAsync(entity, cancellationToken);
 
-        // จัดหมวดอัตโนมัติ (D31): auto-learn เมื่อ user เลือกหมวดเองให้ description
+        // จัดหมวดอัตโนมัติ (D31): auto-learn เมื่อ user เลือกหมวดเองให้ description (best-effort)
         if (request.CategoryId.HasValue && !string.IsNullOrWhiteSpace(request.Description))
         {
-            await _categoryRuleService.LearnFromManualAsync(userId, request.Description, request.CategoryId.Value, cancellationToken);
+            try
+            {
+                await _categoryRuleService.LearnFromManualAsync(userId, request.Description, request.CategoryId.Value, cancellationToken);
+            }
+            catch
+            {
+                // Ignore auto-learn errors so primary transaction update never fails
+            }
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
