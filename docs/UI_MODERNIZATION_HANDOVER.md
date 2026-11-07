@@ -206,6 +206,27 @@ flowchart LR
 - **Audit Log Modal Cleanup**:
   - แก้ไขข้อความใน `AuditLogSettingsModal.tsx` จากเดิมที่ระบุว่า "SQL Server" ให้เป็น "ฐานข้อมูล" ตรงตามสถาปัตยกรรม PostgreSQL
 
+### 3.14 Web Haptic Feedback on Mobile Bottom Navigation
+- **ระบบสั่นตอบสนองแบบ Native-like Tactile Haptic Feedback**:
+  - เพิ่มโมดูลกลาง [`src/lib/haptic.ts`](file:///d:/Projects/PocketWise/frontend/pocketwise-web/src/lib/haptic.ts) สำหรับเรียกใช้งาน Web Vibration API (`navigator.vibrate`) อย่างปลอดภัย
+  - **Pattern มาตรฐาน**:
+    - `light` (10ms): สำหรับการแตะเปลี่ยนแท็บเมนูด้านล่างบนมือถือ (`/transactions`, `/imports`, `/reports`, `เมนู`) และการแตะการ์ดเมนูใน Mobile Drawer
+    - `medium` (25ms): สำหรับปุ่ม Action เด่นตรงกลาง (`+ จดด่วน`)
+    - `heavy` (40ms): สำหรับการกดลบหรือเตือน
+    - `success` ([15ms, 50ms, 15ms]): สำหรับการบันทึกสำเร็จ
+    - `warning` ([30ms, 80ms, 30ms]): สำหรับข้อผิดพลาด
+  - **Graceful Fallback**: ปลอดภัยเมื่อรันบน Server (SSR) หรือบนอุปกรณ์/เบราว์เซอร์ที่ไม่รองรับ (เช่น iOS Safari มาตรฐาน) โดยทำงานร่วมกับ Micro-interaction (`active:scale-90`) และ Animated indicator (`motion.div layoutId`) ให้อารมณ์สัมผัสนุ่มนวลระดับ Native FinTech App เสมอ
+  - **User Toggle Support**: รองรับคีย์ `pocketwise_haptics_enabled` ใน `localStorage` สำหรับปิดการสั่นตามความต้องการของผู้ใช้ (ค่าเริ่มต้น: เปิดใช้งาน)
+
+### 3.15 Glassmorphic Aurora Brand Header Badge (อัปเกรดส่วนหัวแบรนด์ PocketWise)
+- **ตำแหน่งเป้าหมาย**: ด้านบนสุดของ Sidebar และ Mobile Command Hub Drawer ใน [`src/components/shared/DashboardShell.tsx`](file:///d:/Projects/PocketWise/frontend/pocketwise-web/src/components/shared/DashboardShell.tsx)
+- **การปรับปรุงดีไซน์ (Glassmorphic Aurora)**:
+  - **แทนที่บล็อกทึบเดิม**: เปลี่ยนจากกล่องสีม่วงทึบแบนราบ (`rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)]`) เป็นการ์ดโปร่งแสงสไตล์ FinTech หรูหรา (`rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-r from-[var(--pw-primary)]/15 via-indigo-500/10 to-blue-500/10 backdrop-blur-xl shadow-xs`) ที่สอดรับกับ User Profile Card ด้านล่างอย่างลงตัว
+  - **Squircle Glass Mascot Container**: นำน้องยีราฟมาสคอตบรรจุในกรอบแก้ว Squircle มน (`size-10.5 rounded-xl border border-white/20 dark:border-white/10 bg-white/20 dark:bg-white/5 shadow-xs`) พร้อมเอฟเฟกต์ `group-hover:scale-105`
+  - **Brand Typography**: แสดงตัวอักษร 2 ระดับ: "PocketWise" ตัวหนาคมชัด และ Subtitle "SMART FINANCE" ตัวเล็กพิมพ์ใหญ่อย่างประณีต
+  - **Modern Close Button บนมือถือ**: เปลี่ยนปุ่มกากบาท (`X`) เป็นปุ่มแก้วมน (`rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)]/60 text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-onyx)]`) คมชัด อ่านง่าย ทั้งในโหมด Dark และ Light
+  - **Collapsed Sidebar Support**: ส่วนหัวในโหมดหุบแถบข้างบน Desktop แสดงกรอบ Squircle น้องยีราฟอย่างพอดี ไม่ถูกตัดขอบ
+
 ## 📜 4. ประวัติการ Deploy และ PR ที่เกี่ยวข้อง (PR History)
 
 | Pull Request | Commit | รายละเอียดสำคัญ |

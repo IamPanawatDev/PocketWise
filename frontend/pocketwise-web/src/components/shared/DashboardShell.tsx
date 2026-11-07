@@ -25,6 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptic";
 import {
   ArrowLeftFromLine,
   ArrowRightLeft,
@@ -393,23 +394,39 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Pinned Top Brand & User Card with Avatar + Bell */}
         <div className="shrink-0 mb-3">
           <div className={cn("w-full", iconOnly && "md:hidden")}>
-            <div className="flex w-full items-center justify-between rounded-[var(--pw-rounded-sm)] bg-[var(--pw-primary)] px-3 py-2 text-base font-bold text-[var(--pw-on-primary)] shadow-sm">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <Image
-                  src="/brand-logo.png"
-                  alt="PocketWise brand"
-                  width={42}
-                  height={42}
-                  priority
-                  className="size-10.5 shrink-0 object-contain drop-shadow"
-                />
-                <span className="truncate text-base font-bold">PocketWise</span>
+            {/* Brand Header Card: Glassmorphic Aurora */}
+            <div className="group relative flex w-full items-center justify-between overflow-hidden rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-r from-[var(--pw-primary)]/15 via-indigo-500/10 to-blue-500/10 px-3 py-2.5 shadow-xs backdrop-blur-xl transition-all duration-300 hover:border-[var(--pw-primary)]/30">
+              {/* Subtle ambient glow / highlight inside */}
+              <div className="pointer-events-none absolute -top-10 -left-10 size-24 rounded-full bg-[var(--pw-primary)]/15 blur-xl transition-opacity group-hover:opacity-100" />
+              <div className="pointer-events-none absolute -bottom-10 -right-10 size-24 rounded-full bg-blue-500/10 blur-xl transition-opacity group-hover:opacity-100" />
+
+              <div className="relative z-10 flex min-w-0 items-center gap-2.5">
+                {/* Mascot wrapper */}
+                <div className="relative flex size-10.5 shrink-0 items-center justify-center rounded-xl border border-white/20 dark:border-white/10 bg-white/20 dark:bg-white/5 shadow-xs backdrop-blur-xs transition-transform duration-200 group-hover:scale-105">
+                  <Image
+                    src="/brand-logo.png"
+                    alt="PocketWise brand"
+                    width={40}
+                    height={40}
+                    priority
+                    className="size-9 object-contain drop-shadow"
+                  />
+                </div>
+                {/* Brand Typography */}
+                <div className="flex min-w-0 flex-col leading-tight">
+                  <span className="truncate text-base font-bold tracking-tight text-[var(--pw-ink)] transition-colors group-hover:text-[var(--pw-primary)]">
+                    PocketWise
+                  </span>
+                  <span className="truncate text-[10px] font-medium tracking-wide text-[var(--pw-ink)]/55 uppercase">
+                    Smart Finance
+                  </span>
+                </div>
               </div>
               <Button
                 type="button"
                 size="icon-sm"
                 variant="ghost"
-                className="size-7 shrink-0 !bg-transparent border-transparent text-white hover:!bg-white/20 active:scale-90 transition-transform md:hidden"
+                className="relative z-10 size-7 shrink-0 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)]/60 text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)] active:scale-90 transition-transform md:hidden"
                 aria-label="ปิดเมนู"
                 onClick={closeNavigation}
               >
@@ -445,14 +462,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           {iconOnly && (
             <div className="mb-5 hidden flex-col items-center gap-3 md:flex">
-              <Image
-                src="/brand-logo.png"
-                alt="PocketWise brand"
-                width={44}
-                height={44}
-                priority
-                className="size-11 shrink-0 object-contain drop-shadow"
-              />
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[var(--pw-hairline)] bg-gradient-to-br from-[var(--pw-primary)]/15 to-indigo-500/10 shadow-xs backdrop-blur-xs">
+                <Image
+                  src="/brand-logo.png"
+                  alt="PocketWise brand"
+                  width={38}
+                  height={38}
+                  priority
+                  className="size-8.5 shrink-0 object-contain drop-shadow"
+                />
+              </div>
               <div className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-xs font-bold text-white shadow-md">
                 <User className="size-4.5 text-white" />
               </div>
@@ -484,7 +503,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         <Link
                           key={item.href}
                           href={item.href}
-                          onClick={closeNavigation}
+                          onClick={() => {
+                            triggerHaptic("light");
+                            closeNavigation();
+                          }}
                           className={cn(
                             "group relative flex items-center gap-2.5 rounded-xl border p-2.5 transition-all duration-150 active:scale-95",
                             active
@@ -836,6 +858,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       >
         <Link
           href="/transactions"
+          onClick={() => triggerHaptic("light")}
           className={cn(
             "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
             pathname.startsWith("/transactions")
@@ -856,6 +879,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         <Link
           href="/imports"
+          onClick={() => triggerHaptic("light")}
           className={cn(
             "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
             pathname.startsWith("/imports")
@@ -878,7 +902,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Center Prominent Quick Add Button */}
         <button
           type="button"
-          onClick={() => setIsQuickAddOpen(true)}
+          onClick={() => {
+            triggerHaptic("medium");
+            setIsQuickAddOpen(true);
+          }}
           className="relative flex flex-col items-center justify-center flex-1 -top-3 active:scale-95 transition-transform cursor-pointer group"
           aria-label="จดรายการด่วน"
         >
@@ -897,6 +924,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         <Link
           href="/reports"
+          onClick={() => triggerHaptic("light")}
           className={cn(
             "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
             pathname.startsWith("/reports")
@@ -918,7 +946,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* More Menu Drawer Trigger */}
         <button
           type="button"
-          onClick={toggleNavigation}
+          onClick={() => {
+            triggerHaptic("light");
+            toggleNavigation();
+          }}
           className={cn(
             "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
             isMobileOpen || (!["/transactions", "/budgets", "/imports", "/reports"].some(p => pathname.startsWith(p)))
