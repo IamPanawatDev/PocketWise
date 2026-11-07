@@ -109,6 +109,9 @@
 
 7. **ขั้นตอนการปฏิบัติงาน 6 ขั้นตอนเคร่งครัด (Mandatory 6-Step Multi-Agent Execution Rule)**:
    - ทุกงานพัฒนาต้องดำเนินการตาม 6 ขั้นตอนโดยใช้ **Agent เฉพาะทางคนละตัว (Dedicated Specialized Subagents)** เท่านั้น: **1. Orchestrator (Lead Project Manager / Parent Agent รับบรีฟและคุมภาพรวม)** ➔ **2. System Planner (Chief Architect & Test Designer Subagent วางแผน ออกแบบ Contract และ Test Scenarios)** ➔ **3. Parallel Implementers (Specialized Developer Subagents แยกสายงาน Backend / Frontend / DB รันคู่ขนานพร้อมกัน)** ➔ **4. Review & Remediation (Code Reviewer & Build Engineer Subagent ตรวจ Static, Lint, Build แก้จนผ่าน 100%)** ➔ **5. QA Browser Testing Agent (Subagent รัน Local เปิดเบราว์เซอร์ทดสอบจริงทั้ง Success & Error)** ➔ **6. DevOps & Deployment (Release Engineer Subagent นำโค้ดขึ้น Production ผ่าน Strict PR-Based Protocol)**
+   - **กฎภาษาในการสื่อสาร (Subagent English & User Thai Communication Rule)**:
+     - ทุกขั้นตอนที่มีการแยก Subagent (รวมถึง Step 2, Step 3 ที่แยกพัฒนาคู่ขนาน, Step 4, Step 5, Step 6): การส่งคำสั่ง บรีฟ มอบหมายงาน และการแลกเปลี่ยนข้อมูลระหว่าง AI ด้วยกัน (Agent-to-Agent Communication / Subagent Prompts & Messages) **ต้องสื่อสารเป็นภาษาอังกฤษ (English) ทั้งหมด 100%** เพื่อความแม่นยำ กระชับ และประสิทธิภาพสูงสุดในการประมวลผลโค้ด
+     - เมื่อ Orchestrator (Parent Agent) สื่อสารกับผู้ใช้ (User Communication) เช่น การรายงานสรุปผล การสอบถาม หรือการตอบกลับ **ต้องสื่อสารเป็นภาษาไทย (Thai) เสมอ**
    - **กฎเหล็กหยุดรอคำสั่ง (Dev ถึง Step 5 เท่านั้น — ห้ามทำ Step 6 เองเด็ดขาด)**: ในทุกงานพัฒนา AI ต้องดำเนินการถึงแค่ **Step 5 (QA Browser Testing)** เท่านั้น เมื่อทดสอบผ่าน 100% แล้ว **ต้องหยุดและรายงานผลให้ผู้ใช้ทราบทันที ห้ามข้ามไปทำ Step 6 (Deploy/PR) โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้เป็นกรณีไป** (เช่น "deploy", "เอาขึ้น production", "เปิด PR ได้เลย")
    - **กฎการทดสอบ QA Step 5 ผ่าน Brave Browser UI (Headed Mode Required)**: ในขั้นตอน **Step 5 (QA Browser Testing)** การทดสอบหน้าจอ UI และ User Flow ทั้งหมด **ต้องเปิดผ่าน Brave Browser ในโหมด UI จริง (Headed Mode) เสมอ (ห้ามใช้โหมด Headless โดยเด็ดขาด)** เพื่อให้ผู้ใช้สามารถมองเห็นขั้นตอนการทดสอบ การคลิกปุ่ม การกรอกฟอร์ม และปฏิกิริยาของระบบทุกขั้นตอนได้อย่างโปร่งใส เรียลไทม์ และตรวจสอบได้จริง
    - ห้ามใช้ Agent ตัวเดียวรวบทำงานทุกขั้นตอน, ห้ามข้ามขั้นตอนการวางแผน, และห้ามข้ามการทดสอบด้วย QA Agent เด็ดขาด
@@ -200,6 +203,12 @@
 
 ## 📋 5. ลำดับขั้นตอนการทำงานแบบ 6 ขั้นตอน (Mandatory 6-Step Multi-Agent Workflow)
 
+
+> [!IMPORTANT]
+> **กฎภาษาในการสื่อสารระหว่าง Agent และผู้ใช้ (Language Protocol)**:
+> - **การทำงานและสื่อสารระหว่าง AI (Agent-to-Agent / Subagent Prompts)**: ในทุกขั้นตอนที่มีการเรียก Subagent (โดยเฉพาะ Step 3 Parallel Implementers) AI ทุกตัวต้องสื่อสาร ทำงาน ส่งมอบ และคุยระหว่างกันเป็น **ภาษาอังกฤษ (English)** ทั้งหมด 100%
+> - **การสื่อสารกับผู้ใช้ (Orchestrator to User)**: Orchestrator ต้องรายงาน สรุปผล และสนทนากับผู้ใช้เป็น **ภาษาไทย (Thai)** เสมอ
+
 ทุกคำสั่งหรืองานพัฒนา (Feature, Refactor, Bug Fix หรือ Optimization) AI **ต้องปฏิบัติตามลำดับ 6 ขั้นตอนโดยใช้ Agent เฉพาะทางคนละตัว พัฒนาคู่ขนานใน Step 3 และหยุดรอคำสั่งผู้ใช้เมื่อจบ Step 5 เสมอ**:
 
 ```mermaid
@@ -246,7 +255,8 @@ flowchart TD
      - **Backend Specialist Agent**: รับผิดชอบ C# .NET 10, Web API Controllers, Application Services, Domain Models, Unit Tests
      - **Frontend Specialist Agent**: รับผิดชอบ Next.js 16, React Components, Hooks, Design System Tokens (`--pw-*`), Glassmorphism, BottomSheet
      - **Database Specialist Agent** (หากมีงาน Schema): จัดการ EF Core Code-First Migrations และ SQL Scripts
-   - **กฎการทำคู่ขนาน**:
+   - **ภาษาที่ใช้สื่อสารระหว่าง Subagents**: Subagents ทั้งหมดในขั้นตอนนี้ (Backend, Frontend, DB) ต้องรับมอบหมายงานและรายงานผลกลับมายัง Orchestrator เป็นภาษาอังกฤษ (English) 100%
+    - **กฎการทำคู่ขนาน**:
      - หากทั้งสองฝั่งทำงานตาม Data Contract ที่ Planner กำหนดไว้ใน Step 2 ให้รันพร้อมกันทันที
      - หากส่วนงานใดมี Hard Dependency จริงๆ (เช่น ต้องสร้าง Table Entity ให้เสร็จก่อนจึงจะเขียน Query ได้) ให้จัดลำดับ A ➔ B เฉพาะคู่นั้น
 4. **Review & Remediation (Code Reviewer & Build Engineer — Subagent ตัวที่ 4):**
