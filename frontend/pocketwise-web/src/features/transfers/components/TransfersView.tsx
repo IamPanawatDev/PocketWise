@@ -9,6 +9,7 @@ import { useCreateTransfer, useTransfers } from "@/features/transfers/hooks/useT
 import { useBankAccounts } from "@/features/accounts/hooks/useBankAccounts";
 import { ApiError } from "@/lib/api-client";
 import {
+  cn,
   thailandDateTimeInputToUtcIso,
   toThailandDateTimeInputValue,
 } from "@/lib/utils";
@@ -38,6 +39,7 @@ import {
   Building2,
   CheckCircle2,
   Clock,
+  Loader2,
   LoaderCircle,
   Plus,
   Repeat,
@@ -298,23 +300,33 @@ export function TransfersView() {
             <Button
               type="submit"
               disabled={create.isPending}
-              className="h-11 sm:h-10 font-semibold"
+              className={cn(
+                "min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer text-white shadow-md order-1",
+                create.isPending
+                  ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              )}
             >
               {create.isPending ? (
-                <LoaderCircle className="animate-spin size-4 mr-1.5" />
+                <>
+                  <Loader2 className="animate-spin size-4 text-white" />
+                  <span>กำลังบันทึกการโอนเงิน...</span>
+                </>
               ) : (
-                <Send className="size-4 mr-1.5" />
+                <>
+                  <Send className="size-4" />
+                  <span>บันทึกการโอนเงิน</span>
+                </>
               )}
-              บันทึกการโอนเงิน
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={closeForm}
-              className="h-11 sm:h-10"
+              className="w-full sm:w-auto min-h-[44px] gap-1.5 font-medium border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 hover:text-[var(--pw-ink)] cursor-pointer order-2 active:scale-[0.98] transition-all shadow-2xs"
             >
-              <X className="size-4 mr-1.5" />
-              ยกเลิก
+              <X className="size-4" />
+              <span>ยกเลิก</span>
             </Button>
           </BottomSheetFooter>
         </form>

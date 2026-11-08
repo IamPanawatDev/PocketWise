@@ -792,21 +792,22 @@ export default function AdminUsersPage() {
 
             {/* BottomSheet Button Hierarchy: Confirm on TOP, Cancel on BOTTOM */}
             <BottomSheetFooter>
-              <button
+              <Button
                 type="button"
                 onClick={handleConfirmSuspend}
                 disabled={suspendMutation.isPending || !suspendReason.trim()}
-                className="w-full px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-lg bg-[var(--pw-expense)] text-white hover:brightness-110 disabled:opacity-40 transition-colors"
+                className="w-full min-h-[44px] bg-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/90 text-white font-bold shadow-md disabled:opacity-85 disabled:text-white"
               >
                 {suspendMutation.isPending ? "กำลังระงับ..." : "ยืนยันการระงับบัญชี"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setSuspendTarget(null)}
-                className="w-full px-4 py-2.5 text-xs sm:text-sm font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 transition-colors"
+                className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs"
               >
                 ยกเลิก
-              </button>
+              </Button>
             </BottomSheetFooter>
           </div>
         )}
@@ -833,13 +834,13 @@ export default function AdminUsersPage() {
       >
         <div className="flex flex-col h-full">
           {/* Tabs */}
-          <div className="border-b border-[var(--pw-hairline)] flex gap-4 text-xs font-semibold -mt-2 mb-4">
+          <div className="border-b border-[var(--pw-hairline)] flex items-center gap-3 overflow-x-auto scrollbar-none flex-nowrap text-xs font-semibold -mt-2 mb-4 pb-1 overscroll-contain">
             <button
               onClick={() => setActiveDetailTab("profile")}
               className={cn(
-                "py-2.5 border-b-2 transition-colors",
+                "py-2 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[38px] flex items-center",
                 activeDetailTab === "profile"
-                  ? "border-[var(--pw-primary)] text-[var(--pw-primary)]"
+                  ? "border-[var(--pw-primary)] text-[var(--pw-primary)] font-bold"
                   : "border-transparent text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)]"
               )}
             >
@@ -848,9 +849,9 @@ export default function AdminUsersPage() {
             <button
               onClick={() => setActiveDetailTab("sessions")}
               className={cn(
-                "py-2.5 border-b-2 transition-colors flex items-center gap-1.5",
+                "py-2 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[38px] flex items-center gap-1.5",
                 activeDetailTab === "sessions"
-                  ? "border-[var(--pw-primary)] text-[var(--pw-primary)]"
+                  ? "border-[var(--pw-primary)] text-[var(--pw-primary)] font-bold"
                   : "border-transparent text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)]"
               )}
             >
@@ -859,9 +860,9 @@ export default function AdminUsersPage() {
             <button
               onClick={() => setActiveDetailTab("security")}
               className={cn(
-                "py-2.5 border-b-2 transition-colors flex items-center gap-1.5",
+                "py-2 border-b-2 transition-colors shrink-0 whitespace-nowrap min-h-[38px] flex items-center gap-1.5",
                 activeDetailTab === "security"
-                  ? "border-[var(--pw-primary)] text-[var(--pw-primary)]"
+                  ? "border-[var(--pw-primary)] text-[var(--pw-primary)] font-bold"
                   : "border-transparent text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)]"
               )}
             >

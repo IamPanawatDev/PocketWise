@@ -165,7 +165,7 @@ export default function AdminOverviewPage() {
               onClick={handleToggleMaintenance}
               disabled={updateMaintenance.isPending}
               className={cn(
-                "px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors shadow-sm",
+                "min-h-[40px] px-4 text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center justify-center",
                 overview.maintenanceStatus.isEnabled
                   ? "bg-[var(--pw-surface)] border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
                   : "bg-[var(--pw-expense)] text-white hover:opacity-90"

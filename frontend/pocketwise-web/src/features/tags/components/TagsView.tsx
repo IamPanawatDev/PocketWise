@@ -26,6 +26,7 @@ import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import {
   ArrowDown,
   ArrowUp,
+  Check,
   Loader2,
   Pencil,
   Plus,
@@ -157,28 +158,62 @@ export function TagsView() {
               <Input id="tag-name" placeholder="เช่น เที่ยวญี่ปุ่น, ช้อปปิ้ง, ค่าบ้าน" {...register("tagName")} />
             </FormField>
             <FormField label="สีของแท็ก" htmlFor="tag-color">
-              <div className="flex items-center gap-3">
-                <Controller
-                  control={control}
-                  name="color"
-                  render={({ field }) => (
-                    <Input
-                      id="tag-color"
-                      type="color"
-                      className="h-12 w-20 cursor-pointer p-1"
-                      aria-label="เลือกสีแท็ก"
-                      value={field.value ?? "#5865f2"}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                    />
-                  )}
-                />
-                <span className="text-sm text-[var(--pw-ink)]/70">
-                  เลือกสีสำหรับแสดงแท็ก
-                </span>
-              </div>
+              <Controller
+                control={control}
+                name="color"
+                render={({ field }) => {
+                  const presetColors = [
+                    "#5865f2", "#10b981", "#f43f5e", "#f59e0b",
+                    "#8b5cf6", "#06b6d4", "#ec4899", "#64748b"
+                  ];
+                  const currentColor = (field.value ?? "#5865f2").toLowerCase();
+
+                  return (
+                    <div className="space-y-2.5">
+                      {/* Modern Preset Color Swatches (Touch Targets >= 36px) */}
+                      <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="สีแนะนำ">
+                        {presetColors.map((hex) => {
+                          const isSelected = currentColor === hex.toLowerCase();
+                          return (
+                            <button
+                              key={hex}
+                              type="button"
+                              onClick={() => field.onChange(hex)}
+                              className={cn(
+                                "size-9 rounded-full transition-transform active:scale-90 flex items-center justify-center cursor-pointer shadow-xs border-2",
+                                isSelected ? "border-white ring-2 ring-[var(--pw-primary)] scale-110" : "border-transparent hover:scale-105"
+                              )}
+                              style={{ backgroundColor: hex }}
+                              title={hex}
+                              aria-label={`เลือกสี ${hex}`}
+                            >
+                              {isSelected && <Check className="size-4 text-white stroke-[3] drop-shadow-sm" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom Color Picker Input */}
+                      <div className="flex items-center gap-3 pt-1">
+                        <Input
+                          id="tag-color"
+                          type="color"
+                          className="h-10 w-16 cursor-pointer p-1 rounded-lg"
+                          aria-label="เลือกสีเพิ่มเติม"
+                          value={field.value ?? "#5865f2"}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                        <span className="text-xs text-[var(--pw-ink)]/65 font-mono">
+                          {field.value ?? "#5865f2"} (กำหนดสีเอง)
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }}
+              />
             </FormField>
 
             <BottomSheetFooter>
@@ -211,9 +246,9 @@ export function TagsView() {
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={closeForm}
-                className="min-h-[44px] gap-1.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer order-2"
+                className="w-full sm:w-auto min-h-[44px] gap-1.5 font-medium border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 hover:text-[var(--pw-ink)] cursor-pointer order-2 active:scale-[0.98] transition-all shadow-2xs"
               >
                 <X className="size-4" />
                 <span>ยกเลิก</span>

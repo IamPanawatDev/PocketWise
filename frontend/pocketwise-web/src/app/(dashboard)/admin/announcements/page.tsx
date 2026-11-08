@@ -548,14 +548,14 @@ export default function AdminAnnouncementsPage() {
             <Button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="w-full"
+              className="w-full min-h-[44px] font-bold shadow-md"
             >
               {editingId ? "บันทึกการแก้ไข" : "สร้างประกาศ"}
             </Button>
             <Button
               type="button"
               variant="outline"
-              className="w-full"
+              className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs"
               onClick={() => setIsModalOpen(false)}
             >
               ยกเลิก
