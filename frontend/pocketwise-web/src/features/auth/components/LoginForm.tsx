@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
 import { TiltCard } from "@/components/ui/tilt-card";
-import { LoaderCircle, LogIn } from "lucide-react";
+import { Loader2,
+  LoaderCircle, LogIn } from "lucide-react";
 import { motion } from "motion/react";
 
 export function LoginForm() {
@@ -246,9 +247,22 @@ export function LoginForm() {
                 </motion.p>
               )}
 
-              <Button type="submit" className="w-full" disabled={login.isPending}>
-                {login.isPending ? <LoaderCircle className="animate-spin" /> : <LogIn />}
-                {login.isPending ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              <Button
+                type="submit"
+                className="w-full min-h-[44px] gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white active:scale-[0.98] transition-all cursor-pointer"
+                disabled={login.isPending}
+              >
+                {login.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-white" />
+                    <span>กำลังเข้าสู่ระบบ...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="size-4" />
+                    <span>เข้าสู่ระบบ</span>
+                  </>
+                )}
               </Button>
             </form>
 

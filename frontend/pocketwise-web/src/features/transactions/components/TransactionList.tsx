@@ -1463,7 +1463,7 @@ export function TransactionList({
 
       {/* Floating Action Bar for Multi-Select Bulk Actions */}
       {isSelectionMode && (
-        <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-1/2 z-40 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/95 p-3 sm:p-4 shadow-2xl backdrop-blur-xl">
             <div className="flex items-center gap-2">
               <span className="flex size-6 sm:size-7 items-center justify-center rounded-full bg-[var(--pw-primary)] text-xs font-bold text-white shadow-xs">
@@ -1479,7 +1479,7 @@ export function TransactionList({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 sm:h-9 text-xs"
+                className="min-h-[38px] sm:h-9 text-xs px-3"
                 onClick={handleSelectAllCurrentPage}
               >
                 {data?.items && data.items.length > 0 && data.items.every((i) => selectedIds.has(i.transactionId))
@@ -1498,7 +1498,7 @@ export function TransactionList({
                     type="button"
                     size="sm"
                     variant="destructive"
-                    className="h-8 sm:h-9 text-xs font-semibold gap-1.5 shadow-xs"
+                    className="min-h-[38px] sm:h-9 text-xs font-semibold gap-1.5 shadow-xs px-3"
                     disabled={selectedIds.size === 0 || isBulkDeleting}
                   >
                     {isBulkDeleting ? (
@@ -1515,7 +1515,7 @@ export function TransactionList({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-8 sm:h-9 text-xs"
+                className="min-h-[38px] sm:h-9 text-xs px-3 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
                 onClick={() => {
                   setIsSelectionMode(false);
                   setSelectedIds(new Set());

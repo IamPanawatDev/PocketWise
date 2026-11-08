@@ -494,6 +494,7 @@ export function SlipImportTab() {
         recordCategoryUsage(Number(currentItem.categoryId));
       }
 
+      toast.dismiss();
       toast.success(
         batchItems.length > 1
           ? `บันทึกสลิปใบที่ ${currentIndex + 1} เรียบร้อยแล้ว`
@@ -641,6 +642,7 @@ export function SlipImportTab() {
 
     setIsConfirmingAll(false);
     if (successCount > 0) {
+      toast.dismiss(); // Immediately clear old duplicate and info alert banners
       toast.success(`บันทึกสลิปสำเร็จทั้งหมด ${successCount} รายการ!`, {
         action: {
           label: "ดูรายงาน →",
@@ -657,9 +659,11 @@ export function SlipImportTab() {
         }
       });
 
-      // Remove confirmed slips from batch
+      // Completely clear batch if all succeeded, or remove all confirmed items
       setBatchItems((prev) => {
-        const remaining = prev.filter((it) => !readyItems.some((r) => r.id === it.id));
+        const remaining = prev.filter(
+          (it) => it.status !== "confirmed" && !readyItems.some((r) => r.id === it.id)
+        );
         if (remaining.length === 0) {
           setCurrentIndex(0);
           setIsLightboxOpen(false);
@@ -1482,7 +1486,7 @@ export function SlipImportTab() {
                   )}
 
                   {/* 8. ACTION BUTTONS HIERARCHY (Mobile Standard: Confirm Top, Cancel Below, Target >= 44px) */}
-                  <div className="flex flex-col gap-2.5 pt-3 border-t border-[var(--pw-hairline)]">
+                  <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-[var(--pw-hairline)]/80 mt-4 flex flex-col gap-2.5 z-10 sm:static sm:bg-transparent sm:backdrop-blur-none sm:p-0 sm:border-t sm:border-[var(--pw-hairline)]">
                     {/* Primary Action Button (Order 1 on mobile) */}
                     {currentItem.status !== "confirmed" ? (
                       <Button
@@ -1605,6 +1609,20 @@ export function SlipImportTab() {
               </div>
             </div>
           )}
+        </div>
+      )}
+      {/* Mobile Floating Quick Slip Trigger (Thumb accessible from anywhere) */}
+      {currentItem && currentItem.previewUrl && !isLightboxOpen && (
+        <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-3 z-30 lg:hidden animate-in fade-in zoom-in-95 duration-200">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setIsLightboxOpen(true)}
+            className="h-10 px-3.5 gap-1.5 rounded-full bg-[var(--pw-surface-raised)]/95 text-[var(--pw-ink)] border border-[var(--pw-hairline)] shadow-xl backdrop-blur-xl hover:bg-[var(--pw-surface-onyx)] text-xs font-semibold active:scale-95 transition-all cursor-pointer"
+          >
+            <Maximize2 className="size-3.5 text-[var(--pw-primary)]" />
+            <span>ดูรูปสลิป</span>
+          </Button>
         </div>
       )}
     </div>

@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import {
   Select,
   SelectContent,
@@ -33,6 +33,7 @@ import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import {
   Banknote,
   Landmark,
+  Loader2,
   LoaderCircle,
   Pencil,
   Plus,
@@ -259,22 +260,44 @@ export function BankAccountsView() {
               </FormField>
             </div>
 
-            <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
-              <Button type="submit" disabled={create.isPending || update.isPending} className="w-full sm:w-auto">
-                {create.isPending || update.isPending ? (
-                  <LoaderCircle className="animate-spin size-4 mr-1.5" />
-                ) : editing !== null ? (
-                  <Save className="size-4 mr-1.5" />
-                ) : (
-                  <Plus className="size-4 mr-1.5" />
+            <BottomSheetFooter>
+              <Button
+                type="submit"
+                disabled={create.isPending || update.isPending}
+                className={cn(
+                  "min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer text-white shadow-md order-1",
+                  create.isPending || update.isPending
+                    ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+                    : "bg-emerald-600 hover:bg-emerald-700"
                 )}
-                {create.isPending || update.isPending ? "กำลังบันทึก..." : editing !== null ? "บันทึกการแก้ไข" : "เพิ่มบัญชี"}
+              >
+                {create.isPending || update.isPending ? (
+                  <>
+                    <Loader2 className="animate-spin size-4 text-white" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : editing !== null ? (
+                  <>
+                    <Save className="size-4" />
+                    <span>บันทึกการแก้ไข</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-4 stroke-[2.5]" />
+                    <span>เพิ่มบัญชี</span>
+                  </>
+                )}
               </Button>
-              <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
-                <X className="size-4 mr-1.5" />
-                ยกเลิก
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeForm}
+                className="min-h-[44px] gap-1.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer order-2"
+              >
+                <X className="size-4" />
+                <span>ยกเลิก</span>
               </Button>
-            </div>
+            </BottomSheetFooter>
           </form>
         </div>
       </BottomSheet>
@@ -364,7 +387,7 @@ export function BankAccountsView() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="flex-1 sm:flex-none text-xs h-8"
+                      className="flex-1 sm:flex-none text-xs h-9 min-h-[36px]"
                       onClick={() => {
                         setEditing(a.bankAccountId);
                         reset({
@@ -392,7 +415,7 @@ export function BankAccountsView() {
                         });
                       }}
                       trigger={
-                        <Button size="sm" variant="destructive" className="flex-1 sm:flex-none text-xs h-8">
+                        <Button size="sm" variant="destructive" className="flex-1 sm:flex-none text-xs h-9 min-h-[36px]">
                           <Trash2 className="size-3.5" />
                           ลบ
                         </Button>

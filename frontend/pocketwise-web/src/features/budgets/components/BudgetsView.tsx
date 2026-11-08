@@ -27,7 +27,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import {
   Select,
   SelectContent,
@@ -37,7 +37,8 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { AlertTriangle, CheckCircle2, LoaderCircle, Pencil, Plus, Save, Trash2, Wallet, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2,
+  LoaderCircle, Pencil, Plus, Save, Trash2, Wallet, X } from "lucide-react";
 
 const initialValues = (startDate = ""): BudgetFormValues => ({
   budgetName: "",
@@ -330,16 +331,44 @@ export function BudgetsView() {
               </FormField>
             </div>
 
-            <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
-              <Button type="submit" disabled={loadingMutation} className="w-full sm:w-auto">
-                {loadingMutation ? <LoaderCircle className="animate-spin size-4 mr-1.5" /> : editing ? <Save className="size-4 mr-1.5" /> : <Plus className="size-4 mr-1.5" />}
-                {loadingMutation ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "ตั้งงบประมาณ"}
+            <BottomSheetFooter>
+              <Button
+                type="submit"
+                disabled={loadingMutation}
+                className={cn(
+                  "min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer text-white shadow-md order-1",
+                  loadingMutation
+                    ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                )}
+              >
+                {loadingMutation ? (
+                  <>
+                    <Loader2 className="animate-spin size-4 text-white" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : editing ? (
+                  <>
+                    <Save className="size-4" />
+                    <span>บันทึกการแก้ไข</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-4 stroke-[2.5]" />
+                    <span>ตั้งงบประมาณ</span>
+                  </>
+                )}
               </Button>
-              <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
-                <X className="size-4 mr-1.5" />
-                ยกเลิก
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeForm}
+                className="min-h-[44px] gap-1.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer order-2"
+              >
+                <X className="size-4" />
+                <span>ยกเลิก</span>
               </Button>
-            </div>
+            </BottomSheetFooter>
           </form>
         </div>
       </BottomSheet>
@@ -430,7 +459,7 @@ export function BudgetsView() {
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="h-8 px-2.5 text-xs"
+                          className="h-9 min-w-9 px-3 text-xs gap-1.5 active:scale-95 transition-transform"
                           onClick={() => startEdit(budget)}
                         >
                           <Pencil className="size-3.5" />
@@ -450,7 +479,7 @@ export function BudgetsView() {
                               size="sm"
                               variant="destructive"
                               aria-label={`ลบงบ ${budget.budgetName}`}
-                              className="h-8 px-2.5 text-xs"
+                              className="h-9 min-w-9 px-3 text-xs gap-1.5 active:scale-95 transition-transform"
                             >
                               <Trash2 className="size-3.5" />
                               <span className="hidden sm:inline">ลบ</span>

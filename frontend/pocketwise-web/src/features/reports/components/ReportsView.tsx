@@ -28,11 +28,11 @@ import {
   Landmark,
   Layers,
   LoaderCircle,
-  Receipt,
   ReceiptText,
   Plus,
   Scale,
   Calendar,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   X,
@@ -118,6 +118,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
   const monthOptions = useMemo(() => getRecentMonthOptions(24, 1), []);
   const [isCustomDateMode, setIsCustomDateMode] = useState(false);
   const [isNarrowMobile, setIsNarrowMobile] = useState(false);
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
 
   useEffect(() => {
     const checkNarrowMobile = () => {
@@ -234,34 +235,6 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         ? "กรุณาเลือกช่วงวันที่ให้ครบ"
         : "";
 
-  // FR6.1.2 metrics: slip and credit-card calculations
-  const slipBreakdown = activeCurrency?.sourceBreakdown.find(
-    (item) => item.sourceType.toLowerCase() === "slip",
-  );
-  const slipExpense =
-    activeCurrency?.totalSlipExpense ?? slipBreakdown?.amount ?? 0;
-  const slipPercentage = activeCurrency?.totalExpense
-    ? (slipExpense / activeCurrency.totalExpense) * 100
-    : 0;
-  const slipCount = slipBreakdown?.transactionCount ?? 0;
-
-  const cardExpenses =
-    activeCurrency?.creditCardBreakdown.filter((c) => c.creditCardId != null) ?? [];
-  const creditCardExpense =
-    activeCurrency?.totalCreditCardExpense ??
-    activeCurrency?.creditCardBreakdown.reduce(
-      (sum, c) => sum + (c.creditCardId != null ? c.amount : 0),
-      0,
-    ) ??
-    0;
-  const creditCardPercentage = activeCurrency?.totalExpense
-    ? (creditCardExpense / activeCurrency.totalExpense) * 100
-    : 0;
-  const creditCardCount =
-    activeCurrency?.creditCardBreakdown.reduce(
-      (sum, c) => sum + (c.transactionCount ?? 0),
-      0,
-    ) ?? 0;
 
   const [showFilterSheet, setShowFilterSheet] = useState(false);
 
@@ -335,30 +308,28 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 flex items-center gap-2 text-2xl font-bold">
+          <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
             <BarChart3 className="size-6 text-[var(--pw-primary)]" />
             รายงานและภาพรวม
           </h1>
-          <p className="text-sm text-[var(--pw-ink)]/65">
+          <p className="hidden sm:block text-sm text-[var(--pw-ink)]/65 mt-0.5">
             สรุปรายรับ รายจ่าย ภาพรวมสลิป บัตรเครดิต และแนวโน้มจากรายการที่ยืนยันแล้ว
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
-
             className={cn(
-              "relative gap-2 min-h-10 text-xs sm:text-sm font-medium transition-all shadow-xs",
+              "relative gap-1.5 min-h-[44px] text-xs sm:text-sm font-semibold transition-all shadow-xs cursor-pointer",
               activeFilterCount > 0
-                ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
+                ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-bold"
                 : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]",
             )}
             size="sm"
             onClick={() => setShowFilterSheet(true)}
-
           >
             <Filter className="size-4 text-[var(--pw-primary)]" />
             <span>ตัวกรอง</span>
@@ -375,185 +346,201 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             size="sm"
             onClick={() => setIsExportOpen(true)}
             disabled={!validRange}
-            className="gap-2 min-h-10 text-xs sm:text-sm font-medium border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)] shadow-xs"
+            className="gap-1.5 min-h-[44px] text-xs sm:text-sm font-medium border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] hover:bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)] shadow-xs cursor-pointer"
+            title="ส่งออกข้อมูลรายงาน"
+            aria-label="ส่งออกข้อมูลรายงาน"
           >
             <FileDown className="size-4 text-[var(--pw-primary)]" />
-            ส่งออกข้อมูลรายงาน
+            <span className="hidden sm:inline">ส่งออกข้อมูลรายงาน</span>
+            <span className="sm:hidden">ส่งออก</span>
           </Button>
         </div>
       </header>
 
-      {/* Quick Period Pills (1 แตะสลับช่วงเวลาได้ทันที) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar mb-3">
-        <button
-          type="button"
-          onClick={() => {
-            setFromDate("2000-01-01");
-            setToDate("2099-12-31");
-            setPeriod("yearly");
-          }}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
-            activeQuickPeriod === "all"
-              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
-              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
-          )}
-        >
-          ทั้งหมด
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const r = getTodayRange();
-            setFromDate(r.from);
-            setToDate(r.to);
-            setPeriod("weekly");
-          }}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
-            activeQuickPeriod === "today"
-              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
-              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
-          )}
-        >
-          วันนี้
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const r = getThisWeekRange();
-            setFromDate(r.from);
-            setToDate(r.to);
-            setPeriod("weekly");
-          }}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
-            activeQuickPeriod === "week"
-              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
-              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
-          )}
-        >
-          สัปดาห์นี้
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const r = getThisMonthRange();
-            setFromDate(r.from);
-            setToDate(r.to);
-            setPeriod("monthly");
-          }}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
-            activeQuickPeriod === "month"
-              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
-              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
-          )}
-        >
-          เดือนนี้
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const r = getThisYearRange();
-            setFromDate(r.from);
-            setToDate(r.to);
-            setPeriod("yearly");
-          }}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
-            activeQuickPeriod === "year"
-              ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
-              : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
-          )}
-        >
-          ปีนี้
-        </button>
-      </div>
+      {/* Unified Time-Control Bar (Quick Pills & Month Stepper) */}
+      <div className="space-y-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+          {/* Quick Period Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            <button
+              type="button"
+              onClick={() => {
+                setFromDate("2000-01-01");
+                setToDate("2099-12-31");
+                setPeriod("yearly");
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                activeQuickPeriod === "all"
+                  ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+                  : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+              )}
+            >
+              ทั้งหมด
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const r = getTodayRange();
+                setFromDate(r.from);
+                setToDate(r.to);
+                setPeriod("weekly");
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                activeQuickPeriod === "today"
+                  ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+                  : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+              )}
+            >
+              วันนี้
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const r = getThisWeekRange();
+                setFromDate(r.from);
+                setToDate(r.to);
+                setPeriod("weekly");
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                activeQuickPeriod === "week"
+                  ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+                  : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+              )}
+            >
+              สัปดาห์นี้
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const r = getThisMonthRange();
+                setFromDate(r.from);
+                setToDate(r.to);
+                setPeriod("monthly");
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                activeQuickPeriod === "month"
+                  ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+                  : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+              )}
+            >
+              เดือนนี้
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const r = getThisYearRange();
+                setFromDate(r.from);
+                setToDate(r.to);
+                setPeriod("yearly");
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                activeQuickPeriod === "year"
+                  ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+                  : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
+              )}
+            >
+              ปีนี้
+            </button>
+          </div>
 
-      {/* Active Filter Chips, Month Stepper & Summary */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Quick Month Stepper */}
-        <div className="inline-flex items-center rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 p-0.5 text-xs shadow-2xs backdrop-blur-xs">
-          <button
-            type="button"
-            onClick={handlePrevMonth}
-            className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all cursor-pointer"
-            aria-label="เดือนก่อนหน้า"
-            title="เดือนก่อนหน้า"
-          >
-            <ChevronLeft className="size-3.5" />
-          </button>
+          {/* Quick Month Stepper */}
+          <div className="inline-flex items-center self-start sm:self-auto rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 p-0.5 text-xs shadow-2xs backdrop-blur-xs">
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+              aria-label="เดือนก่อนหน้า"
+              title="เดือนก่อนหน้า"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
 
-          <span className="px-2 font-semibold text-[var(--pw-ink)] text-[11px] sm:text-xs select-none">
-            {activeQuickPeriod === "all"
-              ? "ทั้งหมด"
-              : monthOptions.find((m) => m.value === currentMonthValue)?.label ??
-                `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`}
-          </span>
+            <span className="px-2.5 font-semibold text-[var(--pw-ink)] text-xs select-none">
+              {activeQuickPeriod === "all"
+                ? "ทั้งหมด"
+                : activeQuickPeriod === "today"
+                ? "วันนี้"
+                : activeQuickPeriod === "week"
+                ? "สัปดาห์นี้"
+                : activeQuickPeriod === "year"
+                ? "ปีนี้"
+                : monthOptions.find((m) => m.value === currentMonthValue)?.label ??
+                  `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`}
+            </span>
 
-          <button
-            type="button"
-            onClick={handleNextMonth}
-            disabled={monthOptions.findIndex((m) => m.value === currentMonthValue) === 0}
-            className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] disabled:opacity-30 disabled:pointer-events-none active:scale-90 transition-all cursor-pointer"
-            aria-label="เดือนถัดไป"
-            title="เดือนถัดไป"
-          >
-            <ChevronRight className="size-3.5" />
-          </button>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              disabled={monthOptions.findIndex((m) => m.value === currentMonthValue) === 0}
+              className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] disabled:opacity-30 disabled:pointer-events-none active:scale-90 transition-all cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+              aria-label="เดือนถัดไป"
+              title="เดือนถัดไป"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
         </div>
 
-        {selectedCategoryName && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
-            หมวดหมู่: {selectedCategoryName}
-            <button
-              type="button"
-              onClick={() => setCategoryId(undefined)}
-              className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
-              aria-label="ลบตัวกรองหมวดหมู่"
-            >
-              <X className="size-3" />
-            </button>
-          </span>
-        )}
+        {/* Active Filter Chips */}
+        {(selectedCategoryName || selectedTagName || period !== "monthly") && (
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {selectedCategoryName && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
+                หมวดหมู่: {selectedCategoryName}
+                <button
+                  type="button"
+                  onClick={() => setCategoryId(undefined)}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
+                  aria-label="ลบตัวกรองหมวดหมู่"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
 
-        {selectedTagName && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
-            แท็ก: #{selectedTagName}
-            <button
-              type="button"
-              onClick={() => setTagId(undefined)}
-              className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
-              aria-label="ลบตัวกรองแท็ก"
-            >
-              <X className="size-3" />
-            </button>
-          </span>
-        )}
+            {selectedTagName && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
+                แท็ก: #{selectedTagName}
+                <button
+                  type="button"
+                  onClick={() => setTagId(undefined)}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
+                  aria-label="ลบตัวกรองแท็ก"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
 
-        {period !== "monthly" && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
-            ช่วงกราฟ: {period === "weekly" ? "รายสัปดาห์" : period === "quarterly" ? "รายไตรมาส" : "รายปี"}
-            <button
-              type="button"
-              onClick={() => setPeriod("monthly")}
-              className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
-              aria-label="รีเซ็ตช่วงกราฟ"
-            >
-              <X className="size-3" />
-            </button>
-          </span>
-        )}
+            {period !== "monthly" && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--pw-primary)]/30 bg-[var(--pw-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--pw-primary)]">
+                ช่วงกราฟ: {period === "weekly" ? "รายสัปดาห์" : period === "quarterly" ? "รายไตรมาส" : "รายปี"}
+                <button
+                  type="button"
+                  onClick={() => setPeriod("monthly")}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--pw-primary)]/20"
+                  aria-label="รีเซ็ตช่วงกราฟ"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
 
-        {activeFilterCount > 0 && (
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="text-xs text-[var(--pw-primary)] underline hover:text-[var(--pw-primary)]/80 ml-1"
-          >
-            ล้างตัวกรอง
-          </button>
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="text-xs text-[var(--pw-primary)] underline hover:text-[var(--pw-primary)]/80 ml-1 cursor-pointer"
+              >
+                ล้างตัวกรอง
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -708,25 +695,35 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
 
           </div>
 
-          {/* Sticky Mobile-First Footer (Confirm Top, Reset Bottom) */}
-          <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md px-4 sm:px-6 py-3 border-t border-[var(--pw-hairline)]/50 flex flex-col gap-2 z-10">
+          <BottomSheetFooter>
             <Button
               type="button"
-              className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
+              className="w-full sm:w-auto min-h-[44px] text-sm font-bold shadow-md cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white order-1"
               onClick={() => setShowFilterSheet(false)}
             >
               ดูผลลัพธ์
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full h-9 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] cursor-pointer"
-              onClick={resetFilters}
-              disabled={activeFilterCount === 0}
-            >
-              ล้างตัวกรอง
-            </Button>
-          </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto order-2">
+              {activeFilterCount > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 sm:flex-initial min-h-[44px] text-xs text-[var(--pw-ink)]/75 hover:text-[var(--pw-ink)] border-[var(--pw-hairline)] cursor-pointer"
+                  onClick={resetFilters}
+                >
+                  ล้างตัวกรอง
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                className="flex-1 sm:flex-initial min-h-[44px] text-sm text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer"
+                onClick={() => setShowFilterSheet(false)}
+              >
+                ปิด
+              </Button>
+            </div>
+          </BottomSheetFooter>
         </div>
       </BottomSheet>
 
@@ -777,302 +774,124 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             </div>
           )}
 
-          {/* Mobile: Unified Financial Hero Card (1 ใบใหญ่ อ่านจบใน 2 วินาที) */}
+          {/* Mobile: Executive Financial Hero Card (รายรับ รายจ่าย คงเหลือ คมชัดใน 1 วินาที) */}
           <div className="block sm:hidden">
             <Card className="relative overflow-hidden rounded-2xl border border-[var(--pw-hairline)] bg-gradient-to-br from-[var(--pw-surface-raised)]/95 via-[var(--pw-surface-indigo)]/85 to-[var(--pw-surface-onyx)]/95 p-4 shadow-md backdrop-blur-xl">
               {/* Top Row: Net Balance */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--pw-ink)]/70">
+                <span className="text-xs font-semibold text-[var(--pw-ink)]/70">
                   คงเหลือสุทธิ ({activeCurrency.currencyCode})
                 </span>
                 <span className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold shadow-2xs",
                   activeCurrency.netAmount >= 0
                     ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
                     : "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
                 )}>
-                  <Scale className="size-3" />
+                  <Scale className="size-3.5" />
                   {activeCurrency.netAmount >= 0 ? "ดุลบวก" : "ดุลลบ"}
                 </span>
               </div>
               <p className={cn(
-                "mt-1 text-2xl font-extrabold tracking-tight",
+                "mt-1.5 text-3xl font-extrabold tracking-tight",
                 activeCurrency.netAmount >= 0 ? "text-[var(--pw-ink)]" : "text-[var(--pw-expense)]"
               )}>
                 <AnimatedNumber value={activeCurrency.netAmount} currencyCode={activeCurrency.currencyCode} />
               </p>
 
-              {/* Middle Row: Income & Expense Summary */}
-              <div className="mt-3.5 grid grid-cols-2 gap-2 pt-3 border-t border-[var(--pw-hairline)]/70">
-                <div className="rounded-xl bg-[var(--pw-surface-sunken)]/50 p-2.5 border border-[var(--pw-hairline)]/50">
-                  <div className="flex items-center gap-1 text-[11px] text-[var(--pw-green)] font-medium">
-                    <ArrowUpRight className="size-3.5" />
+              {/* Bottom Row: Income & Expense Summary */}
+              <div className="mt-4 grid grid-cols-2 gap-2.5 pt-3.5 border-t border-[var(--pw-hairline)]/70">
+                <div className="rounded-xl bg-[var(--pw-surface-sunken)]/60 p-3 border border-[var(--pw-hairline)]/60">
+                  <div className="flex items-center gap-1.5 text-xs text-[var(--pw-green)] font-semibold">
+                    <ArrowUpRight className="size-4" />
                     <span>รายรับรวม</span>
                   </div>
-                  <p className="mt-1 text-base font-bold text-[var(--pw-green)] truncate">
+                  <p className="mt-1 text-lg font-bold text-[var(--pw-green)] truncate">
                     <AnimatedNumber value={activeCurrency.totalIncome} currencyCode={activeCurrency.currencyCode} />
                   </p>
                 </div>
-                <div className="rounded-xl bg-[var(--pw-surface-sunken)]/50 p-2.5 border border-[var(--pw-hairline)]/50">
-                  <div className="flex items-center gap-1 text-[11px] text-[var(--pw-expense)] font-medium">
-                    <ArrowDownRight className="size-3.5" />
+                <div className="rounded-xl bg-[var(--pw-surface-sunken)]/60 p-3 border border-[var(--pw-hairline)]/60">
+                  <div className="flex items-center gap-1.5 text-xs text-[var(--pw-expense)] font-semibold">
+                    <ArrowDownRight className="size-4" />
                     <span>รายจ่ายรวม</span>
                   </div>
-                  <p className="mt-1 text-base font-bold text-[var(--pw-expense)] truncate">
+                  <p className="mt-1 text-lg font-bold text-[var(--pw-expense)] truncate">
                     <AnimatedNumber value={activeCurrency.totalExpense} currencyCode={activeCurrency.currencyCode} />
                   </p>
                 </div>
               </div>
-
-              {/* Bottom Row: Expense Breakdown Mini Bar (สลิป vs บัตร vs อื่นๆ) */}
-              {activeCurrency.totalExpense > 0 && (
-                <div className="mt-3 pt-2.5 border-t border-[var(--pw-hairline)]/50 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-[var(--pw-ink)]/65">
-                    <span>สัดส่วนช่องทางจ่าย:</span>
-                    <span className="font-medium text-[var(--pw-ink)]">
-                      สลิป {slipPercentage.toFixed(0)}% • บัตร {creditCardPercentage.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--pw-surface-sunken)] flex">
-                    <div
-                      style={{ width: `${Math.min(100, Math.max(0, slipPercentage))}%` }}
-                      className="bg-[var(--pw-primary)] transition-all duration-500"
-                      title={`สลิป ${slipPercentage.toFixed(1)}%`}
-                    />
-                    <div
-                      style={{ width: `${Math.min(100, Math.max(0, creditCardPercentage))}%` }}
-                      className="bg-[var(--pw-magenta)] transition-all duration-500"
-                      title={`บัตรเครดิต ${creditCardPercentage.toFixed(1)}%`}
-                    />
-                    <div
-                      style={{ width: `${Math.max(0, 100 - slipPercentage - creditCardPercentage)}%` }}
-                      className="bg-[var(--pw-ink)]/20 transition-all duration-500"
-                      title="ช่องทางอื่น ๆ"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-[var(--pw-ink)]/55 pt-0.5">
-                    <span className="flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-[var(--pw-primary)]" />
-                      สลิป {slipExpense.toLocaleString("th-TH")}฿
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-[var(--pw-magenta)]" />
-                      บัตร {creditCardExpense.toLocaleString("th-TH")}฿
-                    </span>
-                  </div>
-                </div>
-              )}
             </Card>
           </div>
 
-          {/* Desktop: 5 Separate KPI Cards (sm+) */}
-          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Card className="p-4 border-l-4 border-l-[var(--pw-green)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+          {/* Desktop: 3 Essential KPI Cards (sm+) */}
+          <div className="hidden sm:grid sm:grid-cols-3 gap-4">
+            <Card className="p-5 border-l-4 border-l-[var(--pw-green)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md bg-[var(--pw-surface-raised)]/60">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-[var(--pw-ink)]/60">รายรับทั้งหมด</p>
-                <ArrowUpRight className="size-4 text-[var(--pw-green)]" />
+                <p className="text-sm font-semibold text-[var(--pw-ink)]/70">รายรับทั้งหมด</p>
+                <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--pw-green)]/10 text-[var(--pw-green)]">
+                  <ArrowUpRight className="size-4.5" />
+                </div>
               </div>
-              <p className="mt-2 break-words text-xl font-bold text-[var(--pw-green)]">
+              <p className="mt-2.5 break-words text-2xl font-extrabold text-[var(--pw-green)]">
                 <AnimatedNumber value={activeCurrency.totalIncome} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
-            <Card className="p-4 border-l-4 border-l-[var(--pw-expense)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <Card className="p-5 border-l-4 border-l-[var(--pw-expense)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md bg-[var(--pw-surface-raised)]/60">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-[var(--pw-ink)]/60">รายจ่ายทั้งหมด</p>
-                <ArrowDownRight className="size-4 text-[var(--pw-expense)]" />
+                <p className="text-sm font-semibold text-[var(--pw-ink)]/70">รายจ่ายทั้งหมด</p>
+                <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--pw-expense)]/10 text-[var(--pw-expense)]">
+                  <ArrowDownRight className="size-4.5" />
+                </div>
               </div>
-              <p className="mt-2 break-words text-xl font-bold text-[var(--pw-expense)]">
+              <p className="mt-2.5 break-words text-2xl font-extrabold text-[var(--pw-expense)]">
                 <AnimatedNumber value={activeCurrency.totalExpense} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
-            <Card className="p-4 border-l-4 border-l-[var(--pw-link)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <Card className="p-5 border-l-4 border-l-[var(--pw-link)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md bg-[var(--pw-surface-raised)]/60">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-[var(--pw-ink)]/60">คงเหลือสุทธิ</p>
-                <Scale className="size-4 text-[var(--pw-link)]" />
+                <p className="text-sm font-semibold text-[var(--pw-ink)]/70">คงเหลือสุทธิ</p>
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold",
+                  activeCurrency.netAmount >= 0
+                    ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
+                    : "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
+                )}>
+                  <Scale className="size-3.5" />
+                  {activeCurrency.netAmount >= 0 ? "ดุลบวก" : "ดุลลบ"}
+                </span>
               </div>
-              <p className="mt-2 break-words text-xl font-bold">
+              <p className={cn(
+                "mt-2.5 break-words text-2xl font-extrabold",
+                activeCurrency.netAmount >= 0 ? "text-[var(--pw-ink)]" : "text-[var(--pw-expense)]"
+              )}>
                 <AnimatedNumber value={activeCurrency.netAmount} currencyCode={activeCurrency.currencyCode} />
               </p>
             </Card>
-            <Card className="p-4 border-l-4 border-l-[var(--pw-primary)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-[var(--pw-ink)]/60">รายจ่ายจากสลิป</p>
-                <Receipt className="size-4 text-[var(--pw-primary)]" />
-              </div>
-              <p className="mt-2 break-words text-xl font-bold text-[var(--pw-primary)]">
-                <AnimatedNumber value={slipExpense} currencyCode={activeCurrency.currencyCode} />
-              </p>
-              <p className="mt-1 text-xs text-[var(--pw-ink)]/55">
-                {slipPercentage.toFixed(1)}% ของรายจ่ายรวม
-              </p>
-            </Card>
-            <Card className="p-4 border-l-4 border-l-[var(--pw-magenta)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-[var(--pw-ink)]/60">รายจ่ายจากบัตรเครดิต</p>
-                <CreditCard className="size-4 text-[var(--pw-magenta)]" />
-              </div>
-              <p className="mt-2 break-words text-xl font-bold text-[var(--pw-magenta)]">
-                <AnimatedNumber value={creditCardExpense} currencyCode={activeCurrency.currencyCode} />
-              </p>
-              <p className="mt-1 text-xs text-[var(--pw-ink)]/55">
-                {creditCardPercentage.toFixed(1)}% ของรายจ่ายรวม
-              </p>
-            </Card>
           </div>
-
-          {/* FR6.1.2: ดูภาพรวมรายจ่ายจากสลิปและบัตรเครดิต */}
-          <Card className="p-4 sm:p-5 border-[var(--pw-border)]">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--pw-hairline)] pb-3">
-              <div>
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Receipt className="size-5 text-[var(--pw-primary)]" />
-                  ภาพรวมรายจ่ายจากสลิปและบัตรเครดิต
-                </h2>
-                <p className="text-xs text-[var(--pw-ink)]/65">
-                  เปรียบเทียบสัดส่วนและรายละเอียดยอดใช้จ่ายจากการสแกนสลิปโอนเงินและการรูดบัตรเครดิต
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Link href="/transactions?sourceType=slip">
-                  <Button size="sm" variant="outline" className="h-8 text-xs">
-                    <Receipt className="size-3.5" />
-                    รายการสลิป
-                  </Button>
-                </Link>
-                <Link href="/credit-cards">
-                  <Button size="sm" variant="outline" className="h-8 text-xs">
-                    <CreditCard className="size-3.5" />
-                    จัดการบัตรเครดิต
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {/* Panel 1: สลิปโอนเงิน */}
-              <div className="rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/40 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-                      <Receipt className="size-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">สลิปโอนเงิน (Slip Transactions)</h3>
-                      <p className="text-xs text-[var(--pw-ink)]/60">รายการที่นำเข้าและอ่านจากสลิปโอนเงิน</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-[var(--pw-primary)]/15 px-2.5 py-0.5 text-xs font-semibold text-[var(--pw-primary)]">
-                    {slipPercentage.toFixed(1)}% ของรายจ่าย
-                  </span>
-                </div>
-
-                <div className="flex items-baseline justify-between pt-2">
-                  <span className="text-2xl font-bold text-[var(--pw-ink)]">
-                    {formatCurrency(slipExpense, activeCurrency.currencyCode)}
-                  </span>
-                  <span className="text-xs text-[var(--pw-ink)]/70">
-                    {slipCount > 0 ? `${slipCount} รายการ` : slipExpense > 0 ? "มีรายการ" : "ยังไม่มีรายการสลิป"}
-                  </span>
-                </div>
-
-                <div className="w-full bg-[var(--pw-hairline)] rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-[var(--pw-primary)] h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, slipPercentage)}%` }}
-                  />
-                </div>
-
-                <p className="text-xs text-[var(--pw-ink)]/60">
-                  {slipExpense > 0
-                    ? `ยอดเงินจากการสแกนและนำเข้าสลิปคิดเป็น ${slipPercentage.toFixed(1)}% จากรายจ่ายทั้งหมด ${formatCurrency(activeCurrency.totalExpense, activeCurrency.currencyCode)}`
-                    : "ยังไม่พบรายจ่ายจากการนำเข้าสลิปในช่วงเวลานี้ สามารถอัปโหลดสลิปได้ที่หน้านำเข้าข้อมูล"}
-                </p>
-              </div>
-
-              {/* Panel 2: บัตรเครดิต */}
-              <div className="rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/40 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--pw-magenta)]/10 text-[var(--pw-magenta)]">
-                      <CreditCard className="size-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">บัตรเครดิต (Credit Card Expenses)</h3>
-                      <p className="text-xs text-[var(--pw-ink)]/60">รายการที่รูดหรือตัดจ่ายผ่านบัตรเครดิต</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-[var(--pw-magenta)]/15 px-2.5 py-0.5 text-xs font-semibold text-[var(--pw-magenta)]">
-                    {creditCardPercentage.toFixed(1)}% ของรายจ่าย
-                  </span>
-                </div>
-
-                <div className="flex items-baseline justify-between pt-2">
-                  <span className="text-2xl font-bold text-[var(--pw-ink)]">
-                    {formatCurrency(creditCardExpense, activeCurrency.currencyCode)}
-                  </span>
-                  <span className="text-xs text-[var(--pw-ink)]/70">
-                    {creditCardCount > 0 ? `${creditCardCount} รายการ` : creditCardExpense > 0 ? "มีรายการ" : "ยังไม่มีรายการบัตร"}
-                  </span>
-                </div>
-
-                <div className="w-full bg-[var(--pw-hairline)] rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-[var(--pw-magenta)] h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, creditCardPercentage)}%` }}
-                  />
-                </div>
-
-                {cardExpenses.length > 0 ? (
-                  <div className="space-y-1.5 pt-1">
-                    <p className="text-xs font-medium text-[var(--pw-ink)]/75">แยกตามบัตรแต่ละใบ:</p>
-                    <ul className="space-y-1">
-                      {cardExpenses.map((card, idx) => (
-                        <li key={`${card.creditCardId}-${idx}`} className="flex items-center justify-between text-xs">
-                          <span className="truncate text-[var(--pw-ink)]/80">
-                            💳 {card.cardName} {card.bankName ? `(${card.bankName})` : ""}
-                          </span>
-                          <span className="font-medium shrink-0">
-                            {formatCurrency(card.amount, activeCurrency.currencyCode)}
-                            <span className="ml-1 text-[var(--pw-ink)]/50">({card.percentage.toFixed(1)}%)</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <p className="text-xs text-[var(--pw-ink)]/60">
-                    {creditCardExpense > 0
-                      ? `ยอดเงินจากการใช้บัตรคิดเป็น ${creditCardPercentage.toFixed(1)}% จากรายจ่ายทั้งหมด`
-                      : "ยังไม่พบรายจ่ายจากบัตรเครดิตในช่วงเวลานี้ สามารถเลือกผูกบัตรเครดิตได้ตอนบันทึกรายจ่าย"}
-                  </p>
-                )}
-              </div>
-            </div>
-          </Card>
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <Card className="p-4 sm:p-5">
               <h2 className="mb-4 text-lg font-bold">แนวโน้มรายรับและรายจ่าย · {periodLabels[period]}</h2>
               {trendPoints.length ? (
-                <div className="h-72 w-full">
+                <div className="h-60 sm:h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={trendPoints}
                       margin={
                         isNarrowMobile
-                          ? { top: 8, right: 4, left: -20, bottom: 20 }
-                          : { top: 8, right: 8, left: -14, bottom: 20 }
+                          ? { top: 8, right: 4, left: -24, bottom: 10 }
+                          : { top: 8, right: 8, left: -16, bottom: 12 }
                       }
                     >
                       <CartesianGrid stroke="var(--pw-hairline)" strokeDasharray="3 3" />
                       <XAxis
                         dataKey="label"
                         interval="preserveStartEnd"
-                        angle={-25}
-                        textAnchor="end"
-                        height={50}
-                        tick={{ fill: "var(--pw-ink)", fontSize: isNarrowMobile ? 10 : 11 }}
+                        angle={isNarrowMobile ? 0 : -15}
+                        textAnchor={isNarrowMobile ? "middle" : "end"}
+                        height={isNarrowMobile ? 30 : 42}
+                        tick={{ fill: "var(--pw-ink)", fontSize: 10 }}
                       />
                       <YAxis
                         width={36}
@@ -1092,6 +911,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                       <Bar
                         dataKey="income"
                         name="รายรับ"
+                        maxBarSize={32}
                         fill="var(--pw-green)"
                         radius={[4, 4, 0, 0]}
                         isAnimationActive={true}
@@ -1101,6 +921,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                       <Bar
                         dataKey="expense"
                         name="รายจ่าย"
+                        maxBarSize={32}
                         fill="var(--pw-expense)"
                         radius={[4, 4, 0, 0]}
                         isAnimationActive={true}
@@ -1134,8 +955,8 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                           data={activeCurrency.categoryBreakdown}
                           dataKey="amount"
                           nameKey="categoryName"
-                          innerRadius={isNarrowMobile ? 38 : 52}
-                          outerRadius={isNarrowMobile ? 66 : 88}
+                          innerRadius={isNarrowMobile ? 44 : 52}
+                          outerRadius={isNarrowMobile ? 80 : 88}
                           paddingAngle={2}
                           isAnimationActive={true}
                           animationDuration={850}
@@ -1146,11 +967,13 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                           ))}
                         </Pie>
                         <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
-                        <Legend
-                          layout="horizontal"
-                          verticalAlign="bottom"
-                          wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-                        />
+                        {!isNarrowMobile && (
+                          <Legend
+                            layout="horizontal"
+                            verticalAlign="bottom"
+                            wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                          />
+                        )}
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -1209,48 +1032,65 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             </Card>
           </div>
 
-          {/* Breakdown Cards */}
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <BreakdownCard
-              title="ตามแหล่งที่มา (Source Breakdown)"
-              icon={<Layers className="size-5 text-[var(--pw-primary)]" />}
-              items={activeCurrency.sourceBreakdown.map((item) => ({
-                label: formatSourceTypeName(item.sourceType),
-                amount: item.amount,
-                percentage: item.percentage,
-                count: item.transactionCount,
-              }))}
-              currencyCode={activeCurrency.currencyCode}
-              emptyMessage="ไม่มีข้อมูลแหล่งที่มา"
-            />
-            <BreakdownCard
-              title="ตามบัญชีธนาคาร"
-              icon={<Landmark className="size-5 text-[var(--pw-primary)]" />}
-              items={activeCurrency.bankAccountBreakdown
-                .filter((item) => item.bankAccountId != null)
-                .map((item) => ({
-                  label: item.bankName ? `${item.accountName} · ${item.bankName}` : item.accountName,
-                  amount: item.amount,
-                  percentage: item.percentage,
-                  count: item.transactionCount,
-                }))}
-              currencyCode={activeCurrency.currencyCode}
-              emptyMessage="ไม่มีรายการที่จ่ายผ่านบัญชีธนาคาร"
-            />
-            <BreakdownCard
-              title="ตามบัตรเครดิต"
-              icon={<CreditCard className="size-5 text-[var(--pw-magenta)]" />}
-              items={activeCurrency.creditCardBreakdown
-                .filter((item) => item.creditCardId != null || (item.cardName && item.cardName !== "ไม่ระบุบัตร"))
-                .map((item) => ({
-                  label: item.bankName ? `${item.cardName} · ${item.bankName}` : item.cardName,
-                  amount: item.amount,
-                  percentage: item.percentage,
-                  count: item.transactionCount,
-                }))}
-              currencyCode={activeCurrency.currencyCode}
-              emptyMessage="ไม่มีรายการใช้จ่ายผ่านบัตรเครดิต"
-            />
+          {/* Optional Deep Breakdown (ซ่อนไว้ให้หน้าจอสะอาด แต่กางดูได้เมื่อต้องการ) */}
+          <div className="pt-2">
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDetailedBreakdown(!showDetailedBreakdown)}
+                className="gap-2 text-xs font-semibold text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-raised)] rounded-full px-4 py-2 cursor-pointer border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 transition-all"
+              >
+                <ChevronDown className={cn("size-3.5 transition-transform duration-300", showDetailedBreakdown && "rotate-180")} />
+                <span>{showDetailedBreakdown ? "ซ่อนรายละเอียดช่องทางชำระ" : "ดูรายละเอียดเชิงลึก (ตามบัญชีและช่องทางจ่าย)"}</span>
+              </Button>
+            </div>
+
+            {showDetailedBreakdown && (
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3 mt-4">
+                <BreakdownCard
+                  title="ตามแหล่งที่มา (Source Breakdown)"
+                  icon={<Layers className="size-5 text-[var(--pw-primary)]" />}
+                  items={activeCurrency.sourceBreakdown.map((item) => ({
+                    label: formatSourceTypeName(item.sourceType),
+                    amount: item.amount,
+                    percentage: item.percentage,
+                    count: item.transactionCount,
+                  }))}
+                  currencyCode={activeCurrency.currencyCode}
+                  emptyMessage="ไม่มีข้อมูลแหล่งที่มา"
+                />
+                <BreakdownCard
+                  title="ตามบัญชีธนาคาร"
+                  icon={<Landmark className="size-5 text-[var(--pw-primary)]" />}
+                  items={activeCurrency.bankAccountBreakdown
+                    .filter((item) => item.bankAccountId != null)
+                    .map((item) => ({
+                      label: item.bankName ? `${item.accountName} · ${item.bankName}` : item.accountName,
+                      amount: item.amount,
+                      percentage: item.percentage,
+                      count: item.transactionCount,
+                    }))}
+                  currencyCode={activeCurrency.currencyCode}
+                  emptyMessage="ไม่มีรายการที่จ่ายผ่านบัญชีธนาคาร"
+                />
+                <BreakdownCard
+                  title="ตามบัตรเครดิต"
+                  icon={<CreditCard className="size-5 text-[var(--pw-magenta)]" />}
+                  items={activeCurrency.creditCardBreakdown
+                    .filter((item) => item.creditCardId != null || (item.cardName && item.cardName !== "ไม่ระบุบัตร"))
+                    .map((item) => ({
+                      label: item.bankName ? `${item.cardName} · ${item.bankName}` : item.cardName,
+                      amount: item.amount,
+                      percentage: item.percentage,
+                      count: item.transactionCount,
+                    }))}
+                  currencyCode={activeCurrency.currencyCode}
+                  emptyMessage="ไม่มีรายการใช้จ่ายผ่านบัตรเครดิต"
+                />
+              </div>
+            )}
           </div>
         </>
       )}
