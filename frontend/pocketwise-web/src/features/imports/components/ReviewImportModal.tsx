@@ -495,30 +495,48 @@ function SlipReviewContent({
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
+      <div className="flex flex-col gap-2.5 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
         <Button
           type="button"
           onClick={handleConfirm}
           disabled={confirmMutation.isPending || rejectMutation.isPending}
-          className="w-full sm:w-auto bg-[var(--pw-green)] text-[var(--pw-on-green)] hover:brightness-110"
+          className={cn(
+            "w-full sm:w-auto min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer order-1 text-white shadow-md",
+            confirmMutation.isPending
+              ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+              : "bg-emerald-600 hover:bg-emerald-700"
+          )}
         >
           {confirmMutation.isPending ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <>
+              <LoaderCircle className="size-4 animate-spin text-white" />
+              <span>กำลังบันทึกรายการ...</span>
+            </>
           ) : (
-            <Check className="h-4 w-4" />
+            <>
+              <Check className="size-4 stroke-[2.5]" />
+              <span>ยืนยันและบันทึกรายการ</span>
+            </>
           )}
-          ยืนยันและบันทึกรายการ
         </Button>
         <Button
           type="button"
-          variant="destructive" onClick={handleReject} disabled={rejectMutation.isPending || confirmMutation.isPending} className="w-full sm:w-auto"
+          variant="destructive"
+          onClick={handleReject}
+          disabled={rejectMutation.isPending || confirmMutation.isPending}
+          className="w-full sm:w-auto min-h-[44px] gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md disabled:opacity-85 disabled:bg-rose-600 disabled:text-white active:scale-[0.98] transition-all cursor-pointer order-2"
         >
           {rejectMutation.isPending ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <>
+              <LoaderCircle className="size-4 animate-spin text-white" />
+              <span>กำลังปฏิเสธสลิป...</span>
+            </>
           ) : (
-            <X className="h-4 w-4" />
+            <>
+              <X className="size-4" />
+              <span>ปฏิเสธสลิปนี้</span>
+            </>
           )}
-          ปฏิเสธสลิปนี้
         </Button>
       </div>
     </div>
@@ -755,21 +773,36 @@ function StatementReviewContent({
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
+      <div className="flex flex-col gap-2.5 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
         <Button
           type="button"
           onClick={handleConfirm}
           disabled={confirmMutation.isPending || selectedItemIds.size === 0}
-          className="w-full sm:w-auto"
+          className={cn(
+            "w-full sm:w-auto min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer order-1 text-white shadow-md",
+            confirmMutation.isPending
+              ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+              : "bg-emerald-600 hover:bg-emerald-700"
+          )}
         >
           {confirmMutation.isPending ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <>
+              <LoaderCircle className="size-4 animate-spin text-white" />
+              <span>กำลังบันทึกรายการ...</span>
+            </>
           ) : (
-            <CheckCircle2 className="h-4 w-4" />
+            <>
+              <CheckCircle2 className="size-4" />
+              <span>ยืนยันที่เลือก ({selectedItemIds.size} รายการ)</span>
+            </>
           )}
-          ยืนยันที่เลือก ({selectedItemIds.size} รายการ)
         </Button>
-        <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onClose}
+          className="w-full sm:w-auto min-h-[44px] gap-1.5 active:scale-[0.98] transition-transform order-2 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer"
+        >
           ปิด
         </Button>
       </div>

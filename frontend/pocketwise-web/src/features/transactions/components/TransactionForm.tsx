@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -42,8 +41,7 @@ import {
   Calendar,
   Check,
   ChevronDown,
-  ChevronRight,
-  LoaderCircle,
+  Loader2,
   Plus,
   Save,
   Sparkles,
@@ -436,35 +434,6 @@ export function TransactionForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* 1. Prominent AI Slip Scanner Card (ปุ่มสแกนสลิปเด่นชัด มองเห็นเป็นปุ่มกด 100%) */}
-      {!editing && (
-        <Link
-          href="/imports"
-          onClick={onClose}
-          className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-[var(--pw-primary)]/40 bg-gradient-to-r from-[var(--pw-primary)]/20 via-blue-500/15 to-indigo-500/15 p-3 text-xs font-medium transition-all hover:border-[var(--pw-primary)] hover:shadow-md hover:shadow-[var(--pw-primary)]/15 active:scale-[0.98] cursor-pointer"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--pw-primary)] text-white shadow-sm transition-transform group-hover:scale-105">
-              <Sparkles className="size-5 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 font-bold text-sm text-[var(--pw-ink)]">
-                <span>สแกนสลิปโอนเงิน (AI)</span>
-                <span className="rounded-full bg-[var(--pw-primary)] px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">
-                  แตะเพื่อสแกน
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--pw-ink)]/70 mt-0.5">
-                มีสลิปโอนเงิน? แตะที่นี่เพื่อให้อ่านยอดและลงรายการให้อัตโนมัติ
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 text-[var(--pw-primary)] font-semibold shrink-0">
-            <span className="hidden sm:inline">ไปหน้าสแกน</span>
-            <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
-          </div>
-        </Link>
-      )}
 
       {/* Top Controls: Transaction Type Toggle (รายจ่าย / รายรับ) */}
       <div className="flex items-center justify-between gap-2">
@@ -820,30 +789,43 @@ export function TransactionForm({
         </div>
       )}
 
-      {/* Action Buttons: Confirm on Top, Cancel Below (Mobile BottomSheet Standard) */}
-      <div className="flex flex-col gap-2.5 pt-2 sm:flex-row-reverse sm:justify-start">
+      {/* Action Buttons: Confirm on Top, Cancel Below (Mobile BottomSheet Standard, Natural In-Flow at Form End) */}
+      <div className="pt-4 pb-2 flex flex-col gap-2.5 sm:pt-2 sm:pb-0 sm:flex-row-reverse sm:justify-start">
         <Button
           type="submit"
-          className="w-full sm:w-auto font-semibold active:scale-[0.98] transition-transform"
+          className={cn(
+            "w-full sm:w-auto min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer order-1 text-white shadow-md",
+            create.isPending || update.isPending
+              ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+              : "bg-emerald-600 hover:bg-emerald-700"
+          )}
           disabled={create.isPending || update.isPending}
         >
           {create.isPending || update.isPending ? (
-            <LoaderCircle className="size-4 animate-spin" />
+            <>
+              <Loader2 className="size-4 animate-spin text-white" />
+              <span>กำลังบันทึกรายการ...</span>
+            </>
           ) : editing ? (
-            <Save className="size-4" />
+            <>
+              <Save className="size-4" />
+              <span>บันทึกการแก้ไข</span>
+            </>
           ) : (
-            <Plus className="size-4" />
+            <>
+              <Plus className="size-4 stroke-[2.5]" />
+              <span>บันทึกรายการ</span>
+            </>
           )}
-          {(create.isPending || update.isPending) ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "บันทึกรายการ"}
         </Button>
         <Button
           type="button"
           variant="ghost"
-          className="w-full sm:w-auto active:scale-[0.98] transition-transform"
+          className="w-full sm:w-auto min-h-[44px] gap-1.5 active:scale-[0.98] transition-transform order-2 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer"
           onClick={onClose}
         >
           <X className="size-4" />
-          ยกเลิก
+          <span>ยกเลิก</span>
         </Button>
       </div>
     </form>

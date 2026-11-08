@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Card } from "@/components/ui/card";
 import { TiltCard } from "@/components/ui/tilt-card";
-import { LoaderCircle, UserRoundPlus, Check, ShieldCheck } from "lucide-react";
+import { Loader2,
+  LoaderCircle, UserRoundPlus, Check, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export function RegisterForm() {
@@ -214,13 +215,20 @@ export function RegisterForm() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full min-h-[44px] gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white active:scale-[0.98] transition-all cursor-pointer"
                 disabled={registerMutation.isPending}
               >
-                {registerMutation.isPending
-                  ? <LoaderCircle className="animate-spin" />
-                  : <UserRoundPlus />}
-                {registerMutation.isPending ? "กำลังสมัคร..." : "สมัครสมาชิก"}
+                {registerMutation.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-white" />
+                    <span>กำลังสมัคร...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserRoundPlus className="size-4" />
+                    <span>สมัครสมาชิก</span>
+                  </>
+                )}
               </Button>
             </form>
 

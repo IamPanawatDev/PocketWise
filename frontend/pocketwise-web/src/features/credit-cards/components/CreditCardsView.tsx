@@ -23,10 +23,11 @@ import { AnimatedNumber } from "@/components/ui/animated-number";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { ChevronRight, CreditCard, LoaderCircle, Pencil, Plus, ReceiptText, Save, Trash2, X } from "lucide-react";
+import { ChevronRight, CreditCard, Loader2,
+  LoaderCircle, Pencil, Plus, ReceiptText, Save, Trash2, X } from "lucide-react";
 
 const emptyValues: CreditCardFormValues = {
   bankName: "",
@@ -158,22 +159,44 @@ export function CreditCardsView() {
                 <NumberInput id="credit-card-due" min={1} max={31} step={1} placeholder="เช่น 15" {...register("paymentDueDay")} />
               </FormField>
             </div>
-            <div className="flex flex-col gap-3 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
-              <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
-                {isSaving ? (
-                  <LoaderCircle className="animate-spin size-4 mr-1.5" />
-                ) : editing ? (
-                  <Save className="size-4 mr-1.5" />
-                ) : (
-                  <Plus className="size-4 mr-1.5" />
+            <BottomSheetFooter>
+              <Button
+                type="submit"
+                disabled={isSaving}
+                className={cn(
+                  "min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer text-white shadow-md order-1",
+                  isSaving
+                    ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+                    : "bg-emerald-600 hover:bg-emerald-700"
                 )}
-                {isSaving ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "เพิ่มบัตรเครดิต"}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="animate-spin size-4 text-white" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : editing ? (
+                  <>
+                    <Save className="size-4" />
+                    <span>บันทึกการแก้ไข</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-4 stroke-[2.5]" />
+                    <span>เพิ่มบัตรเครดิต</span>
+                  </>
+                )}
               </Button>
-              <Button type="button" variant="ghost" onClick={closeForm} className="w-full sm:w-auto">
-                <X className="size-4 mr-1.5" />
-                ยกเลิก
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeForm}
+                className="min-h-[44px] gap-1.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer order-2"
+              >
+                <X className="size-4" />
+                <span>ยกเลิก</span>
               </Button>
-            </div>
+            </BottomSheetFooter>
           </form>
         </div>
       </BottomSheet>
@@ -299,7 +322,7 @@ export function CreditCardsView() {
                   </TiltCard>
 
                 <div className="flex gap-2 justify-end px-1">
-                  <Button size="sm" variant="secondary" className="flex-1 sm:flex-none text-xs" onClick={() => startEdit(card)}><Pencil className="size-3.5" />แก้ไข</Button>
+                  <Button size="sm" variant="secondary" className="flex-1 sm:flex-none text-xs h-9 min-h-[36px]" onClick={() => startEdit(card)}><Pencil className="size-3.5" />แก้ไข</Button>
                   <ConfirmDialog
                     title="ลบบัตรนี้?"
                     description="บัตรจะถูกทำเครื่องหมายว่าไม่ใช้งาน รายการธุรกรรมเดิมยังคงอยู่"
@@ -309,7 +332,7 @@ export function CreditCardsView() {
                       onSuccess: () => toast.success("ลบบัตรแล้ว"),
                       onError: (reason) => toast.error(reason instanceof ApiError ? reason.message : "ลบไม่สำเร็จ"),
                     })}
-                    trigger={<Button size="sm" variant="destructive" className="flex-1 sm:flex-none text-xs"><Trash2 className="size-3.5" />ลบ</Button>}
+                    trigger={<Button size="sm" variant="destructive" className="flex-1 sm:flex-none text-xs h-9 min-h-[36px]"><Trash2 className="size-3.5" />ลบ</Button>}
                   />
                 </div>
               </div>

@@ -32,6 +32,7 @@ import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
+  Loader2,
   LoaderCircle,
   Mail,
   Save,
@@ -335,9 +336,22 @@ export function SettingsView() {
                   />
                 </div>
               </div>
-              <Button type="submit" disabled={saveSettings.isPending}>
-                {saveSettings.isPending ? <LoaderCircle className="animate-spin" /> : <Save />}
-                บันทึกการตั้งค่า
+              <Button
+                type="submit"
+                disabled={saveSettings.isPending}
+                className="w-full sm:w-auto min-h-[44px] gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {saveSettings.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-white" />
+                    <span>กำลังบันทึกการตั้งค่า...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4" />
+                    <span>บันทึกการตั้งค่า</span>
+                  </>
+                )}
               </Button>
             </form>
           </Card>
@@ -418,9 +432,22 @@ export function SettingsView() {
                   />
                 </FormField>
               </div>
-              <Button type="submit" disabled={saveProfile.isPending}>
-                {saveProfile.isPending ? <LoaderCircle className="animate-spin" /> : <Save />}
-                บันทึกโปรไฟล์
+              <Button
+                type="submit"
+                disabled={saveProfile.isPending}
+                className="w-full sm:w-auto min-h-[44px] gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {saveProfile.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-white" />
+                    <span>กำลังบันทึกโปรไฟล์...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4" />
+                    <span>บันทึกโปรไฟล์</span>
+                  </>
+                )}
               </Button>
             </form>
           </Card>

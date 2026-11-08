@@ -42,9 +42,21 @@ export function useSignalRNotifications(enabled = true) {
           }
 
           // 3. Show real-time toast
+          // Suppress redundant in-page popup toasts when already on /imports since the form UI handles it
+          const isSlipOnImportsPage =
+            typeof window !== "undefined" &&
+            window.location.pathname.startsWith("/imports") &&
+            (notification.relatedEntityType === "Slip" ||
+              notification.notificationType.startsWith("SLIP_"));
+
+          if (isSlipOnImportsPage) {
+            return;
+          }
+
           const isWarning =
             notification.notificationType.includes("WARNING") ||
-            notification.notificationType.includes("EXCEEDED");
+            notification.notificationType.includes("EXCEEDED") ||
+            notification.notificationType.includes("DUPLICATE");
 
           if (isWarning) {
             toast.warning(notification.title, {

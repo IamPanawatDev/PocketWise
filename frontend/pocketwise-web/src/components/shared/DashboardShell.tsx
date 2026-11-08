@@ -413,12 +413,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   />
                 </div>
                 {/* Brand Typography */}
-                <div className="flex min-w-0 flex-col leading-tight">
+                <div className="flex min-w-0 flex-col">
                   <span className="truncate text-base font-bold tracking-tight text-[var(--pw-ink)] transition-colors group-hover:text-[var(--pw-primary)]">
                     PocketWise
-                  </span>
-                  <span className="truncate text-[10px] font-medium tracking-wide text-[var(--pw-ink)]/55 uppercase">
-                    Smart Finance
                   </span>
                 </div>
               </div>
@@ -483,7 +480,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Mobile Command Hub Drawer (Mobile Only) */}
         <div className="flex md:hidden flex-col flex-1 min-h-0 overflow-hidden">
           {/* Scrollable Grouped Menus (Card Grid Style like Shortcuts) */}
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 space-y-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
             {mobileMenuGroups.map((group) => {
               const visibleItems = group.items.filter(
                 (item) => !item.permission || isAdmin || user?.permissions?.includes(item.permission)
