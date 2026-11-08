@@ -516,10 +516,11 @@ export default function AdminSettingsPage() {
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
                       required
                       value={editingValue}
                       onChange={(e) => setEditingValue(e.target.value)}
-                      className="w-full px-3 py-2 text-xs sm:text-sm font-mono rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
+                      className="w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm font-mono rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
                     />
                   </div>
                 );
@@ -546,14 +547,14 @@ export default function AdminSettingsPage() {
               <Button
                 type="submit"
                 disabled={updateSettingMutation.isPending}
-                className="w-full"
+                className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md disabled:opacity-85 disabled:text-white"
               >
                 {updateSettingMutation.isPending ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs"
                 onClick={() => setEditingSetting(null)}
               >
                 ยกเลิก

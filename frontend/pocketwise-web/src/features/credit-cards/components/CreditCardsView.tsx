@@ -147,16 +147,16 @@ export function CreditCardsView() {
                 <Input id="credit-card-bank" placeholder="เช่น กสิกรไทย, ไทยพาณิชย์" {...register("bankName")} />
               </FormField>
               <FormField label="เลขบัตรที่ปกปิดแล้ว" htmlFor="credit-card-number" error={errors.cardNumberMasked?.message}>
-                <Input id="credit-card-number" placeholder="**** **** **** 1234 หรือ 1234" {...register("cardNumberMasked")} />
+                <Input id="credit-card-number" inputMode="numeric" placeholder="**** **** **** 1234 หรือ 1234" {...register("cardNumberMasked")} />
               </FormField>
               <FormField label="วงเงิน (ไม่บังคับ)" htmlFor="credit-card-limit" error={errors.creditLimit?.message}>
-                <NumberInput id="credit-card-limit" min={0} step={0.01} placeholder="0" {...register("creditLimit")} />
+                <NumberInput id="credit-card-limit" inputMode="decimal" min={0} step={0.01} placeholder="0.00" enableQuickMath {...register("creditLimit")} />
               </FormField>
               <FormField label="วันสรุปยอด (1–31)" htmlFor="credit-card-billing" error={errors.billingDay?.message}>
-                <NumberInput id="credit-card-billing" min={1} max={31} step={1} placeholder="เช่น 25" {...register("billingDay")} />
+                <NumberInput id="credit-card-billing" inputMode="numeric" pattern="[0-9]*" min={1} max={31} step={1} placeholder="เช่น 25" {...register("billingDay")} />
               </FormField>
               <FormField label="วันครบกำหนดชำระ (1–31)" htmlFor="credit-card-due" error={errors.paymentDueDay?.message}>
-                <NumberInput id="credit-card-due" min={1} max={31} step={1} placeholder="เช่น 15" {...register("paymentDueDay")} />
+                <NumberInput id="credit-card-due" inputMode="numeric" pattern="[0-9]*" min={1} max={31} step={1} placeholder="เช่น 15" {...register("paymentDueDay")} />
               </FormField>
             </div>
             <BottomSheetFooter>
@@ -189,9 +189,9 @@ export function CreditCardsView() {
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={closeForm}
-                className="min-h-[44px] gap-1.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer order-2"
+                className="w-full sm:w-auto min-h-[44px] gap-1.5 font-medium border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 hover:text-[var(--pw-ink)] cursor-pointer order-2 active:scale-[0.98] transition-all shadow-2xs"
               >
                 <X className="size-4" />
                 <span>ยกเลิก</span>

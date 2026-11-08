@@ -235,7 +235,7 @@ export function CategoriesView() {
                         aria-checked={field.value === "expense"}
                         onClick={() => field.onChange("expense")}
                         className={cn(
-                          "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                          "flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                           field.value === "expense"
                             ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
                             : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
@@ -250,7 +250,7 @@ export function CategoriesView() {
                         aria-checked={field.value === "income"}
                         onClick={() => field.onChange("income")}
                         className={cn(
-                          "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                          "flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                           field.value === "income"
                             ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-[var(--pw-on-green)] font-semibold shadow-sm"
                             : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
@@ -265,7 +265,7 @@ export function CategoriesView() {
                         aria-checked={field.value === "both"}
                         onClick={() => field.onChange("both")}
                         className={cn(
-                          "flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
+                          "flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                           field.value === "both"
                             ? "border-[var(--pw-primary)] bg-[var(--pw-primary)] text-[var(--pw-primary-foreground)] shadow-sm"
                             : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-primary)] hover:text-[var(--pw-primary)]",
@@ -310,9 +310,9 @@ export function CategoriesView() {
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={closeForm}
-                className="min-h-[44px] gap-1.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer order-2"
+                className="w-full sm:w-auto min-h-[44px] gap-1.5 font-medium border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 hover:text-[var(--pw-ink)] cursor-pointer order-2 active:scale-[0.98] transition-all shadow-2xs"
               >
                 <X className="size-4" />
                 <span>ยกเลิก</span>

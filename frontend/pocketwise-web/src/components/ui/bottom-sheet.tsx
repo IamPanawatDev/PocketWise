@@ -148,7 +148,7 @@ export function BottomSheet({
           {/* Scrollable Form Body with Overscroll Containment */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto px-5 py-4 sm:px-6 overscroll-contain touch-pan-y"
+            className="flex-1 overflow-y-auto px-5 py-4 sm:px-6 overscroll-contain touch-pan-y scroll-pb-32 sm:scroll-pb-10"
           >
             {children}
           </div>

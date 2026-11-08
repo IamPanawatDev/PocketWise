@@ -60,7 +60,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import type { CategoryResponse, CategoryType } from "@/types/category.types";
 
 const AVAILABLE_ICONS = [
@@ -474,8 +474,9 @@ export function SystemCategoriesManager() {
                       onClick={() => handleMove(c, -1)}
                       title="เลื่อนขึ้น"
                       aria-label={`เลื่อน ${c.categoryName} ขึ้น`}
+                      className="size-9 sm:size-7 touch-manipulation min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0"
                     >
-                      <ArrowUp className="size-3.5" />
+                      <ArrowUp className="size-4 sm:size-3.5" />
                     </Button>
                     <span className="w-5 text-center text-xs font-mono text-[var(--pw-ink)]/50">
                       {c.sortOrder}
@@ -488,8 +489,9 @@ export function SystemCategoriesManager() {
                       onClick={() => handleMove(c, 1)}
                       title="เลื่อนลง"
                       aria-label={`เลื่อน ${c.categoryName} ลง`}
+                      className="size-9 sm:size-7 touch-manipulation min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0"
                     >
-                      <ArrowDown className="size-3.5" />
+                      <ArrowDown className="size-4 sm:size-3.5" />
                     </Button>
                   </div>
 
@@ -537,7 +539,7 @@ export function SystemCategoriesManager() {
                     size="sm"
                     onClick={() => handleToggleActive(c)}
                     disabled={updateMutation.isPending}
-                    className="text-xs h-8 px-2.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
+                    className="text-xs min-h-[38px] sm:h-8 px-3 sm:px-2.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
                   >
                     {c.isActive ? "ปิดการใช้งาน" : "เปิดใช้งาน"}
                   </Button>
@@ -547,7 +549,7 @@ export function SystemCategoriesManager() {
                     variant="secondary"
                     size="sm"
                     onClick={() => openEditDialog(c)}
-                    className="text-xs h-8 px-2.5 gap-1"
+                    className="text-xs min-h-[38px] sm:h-8 px-3 sm:px-2.5 gap-1 font-medium"
                   >
                     <Pencil className="size-3.5" />
                     แก้ไข
@@ -724,11 +726,11 @@ export function SystemCategoriesManager() {
               )}
 
               {/* Form Buttons: Confirm on TOP, Cancel on BOTTOM on mobile */}
-              <div className="flex flex-col gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
+              <BottomSheetFooter className="pt-4 border-t border-[var(--pw-hairline)]">
                 <Button
                   type="submit"
                   variant="default"
-                  className="w-full sm:w-auto min-h-[44px]"
+                  className="w-full sm:w-auto min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md disabled:opacity-85 disabled:text-white"
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   {(createMutation.isPending || updateMutation.isPending) && (
@@ -736,10 +738,15 @@ export function SystemCategoriesManager() {
                   )}
                   {editingCategory ? "บันทึกการแก้ไข" : "สร้างหมวดหมู่"}
                 </Button>
-                <Button type="button" variant="ghost" className="w-full sm:w-auto min-h-[44px]" onClick={closeDialog}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-auto min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs"
+                  onClick={closeDialog}
+                >
                   ยกเลิก
                 </Button>
-              </div>
+              </BottomSheetFooter>
             </form>
         </div>
       </BottomSheet>

@@ -290,9 +290,9 @@ export function BankAccountsView() {
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={closeForm}
-                className="min-h-[44px] gap-1.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer order-2"
+                className="w-full sm:w-auto min-h-[44px] gap-1.5 font-medium border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 hover:text-[var(--pw-ink)] cursor-pointer order-2 active:scale-[0.98] transition-all shadow-2xs"
               >
                 <X className="size-4" />
                 <span>ยกเลิก</span>

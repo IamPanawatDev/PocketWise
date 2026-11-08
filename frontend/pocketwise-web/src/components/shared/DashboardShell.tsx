@@ -778,6 +778,31 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
+        {/* Mobile Admin Quick Subnav Bar (< md) */}
+        {(pathname.startsWith("/admin") || pathname === "/audit-logs") && (
+          <div className="sticky top-14 z-20 flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/90 px-3 py-2 backdrop-blur-md md:hidden overscroll-contain">
+            {adminMobileShortcuts.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all active:scale-95 shadow-2xs",
+                    isActive
+                      ? "bg-[var(--pw-primary)] text-white font-semibold shadow-xs"
+                      : "border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)]/70 hover:text-[var(--pw-ink)]"
+                  )}
+                >
+                  <Icon className="size-3.5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         {/* Desktop Top-Right Floating Theme Toggle */}
         <div className="fixed top-3 right-6 z-30 hidden md:flex items-center gap-2">
           <button
