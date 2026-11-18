@@ -643,7 +643,7 @@ export function TransactionForm({
             </button>
           </div>
         ) : (
-          <FormField label="วันที่และเวลา (ค.ศ. / เวลาไทย)" htmlFor="transaction-date" error={errors.transactionDate?.message}>
+          <FormField label="วันที่และเวลา" htmlFor="transaction-date" error={errors.transactionDate?.message}>
             <div className="space-y-1.5">
               <Controller
                 control={control}
@@ -684,7 +684,7 @@ export function TransactionForm({
             <SelectValue placeholder="— เลือกช่องทางชำระเงิน —" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">💵 เงินสด / ไม่ระบุ</SelectItem>
+            <SelectItem value="none">💵 เงินสด</SelectItem>
             {bankAccounts && bankAccounts.length > 0 && (
               <SelectGroup>
                 <SelectLabel className="text-xs font-semibold text-[var(--pw-ink)]/60 px-2 py-1.5">

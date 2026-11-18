@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ListRowsSkeleton } from "@/components/shared/Skeletons";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   ArrowDown,
   ArrowDownRight,
@@ -185,27 +186,23 @@ export function CategoriesView() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
-            <FolderTree className="size-6 text-[var(--pw-primary)]" />
-            หมวดหมู่
-          </h1>
-          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
-            จัดหมวดหมู่รายรับและรายจ่ายเพื่อวิเคราะห์พฤติกรรมการใช้เงิน
-          </p>
-        </div>
-        <Button
-          className="w-full sm:w-auto"
-          onClick={() => {
-            clearForm();
-            setIsFormOpen(true);
-          }}
-        >
-          <Plus />
-          เพิ่มหมวดหมู่
-        </Button>
-      </div>
+      <PageHeader
+        title="หมวดหมู่"
+        icon={FolderTree}
+        action={
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => {
+              clearForm();
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus />
+            เพิ่มหมวดหมู่
+          </Button>
+        }
+        className="mb-4 sm:mb-6"
+      />
 
       {/* Form in BottomSheet */}
       <BottomSheet

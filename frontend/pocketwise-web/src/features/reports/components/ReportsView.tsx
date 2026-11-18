@@ -93,13 +93,13 @@ const periodLabels: Record<ReportPeriod, string> = {
 function formatSourceTypeName(sourceType: string): string {
   switch (sourceType.toLowerCase()) {
     case "slip":
-      return "สลิปโอนเงิน (Slip)";
+      return "สลิปโอนเงิน";
     case "cardstatement":
-      return "ใบแจ้งยอดบัตร (Card Statement)";
+      return "ใบแจ้งยอดบัตรเครดิต";
     case "manual":
-      return "บันทึกเอง (Manual)";
+      return "บันทึกเอง";
     case "recurring":
-      return "รายการประจำ (Recurring)";
+      return "รายการประจำ";
     default:
       return sourceType;
   }
@@ -235,6 +235,33 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         ? "กรุณาเลือกช่วงวันที่ให้ครบ"
         : "";
 
+  const isAllTime =
+    activeQuickPeriod === "all" ||
+    (fromDate === "2000-01-01" && toDate === "2099-12-31") ||
+    (!fromDate && !toDate);
+
+  const buildTransactionsUrl = (params: {
+    categoryId?: number | null;
+    bankAccountId?: number | null;
+    creditCardId?: number | null;
+    sourceType?: string | null;
+    type?: string | null;
+  }) => {
+    const sp = new URLSearchParams();
+    if (params.categoryId != null) sp.set("categoryId", String(params.categoryId));
+    if (params.bankAccountId != null) sp.set("bankAccountId", String(params.bankAccountId));
+    if (params.creditCardId != null) sp.set("creditCardId", String(params.creditCardId));
+    if (params.sourceType) sp.set("sourceType", params.sourceType);
+    if (params.type) sp.set("type", params.type);
+
+    if (!isAllTime && validRange) {
+      sp.set("fromDate", fromUtc);
+      sp.set("toDate", toUtc);
+    }
+
+    const qs = sp.toString();
+    return qs ? `/transactions?${qs}` : "/transactions";
+  };
 
   const [showFilterSheet, setShowFilterSheet] = useState(false);
 
@@ -551,7 +578,6 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         open={showFilterSheet}
         onOpenChange={setShowFilterSheet}
         title="ตัวกรองรายงาน"
-        description="เลือกช่วงวันที่ หมวดหมู่ แท็ก และช่วงกราฟที่ต้องการวิเคราะห์"
       >
         <div className="flex flex-col max-h-[75vh]">
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
@@ -625,10 +651,10 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormField label="ตั้งแต่วันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-from-date">
+                <FormField label="ตั้งแต่วันที่" htmlFor="report-from-date">
                   <DateInput id="report-from-date" value={fromDate} onChange={setFromDate} />
                 </FormField>
-                <FormField label="ถึงวันที่ (ค.ศ. / เวลาไทย)" htmlFor="report-to-date">
+                <FormField label="ถึงวันที่" htmlFor="report-to-date">
                   <DateInput id="report-to-date" value={toDate} onChange={setToDate} />
                 </FormField>
               </div>
@@ -991,7 +1017,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                                 style={{ backgroundColor: color }}
                               />
                               <Link
-                                href={item.categoryId ? `/transactions?categoryId=${item.categoryId}` : "/transactions"}
+                                href={buildTransactionsUrl({ categoryId: item.categoryId, type: "expense" })}
                                 className="truncate font-semibold text-[var(--pw-ink)] hover:text-[var(--pw-primary)] hover:underline flex items-center gap-1"
                               >
                                 <span>{item.categoryName}</span>
@@ -1048,13 +1074,14 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             {showDetailedBreakdown && (
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3 mt-4">
                 <BreakdownCard
-                  title="ตามแหล่งที่มา (Source Breakdown)"
+                  title="ตามแหล่งที่มา"
                   icon={<Layers className="size-5 text-[var(--pw-primary)]" />}
                   items={activeCurrency.sourceBreakdown.map((item) => ({
                     label: formatSourceTypeName(item.sourceType),
                     amount: item.amount,
                     percentage: item.percentage,
                     count: item.transactionCount,
+                    href: buildTransactionsUrl({ sourceType: item.sourceType }),
                   }))}
                   currencyCode={activeCurrency.currencyCode}
                   emptyMessage="ไม่มีข้อมูลแหล่งที่มา"
@@ -1069,6 +1096,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                       amount: item.amount,
                       percentage: item.percentage,
                       count: item.transactionCount,
+                      href: buildTransactionsUrl({ bankAccountId: item.bankAccountId }),
                     }))}
                   currencyCode={activeCurrency.currencyCode}
                   emptyMessage="ไม่มีรายการที่จ่ายผ่านบัญชีธนาคาร"
@@ -1083,6 +1111,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                       amount: item.amount,
                       percentage: item.percentage,
                       count: item.transactionCount,
+                      href: item.creditCardId != null ? buildTransactionsUrl({ creditCardId: item.creditCardId }) : undefined,
                     }))}
                   currencyCode={activeCurrency.currencyCode}
                   emptyMessage="ไม่มีรายการใช้จ่ายผ่านบัตรเครดิต"
@@ -1100,10 +1129,9 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         title={
           <div className="flex items-center gap-2">
             <FileDown className="size-5 text-[var(--pw-primary)]" />
-            <span>ส่งออกข้อมูลรายงาน (Export Report)</span>
+            <span>ส่งออกข้อมูลรายงาน</span>
           </div>
         }
-        description="ดาวน์โหลดสรุปภาพรวมรายรับ-รายจ่าย รายหมวดหมู่ หรือรายการธุรกรรมประจำเดือน"
       >
         <div className="space-y-4">
           {/* Export Mode / Month Selector */}
@@ -1255,7 +1283,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 )}
               >
                 <FileJson className="size-4 shrink-0 text-sky-400" />
-                <span>JSON (Raw Data)</span>
+                <span>ไฟล์ข้อมูล JSON</span>
               </button>
             </div>
           </div>
@@ -1298,7 +1326,7 @@ function BreakdownCard({
 }: {
   title: string;
   icon?: React.ReactNode;
-  items: { label: string; amount: number; percentage: number; count?: number }[];
+  items: { label: string; amount: number; percentage: number; count?: number; href?: string }[];
   currencyCode: string;
   emptyMessage?: string;
 }) {
@@ -1317,7 +1345,17 @@ function BreakdownCard({
             >
               <div className="flex items-start justify-between gap-3 text-xs">
                 <div className="min-w-0">
-                  <span className="block truncate font-semibold text-[var(--pw-ink)]">{item.label}</span>
+                  {item.href ? (
+                    <Link
+                      href={item.href}
+                      className="group flex items-center gap-1 font-semibold text-[var(--pw-ink)] hover:text-[var(--pw-primary)] hover:underline transition-colors"
+                    >
+                      <span className="truncate">{item.label}</span>
+                      <ChevronRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </Link>
+                  ) : (
+                    <span className="block truncate font-semibold text-[var(--pw-ink)]">{item.label}</span>
+                  )}
                   {item.count !== undefined && item.count > 0 && (
                     <span className="text-[10px] text-[var(--pw-ink)]/50">{item.count} รายการ</span>
                   )}

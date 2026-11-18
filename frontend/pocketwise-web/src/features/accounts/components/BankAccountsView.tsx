@@ -30,6 +30,7 @@ import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   Banknote,
   Landmark,
@@ -195,27 +196,23 @@ export function BankAccountsView() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
-            <Landmark className="size-6 text-[var(--pw-primary)]" />
-            บัญชี
-          </h1>
-          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
-            จัดการบัญชีเงินฝาก เงินสด และกระเป๋าเงินของคุณ
-          </p>
-        </div>
-        <Button
-          className="w-full sm:w-auto"
-          onClick={() => {
-            clearForm();
-            setIsFormOpen(true);
-          }}
-        >
-          <Plus />
-          เพิ่มบัญชี
-        </Button>
-      </div>
+      <PageHeader
+        title="บัญชี"
+        icon={Landmark}
+        action={
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => {
+              clearForm();
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus />
+            เพิ่มบัญชี
+          </Button>
+        }
+        className="mb-4 sm:mb-6"
+      />
 
       {/* Form in BottomSheet */}
       <BottomSheet

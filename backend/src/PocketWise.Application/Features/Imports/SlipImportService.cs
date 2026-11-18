@@ -32,6 +32,24 @@ public class SlipImportService : ISlipImportService
     private readonly ILogger<SlipImportService>? _logger;
     private readonly ICategoryRuleService? _categoryRuleService;
     private readonly IMerchantRepository? _merchantRepository;
+    private readonly IBankAccountRepository? _bankAccountRepository;
+
+    private static readonly Dictionary<string, (string BankName, string DefaultAccountName)> ThaiBankDirectory = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["KBANK"] = ("ธนาคารกสิกรไทย", "บัญชีธนาคารกสิกรไทย"),
+        ["SCB"] = ("ธนาคารไทยพาณิชย์", "บัญชีธนาคารไทยพาณิชย์"),
+        ["BBL"] = ("ธนาคารกรุงเทพ", "บัญชีธนาคารกรุงเทพ"),
+        ["KTB"] = ("ธนาคารกรุงไทย", "บัญชีธนาคารกรุงไทย"),
+        ["TTB"] = ("ธนาคารทหารไทยธนชาต", "บัญชีธนาคารทหารไทยธนชาต"),
+        ["BAY"] = ("ธนาคารกรุงศรีอยุธยา", "บัญชีธนาคารกรุงศรีอยุธยา"),
+        ["GSB"] = ("ธนาคารออมสิน", "บัญชีธนาคารออมสิน"),
+        ["UOB"] = ("ธนาคารยูโอบี", "บัญชีธนาคารยูโอบี"),
+        ["CIMB"] = ("ธนาคารซีไอเอ็มบีไทย", "บัญชีธนาคารซีไอเอ็มบีไทย"),
+        ["BAAC"] = ("ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร", "บัญชี ธ.ก.ส."),
+        ["KKP"] = ("ธนาคารเกียรตินาคินภัทร", "บัญชีธนาคารเกียรตินาคินภัทร"),
+        ["TISCO"] = ("ธนาคารทิสโก้", "บัญชีธนาคารทิสโก้"),
+        ["LH"] = ("ธนาคารแลนด์ แอนด์ เฮ้าส์", "บัญชีธนาคารแลนด์ แอนด์ เฮ้าส์")
+    };
 
     public SlipImportService(
         IImportRepository repository,
@@ -41,7 +59,8 @@ public class SlipImportService : ISlipImportService
         IAuditLogService? auditLogService = null,
         ILogger<SlipImportService>? logger = null,
         ICategoryRuleService? categoryRuleService = null,
-        IMerchantRepository? merchantRepository = null)
+        IMerchantRepository? merchantRepository = null,
+        IBankAccountRepository? bankAccountRepository = null)
     {
         _repository = repository;
         _fileStorageService = fileStorageService;
@@ -51,6 +70,7 @@ public class SlipImportService : ISlipImportService
         _logger = logger;
         _categoryRuleService = categoryRuleService;
         _merchantRepository = merchantRepository;
+        _bankAccountRepository = bankAccountRepository;
     }
 
     public async Task<SlipImportResponse> UploadSlipAsync(
@@ -114,6 +134,10 @@ public class SlipImportService : ISlipImportService
 
             _logger?.LogInformation("[SlipImportService] OCR extraction finished: Bank={Bank}, Amount={Amt}, Date={Date}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
                 extracted.BankCode, extracted.DetectedAmount, extracted.DetectedAt, extracted.PayerName, extracted.PayeeName, extracted.TransactionReference);
+
+            // Suggest or auto-create bank account
+            var (suggestedBankAccountId, suggestedBankAccountName, isAutoCreatedBankAccount) =
+                await ResolveOrCreateBankAccountAsync(userId, extracted.BankCode, cancellationToken);
 
             // Suggest category
             var (suggestedCatId, suggestedCatName) = await _repository.SuggestCategoryAsync(
@@ -233,6 +257,9 @@ public class SlipImportService : ISlipImportService
                 TransactionReference = slip.TransactionReference,
                 ReviewStatus = slip.ReviewStatus.ToString().ToLowerInvariant(),
                 IsDuplicate = isDuplicate,
+                SuggestedBankAccountId = suggestedBankAccountId,
+                SuggestedBankAccountName = suggestedBankAccountName,
+                IsAutoCreatedBankAccount = isAutoCreatedBankAccount,
                 SuggestedCategoryId = suggestedCatId,
                 SuggestedCategoryName = suggestedCatName,
                 OcrProvider = extracted.OcrProvider,
@@ -301,6 +328,8 @@ public class SlipImportService : ISlipImportService
             slip.PayeeName ?? slip.PayerName ?? slip.OriginalFileName,
             cancellationToken);
 
+        var (suggestedBankId, suggestedBankName) = await MatchExistingBankAccountAsync(userId, slip.BankCode, cancellationToken);
+
         return new SlipImportResponse
         {
             SlipImportFileId = slip.SlipImportFileId,
@@ -316,6 +345,9 @@ public class SlipImportService : ISlipImportService
             TransactionReference = slip.TransactionReference,
             ReviewStatus = slip.ReviewStatus.ToString().ToLowerInvariant(),
             IsDuplicate = slip.ReviewStatus == ReviewStatus.Duplicate,
+            SuggestedBankAccountId = suggestedBankId,
+            SuggestedBankAccountName = suggestedBankName,
+            IsAutoCreatedBankAccount = false,
             SuggestedCategoryId = suggestedCatId,
             SuggestedCategoryName = suggestedCatName,
             CreatedAt = slip.CreatedAt
@@ -587,6 +619,84 @@ public class SlipImportService : ISlipImportService
         }
 
         return true;
+    }
+
+    private async Task<(long? BankAccountId, string? AccountName, bool IsAutoCreated)> ResolveOrCreateBankAccountAsync(
+        long userId,
+        string? rawBankCode,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(rawBankCode) || _bankAccountRepository == null)
+        {
+            return (null, null, false);
+        }
+
+        var code = rawBankCode.Trim();
+        var (bankName, defaultAccountName) = ThaiBankDirectory.TryGetValue(code, out var info)
+            ? info
+            : ($"ธนาคาร {code.ToUpperInvariant()}", $"บัญชีธนาคาร {code.ToUpperInvariant()}");
+
+        var accounts = await _bankAccountRepository.GetAllAsync(userId, cancellationToken);
+        var matched = accounts.FirstOrDefault(a => a.IsActive && !a.IsDeleted &&
+            (string.Equals(a.BankCode, code, StringComparison.OrdinalIgnoreCase) ||
+             (!string.IsNullOrEmpty(bankName) && a.AccountName.Contains(bankName, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrEmpty(a.BankName) && (a.BankName.Contains(bankName, StringComparison.OrdinalIgnoreCase) || bankName.Contains(a.BankName, StringComparison.OrdinalIgnoreCase)))));
+
+        if (matched != null)
+        {
+            _logger?.LogInformation("[SlipImportService] Matched existing bank account: AccountId={AccountId}, AccountName='{AccountName}' for BankCode='{BankCode}'",
+                matched.BankAccountId, matched.AccountName, code);
+            return (matched.BankAccountId, matched.AccountName, false);
+        }
+
+        // Auto-create new bank account
+        var newAccount = new BankAccount
+        {
+            UserId = userId,
+            AccountName = defaultAccountName,
+            BankName = bankName,
+            BankCode = code.ToUpperInvariant(),
+            AccountType = AccountType.Bank,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _bankAccountRepository.AddAsync(newAccount, cancellationToken);
+        await _bankAccountRepository.SaveChangesAsync(cancellationToken);
+
+        _logger?.LogInformation("[SlipImportService] Auto-created new bank account: AccountId={AccountId}, AccountName='{AccountName}', BankCode='{BankCode}', UserId={UserId}",
+            newAccount.BankAccountId, newAccount.AccountName, newAccount.BankCode, userId);
+
+        return (newAccount.BankAccountId, newAccount.AccountName, true);
+    }
+
+    private async Task<(long? BankAccountId, string? AccountName)> MatchExistingBankAccountAsync(
+        long userId,
+        string? rawBankCode,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(rawBankCode) || _bankAccountRepository == null)
+        {
+            return (null, null);
+        }
+
+        var code = rawBankCode.Trim();
+        var (bankName, _) = ThaiBankDirectory.TryGetValue(code, out var info)
+            ? info
+            : ($"ธนาคาร {code.ToUpperInvariant()}", $"บัญชีธนาคาร {code.ToUpperInvariant()}");
+
+        var accounts = await _bankAccountRepository.GetAllAsync(userId, cancellationToken);
+        var matched = accounts.FirstOrDefault(a => a.IsActive && !a.IsDeleted &&
+            (string.Equals(a.BankCode, code, StringComparison.OrdinalIgnoreCase) ||
+             (!string.IsNullOrEmpty(bankName) && a.AccountName.Contains(bankName, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrEmpty(a.BankName) && (a.BankName.Contains(bankName, StringComparison.OrdinalIgnoreCase) || bankName.Contains(a.BankName, StringComparison.OrdinalIgnoreCase)))));
+
+        if (matched != null)
+        {
+            return (matched.BankAccountId, matched.AccountName);
+        }
+
+        return (null, null);
     }
 }
 

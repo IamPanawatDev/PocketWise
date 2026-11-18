@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -51,7 +52,6 @@ import {
   Clock,
   Coins,
   Loader2,
-  LoaderCircle,
   Pencil,
   Plus,
   Repeat,
@@ -298,27 +298,23 @@ export function RecurringTransactionsView() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
-            <Repeat className="size-6 text-[var(--pw-primary)]" />
-            รายการประจำ
-          </h1>
-          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
-            ระบบสร้างรายการรายรับหรือรายจ่ายเมื่อถึงกำหนดตามรอบที่ตั้งไว้
-          </p>
-        </div>
-        <Button
-          className="w-full sm:w-auto"
-          onClick={() => {
-            clearForm();
-            setIsFormOpen(true);
-          }}
-        >
-          <Plus />
-          เพิ่มรายการประจำ
-        </Button>
-      </div>
+      <PageHeader
+        title="รายการประจำ"
+        icon={Repeat}
+        action={
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => {
+              clearForm();
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus />
+            เพิ่มรายการประจำ
+          </Button>
+        }
+        className="mb-4 sm:mb-6"
+      />
 
       {/* Form in BottomSheet */}
       <BottomSheet

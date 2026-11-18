@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CreditCard, FileUp, History, Receipt } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { SlipImportTab } from "./SlipImportTab";
 import { StatementImportTab } from "./StatementImportTab";
 import { ImportJobsTab } from "./ImportJobsTab";
@@ -16,15 +17,10 @@ export function ImportsView() {
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl text-[var(--pw-ink)]">
-          <FileUp className="size-6 text-[var(--pw-primary)]" />
-          นำเข้าข้อมูล (Imports)
-        </h1>
-        <p className="mt-1 text-xs text-[var(--pw-ink)]/65 sm:text-sm">
-          อัปโหลดสลิปโอนเงิน สแกน AI และนำเข้าใบแจ้งยอดบัตรเครดิต
-        </p>
-      </div>
+      <PageHeader
+        title="นำเข้าข้อมูล"
+        icon={FileUp}
+      />
 
       {/* Responsive Segmented Tabs Bar */}
       <div className="flex rounded-xl bg-[var(--pw-surface-indigo)]/30 p-1 border border-[var(--pw-hairline)] w-full overflow-x-auto">

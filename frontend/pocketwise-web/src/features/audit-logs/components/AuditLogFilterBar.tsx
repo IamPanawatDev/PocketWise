@@ -29,32 +29,32 @@ interface AuditLogFilterBarProps {
 }
 
 const ACTION_OPTIONS = [
-  { value: "all", label: "ทุกเหตุการณ์ (ทั้งหมด)" },
-  { value: "Create", label: "สร้าง (Create)" },
-  { value: "Update", label: "แก้ไข (Update)" },
-  { value: "Delete", label: "ลบ (Delete)" },
-  { value: "Import", label: "นำเข้า (Import)" },
+  { value: "all", label: "ทุกเหตุการณ์" },
+  { value: "Create", label: "สร้าง" },
+  { value: "Update", label: "แก้ไข" },
+  { value: "Delete", label: "ลบ" },
+  { value: "Import", label: "นำเข้า" },
 ];
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
-  Transactions: "รายการธุรกรรม (Transactions)",
-  TransferGroups: "การโอนเงิน (TransferGroups)",
-  Categories: "หมวดหมู่ (Categories)",
-  Tags: "แท็ก (Tags)",
-  BankAccounts: "บัญชีธนาคาร (BankAccounts)",
-  CreditCards: "บัตรเครดิต (CreditCards)",
-  Budgets: "งบประมาณ (Budgets)",
-  RecurringTransactions: "รายการประจำ (RecurringTransactions)",
-  CategoryRules: "กฎจัดหมวด (CategoryRules)",
-  Merchants: "ร้านค้า (Merchants)",
-  SlipImportFiles: "สลิปธนาคาร (SlipImportFiles)",
-  CreditCardStatements: "ใบแจ้งยอดบัตร (CreditCardStatements)",
-  UserSettings: "ตั้งค่าระบบ (UserSettings)",
-  UserData: "ข้อมูลผู้ใช้ (UserData)",
-  Users: "โปรไฟล์ผู้ใช้ (Users)",
-  Roles: "บทบาทผู้ใช้ (Roles)",
-  UserRoles: "การกำหนดบทบาท (UserRoles)",
-  RolePermissions: "สิทธิ์บทบาท (RolePermissions)",
+  Transactions: "รายการธุรกรรม",
+  TransferGroups: "การโอนเงิน",
+  Categories: "หมวดหมู่",
+  Tags: "แท็ก",
+  BankAccounts: "บัญชีธนาคาร",
+  CreditCards: "บัตรเครดิต",
+  Budgets: "งบประมาณ",
+  RecurringTransactions: "รายการประจำ",
+  CategoryRules: "กฎจัดหมวด",
+  Merchants: "ร้านค้า",
+  SlipImportFiles: "สลิปธนาคาร",
+  CreditCardStatements: "ใบแจ้งยอดบัตรเครดิต",
+  UserSettings: "ตั้งค่าระบบ",
+  UserData: "ข้อมูลผู้ใช้",
+  Users: "โปรไฟล์ผู้ใช้",
+  Roles: "บทบาทผู้ใช้",
+  UserRoles: "การกำหนดบทบาท",
+  RolePermissions: "สิทธิ์บทบาท",
 };
 
 export function AuditLogFilterBar({
@@ -192,11 +192,11 @@ export function AuditLogFilterBar({
         open={showFilterSheet}
         onOpenChange={setShowFilterSheet}
         title="ตัวกรองประวัติการใช้งาน"
-        description="กรองบันทึกประวัติตามเหตุการณ์ หมวดข้อมูล และช่วงวันที่บันทึก"
+        description="กรองบันทึกประวัติการใช้งาน"
       >
         <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="เหตุการณ์ (Action)" className="w-full min-w-0">
+            <FormField label="เหตุการณ์" className="w-full min-w-0">
               <Select
                 value={filter.action ?? "all"}
                 onValueChange={(val) => onFilterChange({ action: val === "all" ? undefined : val })}
@@ -214,7 +214,7 @@ export function AuditLogFilterBar({
               </Select>
             </FormField>
 
-            <FormField label="หมวดข้อมูล (Entity Type)" className="w-full min-w-0">
+            <FormField label="หมวดข้อมูล" className="w-full min-w-0">
               <Select
                 value={filter.entityType ?? "all"}
                 onValueChange={(val) => onFilterChange({ entityType: val === "all" ? undefined : val })}
@@ -223,7 +223,7 @@ export function AuditLogFilterBar({
                   <SelectValue placeholder="เลือกหมวดข้อมูล" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">ทุกหมวดข้อมูล (ทั้งหมด)</SelectItem>
+                  <SelectItem value="all">ทุกหมวดข้อมูล</SelectItem>
                   {entityTypes.map((type) => (
                     <SelectItem key={type} value={type}>
                       {ENTITY_TYPE_LABELS[type] ?? type}
@@ -233,7 +233,7 @@ export function AuditLogFilterBar({
               </Select>
             </FormField>
 
-            <FormField label="ตั้งแต่วันที่ (ค.ศ.)" htmlFor="audit-from-date" className="w-full min-w-0">
+            <FormField label="ตั้งแต่วันที่" htmlFor="audit-from-date" className="w-full min-w-0">
               <DateInput
                 id="audit-from-date"
                 value={fromDateValue}
@@ -244,7 +244,7 @@ export function AuditLogFilterBar({
               />
             </FormField>
 
-            <FormField label="ถึงวันที่ (ค.ศ.)" htmlFor="audit-to-date" className="w-full min-w-0">
+            <FormField label="ถึงวันที่" htmlFor="audit-to-date" className="w-full min-w-0">
               <DateInput
                 id="audit-to-date"
                 value={toDateValue}

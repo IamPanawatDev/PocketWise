@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   FileText,
   Receipt,
@@ -12,8 +13,9 @@ import {
   LoaderCircle,
   ExternalLink,
   Sparkles,
+  Maximize2,
 } from "lucide-react";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -75,10 +77,9 @@ export function ReviewImportModal({ job, onClose }: ReviewImportModalProps) {
           ? `ตรวจสอบสลิป: ${job?.fileName ?? ""}`
           : `ตรวจสอบใบแจ้งยอด: ${job?.fileName ?? ""}`
       }
-      description="ตรวจสอบข้อมูลและเลือกหมวดหมู่ให้ถูกต้องก่อนยืนยันบันทึกลงในรายการธุรกรรม"
       className="sm:max-w-3xl"
     >
-      <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
+      <div className="space-y-4">
         {isSlip && job?.slipId && (
           <SlipReviewContent slipId={job.slipId} onClose={onClose} />
         )}
@@ -115,6 +116,7 @@ function SlipReviewContent({
 
   const confirmMutation = useConfirmSlip();
   const rejectMutation = useRejectSlip();
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   const [amount, setAmount] = useState<string>("");
   const [transactionDate, setTransactionDate] = useState<string>("");
@@ -163,7 +165,9 @@ function SlipReviewContent({
       if (slip.suggestedCategoryId) {
         setCategoryId(String(slip.suggestedCategoryId));
       }
-      if (slip.bankCode && bankAccounts.length > 0) {
+      if (slip.suggestedBankAccountId) {
+        setBankAccountId(String(slip.suggestedBankAccountId));
+      } else if (slip.bankCode && bankAccounts.length > 0) {
         const matched = findMatchingBankAccount(slip.bankCode, bankAccounts);
         setBankAccountId(matched ? String(matched.bankAccountId) : "");
       } else {
@@ -262,19 +266,39 @@ function SlipReviewContent({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Slip preview image */}
-        <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-black/20 border border-[var(--pw-hairline)] min-h-[220px]">
-          <img
-            src={`/api/v1/imports/slips/${slipId}/image`}
-            alt="สลิปโอนเงิน"
-            className="max-h-60 rounded-xl object-contain shadow-md"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = "none";
-            }}
-          />
-          <p className="mt-2 text-[11px] text-[var(--pw-ink)]/50">
-            {slip.originalFileName}
-          </p>
+        {/* Slip preview image with click-to-zoom Lightbox */}
+        <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-black/30 border border-[var(--pw-hairline)] min-h-[220px]">
+          <div
+            onClick={() => setIsLightboxOpen(true)}
+            className="relative group w-full flex justify-center rounded-xl overflow-hidden cursor-pointer"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/v1/imports/slips/${slipId}/image`}
+              alt="สลิปโอนเงิน"
+              className="max-h-64 rounded-xl object-contain shadow-md transition-transform duration-200 group-hover:scale-102"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = "none";
+              }}
+            />
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+              <span className="rounded-full bg-black/75 text-white text-xs px-3 py-1 font-medium flex items-center gap-1.5 shadow-md">
+                <Maximize2 className="size-3.5" />
+                แตะเพื่อดูรูปขยาย
+              </span>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center justify-between w-full px-1 text-[11px] text-[var(--pw-ink)]/60">
+            <span className="truncate max-w-[180px]">{slip.originalFileName}</span>
+            <button
+              type="button"
+              onClick={() => setIsLightboxOpen(true)}
+              className="inline-flex items-center gap-1 text-[var(--pw-primary)] hover:underline font-medium cursor-pointer"
+            >
+              <Maximize2 className="size-3" />
+              <span>ขยายรูป</span>
+            </button>
+          </div>
         </div>
 
         {/* Details & Form - matching TransactionForm for expenses */}
@@ -494,14 +518,46 @@ function SlipReviewContent({
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex flex-col gap-2.5 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
+      {/* Click-to-Zoom Lightbox Modal */}
+      <AnimatePresence>
+        {isLightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <div className="relative max-w-lg w-full max-h-[90vh] flex flex-col items-center">
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(false)}
+                className="absolute -top-12 right-0 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 active:scale-90 transition-transform cursor-pointer"
+                aria-label="ปิดรูปภาพ"
+              >
+                <X className="size-5" />
+              </button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/v1/imports/slips/${slipId}/image`}
+                alt="Full Slip"
+                className="w-full h-auto max-h-[80vh] object-contain rounded-xl shadow-2xl border border-white/10"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <span className="text-xs text-white/70 mt-2">แตะภายนอกเพื่อปิด</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modernized BottomSheetFooter */}
+      <BottomSheetFooter className="sm:flex-row-reverse sm:justify-start">
         <Button
           type="button"
           onClick={handleConfirm}
           disabled={confirmMutation.isPending || rejectMutation.isPending}
           className={cn(
-            "w-full sm:w-auto min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer order-1 text-white shadow-md",
+            "w-full sm:w-auto min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer order-1 sm:order-none text-white shadow-md",
             confirmMutation.isPending
               ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
               : "bg-emerald-600 hover:bg-emerald-700"
@@ -521,14 +577,16 @@ function SlipReviewContent({
         </Button>
         <Button
           type="button"
-          variant="destructive"
           onClick={handleReject}
           disabled={rejectMutation.isPending || confirmMutation.isPending}
-          className="w-full sm:w-auto min-h-[44px] gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md disabled:opacity-85 disabled:bg-rose-600 disabled:text-white active:scale-[0.98] transition-all cursor-pointer order-2"
+          className={cn(
+            "w-full sm:w-auto min-h-[44px] gap-2 font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25 shadow-md active:scale-[0.98] transition-all cursor-pointer order-2 sm:order-none",
+            rejectMutation.isPending && "disabled:opacity-85"
+          )}
         >
           {rejectMutation.isPending ? (
             <>
-              <LoaderCircle className="size-4 animate-spin text-white" />
+              <LoaderCircle className="size-4 animate-spin text-rose-400" />
               <span>กำลังปฏิเสธสลิป...</span>
             </>
           ) : (
@@ -538,7 +596,16 @@ function SlipReviewContent({
             </>
           )}
         </Button>
-      </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={confirmMutation.isPending || rejectMutation.isPending}
+          className="w-full sm:w-auto min-h-[44px] gap-1.5 font-medium border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 hover:text-[var(--pw-ink)] cursor-pointer order-3 sm:order-none active:scale-[0.98] transition-all shadow-2xs"
+        >
+          ปิด / ยกเลิก
+        </Button>
+      </BottomSheetFooter>
     </div>
   );
 }
@@ -772,14 +839,14 @@ function StatementReviewContent({
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="flex flex-col gap-2.5 pt-3 border-t border-[var(--pw-hairline)] sm:flex-row-reverse sm:justify-start">
+      {/* Modernized BottomSheetFooter */}
+      <BottomSheetFooter className="sm:flex-row-reverse sm:justify-start">
         <Button
           type="button"
           onClick={handleConfirm}
           disabled={confirmMutation.isPending || selectedItemIds.size === 0}
           className={cn(
-            "w-full sm:w-auto min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer order-1 text-white shadow-md",
+            "w-full sm:w-auto min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all cursor-pointer order-1 sm:order-none text-white shadow-md",
             confirmMutation.isPending
               ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
               : "bg-emerald-600 hover:bg-emerald-700"
@@ -799,11 +866,13 @@ function StatementReviewContent({
         </Button>
         <Button
           type="button"
-          variant="outline" onClick={onClose} className="w-full sm:w-auto min-h-[44px] gap-1.5 font-medium border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 hover:text-[var(--pw-ink)] cursor-pointer order-2 active:scale-[0.98] transition-all shadow-2xs"
+          variant="outline"
+          onClick={onClose}
+          className="w-full sm:w-auto min-h-[44px] gap-1.5 font-medium border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 hover:text-[var(--pw-ink)] cursor-pointer order-2 sm:order-none active:scale-[0.98] transition-all shadow-2xs"
         >
           ปิด
         </Button>
-      </div>
+      </BottomSheetFooter>
     </div>
   );
 }

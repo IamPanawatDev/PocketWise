@@ -306,6 +306,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [isMobileOpen]);
 
+  // Lock body scroll when mobile command hub drawer is open
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (isMobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileOpen]);
+
   useEffect(() => {
     if (!settings) return;
     document.documentElement.dataset.theme = settings.theme;
@@ -421,13 +434,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
               <Button
                 type="button"
-                size="icon-sm"
                 variant="ghost"
-                className="relative z-10 size-7 shrink-0 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)]/60 text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)] active:scale-90 transition-transform md:hidden"
+                className="relative z-10 size-11 min-h-[44px] min-w-[44px] shrink-0 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)]/60 text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)] active:scale-90 transition-transform md:hidden flex items-center justify-center cursor-pointer"
                 aria-label="ปิดเมนู"
                 onClick={closeNavigation}
               >
-                <X className="size-4" />
+                <X className="size-5" />
               </Button>
             </div>
 

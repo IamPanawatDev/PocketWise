@@ -15,6 +15,9 @@ public class SlipImportResponse
     public string? TransactionReference { get; set; }
     public string ReviewStatus { get; set; } = string.Empty;
     public bool IsDuplicate { get; set; }
+    public long? SuggestedBankAccountId { get; set; }
+    public string? SuggestedBankAccountName { get; set; }
+    public bool IsAutoCreatedBankAccount { get; set; }
     public long? SuggestedCategoryId { get; set; }
     public string? SuggestedCategoryName { get; set; }
     public string OcrProvider { get; set; } = "OCR";

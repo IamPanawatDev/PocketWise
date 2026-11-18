@@ -26,6 +26,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { ChevronRight, CreditCard, Loader2,
   LoaderCircle, Pencil, Plus, ReceiptText, Save, Trash2, X } from "lucide-react";
 
@@ -105,27 +106,23 @@ export function CreditCardsView() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
-            <CreditCard className="size-6 text-[var(--pw-primary)]" />
-            บัตรเครดิต
-          </h1>
-          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
-            ลงทะเบียนบัตรเพื่อผูกกับรายการรายจ่ายและดูสรุปตามบัตร
-          </p>
-        </div>
-        <Button
-          className="w-full sm:w-auto"
-          onClick={() => {
-            clearForm();
-            setIsFormOpen(true);
-          }}
-        >
-          <Plus />
-          เพิ่มบัตรเครดิต
-        </Button>
-      </div>
+      <PageHeader
+        title="บัตรเครดิต"
+        icon={CreditCard}
+        action={
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => {
+              clearForm();
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus />
+            เพิ่มบัตรเครดิต
+          </Button>
+        }
+        className="mb-4 sm:mb-6"
+      />
 
       {/* Form in BottomSheet */}
       <BottomSheet

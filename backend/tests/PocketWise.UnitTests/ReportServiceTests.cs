@@ -204,6 +204,54 @@ public class ReportServiceTests
         Assert.Contains("ร้านข้าวแกง", text);
         Assert.Contains("80.00", text);
         Assert.Contains("สลิปโอนเงิน", text);
+        Assert.Contains("เงินสด", text);
+    }
+
+    [Fact]
+    public async Task ExportReportAsync_OutputsCash_WhenNeitherBankAccountNorCreditCardSpecified()
+    {
+        var service = new ReportService(new InMemoryReportRepository(
+        [
+            new ReportTransactionRecord
+            {
+                TransactionId = 10,
+                TransactionDate = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc),
+                TransactionType = TransactionType.Expense,
+                Amount = 120m,
+                CurrencyCode = "THB",
+                SourceType = SourceType.Manual,
+                BankAccountId = null,
+                CreditCardId = null,
+                CategoryName = "เดินทาง",
+                Description = "ค่าวินมอเตอร์ไซค์"
+            }
+        ]));
+
+        // Test CSV
+        var csvResult = await service.ExportReportAsync(
+            1,
+            new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 10, 31, 23, 59, 59, TimeSpan.Zero),
+            "csv",
+            "full",
+            null,
+            null);
+
+        var csvText = System.Text.Encoding.UTF8.GetString(csvResult.Content[3..]);
+        Assert.Contains("เงินสด", csvText);
+
+        // Test JSON
+        var jsonResult = await service.ExportReportAsync(
+            1,
+            new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 10, 31, 23, 59, 59, TimeSpan.Zero),
+            "json",
+            "full",
+            null,
+            null);
+
+        var jsonText = System.Text.Encoding.UTF8.GetString(jsonResult.Content);
+        Assert.Contains("\"account\": \"เงินสด\"", jsonText);
     }
 
     [Fact]

@@ -29,17 +29,32 @@ export function BottomSheet({
 }: BottomSheetProps) {
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
   const sheetContentRef = React.useRef<HTMLDivElement | null>(null);
+  const overlayRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Swipe / Drag-to-dismiss states
-  const [dragY, setDragY] = React.useState(0);
-  const [isDragging, setIsDragging] = React.useState(false);
+  // Swipe / Drag-to-dismiss refs (avoids 60-120fps React re-renders)
   const touchStartY = React.useRef<number | null>(null);
+  const prevTouchY = React.useRef<number>(0);
+  const prevTouchTime = React.useRef<number>(0);
+  const currentDragY = React.useRef<number>(0);
+  const velocity = React.useRef<number>(0);
+  const isDragging = React.useRef<boolean>(false);
+  const animatingOut = React.useRef<boolean>(false);
 
   React.useEffect(() => {
     if (open) {
-      setDragY(0);
-      setIsDragging(false);
+      currentDragY.current = 0;
+      isDragging.current = false;
+      animatingOut.current = false;
       touchStartY.current = null;
+      if (sheetContentRef.current) {
+        sheetContentRef.current.style.transform = "";
+        sheetContentRef.current.style.transition = "";
+        sheetContentRef.current.style.animation = "";
+      }
+      if (overlayRef.current) {
+        overlayRef.current.style.opacity = "";
+        overlayRef.current.style.transition = "";
+      }
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0;
       }
@@ -47,39 +62,144 @@ export function BottomSheet({
   }, [open]);
 
   const handleTouchStart = React.useCallback((e: React.TouchEvent) => {
-    // Only drag from handle / header area
-    touchStartY.current = e.touches[0].clientY;
-    setIsDragging(true);
+    if (animatingOut.current) return;
+    if (typeof window !== "undefined" && window.innerWidth >= 640) return;
+
+    // Allow dragging from handle and header when inner content is at top
+    if (scrollContainerRef.current && scrollContainerRef.current.scrollTop > 0) {
+      return;
+    }
+
+    const y = e.touches[0].clientY;
+    touchStartY.current = y;
+    prevTouchY.current = y;
+    prevTouchTime.current = performance.now();
+    currentDragY.current = 0;
+    velocity.current = 0;
+    isDragging.current = true;
+
+    if (sheetContentRef.current) {
+      // Clear keyframe animation so it follows finger 1:1 immediately
+      sheetContentRef.current.style.animation = "none";
+      sheetContentRef.current.style.transition = "none";
+    }
+    if (overlayRef.current) {
+      overlayRef.current.style.transition = "none";
+    }
   }, []);
 
   const handleTouchMove = React.useCallback((e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
+    if (!isDragging.current || touchStartY.current === null || animatingOut.current) return;
+
     const currentY = e.touches[0].clientY;
-    const deltaY = currentY - touchStartY.current;
-    // Only allow dragging downwards (positive deltaY)
-    if (deltaY > 0) {
-      setDragY(deltaY);
+    const currentTime = performance.now();
+    const rawDeltaY = currentY - touchStartY.current;
+
+    const dt = currentTime - prevTouchTime.current;
+    if (dt > 0) {
+      velocity.current = (currentY - prevTouchY.current) / dt;
+    }
+    prevTouchY.current = currentY;
+    prevTouchTime.current = currentTime;
+
+    // Native mobile app physics:
+    // Drag down (positive): follows finger 1:1 with natural tracking
+    // Drag up (negative): rubber-band elastic damping
+    let deltaY: number;
+    if (rawDeltaY >= 0) {
+      deltaY = rawDeltaY;
+      if (e.cancelable) {
+        e.preventDefault();
+      }
     } else {
-      setDragY(0);
+      deltaY = -Math.pow(-rawDeltaY, 0.72);
+    }
+
+    currentDragY.current = deltaY;
+
+    if (sheetContentRef.current) {
+      sheetContentRef.current.style.transform = `translateY(${deltaY}px) translateZ(0)`;
+    }
+
+    // Smoothly interpolate backdrop dimming like native iOS/Android sheet
+    if (overlayRef.current) {
+      if (deltaY > 0) {
+        const sheetHeight = sheetContentRef.current?.offsetHeight || (typeof window !== "undefined" ? window.innerHeight * 0.75 : 600);
+        const progress = Math.min(1, deltaY / sheetHeight);
+        const opacity = Math.max(0, 1 - progress * 0.75);
+        overlayRef.current.style.opacity = String(opacity);
+      } else {
+        overlayRef.current.style.opacity = "1";
+      }
     }
   }, []);
 
   const handleTouchEnd = React.useCallback(() => {
-    if (dragY > 90) {
-      // Dragged past threshold: dismiss sheet
-      onOpenChange(false);
-    }
-    // Reset drag position
-    setDragY(0);
-    setIsDragging(false);
+    if (!isDragging.current || animatingOut.current) return;
+    isDragging.current = false;
     touchStartY.current = null;
-  }, [dragY, onOpenChange]);
+
+    // Dismiss threshold: dragged > 80px or flicked downwards with velocity > 0.35 px/ms
+    const shouldDismiss = currentDragY.current > 80 || velocity.current > 0.35;
+
+    if (shouldDismiss) {
+      animatingOut.current = true;
+      if (sheetContentRef.current) {
+        sheetContentRef.current.style.transition = "transform 240ms cubic-bezier(0.25, 0.9, 0.3, 1)";
+        sheetContentRef.current.style.transform = "translateY(100%) translateZ(0)";
+      }
+      if (overlayRef.current) {
+        overlayRef.current.style.transition = "opacity 240ms ease";
+        overlayRef.current.style.opacity = "0";
+      }
+      window.setTimeout(() => {
+        onOpenChange(false);
+        animatingOut.current = false;
+        if (sheetContentRef.current) {
+          sheetContentRef.current.style.transform = "";
+          sheetContentRef.current.style.transition = "";
+          sheetContentRef.current.style.animation = "";
+        }
+        if (overlayRef.current) {
+          overlayRef.current.style.opacity = "";
+          overlayRef.current.style.transition = "";
+        }
+      }, 240);
+    } else {
+      // Spring back up smoothly if released before threshold
+      if (sheetContentRef.current) {
+        sheetContentRef.current.style.transition = "transform 220ms cubic-bezier(0.2, 1, 0.3, 1)";
+        sheetContentRef.current.style.transform = "translateY(0) translateZ(0)";
+      }
+      if (overlayRef.current) {
+        overlayRef.current.style.transition = "opacity 220ms ease";
+        overlayRef.current.style.opacity = "";
+      }
+      window.setTimeout(() => {
+        if (!animatingOut.current) {
+          if (sheetContentRef.current) {
+            sheetContentRef.current.style.transform = "";
+            sheetContentRef.current.style.transition = "";
+            sheetContentRef.current.style.animation = "";
+          }
+          if (overlayRef.current) {
+            overlayRef.current.style.opacity = "";
+            overlayRef.current.style.transition = "";
+          }
+        }
+      }, 220);
+    }
+    currentDragY.current = 0;
+  }, [onOpenChange]);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         {/* Glassmorphism Backdrop Overlay */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md pw-dialog-overlay" />
+        <DialogPrimitive.Overlay
+          ref={overlayRef}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md pw-dialog-overlay"
+        />
 
         {/* Glassmorphism Responsive Content: Bottom Sheet on Mobile, Centered Modal on Desktop */}
         <DialogPrimitive.Content
@@ -91,14 +211,6 @@ export function BottomSheet({
               e.preventDefault();
             }
           }}
-          style={
-            dragY > 0
-              ? {
-                  transform: `translateY(${dragY}px)`,
-                  transition: isDragging ? "none" : "transform 0.2s ease-out",
-                }
-              : undefined
-          }
           className={cn(
             // Mobile (default): Bottom Sheet pinned to bottom, dynamic height (fit content up to 92vh), rounded top corners
             "fixed inset-x-0 bottom-0 z-50 flex h-auto max-h-[92vh] flex-col rounded-t-[28px] border-t border-[var(--pw-hairline)] bg-[var(--pw-surface)]/98 sm:bg-[var(--pw-surface)]/95 backdrop-blur-2xl text-[var(--pw-ink)] shadow-[0_-10px_40px_rgba(0,0,0,0.35)] outline-none pw-bottom-sheet-content",
