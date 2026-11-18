@@ -17,5 +17,9 @@ public class SlipImportResponse
     public bool IsDuplicate { get; set; }
     public long? SuggestedCategoryId { get; set; }
     public string? SuggestedCategoryName { get; set; }
+    public string OcrProvider { get; set; } = "OCR";
+    public string OcrEngine { get; set; } = "Tesseract OCR";
+    public double ProcessingDurationSeconds { get; set; }
+    public int BatchImageCount { get; set; } = 1;
     public DateTime CreatedAt { get; set; }
 }

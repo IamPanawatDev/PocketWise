@@ -12,6 +12,7 @@ public interface ISlipImportService
         string contentType,
         long fileSize,
         string? bankCode = null,
+        int batchImageCount = 1,
         CancellationToken cancellationToken = default);
 
     Task<SlipImportResponse?> GetSlipByIdAsync(

@@ -54,7 +54,7 @@ import {
 import type { SlipImportResponse } from "@/types/import.types";
 import { toast } from "sonner";
 import { formatDisplayDateTime } from "@/lib/date-utils";
-import { cn, getReadableTextColor, toThailandDateTimeInputValue, thailandDateTimeInputToUtcIso } from "@/lib/utils";
+import { cn, formatCurrency, getReadableTextColor, toThailandDateTimeInputValue, thailandDateTimeInputToUtcIso } from "@/lib/utils";
 
 function recordCategoryUsage(categoryId: number | null | undefined) {
   if (!categoryId) return;
@@ -102,6 +102,7 @@ export function SlipImportTab() {
   const [isRejectingCurrent, setIsRejectingCurrent] = useState(false);
   const [isClearingAll, setIsClearingAll] = useState(false);
   const [isReadingFiles, setIsReadingFiles] = useState(false);
+  const [isRetryingAll, setIsRetryingAll] = useState(false);
 
   // UX States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -231,105 +232,228 @@ export function SlipImportTab() {
     });
   }
 
+  // Upload & OCR helper for a single slip item (initial upload or retry)
+  const uploadSingleSlipItem = async (
+    item: BatchSlipItem,
+    totalBatchCount: number,
+    isSingleToast: boolean
+  ): Promise<boolean> => {
+    setBatchItems((prev) =>
+      prev.map((it) =>
+        it.id === item.id
+          ? {
+              ...it,
+              status: "uploading",
+              errorMessage: undefined,
+            }
+          : it
+      )
+    );
+
+    try {
+      const processedFile = await prepareSlipFile(item.file);
+      const formData = new FormData();
+      formData.append("file", processedFile);
+      formData.append("batchImageCount", String(totalBatchCount));
+
+      const res = await apiClient.post<SlipImportResponse>("/api/v1/imports/slips", formData);
+      if (res) {
+        const matched = findMatchingBankAccount(res.bankCode, bankAccounts);
+        const lastBankId =
+          typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
+        const initialBankId = matched ? String(matched.bankAccountId) : lastBankId || "";
+
+        let initialDate = toThailandDateTimeInputValue(new Date());
+        if (res.detectedAt) {
+          try {
+            initialDate = toThailandDateTimeInputValue(res.detectedAt);
+          } catch {}
+        }
+
+        let initialDesc = "";
+        if (res.payeeName) {
+          initialDesc = `โอนเงินให้ ${res.payeeName}`;
+        } else if (res.payerName) {
+          initialDesc = `รับเงินจาก ${res.payerName}`;
+        }
+
+        setBatchItems((prev) =>
+          prev.map((it) =>
+            it.id === item.id
+              ? {
+                  ...it,
+                  status: "ready",
+                  errorMessage: undefined,
+                  slipData: res,
+                  amount: res.detectedAmount != null ? String(res.detectedAmount) : it.amount || "",
+                  transactionDate: initialDate,
+                  payeeName: res.payeeName ?? it.payeeName ?? "",
+                  description: initialDesc || it.description || "",
+                  categoryId: res.suggestedCategoryId ? String(res.suggestedCategoryId) : it.categoryId || "",
+                  bankAccountId: initialBankId || it.bankAccountId || "",
+                }
+              : it
+          )
+        );
+
+        const providerText = res.ocrProvider === "OCR" ? "อ่านด้วย OCR" : "อ่านด้วย AI";
+        const durationText =
+          typeof res.processingDurationSeconds === "number"
+            ? `${res.processingDurationSeconds.toFixed(2)} วินาที`
+            : "";
+
+        if (isSingleToast) {
+          if (res.isDuplicate) {
+            toast.warning("อ่านสลิปสำเร็จ (ตรวจพบสลิปซ้ำในระบบ)", {
+              description: `${providerText}${durationText ? ` • ใช้เวลา ${durationText}` : ""} — กรุณาตรวจสอบก่อนบันทึก`,
+            });
+          } else if (res.detectedAmount != null) {
+            toast.success("อ่านข้อมูลสลิปสำเร็จ!", {
+              description: `ยอดเงิน ${formatCurrency(res.detectedAmount, "THB")} (${providerText}${durationText ? ` • ${durationText}` : ""})`,
+            });
+          } else {
+            toast.warning("อัปโหลดสลิปสำเร็จ แต่ไม่พบยอดเงินอัตโนมัติ", {
+              description: `${providerText}${durationText ? ` • ${durationText}` : ""} — กรุณาระบุจำนวนเงินด้วยตนเอง`,
+            });
+          }
+        }
+
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการอ่านสลิป";
+      setBatchItems((prev) =>
+        prev.map((it) =>
+          it.id === item.id
+            ? {
+                ...it,
+                status: "error",
+                errorMessage: msg,
+              }
+            : it
+        )
+      );
+
+      if (isSingleToast) {
+        toast.error("อ่านสลิปไม่สำเร็จ", {
+          description: `${msg} — กรุณากดปุ่ม 'ลองอีกครั้ง' เพื่อลองส่งอ่านใหม่โดยไม่ต้องเลือกรูปซ้ำ`,
+        });
+      } else {
+        toast.error(`อ่านสลิป "${item.file.name}" ไม่สำเร็จ`, {
+          description: msg,
+        });
+      }
+      return false;
+    }
+  };
+
+  const handleRetryItem = async (itemId: string) => {
+    const target = batchItems.find((it) => it.id === itemId);
+    if (!target || target.status === "uploading") return;
+    toast.info(`กำลังลองอ่านสลิป "${target.file.name}" อีกครั้ง...`);
+    await uploadSingleSlipItem(target, 1, true);
+  };
+
+  const handleRetryAllErrors = async () => {
+    const errorItems = batchItems.filter((it) => it.status === "error");
+    if (errorItems.length === 0 || isRetryingAll) return;
+
+    if (errorItems.length === 1) {
+      await handleRetryItem(errorItems[0].id);
+      return;
+    }
+
+    setIsRetryingAll(true);
+    try {
+      toast.info(`กำลังลองอ่านสลิปที่ไม่สำเร็จ ${errorItems.length} ใบอีกครั้ง...`);
+      const results = await Promise.all(
+        errorItems.map((item) => uploadSingleSlipItem(item, errorItems.length, false))
+      );
+      const successCount = results.filter(Boolean).length;
+      const failCount = errorItems.length - successCount;
+
+      if (failCount === 0) {
+        toast.success(`อ่านข้อมูลสลิปสำเร็จครบทั้ง ${successCount} ใบ!`, {
+          description: "พร้อมตรวจสอบและบันทึกรายการแล้ว",
+        });
+      } else if (successCount > 0) {
+        toast.warning(`อ่านสลิปสำเร็จ ${successCount} ใบ, ล้มเหลว ${failCount} ใบ`, {
+          description: "สามารถกดปุ่ม 'ลองอีกครั้ง' ในรายการที่ไม่สำเร็จได้โดยไม่ต้องเลือกรูปใหม่",
+        });
+      } else {
+        toast.error("อ่านสลิปไม่สำเร็จ", {
+          description: "กรุณากดปุ่ม 'ลองอีกครั้ง' เพื่อลองส่งอ่านใหม่โดยไม่ต้องเลือกรูปซ้ำ",
+        });
+      }
+    } finally {
+      setIsRetryingAll(false);
+    }
+  };
+
   // Handle batch file addition and background processing
   const handleProcessFiles = async (files: FileList | File[]) => {
     setIsReadingFiles(true);
     try {
-    const fileArray = Array.from(files).filter(
-      (f) => f.type.startsWith("image/") || f.name.match(/\.(jpe?g|png|webp|pdf)$/i)
-    );
-    if (fileArray.length === 0) {
-      toast.error("กรุณาเลือกไฟล์รูปภาพสลิปที่ถูกต้อง (JPEG, PNG, WEBP หรือ PDF)");
-      return;
-    }
+      const fileArray = Array.from(files).filter(
+        (f) => f.type.startsWith("image/") || f.name.match(/\.(jpe?g|png|webp|pdf)$/i)
+      );
+      if (fileArray.length === 0) {
+        toast.error("กรุณาเลือกไฟล์รูปภาพสลิปที่ถูกต้อง (JPEG, PNG, WEBP หรือ PDF)");
+        return;
+      }
 
-    const previousLength = batchItems.length;
-    const newItems: BatchSlipItem[] = fileArray.map((file, idx) => ({
-      id: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
-      file,
-      previewUrl: URL.createObjectURL(file),
-      status: "uploading",
-      amount: "",
-      transactionDate: toThailandDateTimeInputValue(new Date()),
-      description: "",
-      payeeName: "",
-      bankAccountId: "",
-      creditCardId: "",
-      categoryId: "",
-      selectedTagIds: [],
-      isCustomDateTime: false,
-    }));
+      const previousLength = batchItems.length;
+      const newItems: BatchSlipItem[] = fileArray.map((file, idx) => ({
+        id: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: "uploading",
+        amount: "",
+        transactionDate: toThailandDateTimeInputValue(new Date()),
+        description: "",
+        payeeName: "",
+        bankAccountId: "",
+        creditCardId: "",
+        categoryId: "",
+        selectedTagIds: [],
+        isCustomDateTime: false,
+      }));
 
-    setBatchItems((prev) => [...prev, ...newItems]);
-    if (previousLength === 0) {
-      setCurrentIndex(0);
-    }
+      setBatchItems((prev) => [...prev, ...newItems]);
+      if (previousLength === 0) {
+        setCurrentIndex(0);
+      }
 
-    toast.info(`กำลังอ่านข้อมูลสลิป ${newItems.length} ใบด้วย AI...`);
+      const totalBatchCount = newItems.length;
+      const isSingle = totalBatchCount === 1;
+      toast.info(
+        isSingle
+          ? "กำลังอ่านข้อมูลสลิปด้วย AI / OCR..."
+          : `กำลังอ่านข้อมูลสลิป ${totalBatchCount} ใบด้วย AI / OCR...`
+      );
 
-    // Process uploads concurrently
-    for (const item of newItems) {
-      (async () => {
-        try {
-          const processedFile = await prepareSlipFile(item.file);
-          const formData = new FormData();
-          formData.append("file", processedFile);
+      const results = await Promise.all(
+        newItems.map((item) => uploadSingleSlipItem(item, totalBatchCount, isSingle))
+      );
 
-          const res = await apiClient.post<SlipImportResponse>("/api/v1/imports/slips", formData);
-          if (res) {
-            const matched = findMatchingBankAccount(res.bankCode, bankAccounts);
-            const lastBankId =
-              typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
-            const initialBankId = matched ? String(matched.bankAccountId) : lastBankId || "";
-
-            let initialDate = toThailandDateTimeInputValue(new Date());
-            if (res.detectedAt) {
-              try {
-                initialDate = toThailandDateTimeInputValue(res.detectedAt);
-              } catch {}
-            }
-
-            let initialDesc = "";
-            if (res.payeeName) {
-              initialDesc = `โอนเงินให้ ${res.payeeName}`;
-            } else if (res.payerName) {
-              initialDesc = `รับเงินจาก ${res.payerName}`;
-            }
-
-            setBatchItems((prev) =>
-              prev.map((it) =>
-                it.id === item.id
-                  ? {
-                      ...it,
-                      status: "ready",
-                      slipData: res,
-                      amount: res.detectedAmount ? String(res.detectedAmount) : "",
-                      transactionDate: initialDate,
-                      payeeName: res.payeeName ?? "",
-                      description: initialDesc,
-                      categoryId: res.suggestedCategoryId ? String(res.suggestedCategoryId) : "",
-                      bankAccountId: initialBankId,
-                    }
-                  : it
-              )
-            );
-          }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการอ่านสลิป";
-          setBatchItems((prev) =>
-            prev.map((it) =>
-              it.id === item.id
-                ? {
-                    ...it,
-                    status: "error",
-                    errorMessage: msg,
-                  }
-                : it
-            )
-          );
+      if (!isSingle) {
+        const successCount = results.filter(Boolean).length;
+        const failCount = totalBatchCount - successCount;
+        if (failCount === 0) {
+          toast.success(`อ่านข้อมูลสลิปสำเร็จครบทั้ง ${successCount} ใบ!`, {
+            description: "พร้อมตรวจสอบและบันทึกรายการแล้ว",
+          });
+        } else if (successCount > 0) {
+          toast.warning(`อ่านสลิปสำเร็จ ${successCount} ใบ, ล้มเหลว ${failCount} ใบ`, {
+            description: "สามารถกดปุ่ม 'ลองอีกครั้ง' ในรายการที่ไม่สำเร็จได้โดยไม่ต้องเลือกรูปใหม่",
+          });
+        } else {
+          toast.error("อ่านสลิปไม่สำเร็จ", {
+            description: "กรุณากดปุ่ม 'ลองอีกครั้ง' เพื่อลองส่งอ่านใหม่โดยไม่ต้องเลือกรูปซ้ำ",
+          });
         }
-      })();
-    }
+      }
     } finally {
       setIsReadingFiles(false);
     }
@@ -829,9 +953,32 @@ export function SlipImportTab() {
                     กำลังอ่าน {batchStats.uploading}
                   </span>
                 )}
+                {batchStats.error > 0 && (
+                  <span className="rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 text-[11px] px-2 py-0.5 font-semibold">
+                    ผิดพลาด {batchStats.error}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
+                {batchStats.error > 0 && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isRetryingAll || batchStats.uploading > 0}
+                    onClick={handleRetryAllErrors}
+                    className="h-8 gap-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md cursor-pointer disabled:opacity-85 disabled:bg-amber-600 disabled:text-white"
+                  >
+                    {isRetryingAll ? (
+                      <Loader2 className="size-3.5 animate-spin text-white" />
+                    ) : (
+                      <RotateCcw className="size-3.5" />
+                    )}
+                    <span>
+                      {isRetryingAll ? "กำลังลองใหม่..." : `ลองอีกครั้ง (${batchStats.error})`}
+                    </span>
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -1055,14 +1202,25 @@ export function SlipImportTab() {
                   )}
 
                   {currentItem.status === "error" && (
-                    <div className="mt-3 flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/25 p-2.5 text-xs text-rose-500">
-                      <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold">AI ไม่สามารถอ่านสลิปนี้ได้:</span>
-                        <p className="mt-0.5 text-[var(--pw-ink)]/75 text-[11px]">
-                          {currentItem.errorMessage || "กรุณากรอกข้อมูลธุรกรรมด้วยตนเอง หรือข้ามสลิปนี้"}
-                        </p>
+                    <div className="mt-3 flex flex-col gap-2.5 rounded-lg bg-rose-500/10 border border-rose-500/25 p-3 text-xs text-rose-500">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">ไม่สามารถอ่านสลิปนี้ได้:</span>
+                          <p className="mt-0.5 text-[var(--pw-ink)]/75 text-[11px]">
+                            {currentItem.errorMessage || "กรุณากดปุ่ม 'ลองอีกครั้ง' เพื่อส่งอ่านสลิปใหม่ หรือข้ามสลิปนี้"}
+                          </p>
+                        </div>
                       </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleRetryItem(currentItem.id)}
+                        className="w-full min-h-[38px] gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-md disabled:opacity-85 disabled:bg-amber-600 disabled:text-white cursor-pointer"
+                      >
+                        <RotateCcw className="size-4" />
+                        <span>ลองอีกครั้ง</span>
+                      </Button>
                     </div>
                   )}
                 </Card>
@@ -1078,10 +1236,36 @@ export function SlipImportTab() {
                         <h3 className="text-base font-bold text-[var(--pw-ink)]">
                           ตรวจสอบข้อมูลสลิป #{currentIndex + 1}
                         </h3>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--pw-primary)]">
-                          <Sparkles className="size-3" />
-                          อ่านด้วย AI
-                        </span>
+                        {currentItem.slipData ? (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border",
+                              currentItem.slipData.ocrProvider === "OCR"
+                                ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
+                                : "bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border-[var(--pw-primary)]/30"
+                            )}
+                          >
+                            <Sparkles className="size-3" />
+                            {currentItem.slipData.ocrProvider === "OCR"
+                              ? "OCR อ่านข้อมูลสำเร็จ"
+                              : "AI อ่านข้อมูลสำเร็จ"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--pw-primary)]">
+                            <Sparkles className="size-3" />
+                            อ่านด้วย AI / OCR
+                          </span>
+                        )}
+                        {currentItem.slipData?.processingDurationSeconds != null && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--pw-ink)]/80">
+                            ⏱️ {currentItem.slipData.processingDurationSeconds.toFixed(2)} วินาที
+                          </span>
+                        )}
+                        {currentItem.slipData && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--pw-ink)]/80">
+                            🖼️ อัปโหลด {currentItem.slipData.batchImageCount ?? batchItems.length} รูป
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 pt-0.5">
@@ -1137,6 +1321,30 @@ export function SlipImportTab() {
                       </button>
                     )}
                   </div>
+
+                  {/* Error Banner visible on both Mobile and Desktop inside the Form Card */}
+                  {currentItem.status === "error" && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-400">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="size-4 shrink-0 mt-0.5 text-rose-400" />
+                        <div>
+                          <span className="font-bold text-rose-400">อ่านข้อมูลสลิปไม่สำเร็จ:</span>
+                          <p className="mt-0.5 text-[var(--pw-ink)]/80 text-[11px]">
+                            {currentItem.errorMessage || "เซิร์ฟเวอร์หรือระบบอ่านสลิปขัดข้องชั่วคราว กรุณากดลองอีกครั้งโดยไม่ต้องเลือกรูปใหม่"}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleRetryItem(currentItem.id)}
+                        className="shrink-0 min-h-[38px] gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-md disabled:opacity-85 disabled:bg-amber-600 disabled:text-white cursor-pointer"
+                      >
+                        <RotateCcw className="size-4" />
+                        <span>ลองอีกครั้ง</span>
+                      </Button>
+                    </div>
+                  )}
 
                   {/* 1. HERO AMOUNT INPUT */}
                   <FormField label="จำนวนเงิน (บาท)">
@@ -1488,7 +1696,17 @@ export function SlipImportTab() {
                   {/* 8. ACTION BUTTONS HIERARCHY (Mobile Standard: Confirm Top, Cancel Below, Target >= 44px) */}
                   <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-[var(--pw-hairline)]/80 mt-4 flex flex-col gap-2.5 z-10 sm:static sm:bg-transparent sm:backdrop-blur-none sm:p-0 sm:border-t sm:border-[var(--pw-hairline)]">
                     {/* Primary Action Button (Order 1 on mobile) */}
-                    {currentItem.status !== "confirmed" ? (
+                    {currentItem.status === "error" ? (
+                      <Button
+                        type="button"
+                        className="w-full min-h-[44px] gap-2 font-bold bg-amber-600 hover:bg-amber-700 text-white active:scale-[0.98] transition-all shadow-md cursor-pointer order-1 disabled:opacity-85 disabled:bg-amber-600 disabled:text-white"
+                        disabled={isActionLoading}
+                        onClick={() => handleRetryItem(currentItem.id)}
+                      >
+                        <RotateCcw className="size-4" />
+                        <span>ลองอ่านสลิปนี้อีกครั้ง (ไม่ต้องเลือกรูปใหม่)</span>
+                      </Button>
+                    ) : currentItem.status !== "confirmed" ? (
                       <Button
                         type="button"
                         className={cn(

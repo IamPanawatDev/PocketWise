@@ -8,9 +8,21 @@ let startingPromise: Promise<signalR.HubConnection | null> | null = null;
 
 async function fetchAccessToken(): Promise<string> {
   try {
-    const res = await fetch("/api/auth/token", { cache: "no-store" });
+    const fallback =
+      typeof window !== "undefined" ? localStorage.getItem("pw_fallback_refresh") : null;
+    const res = await fetch("/api/auth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ refreshToken: fallback }),
+    });
     if (!res.ok) return "";
-    const data = (await res.json()) as { accessToken: string | null };
+    const data = (await res.json()) as { accessToken: string | null; refreshToken?: string | null };
+    if (data?.refreshToken && typeof window !== "undefined") {
+      try {
+        localStorage.setItem("pw_fallback_refresh", data.refreshToken);
+      } catch {}
+    }
     return data.accessToken ?? "";
   } catch {
     return "";

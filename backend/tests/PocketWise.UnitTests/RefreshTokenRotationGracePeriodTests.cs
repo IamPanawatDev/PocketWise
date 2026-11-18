@@ -133,7 +133,7 @@ public class RefreshTokenRotationGracePeriodTests
             UserId = 1,
             TokenHash = "hash:recently-rotated-token",
             ExpiresAt = DateTime.UtcNow.AddDays(7),
-            RevokedAt = DateTime.UtcNow.AddSeconds(-10), // Rotated 10s ago
+            RevokedAt = DateTime.UtcNow.AddMinutes(-2), // Rotated 2m ago (within 5m grace period)
             ReasonRevoked = RevokeReason.Rotated
         });
 
@@ -161,7 +161,7 @@ public class RefreshTokenRotationGracePeriodTests
             UserId = 1,
             TokenHash = "hash:old-rotated-token",
             ExpiresAt = DateTime.UtcNow.AddDays(7),
-            RevokedAt = DateTime.UtcNow.AddSeconds(-90), // Rotated 90s ago (> 60s)
+            RevokedAt = DateTime.UtcNow.AddMinutes(-6), // Rotated 6m ago (> 5m grace period)
             ReasonRevoked = RevokeReason.Rotated
         });
 

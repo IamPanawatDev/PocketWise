@@ -41,6 +41,8 @@ public class GeminiSlipOcrServiceTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.Equal("OCR", result.OcrProvider);
+        Assert.Equal("Tesseract OCR", result.OcrEngine);
     }
 
     [Fact]
@@ -111,6 +113,8 @@ public class GeminiSlipOcrServiceTests
         Assert.Equal(2026, result.DetectedAt.Value.Year);
         Assert.Equal(10, result.DetectedAt.Value.Month);
         Assert.Equal(29, result.DetectedAt.Value.Day);
+        Assert.Equal("AI", result.OcrProvider);
+        Assert.Contains("Gemini", result.OcrEngine);
     }
 
     [Fact]
@@ -138,5 +142,7 @@ public class GeminiSlipOcrServiceTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.Equal("OCR", result.OcrProvider);
+        Assert.Equal("Tesseract OCR", result.OcrEngine);
     }
 }

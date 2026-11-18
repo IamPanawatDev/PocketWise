@@ -49,7 +49,11 @@ public class TesseractSlipOcrService : ISlipOcrService
         string contentType,
         CancellationToken cancellationToken = default)
     {
-        var result = new SlipExtractedData();
+        var result = new SlipExtractedData
+        {
+            OcrProvider = "OCR",
+            OcrEngine = "Tesseract OCR"
+        };
 
         try
         {

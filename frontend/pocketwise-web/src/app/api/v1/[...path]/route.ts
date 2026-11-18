@@ -104,6 +104,9 @@ async function passthrough(
     clearAuthCookiesFrom(nextRes);
   } else if (options?.newTokens) {
     setAuthCookiesFromData(nextRes, options.newTokens);
+    if (options.newTokens.refreshToken) {
+      nextRes.headers.set("x-pw-refresh-token", options.newTokens.refreshToken);
+    }
   }
 
   return nextRes;
