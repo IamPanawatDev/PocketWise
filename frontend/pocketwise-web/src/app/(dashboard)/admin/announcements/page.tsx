@@ -53,6 +53,7 @@ import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import type { Announcement, AnnouncementTarget } from "@/types/admin-operations.types";
 
@@ -84,7 +85,7 @@ export default function AdminAnnouncementsPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-          ปฏิเสธการเข้าถึง (Access Denied)
+          ปฏิเสธการเข้าถึง
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
           คุณต้องมีบทบาทระดับ Admin จึงจะสามารถจัดการประกาศของระบบได้
@@ -203,7 +204,7 @@ export default function AdminAnnouncementsPage() {
       case "All":
         return (
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-500 uppercase">
-            ผู้ใช้ทุกคน (All)
+            ผู้ใช้ทุกคน
           </span>
         );
       case "Role":
@@ -236,30 +237,21 @@ export default function AdminAnnouncementsPage() {
       transition={{ duration: 0.25 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-            <Megaphone className="size-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[var(--pw-ink)]">
-              จัดการประกาศระบบ (System Announcements)
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--pw-ink)]/75">
-              สร้าง เผยแพร่ และกำหนดกลุ่มเป้าหมายของข้อความแจ้งเตือนสำคัญ
-            </p>
-          </div>
-        </div>
-
-        <Button
-          onClick={handleOpenCreate}
-          className="gap-2 shadow-xs"
-        >
-          <Plus className="size-4" />
-          <span>สร้างประกาศใหม่</span>
-        </Button>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="จัดการประกาศระบบ"
+        icon={Megaphone}
+        description="สร้าง เผยแพร่ และกำหนดกลุ่มเป้าหมายของข้อความแจ้งเตือนสำคัญ"
+        action={
+          <Button
+            onClick={handleOpenCreate}
+            className="gap-2 shadow-xs"
+          >
+            <Plus className="size-4" />
+            <span>สร้างประกาศใหม่</span>
+          </Button>
+        }
+      />
 
       {/* Announcements List */}
       <div className="space-y-3">
@@ -314,7 +306,7 @@ export default function AdminAnnouncementsPage() {
                           : "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
                       )}
                     >
-                      {item.isActive ? "เปิดใช้งาน (Active)" : "ปิดการใช้งาน (Disabled)"}
+                      {item.isActive ? "เปิดใช้งาน" : "ปิดการใช้งาน"}
                     </span>
                   </div>
 
@@ -539,7 +531,7 @@ export default function AdminAnnouncementsPage() {
               className="size-4 rounded text-[var(--pw-primary)]"
             />
             <label htmlFor="isActiveToggle" className="font-semibold text-xs text-[var(--pw-ink)] cursor-pointer">
-              เปิดใช้งานประกาศนี้ (Active)
+              เปิดใช้งานประกาศนี้
             </label>
           </div>
 

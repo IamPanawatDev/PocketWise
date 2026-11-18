@@ -322,6 +322,11 @@ html.light .pw-skeleton::after {
   pointer-events: none;
 }
 
+.pw-bottom-sheet-content[data-dismissed="true"] {
+  display: none !important;
+  animation: none !important;
+}
+
 /* Bottom Sheet (Mobile) */
 .pw-bottom-sheet-content[data-state="open"] {
   animation: pw-sheet-slide-in 260ms cubic-bezier(0.32, 0.72, 0, 1) forwards;

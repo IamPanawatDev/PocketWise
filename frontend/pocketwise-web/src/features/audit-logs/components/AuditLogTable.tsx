@@ -204,11 +204,11 @@ export function AuditLogTable({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/50 text-xs text-[var(--pw-ink)]/60">
               <tr>
-                <th className="px-4 py-3 font-semibold">วันเวลา (Occurred At)</th>
-                <th className="px-4 py-3 font-semibold">เหตุการณ์ (Action)</th>
-                <th className="px-4 py-3 font-semibold">ชนิดข้อมูล (Entity)</th>
-                <th className="px-4 py-3 font-semibold">รหัส (Entity ID)</th>
-                <th className="px-4 py-3 font-semibold">ผู้กระทำ (Actor)</th>
+                <th className="px-4 py-3 font-semibold">วันเวลา</th>
+                <th className="px-4 py-3 font-semibold">เหตุการณ์</th>
+                <th className="px-4 py-3 font-semibold">ชนิดข้อมูล</th>
+                <th className="px-4 py-3 font-semibold">รหัสข้อมูล</th>
+                <th className="px-4 py-3 font-semibold">ผู้กระทำ</th>
                 <th className="px-4 py-3 text-right font-semibold">ดูรายละเอียด</th>
               </tr>
             </thead>

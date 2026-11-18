@@ -10,6 +10,7 @@ import {
 } from "@/features/audit-logs/hooks/useAuditLogs";
 import type { AuditLogFilter, AuditLogResponse } from "@/types/audit-log.types";
 import { AlertTriangle, History, RefreshCw, Settings, ShieldAlert } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { AuditLogDetailDialog } from "./AuditLogDetailDialog";
 import { AuditLogFilterBar } from "./AuditLogFilterBar";
 import { AuditLogSettingsModal } from "./AuditLogSettingsModal";
@@ -59,10 +60,10 @@ export function AuditLogsView() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-          ปฏิเสธการเข้าถึง (Access Denied)
+          ปฏิเสธการเข้าถึง
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
-          คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงและตรวจสอบประวัติการเปลี่ยนแปลงของระบบ (Audit Logs) ได้
+          คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงและตรวจสอบประวัติการเปลี่ยนแปลงของระบบได้
         </p>
       </div>
     );
@@ -71,45 +72,38 @@ export function AuditLogsView() {
   return (
     <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <History className="size-6 text-[var(--pw-primary)]" />
-            <h1 className="text-xl font-bold text-[var(--pw-ink)] sm:text-2xl">
-              ประวัติการเปลี่ยนแปลง (Audit Logs)
-            </h1>
-          </div>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/65 sm:text-sm">
-            ตรวจสอบประวัติการสร้าง แก้ไข ลบ และนำเข้าข้อมูลย้อนหลังของระบบ
-          </p>
-        </div>
+      <PageHeader
+        title="ประวัติการเปลี่ยนแปลง"
+        icon={History}
+        description="ตรวจสอบประวัติการสร้าง แก้ไข ลบ และนำเข้าข้อมูลย้อนหลังของระบบ"
+        action={
+          <>
+            {isAdmin && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSettingsOpen(true)}
+                className="border-[var(--pw-primary)]/40 hover:bg-[var(--pw-primary)]/10"
+              >
+                <Settings className="mr-1.5 size-4 text-[var(--pw-primary)]" />
+                ตั้งค่าการบันทึก
+              </Button>
+            )}
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {isAdmin && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setIsSettingsOpen(true)}
-              className="border-[var(--pw-primary)]/40 hover:bg-[var(--pw-primary)]/10"
+              onClick={() => refetch()}
+              disabled={isFetching}
             >
-              <Settings className="mr-1.5 size-4 text-[var(--pw-primary)]" />
-              ตั้งค่าการบันทึก (Admin Setup)
+              <RefreshCw className={`mr-1.5 size-4 ${isFetching ? "animate-spin" : ""}`} />
+              รีเฟรชข้อมูล
             </Button>
-          )}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            <RefreshCw className={`mr-1.5 size-4 ${isFetching ? "animate-spin" : ""}`} />
-            รีเฟรชข้อมูล
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Warning banner when Audit Log is disabled */}
       {settings && !settings.isEnabled && (

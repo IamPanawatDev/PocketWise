@@ -41,6 +41,7 @@ import {
   BottomSheetFooter,
 } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/shared/PageHeader";
 import type { SecurityEventItem } from "@/types/admin-operations.types";
 
 export default function AdminSecurityEventsPage() {
@@ -94,7 +95,7 @@ export default function AdminSecurityEventsPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-          ปฏิเสธการเข้าถึง (Access Denied)
+          ปฏิเสธการเข้าถึง
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
           คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงบันทึกเหตุการณ์ความปลอดภัยของระบบได้
@@ -126,37 +127,27 @@ export default function AdminSecurityEventsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-            <Lock className="size-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[var(--pw-ink)]">
-              บันทึกเหตุการณ์ความปลอดภัย (Security Events Audit)
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--pw-ink)]/70">
-              ตรวจสอบบันทึกการเข้าสู่ระบบ การละเมิดโทเค็น และการเปลี่ยนแปลงสิทธิ์ทั้งระบบ
-            </p>
-          </div>
-        </div>
-
-        {/* IP Masking Toggle */}
-        <button
-          type="button"
-          onClick={() => setMaskIp(!maskIp)}
-          className={cn(
-            "self-stretch sm:self-auto min-h-[44px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 text-xs font-semibold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2",
-            maskIp
-              ? "border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]"
-              : "border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)]"
-          )}
-        >
-          {maskIp ? <EyeOff className="size-4 sm:size-3.5" /> : <Eye className="size-4 sm:size-3.5" />}
-          <span>{maskIp ? "ซ่อน IP (Masked IP)" : "แสดง IP จริง (Raw IP)"}</span>
-        </button>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="บันทึกเหตุการณ์ความปลอดภัย"
+        icon={Lock}
+        description="ตรวจสอบบันทึกการเข้าสู่ระบบ การละเมิดโทเค็น และการเปลี่ยนแปลงสิทธิ์ทั้งระบบ"
+        action={
+          <button
+            type="button"
+            onClick={() => setMaskIp(!maskIp)}
+            className={cn(
+              "self-stretch sm:self-auto min-h-[44px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 text-xs font-semibold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2",
+              maskIp
+                ? "border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]"
+                : "border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)]"
+            )}
+          >
+            {maskIp ? <EyeOff className="size-4 sm:size-3.5" /> : <Eye className="size-4 sm:size-3.5" />}
+            <span>{maskIp ? "ซ่อน IP" : "แสดง IP จริง"}</span>
+          </button>
+        }
+      />
 
       {/* Filters */}
       <div className="p-3 sm:p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-3">
@@ -648,7 +639,7 @@ export default function AdminSecurityEventsPage() {
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-semibold text-[var(--pw-ink)] flex items-center gap-1.5">
                       <FileCode className="size-4 text-[var(--pw-primary)]" />
-                      <span>Details Payload (Formatted JSON)</span>
+                      <span>ข้อมูลรายละเอียด (JSON)</span>
                     </div>
                     <button
                       type="button"

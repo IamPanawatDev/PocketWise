@@ -33,7 +33,7 @@ const RETENTION_OPTIONS = [
   { value: 60, label: "ลบข้อมูลที่เก่ากว่า 60 วัน" },
   { value: 90, label: "ลบข้อมูลที่เก่ากว่า 90 วัน (แนะนำ)" },
   { value: 180, label: "ลบข้อมูลที่เก่ากว่า 180 วัน (6 เดือน)" },
-  { value: 0, label: "ลบข้อมูลประวัติทั้งหมด (ล้างตาราง Audit Logs)" },
+  { value: 0, label: "ลบข้อมูลประวัติทั้งหมด (ล้างตารางทั้งหมด)" },
 ];
 
 export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalProps) {
@@ -83,7 +83,7 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
       onOpenChange={(isOpen) => {
         if (!isOpen) onClose();
       }}
-      title="ตั้งค่าการบันทึกประวัติ (Admin Audit Log Setup)"
+      title="ตั้งค่าการบันทึกประวัติ"
       description="จัดการการเปิด/ปิดบันทึก Audit Log และการล้างข้อมูลเก่าเพื่อป้องกัน Database บวม"
       className="sm:max-w-2xl"
     >
@@ -114,7 +114,7 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
                   <div className="flex items-center gap-2">
                     <Database className="size-4 text-[var(--pw-primary)]" />
                     <h3 className="font-bold text-[var(--pw-ink)]">
-                      การบันทึกประวัติการเปลี่ยนแปลง (Audit Logs)
+                      การบันทึกประวัติการเปลี่ยนแปลง
                     </h3>
                   </div>
                   <p className="text-xs leading-relaxed text-[var(--pw-ink)]/70 sm:text-sm">
@@ -136,9 +136,9 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
                   />
                   <span>
                     {isEnabled ? (
-                      <span className="text-emerald-400">เปิดบันทึกข้อมูล (Enabled)</span>
+                      <span className="text-emerald-400">เปิดบันทึกข้อมูล</span>
                     ) : (
-                      <span className="text-amber-400">ปิดบันทึกข้อมูลชั่วคราว (Disabled)</span>
+                      <span className="text-amber-400">ปิดบันทึกข้อมูลชั่วคราว</span>
                     )}
                   </span>
                 </label>

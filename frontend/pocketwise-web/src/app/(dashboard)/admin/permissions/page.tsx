@@ -7,6 +7,7 @@ import { RolePermissionsMatrix } from "@/features/admin-permissions/components/R
 import { RolesManager } from "@/features/admin-permissions/components/RolesManager";
 import { UserRolesManager } from "@/features/admin-permissions/components/UserRolesManager";
 import { KeyRound, ShieldAlert, ShieldCheck, Users } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
 
 type TabKey = "matrix" | "roles" | "users";
@@ -22,7 +23,7 @@ export default function AdminPermissionsPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-          ปฏิเสธการเข้าถึง (Access Denied)
+          ปฏิเสธการเข้าถึง
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
           คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงและแก้ไขสิทธิ์และบทบาทของระบบได้
@@ -33,30 +34,20 @@ export default function AdminPermissionsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-            <ShieldCheck className="size-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-              ตั้งค่าสิทธิ์และบทบาท (Admin Management)
-            </h1>
-            <p className="text-xs text-[var(--pw-ink)]/70">
-              จัดการบทบาท กำหนดสิทธิ์การเข้าถึงตามโมดูล และมอบหมายบทบาทให้ผู้ใช้งาน
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="ตั้งค่าสิทธิ์และบทบาท"
+        icon={ShieldCheck}
+        description="จัดการบทบาท กำหนดสิทธิ์การเข้าถึงตามโมดูล และมอบหมายบทบาทให้ผู้ใช้งาน"
+      />
 
       {/* Tabs with Animated Sliding Indicator (Horizontal Scrollable on Mobile) */}
       <div className="flex border-b border-[var(--pw-hairline)] gap-2 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         {(
           [
-            { key: "matrix", label: "ตารางสิทธิ์ (Permission Matrix)", icon: KeyRound },
-            { key: "roles", label: "จัดการบทบาท (Roles)", icon: ShieldCheck },
-            { key: "users", label: "กำหนดบทบาทผู้ใช้งาน (User Roles)", icon: Users },
+            { key: "matrix", label: "ตารางสิทธิ์การใช้งาน", icon: KeyRound },
+            { key: "roles", label: "จัดการบทบาท", icon: ShieldCheck },
+            { key: "users", label: "กำหนดบทบาทผู้ใช้งาน", icon: Users },
           ] as const
         ).map((t) => {
           const isActive = activeTab === t.key;

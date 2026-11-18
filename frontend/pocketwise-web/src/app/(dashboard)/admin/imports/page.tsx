@@ -48,6 +48,7 @@ import {
 import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton, ListRowsSkeleton } from "@/components/shared/Skeletons";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import type { AdminImportJob } from "@/types/admin-operations.types";
 
@@ -103,7 +104,7 @@ export default function AdminImportsPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-          ปฏิเสธการเข้าถึง (Access Denied)
+          ปฏิเสธการเข้าถึง
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
           คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงและจัดการงานนำเข้าข้อมูลของระบบได้
@@ -191,22 +192,12 @@ export default function AdminImportsPage() {
   return (
     <div className="space-y-6 pb-12">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-            <FileStack className="size-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[var(--pw-ink)]">
-              การดำเนินงานนำเข้าทั้งระบบ (System Import Operations)
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--pw-ink)]/70">
-              ตรวจสอบงานนำเข้าสลิป/ใบแจ้งยอด ลองใหม่เมื่องานล้มเหลว (สูงสุด 5 ครั้ง) หรือยกเลิกงานที่ค้าง
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="การดำเนินงานนำเข้าทั้งระบบ"
+        icon={FileStack}
+        description="ตรวจสอบงานนำเข้าสลิป/ใบแจ้งยอด ลองใหม่เมื่องานล้มเหลว (สูงสุด 5 ครั้ง) หรือยกเลิกงานที่ค้าง"
+      />
 
       {/* Search & Filters */}
       <div className="p-3 sm:p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-3">
@@ -235,15 +226,15 @@ export default function AdminImportsPage() {
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="ทุกสถานะ (All Statuses)" />
+                <SelectValue placeholder="ทุกสถานะ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">ทุกสถานะ (All Statuses)</SelectItem>
-                <SelectItem value="Pending">รอดำเนินการ (Pending)</SelectItem>
-                <SelectItem value="Processing">กำลังประมวลผล (Processing)</SelectItem>
-                <SelectItem value="Completed">สำเร็จ (Completed)</SelectItem>
-                <SelectItem value="Failed">ล้มเหลว (Failed)</SelectItem>
-                <SelectItem value="Cancelled">ยกเลิกแล้ว (Cancelled)</SelectItem>
+                <SelectItem value="ALL">ทุกสถานะ</SelectItem>
+                <SelectItem value="Pending">รอดำเนินการ</SelectItem>
+                <SelectItem value="Processing">กำลังประมวลผล</SelectItem>
+                <SelectItem value="Completed">สำเร็จ</SelectItem>
+                <SelectItem value="Failed">ล้มเหลว</SelectItem>
+                <SelectItem value="Cancelled">ยกเลิกแล้ว</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -257,12 +248,12 @@ export default function AdminImportsPage() {
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="ทุกประเภทงาน (All Types)" />
+                <SelectValue placeholder="ทุกประเภทงาน" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">ทุกประเภทงาน (All Types)</SelectItem>
-                <SelectItem value="Slip">สลิปการโอนเงิน (Slip)</SelectItem>
-                <SelectItem value="Statement">ใบแจ้งยอดบัตรเครดิต (Statement)</SelectItem>
+                <SelectItem value="ALL">ทุกประเภทงาน</SelectItem>
+                <SelectItem value="Slip">สลิปการโอนเงิน</SelectItem>
+                <SelectItem value="Statement">ใบแจ้งยอดบัตรเครดิต</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -642,7 +633,7 @@ export default function AdminImportsPage() {
         <div className="space-y-4 py-2">
           <div>
             <label className="text-xs font-semibold text-[var(--pw-ink)] block mb-1.5">
-              สถานะ (Status)
+              สถานะ
             </label>
             <Select
               value={selectedStatus || "ALL"}
@@ -652,22 +643,22 @@ export default function AdminImportsPage() {
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="ทุกสถานะ (All Statuses)" />
+                <SelectValue placeholder="ทุกสถานะ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">ทุกสถานะ (All Statuses)</SelectItem>
-                <SelectItem value="Pending">รอดำเนินการ (Pending)</SelectItem>
-                <SelectItem value="Processing">กำลังประมวลผล (Processing)</SelectItem>
-                <SelectItem value="Completed">สำเร็จ (Completed)</SelectItem>
-                <SelectItem value="Failed">ล้มเหลว (Failed)</SelectItem>
-                <SelectItem value="Cancelled">ยกเลิกแล้ว (Cancelled)</SelectItem>
+                <SelectItem value="ALL">ทุกสถานะ</SelectItem>
+                <SelectItem value="Pending">รอดำเนินการ</SelectItem>
+                <SelectItem value="Processing">กำลังประมวลผล</SelectItem>
+                <SelectItem value="Completed">สำเร็จ</SelectItem>
+                <SelectItem value="Failed">ล้มเหลว</SelectItem>
+                <SelectItem value="Cancelled">ยกเลิกแล้ว</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-[var(--pw-ink)] block mb-1.5">
-              ประเภทงาน (Job Type)
+              ประเภทงาน
             </label>
             <Select
               value={selectedJobType || "ALL"}
@@ -677,12 +668,12 @@ export default function AdminImportsPage() {
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="ทุกประเภทงาน (All Types)" />
+                <SelectValue placeholder="ทุกประเภทงาน" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">ทุกประเภทงาน (All Types)</SelectItem>
-                <SelectItem value="Slip">สลิปการโอนเงิน (Slip)</SelectItem>
-                <SelectItem value="Statement">ใบแจ้งยอดบัตรเครดิต (Statement)</SelectItem>
+                <SelectItem value="ALL">ทุกประเภทงาน</SelectItem>
+                <SelectItem value="Slip">สลิปการโอนเงิน</SelectItem>
+                <SelectItem value="Statement">ใบแจ้งยอดบัตรเครดิต</SelectItem>
               </SelectContent>
             </Select>
           </div>
