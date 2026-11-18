@@ -107,14 +107,26 @@
 
 ---
 
-7. **ขั้นตอนการปฏิบัติงาน 6 ขั้นตอนเคร่งครัด (Mandatory 6-Step Multi-Agent Execution Rule)**:
-   - ทุกงานพัฒนาต้องดำเนินการตาม 6 ขั้นตอนโดยใช้ **Agent เฉพาะทางคนละตัว (Dedicated Specialized Subagents)** เท่านั้น: **1. Orchestrator (Lead Project Manager / Parent Agent รับบรีฟและคุมภาพรวม)** ➔ **2. System Planner (Chief Architect & Test Designer Subagent วางแผน ออกแบบ Contract และ Test Scenarios)** ➔ **3. Parallel Implementers (Specialized Developer Subagents แยกสายงาน Backend / Frontend / DB รันคู่ขนานพร้อมกัน)** ➔ **4. Review & Remediation (Code Reviewer & Build Engineer Subagent ตรวจ Static, Lint, Build แก้จนผ่าน 100%)** ➔ **5. QA Browser Testing Agent (Subagent รัน Local เปิดเบราว์เซอร์ทดสอบจริงทั้ง Success & Error)** ➔ **6. DevOps & Deployment (Release Engineer Subagent นำโค้ดขึ้น Production ผ่าน Strict PR-Based Protocol)**
+7. **ขั้นตอนการปฏิบัติงานและการเลือกโหมดการทำงาน (Execution Modes & Quality Standards)**:
+   - **การเลือกโหมดการทำงานตามขอบเขตงาน (Dual Execution Tracks)**:
+     - **Track A: Fast-Track / Direct Inline Execution (สำหรับงาน UI, ปรับแต่ง Layout/CSS, ปรับแก้คำ/ข้อความ, จัดการ Component ซ้ำซ้อน, Form tweaks, และ Bug Fix ทั่วไป)**:
+       - **ดำเนินการโดย Orchestrator (Parent Agent) แบบ Inline ทันที**: ห้ามแตก Subagent ลูกโซ่ 5–6 ตัวต่อคิวกันเพื่อขจัด Overhead (ลดเวลาการทำงานจาก 20–30 นาที เหลือเพียง 3–8 นาที)
+       - Orchestrator ทำการวิเคราะห์ ออกแบบ ลงมือแก้ไข และรัน Verification ตรวจสอบงานโดยตรงในเทิร์นเดียว
+     - **Track B: Full Multi-Agent Architecture (สำหรับงาน New Feature ขนาดใหญ่, Full-Stack Architecture, การออกแบบ Data Model/Schema ใหม่, หรือระบบ Core Business Logic ที่ซับซ้อน)**:
+       - ใช้กระบวนการ 6-Step Multi-Agent เต็มรูปแบบ: **1. Orchestrator** ➔ **2. System Planner** ➔ **3. Parallel Implementers (Backend/Frontend/DB)** ➔ **4. Review & Remediation** ➔ **5. QA Browser Testing Agent** ➔ **6. DevOps & Deployment**
+   - **การกำหนดขอบเขต Quality Gates ให้ตรงจุด (Smart Scoped Quality Gates)**:
+     - **Frontend-only Changes**: ตรวจสอบเฉพาะ `npm run lint` และ `npm run build` (หรือ `tsc --noEmit`); **ห้าม** ไปรัน `dotnet build` หรือ `dotnet test 102 ข้อ` ข้ามฝั่งให้เสียเวลา
+     - **Backend-only Changes**: ตรวจสอบเฉพาะ `dotnet build backend/PocketWise.sln -c Release` และ `dotnet test`; **ห้าม** ไปรัน Next.js build ข้ามฝั่ง
+     - **Full-Stack / Cross-Cutting Changes**: จึงจะรัน Quality Gates ทั้งสองฝั่งครบถ้วน
+   - **มาตรฐานการทดสอบ QA Step 5 แบบแบ่งระดับ (Tiered QA Protocol)**:
+     - **Tier 1 (UI, Copy, Styling, Minor Layout, Gesture)**: ทดสอบแบบ **Targeted Verification / Component Test / Headless Snapshot Check** เฉพาะจุดที่แก้ไข ใช้เวลา < 30 วินาที ห้ามเขียน script ยาวเปิดวนครบทุกหน้าในระบบ
+     - **Tier 2 (Core Business Logic, Database Flow, Slip OCR, Auth, Payment)**: ทดสอบผ่าน Playwright E2E Browser Testing โดยมุ่งเน้นเฉพาะ Flow ที่เกี่ยวข้อง
+     - **กฎเหล็กเรื่อง Browser Binary (Zero External Browser Download Policy)**: ในขั้นตอน QA ด้วย Playwright **ต้องใช้ Browser binary ที่มีอยู่แล้วในเครื่องเท่านั้น (เช่น `channel: 'msedge'`)** **ห้ามรันคำสั่ง `npx playwright install` หรือดาวน์โหลด binary ภายนอกโดยเด็ดขาด** เพื่อป้องกันอาการ Network Timeout ค้าง
    - **กฎภาษาในการสื่อสาร (Subagent English & User Thai Communication Rule)**:
-     - ทุกขั้นตอนที่มีการแยก Subagent (รวมถึง Step 2, Step 3 ที่แยกพัฒนาคู่ขนาน, Step 4, Step 5, Step 6): การส่งคำสั่ง บรีฟ มอบหมายงาน และการแลกเปลี่ยนข้อมูลระหว่าง AI ด้วยกัน (Agent-to-Agent Communication / Subagent Prompts & Messages) **ต้องสื่อสารเป็นภาษาอังกฤษ (English) ทั้งหมด 100%** เพื่อความแม่นยำ กระชับ และประสิทธิภาพสูงสุดในการประมวลผลโค้ด
+     - ทุกขั้นตอนที่มีการแยก Subagent (ใน Track B): การส่งคำสั่ง บรีฟ มอบหมายงาน และการแลกเปลี่ยนข้อมูลระหว่าง AI ด้วยกัน (Agent-to-Agent Communication / Subagent Prompts & Messages) **ต้องสื่อสารเป็นภาษาอังกฤษ (English) ทั้งหมด 100%** เพื่อความแม่นยำ กระชับ และประสิทธิภาพสูงสุดในการประมวลผลโค้ด
      - เมื่อ Orchestrator (Parent Agent) สื่อสารกับผู้ใช้ (User Communication) เช่น การรายงานสรุปผล การสอบถาม หรือการตอบกลับ **ต้องสื่อสารเป็นภาษาไทย (Thai) เสมอ**
-   - **กฎเหล็กหยุดรอคำสั่ง (Dev ถึง Step 5 เท่านั้น — ห้ามทำ Step 6 เองเด็ดขาด)**: ในทุกงานพัฒนา AI ต้องดำเนินการถึงแค่ **Step 5 (QA Browser Testing)** เท่านั้น เมื่อทดสอบผ่าน 100% แล้ว **ต้องหยุดและรายงานผลให้ผู้ใช้ทราบทันที ห้ามข้ามไปทำ Step 6 (Deploy/PR) โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้เป็นกรณีไป** (เช่น "deploy", "เอาขึ้น production", "เปิด PR ได้เลย")
-   - **กฎการทดสอบ QA Step 5 ด้วย Playwright (Standard Playwright Browser Testing)**: ในขั้นตอน **Step 5 (QA Browser Testing)** การทดสอบหน้าจอ UI และ User Flow ทั้งหมด ให้ใช้ **Playwright มาตรฐาน (Standard Playwright Chromium)** ได้เลยโดยไม่จำเป็นต้องบังคับเปิดผ่าน Brave Browser
-   - ห้ามใช้ Agent ตัวเดียวรวบทำงานทุกขั้นตอน, ห้ามข้ามขั้นตอนการวางแผน, และห้ามข้ามการทดสอบด้วย QA Agent เด็ดขาด
+   - **กฎเหล็กหยุดรอคำสั่ง (Dev ถึง Step 5 เท่านั้น — ห้ามทำ Step 6 เองเด็ดขาด)**: ในทุกงานพัฒนา AI ต้องดำเนินการถึงแค่ **Step 5 (QA Verification)** เท่านั้น เมื่อทดสอบผ่าน 100% แล้ว **ต้องหยุดและรายงานผลให้ผู้ใช้ทราบทันที ห้ามข้ามไปทำ Step 6 (Deploy/PR) โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้เป็นกรณีไป** (เช่น "deploy", "เอาขึ้น production", "เปิด PR ได้เลย")
+   - ห้ามข้ามขั้นตอนการวางแผน และห้ามข้ามการทดสอบ QA เด็ดขาด
 
 ---
 
@@ -201,78 +213,69 @@
 
 ---
 
-## 📋 5. ลำดับขั้นตอนการทำงานแบบ 6 ขั้นตอน (Mandatory 6-Step Multi-Agent Workflow)
-
+## 📋 5. ลำดับขั้นตอนการทำงาน (Agile Dual-Track Execution Workflow)
 
 > [!IMPORTANT]
-> **กฎภาษาในการสื่อสารระหว่าง Agent และผู้ใช้ (Language Protocol)**:
-> - **การทำงานและสื่อสารระหว่าง AI (Agent-to-Agent / Subagent Prompts)**: ในทุกขั้นตอนที่มีการเรียก Subagent (โดยเฉพาะ Step 3 Parallel Implementers) AI ทุกตัวต้องสื่อสาร ทำงาน ส่งมอบ และคุยระหว่างกันเป็น **ภาษาอังกฤษ (English)** ทั้งหมด 100%
-> - **การสื่อสารกับผู้ใช้ (Orchestrator to User)**: Orchestrator ต้องรายงาน สรุปผล และสนทนากับผู้ใช้เป็น **ภาษาไทย (Thai)** เสมอ
+> **การเลือกโหมดการทำงานตามขอบเขตงาน (Track Selection Protocol)**:
+> - **Track A (Fast-Track / Direct Inline Execution)**: สำหรับงาน UI, ปรับแต่ง Layout/CSS, แก้ไขข้อความ/Text, ปรับฟอร์ม, จัดการ Component, และ Bug Fix ทั่วไป ➔ **Orchestrator ดำเนินการเองแบบ Inline ทันที ไม่ต้องแตก Subagent** เพื่อขจัดเวลาหน่วง 5–10 นาที และจบงานได้ภายใน 3–8 นาที
+> - **Track B (Full Multi-Agent Architecture)**: สำหรับงาน Feature ใหม่ขนาดใหญ่, งานที่กระทบสถาปัตยกรรมหลัก, ระบบความปลอดภัย/Auth, หรือการเปลี่ยน Data Model/Schema ➔ ใช้ขั้นตอน 6-Step Multi-Agent เต็มรูปแบบ
 
-ทุกคำสั่งหรืองานพัฒนา (Feature, Refactor, Bug Fix หรือ Optimization) AI **ต้องปฏิบัติตามลำดับ 6 ขั้นตอนโดยใช้ Agent เฉพาะทางคนละตัว พัฒนาคู่ขนานใน Step 3 และหยุดรอคำสั่งผู้ใช้เมื่อจบ Step 5 เสมอ**:
+> [!NOTE]
+> **กฎภาษาในการสื่อสารระหว่าง Agent และผู้ใช้ (Language Protocol)**:
+> - **การทำงานและสื่อสารระหว่าง AI (Agent-to-Agent / Subagent Prompts)**: ในทุกขั้นตอนที่มีการเรียก Subagent (Track B) AI ทุกตัวต้องสื่อสาร ทำงาน ส่งมอบ และคุยระหว่างกันเป็น **ภาษาอังกฤษ (English)** ทั้งหมด 100%
+> - **การสื่อสารกับผู้ใช้ (Orchestrator to User)**: Orchestrator ต้องรายงาน สรุปผล และสนทนากับผู้ใช้เป็น **ภาษาไทย (Thai)** เสมอ
 
 ```mermaid
 flowchart TD
-    Step1["1. Orchestrator (Lead Project Manager - Parent Agent)\nรับคำสั่ง ทำความเข้าใจ มอบหมายงาน และรวบรวมสรุปผลลัพธ์คุยกับผู้ใช้"] --> Step2["2. System Planner (Chief Architect & Test Designer - Subagent)\nวิเคราะห์ Codebase, กำหนด Data Contract (API DTOs), แตก Task ย่อย\nและออกแบบ Test Scenarios ทั้ง Success & Error"]
+    Start["User Request / Task Assignment"] --> Classify{"ประเมินขอบเขตงาน"}
     
-    subgraph Step3 ["3. Parallel Implementers (แยกพัฒนาคู่ขนาน - Subagents)"]
-        direction LR
-        DevBackend["Backend Specialist Agent\nเขียน C# .NET 10, Service, DTO, Unit Test"]
-        DevFrontend["Frontend Specialist Agent\nเขียน Next.js, UI Component, Hooks, CSS"]
-        DevDB["Database / Schema Specialist\n(ถ้ามี) ทำ Migration, Schema Script"]
-    end
-
-    Step2 --> Step3
-    DevBackend --> Step4["4. Review & Remediation (Code Reviewer & Build Engineer - Subagent)\nรวมงาน ตรวจ Type Safety, รัน dotnet build, npm lint/build\nและแก้ไขจุดบกพร่องทางเทคนิคจนผ่าน 100%"]
-    DevFrontend --> Step4
-    DevDB --> Step4
-
-    Step4 --> Check1{"พบปัญหา\nBuild/Lint?"}
-    Check1 -- "พบข้อผิดพลาด" --> Step4
-    Check1 -- "ผ่านสมบูรณ์" --> Step5["5. QA Browser Testing Agent (Subagent)\nสร้าง Agent 1 ตัว รัน Local และเปิด Browser จริง (Playwright/Chrome) ทดสอบ 2 กรณี:\n1. กรณี Error (Validation/Edge Case ป้องกันเว็บพัง)\n2. กรณี Success (ทดลองกรอก/คลิก Flow ทำงานได้จริง)"]
+    Classify -- "งาน UI / CSS / Text / Form / Minor Bug" --> TrackA["⚡ Track A: Fast-Track (Inline Execution)\nOrchestrator ดำเนินการโดยตรง:\n1. Plan & Direct Implementation (ในเทิร์นเดียว)\n2. Smart Scoped Quality Gates (ตรวจเฉพาะฝั่งที่แก้)\n3. Tier 1 QA (Targeted Verification / Component Test < 30s)"]
     
-    Step5 --> Check2{"ผลการทดสอบ QA\nผ่าน 100% หรือไม่?"}
-    Check2 -- "ไม่ผ่าน / เว็บพัง / Bug" --> Step3
-    Check2 -- "ผ่านสมบูรณ์ 100%" --> Pause["🛑 หยุดรอคำสั่ง: Orchestrator สรุปผล QA พร้อมหลักฐานส่งให้ผู้ใช้\n(ห้ามทำ Step 6 ต่อเองเด็ดขาด)"]
+    Classify -- "ฟีเจอร์ใหญ่ / Full-Stack / Core Logic / Schema" --> TrackB["🏗️ Track B: Full Multi-Agent (6 Steps)\n1. Orchestrator ➔ 2. System Planner\n➔ 3. Parallel Implementers (Backend / Frontend / DB)\n➔ 4. Review & Remediation (Static, Lint, Build)\n➔ 5. Tier 2 QA (E2E Browser Playwright บน Edge ในเครื่อง)"]
+    
+    TrackA --> GateCheck{"Quality Gates & QA ผ่าน 100%?"}
+    TrackB --> GateCheck
+    
+    GateCheck -- "ไม่ผ่าน / มี Error" --> Remediation["แก้ไขจุดผิดพลาดและตรวจซ้ำ"]
+    Remediation --> GateCheck
+    GateCheck -- "ผ่านสมบูรณ์ 100%" --> Pause["🛑 หยุดรอคำสั่ง: Orchestrator รายงานผลให้ผู้ใช้ทราบ\n(ห้ามทำ Step Deploy ต่อเองเด็ดขาด)"]
+    
     Pause --> UserDecision{"ผู้ใช้สั่ง\nDeploy หรือไม่?"}
-    UserDecision -- "ยังไม่สั่ง / สั่งแก้เพิ่ม" --> Step1
-    UserDecision -- "สั่ง Deploy / เปิด PR" --> Step6["6. DevOps & Release Engineer (Subagent)\nดำเนินการตาม Strict PR-Based Deployment Protocol\n(Commit develop ➔ PR เข้า main ➔ เฝ้า CI ➔ Merge production)"]
-    Step6 --> Done["Orchestrator สรุปผลส่งมอบงาน Production ให้ผู้ใช้ พร้อม URL"]
+    UserDecision -- "ยังไม่สั่ง / สั่งแก้เพิ่ม" --> Start
+    UserDecision -- "สั่ง Deploy / เปิด PR" --> DeployStep["🚀 Deploy Protocol (Strict PR-Based)\n(Commit develop ➔ PR เข้า main ➔ เฝ้า CI ➔ Merge production)"]
+    DeployStep --> Done["Orchestrator สรุปผลส่งมอบงาน Production ให้ผู้ใช้"]
 ```
 
-### รายละเอียดหน้าที่และข้อกำหนดของ Agent ในแต่ละขั้นตอน:
-1. **Agent หลัก (Orchestrator — Lead Project Manager / Parent Agent):**
-   - รับคำขอ/คำสั่งจากผู้ใช้ ตีความความต้องการอย่างแม่นยำ
-   - ควบคุมกระบวนการและมอบหมายงานตามลำดับขั้นตอน (Step 1 ถึง Step 6) ผ่าน `invoke_subagent`
-   - รวบรวมสรุปผลงานสุดท้ายอย่างกระชับ ชัดเจน และส่งมอบให้กับผู้ใช้
-2. **System Planner (Chief Architect & Test Designer — Subagent ตัวที่ 1):**
-   - ศึกษา Codebase ที่เกี่ยวข้องทั้งฝั่ง Backend, Frontend และ Database
-   - **กำหนด Data Contracts (API Request/Response DTOs) ให้ชัดเจนตั้งแต่ขั้นตอนนี้** เพื่อปลดล็อกให้ Implementers ใน Step 3 พัฒนาคู่ขนานกันได้ทันทีโดยไม่ติดบล็อก
-   - วาง Dependency Graph แตกชิ้นงานย่อย ระบุชัดเจนว่าส่วนใดทำพร้อมกันได้ ส่วนใดมี Hard Dependency ต้องรอทำตามลำดับ
-   - **ต้องออกแบบ Test Scenarios ไว้ล่วงหน้าให้ชัดเจน**: ทั้งกรณี Success (Happy Path) และ Error (Validation / Negative Path) เพื่อส่งต่อให้ QA Agent ในขั้นตอนที่ 5
-3. **Parallel Implementers (Specialized Developer Subagents — แยกพัฒนาคู่ขนานใน Step 3):**
-   - **หลักการทำงานคู่ขนาน (Parallel Dev)**: สั่งรัน Subagent แยกตามความเชี่ยวชาญพร้อมกัน (Fan-Out) เพื่อลดเวลาพัฒนาลงสูงสุด (ประหยัดเวลาได้ 40-60%):
-     - **Backend Specialist Agent**: รับผิดชอบ C# .NET 10, Web API Controllers, Application Services, Domain Models, Unit Tests
-     - **Frontend Specialist Agent**: รับผิดชอบ Next.js 16, React Components, Hooks, Design System Tokens (`--pw-*`), Glassmorphism, BottomSheet
-     - **Database Specialist Agent** (หากมีงาน Schema): จัดการ EF Core Code-First Migrations และ SQL Scripts
-   - **ภาษาที่ใช้สื่อสารระหว่าง Subagents**: Subagents ทั้งหมดในขั้นตอนนี้ (Backend, Frontend, DB) ต้องรับมอบหมายงานและรายงานผลกลับมายัง Orchestrator เป็นภาษาอังกฤษ (English) 100%
-    - **กฎการทำคู่ขนาน**:
-     - หากทั้งสองฝั่งทำงานตาม Data Contract ที่ Planner กำหนดไว้ใน Step 2 ให้รันพร้อมกันทันที
-     - หากส่วนงานใดมี Hard Dependency จริงๆ (เช่น ต้องสร้าง Table Entity ให้เสร็จก่อนจึงจะเขียน Query ได้) ให้จัดลำดับ A ➔ B เฉพาะคู่นั้น
-4. **Review & Remediation (Code Reviewer & Build Engineer — Subagent ตัวที่ 4):**
-   - รวมผลงาน (Fan-In) และตรวจทานความถูกต้องของโค้ดทั้งหมด (Code Review)
-   - รันตรวจสอบ Build (`dotnet build` / `npm run build`), Linter (`npm run lint`), และ Type Check (`tsc --noEmit`)
-   - ตรวจสอบความถูกต้องของ Data Contract, Responsive Design, และ Theme Dark/Light
-   - หากพบข้อผิดพลาด, Warning, Build Failed หรือ Logic ผิดเพี้ยน ต้องลงมือแก้ไขและรันตรวจซ้ำจนผ่านสมบูรณ์ 100%
-5. **QA Browser Testing Agent (ตัวแทนทดสอบผ่านเบราว์เซอร์จริง — Subagent ตัวที่ 5):**
-   - **การสร้าง Agent**: สร้าง Subagent 1 ตัว (Role: `QA Browser Tester` เช่น ผ่าน `invoke_subagent`)
-   - **การดำเนินการ**: สั่งรัน Local server (หากยังไม่ได้รัน) และใช้ Playwright มาตรฐาน (Chromium) เข้าไปคลิกและทดสอบสิ่งที่แก้ไขตามแผนงานจากขั้นตอนที่ 2
-   - **ต้องทดสอบ 2 กรณีอย่างเคร่งครัด**:
-     1. **กรณี Error (Validation & Edge Cases)**: ทดสอบกรอกข้อมูลผิดฟอร์แมต, ป้อนค่าว่าง, ใส่ข้อมูลเกินขอบเขต หรือกระทำการผิดเงื่อนไข เพื่อยืนยันว่าระบบแจ้งเตือนชัดเจนและ**เว็บไม่พังจริงๆ (ไม่มี Uncaught Exception, จอดำ, หรือ Blank Screen)**
-     2. **กรณี Success (Happy Path)**: เข้าไปทดลองกรอกข้อมูลจริง, คลิกปุ่ม, สลับแท็บ/ช่วงเวลา, บันทึกรายการ เพื่อยืนยันว่าฟังก์ชันทำงานได้ถูกต้อง ข้อมูลแสดงผลถูกต้อง และ Flow ราบรื่น
-   - **เกณฑ์ผ่าน**: ผลการทดสอบต้องผ่านครบ 100% และไม่มีข้อผิดพลาดหลงเหลือ
-   - **🛑 กฎหยุดรอคำสั่ง (Mandatory Stop & Report)**: เมื่อ QA ทดสอบผ่าน 100% แล้ว **ให้หยุดทำงานทันทีและรายงานผลให้ผู้ใช้ทราบ ห้ามข้ามไปทำ Step 6 โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้**
-6. **DevOps & Release Engineer (ผู้รับผิดชอบการ Deploy — Subagent ตัวที่ 6):**
-   - **จะเริ่มทำงานได้ก็ต่อเมื่อได้รับคำสั่ง "Deploy" จากผู้ใช้โดยตรงเท่านั้น**
-   - รับผิดชอบดำเนินการตาม **Strict PR-Based Deployment Protocol** (10 ขั้นตอน: Pre-commit, Build Quality Gates, Zero Schema Drift, Commit develop, Push develop, Create PR, CI Pass, Merge main, Sync local branches)
-   - **ห้าม Deploy สู่ Production โดยไม่ผ่านความเห็นชอบของผู้ใช้เป็นกรณีไปโดยเด็ดขาด**
+### รายละเอียดข้อกำหนดการทำงานและ Quality Gates:
+
+1. **โหมด Track A (Fast-Track / Direct Inline Execution):**
+   - **บทบาท**: Orchestrator (Parent Agent) เป็นผู้ลงมือเขียนโค้ดและทดสอบด้วยตนเอง ไม่ต้องเรียก `invoke_subagent`
+   - **ความเร็วเป้าหมาย**: จบงานภายใน 3–8 นาที
+   - **การตรวจสอบ**: ตรวจเฉพาะจุดที่แก้ไขและรัน Smart Scoped Quality Gates
+
+2. **โหมด Track B (Full 6-Step Multi-Agent Architecture):**
+   - **Step 1 (Orchestrator)**: วิเคราะห์ภาพรวม ควบคุมทิศทาง และสื่อสารกับผู้ใช้เป็นภาษาไทย
+   - **Step 2 (System Planner Subagent)**: กำหนด Data Contracts (API Request/Response DTOs) และวาง Test Scenarios
+   - **Step 3 (Parallel Implementers Subagents)**: แยกพัฒนา Backend (.NET 10), Frontend (Next.js), DB (EF Core) คู่ขนานพร้อมกัน สื่อสารเป็นภาษาอังกฤษ 100%
+   - **Step 4 (Review & Remediation Subagent)**: รวมผลงานและตรวจความถูกต้องของสถาปัตยกรรมและ Build
+   - **Step 5 (QA Browser Testing Subagent)**: รันการทดสอบเบราว์เซอร์อัตโนมัติ
+
+3. **การตรวจสอบคุณภาพแบบเฉพาะจุด (Smart Scoped Quality Gates Rule):**
+   - **เมื่อแก้เฉพาะ Frontend**: รันเฉพาะ `npm run lint` และ `npm run build` (หรือ `tsc --noEmit`); **ห้าม** รัน `dotnet build` หรือ `dotnet test` ข้ามฝั่งให้เสียเวลา
+   - **เมื่อแก้เฉพาะ Backend**: รันเฉพาะ `dotnet build backend/PocketWise.sln -c Release` และ `dotnet test`; **ห้าม** รัน Next.js build ข้ามฝั่ง
+   - **เมื่อแก้ Full-Stack หรือช่วงสุดท้ายก่อน Merge PR**: จึงจะรันตรวจสอบทั้งสองฝั่งครบถ้วน 100%
+
+4. **มาตรฐานการทดสอบ QA Step 5 แบบแบ่งระดับ (Tiered QA Protocol):**
+   - **Tier 1 (UI, Copy, Styling, Minor Layout, Animation, Gesture)**:
+     - ใช้ **Targeted Verification / Component Test / Headless Snapshot Check**
+     - ตรวจสอบเฉพาะ Component หรือหน้าที่ได้รับผลกระทบ ใช้เวลา < 30 วินาที
+     - ห้ามเขียน script ยาววนเปิดครบทุกหน้าในระบบโดยไม่จำเป็น
+   - **Tier 2 (Core Business Logic, Database Transaction, Slip OCR, Auth, Payment)**:
+     - ใช้ **Playwright E2E Browser Testing** ทดสอบ Flow ทำงานจริงทั้ง Error Cases และ Happy Path
+   - **กฎเหล็ก Browser Binary (Zero External Browser Download Policy)**:
+     - ในขั้นตอน QA ด้วย Playwright **ต้องใช้ Browser binary ที่มีอยู่แล้วในเครื่องเท่านั้น (เช่น `channel: 'msedge'`)**
+     - **ห้ามรันคำสั่ง `npx playwright install` หรือดาวน์โหลด binary จากภายนอกโดยเด็ดขาด** เพื่อป้องกันอาการ Network Timeout ค้าง
+
+5. **🛑 กฎหยุดรอคำสั่ง (Mandatory Stop & Report):**
+   - เมื่อตรวจสอบผ่าน 100% ทั้งใน Track A หรือ Track B **ต้องหยุดทำงานทันทีและรายงานผลให้ผู้ใช้ทราบ**
+   - **ห้าม** ก้าวล่วงไปเปิด PR หรือทำ Deploy โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้โดยตรง เช่น "deploy", "เอาขึ้น production" หรือ "เปิด PR ได้เลย"
