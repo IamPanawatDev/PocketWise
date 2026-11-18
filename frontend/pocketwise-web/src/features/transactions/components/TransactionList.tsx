@@ -42,6 +42,8 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { PaymentMethodBadge } from "@/components/shared/PaymentMethodBadge";
 import { TransactionCardsSkeleton } from "@/components/shared/Skeletons";
 import { TransactionForm } from "./TransactionForm";
 import { formatDisplayDate, formatDisplayDateTime, getRecentMonthOptions } from "@/lib/date-utils";
@@ -54,7 +56,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  Landmark,
   LoaderCircle,
   Layers,
   Pencil,
@@ -67,17 +68,96 @@ import {
   X,
 } from "lucide-react";
 
+function parseSearchParamsFilter(
+  searchParams: ReturnType<typeof useSearchParams>,
+  initialFilter: Pick<TransactionFilter, "fromDate" | "toDate">
+): { filter: TransactionFilter; hasAnyFilterParam: boolean } {
+  let hasAnyFilterParam = false;
+  const result: TransactionFilter = { ...initialFilter };
+
+  const catId = searchParams.get("categoryId");
+  if (catId) {
+    const num = Number(catId);
+    if (!isNaN(num)) {
+      result.categoryId = num;
+      hasAnyFilterParam = true;
+    }
+  }
+
+  const tag = searchParams.get("tagId");
+  if (tag) {
+    const num = Number(tag);
+    if (!isNaN(num)) {
+      result.tagId = num;
+      hasAnyFilterParam = true;
+    }
+  }
+
+  const bankAcc = searchParams.get("bankAccountId");
+  if (bankAcc) {
+    const num = Number(bankAcc);
+    if (!isNaN(num)) {
+      result.bankAccountId = num;
+      hasAnyFilterParam = true;
+    }
+  }
+
+  const cc = searchParams.get("creditCardId");
+  if (cc) {
+    const num = Number(cc);
+    if (!isNaN(num)) {
+      result.creditCardId = num;
+      hasAnyFilterParam = true;
+    }
+  }
+
+  const src = searchParams.get("sourceType");
+  if (src) {
+    result.sourceType = src;
+    hasAnyFilterParam = true;
+  }
+
+  const t = searchParams.get("type");
+  if (t) {
+    result.type = t;
+    hasAnyFilterParam = true;
+  }
+
+  const from = searchParams.get("fromDate");
+  if (from) {
+    result.fromDate = from;
+    hasAnyFilterParam = true;
+  }
+
+  const to = searchParams.get("toDate");
+  if (to) {
+    result.toDate = to;
+    hasAnyFilterParam = true;
+  }
+
+  const q = searchParams.get("q");
+  if (q) {
+    result.q = q;
+    hasAnyFilterParam = true;
+  }
+
+  return { filter: result, hasAnyFilterParam };
+}
+
 export function TransactionList({
   initialFilter,
 }: {
   initialFilter: Pick<TransactionFilter, "fromDate" | "toDate">;
 }) {
-  const [filter, setFilter] = useState<TransactionFilter>(initialFilter);
+  const searchParams = useSearchParams();
+  const [filter, setFilter] = useState<TransactionFilter>(() => {
+    const { filter: parsed, hasAnyFilterParam } = parseSearchParamsFilter(searchParams, initialFilter);
+    return hasAnyFilterParam ? parsed : initialFilter;
+  });
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"transactionDate" | "amount">("transactionDate");
   const [sortDesc, setSortDesc] = useState(true);
 
-  const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(() => searchParams.get("action") === "new");
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionResponse | null>(null);
@@ -104,6 +184,19 @@ export function TransactionList({
   };
   const [editing, setEditing] = useState<TransactionResponse | null>(null);
 
+  useEffect(() => {
+    const { filter: parsed, hasAnyFilterParam } = parseSearchParamsFilter(searchParams, initialFilter);
+    if (hasAnyFilterParam) {
+      const id = requestAnimationFrame(() => {
+        setFilter((prev) => ({
+          ...prev,
+          ...parsed,
+        }));
+        setPage(1);
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [searchParams, initialFilter]);
 
   useEffect(() => {
     if (searchParams.get("action") === "new") {
@@ -240,6 +333,8 @@ export function TransactionList({
     if (filter.tagId !== undefined) count++;
     if (filter.bankAccountId !== undefined) count++;
     if (filter.creditCardId !== undefined) count++;
+    if (filter.sourceType) count++;
+    if (filter.q) count++;
     if (activeQuickPeriod === "custom") count++;
     if (sortBy !== "transactionDate" || !sortDesc) count++;
     return count;
@@ -273,18 +368,19 @@ export function TransactionList({
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
-          <ReceiptText className="size-6 text-[var(--pw-primary)]" />
-          รายการรายรับรายจ่าย
-        </h1>
-        <div className="hidden sm:block">
-          <Button onClick={() => { setEditing(null); setShowForm(true); }}>
-            <Plus />
-            เพิ่มรายการ
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="รายการรายรับรายจ่าย"
+        icon={ReceiptText}
+        action={
+          <div className="hidden sm:block">
+            <Button onClick={() => { setEditing(null); setShowForm(true); }}>
+              <Plus />
+              เพิ่มรายการ
+            </Button>
+          </div>
+        }
+        className="mb-4 sm:mb-6"
+      />
 
       <BottomSheet
         open={showForm || editing !== null}
@@ -627,8 +723,39 @@ export function TransactionList({
                 <button
                   type="button"
                   onClick={() => handleFilterChange({ creditCardId: undefined })}
-                  className="hover:text-[var(--pw-expense)] ml-0.5"
+                  className="hover:text-[var(--pw-expense)] ml-0.5 cursor-pointer"
                   aria-label="ลบตัวกรองบัตรเครดิต"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
+            {filter.sourceType && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                แหล่งที่มา: {
+                  filter.sourceType.toLowerCase() === "slip" ? "สลิปโอนเงิน" :
+                  filter.sourceType.toLowerCase() === "cardstatement" ? "ใบแจ้งยอดบัตรเครดิต" :
+                  filter.sourceType.toLowerCase() === "recurring" ? "รายการประจำ" :
+                  filter.sourceType.toLowerCase() === "manual" ? "บันทึกเอง" : filter.sourceType
+                }
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ sourceType: undefined })}
+                  className="hover:text-[var(--pw-expense)] ml-0.5 cursor-pointer"
+                  aria-label="ลบตัวกรองแหล่งที่มา"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
+            {filter.q && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2.5 py-1 text-[var(--pw-ink)]">
+                ค้นหา: &quot;{filter.q}&quot;
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ q: undefined })}
+                  className="hover:text-[var(--pw-expense)] ml-0.5 cursor-pointer"
+                  aria-label="ลบตัวกรองคำค้นหา"
                 >
                   <X className="size-3" />
                 </button>
@@ -682,7 +809,6 @@ export function TransactionList({
         open={showFilterSheet}
         onOpenChange={setShowFilterSheet}
         title="ตัวกรองและจัดเรียงรายการ"
-        description="เลือกเงื่อนไขเพื่อกรองและจัดเรียงรายการธุรกรรมตามต้องการ"
       >
         <div className="flex flex-col max-h-[75vh]">
           <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
@@ -816,6 +942,26 @@ export function TransactionList({
             </FormField>
           </div>
 
+          <FormField label="แหล่งที่มา" htmlFor="sheet-source-filter" className="w-full min-w-0">
+            <Select
+              value={filter.sourceType ?? "all"}
+              onValueChange={(value) => handleFilterChange({
+                sourceType: value === "all" ? undefined : value,
+              })}
+            >
+              <SelectTrigger id="sheet-source-filter">
+                <SelectValue placeholder="ทุกแหล่งที่มา" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกแหล่งที่มา</SelectItem>
+                <SelectItem value="manual">บันทึกเอง</SelectItem>
+                <SelectItem value="slip">สลิปโอนเงิน</SelectItem>
+                <SelectItem value="cardStatement">ใบแจ้งยอดบัตรเครดิต</SelectItem>
+                <SelectItem value="recurring">รายการประจำ</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+
           {/* Month Picker as Primary with Progressive Disclosure for Custom Dates */}
           {!isCustomDateMode ? (
             <div className="space-y-1.5">
@@ -886,7 +1032,7 @@ export function TransactionList({
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormField label="ตั้งแต่วันที่ (ค.ศ.)" htmlFor="sheet-from-date" className="w-full min-w-0">
+                <FormField label="ตั้งแต่วันที่" htmlFor="sheet-from-date" className="w-full min-w-0">
                   <DateInput
                     id="sheet-from-date"
                     className="px-3 py-2 text-base md:text-sm"
@@ -902,7 +1048,7 @@ export function TransactionList({
                     }}
                   />
                 </FormField>
-                <FormField label="ถึงวันที่ (ค.ศ.)" htmlFor="sheet-to-date" className="w-full min-w-0">
+                <FormField label="ถึงวันที่" htmlFor="sheet-to-date" className="w-full min-w-0">
                   <DateInput
                     id="sheet-to-date"
                     className="px-3 py-2 text-base md:text-sm"
@@ -1066,17 +1212,14 @@ export function TransactionList({
                       <span>{formatDisplayDate(t.transactionDate)}</span>
                       <span>•</span>
                       <span className="truncate">{t.categoryName ?? "ไม่มีหมวดหมู่"}</span>
-                      {Boolean(t.bankAccountId || t.creditCardId) && (
-                        <>
-                          <span>•</span>
-                          <span className="truncate">
-                            {t.bankAccountName ??
-                              t.creditCardName ??
-                              bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName ??
-                              creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName}
-                          </span>
-                        </>
-                      )}
+                      <span>•</span>
+                      <span className="truncate">
+                        {t.bankAccountName ??
+                          t.creditCardName ??
+                          bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName ??
+                          creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName ??
+                          "💵 เงินสด"}
+                      </span>
                     </div>
                   </div>
 
@@ -1201,18 +1344,18 @@ export function TransactionList({
                       <span className="rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)]">
                         {t.categoryName ?? "ไม่มีหมวดหมู่"}
                       </span>
-                      {Boolean(t.bankAccountId && (t.bankAccountName ?? bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName)) && (
-                        <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
-                          <Landmark className="mr-1 size-3 text-[var(--pw-link)]" />
-                          {t.bankAccountName ?? bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName}
-                        </span>
-                      )}
-                      {Boolean(t.creditCardId && (t.creditCardName ?? creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName)) && (
-                        <span className="inline-flex items-center rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)] text-[var(--pw-ink)]/70">
-                          <CreditCard className="mr-1 size-3 text-[var(--pw-accent)]" />
-                          {t.creditCardName ?? creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName}
-                        </span>
-                      )}
+                      <PaymentMethodBadge
+                        bankAccountId={t.bankAccountId}
+                        bankAccountName={
+                          t.bankAccountName ??
+                          bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName
+                        }
+                        creditCardId={t.creditCardId}
+                        creditCardName={
+                          t.creditCardName ??
+                          creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName
+                        }
+                      />
                       {t.sourceType && t.sourceType !== "manual" && (
                         <span className="inline-flex items-center rounded bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--pw-primary)]">
                           {t.sourceType === "cardStatement" ? (
@@ -1361,18 +1504,16 @@ export function TransactionList({
                   <span className="text-[var(--pw-ink)]/60">หมวดหมู่</span>
                   <span className="font-medium text-[var(--pw-ink)]">{selectedTransaction.categoryName ?? "ไม่มีหมวดหมู่"}</span>
                 </div>
-                {(selectedTransaction.bankAccountId || selectedTransaction.creditCardId) && (
-                  <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
-                    <span className="text-[var(--pw-ink)]/60">ช่องทางชำระเงิน</span>
-                    <span className="font-medium text-[var(--pw-ink)]">
-                      {selectedTransaction.bankAccountName ??
-                        selectedTransaction.creditCardName ??
-                        bankAccounts?.find((b) => b.bankAccountId === selectedTransaction.bankAccountId)?.accountName ??
-                        creditCards?.find((c) => c.creditCardId === selectedTransaction.creditCardId)?.cardName ??
-                        "-"}
-                    </span>
-                  </div>
-                )}
+                <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                  <span className="text-[var(--pw-ink)]/60">ช่องทางชำระเงิน</span>
+                  <span className="font-medium text-[var(--pw-ink)]">
+                    {selectedTransaction.bankAccountName ??
+                      selectedTransaction.creditCardName ??
+                      bankAccounts?.find((b) => b.bankAccountId === selectedTransaction.bankAccountId)?.accountName ??
+                      creditCards?.find((c) => c.creditCardId === selectedTransaction.creditCardId)?.cardName ??
+                      "💵 เงินสด"}
+                  </span>
+                </div>
                 {selectedTransaction.tags.length > 0 && (
                   <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
                     <span className="text-[var(--pw-ink)]/60">แท็ก</span>

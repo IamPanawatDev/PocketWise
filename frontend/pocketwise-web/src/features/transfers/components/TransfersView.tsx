@@ -19,6 +19,7 @@ import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { NumberInput } from "@/components/ui/number-input";
 import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   Select,
   SelectContent,
@@ -40,7 +41,6 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
-  LoaderCircle,
   Plus,
   Repeat,
   Send,
@@ -133,24 +133,19 @@ export function TransfersView() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl text-[var(--pw-ink)]">
-            <ArrowRightLeft className="size-6 text-[var(--pw-primary)]" />
-            โอนเงินระหว่างบัญชี
-          </h1>
-          <p className="mt-1 text-xs text-[var(--pw-ink)]/65 sm:text-sm">
-            บันทึกการโยกย้ายเงินระหว่างบัญชีของคุณ เช่น ถอนเงินสด หรือโอนเข้ากระเป๋าเงิน
-          </p>
-        </div>
-        <Button
-          className="w-full sm:w-auto h-11 sm:h-10 text-sm font-semibold shadow-sm"
-          onClick={handleOpenNewTransfer}
-        >
-          <Plus className="size-4 mr-1.5" />
-          บันทึกการโอนเงิน
-        </Button>
-      </div>
+      <PageHeader
+        title="โอนเงินระหว่างบัญชี"
+        icon={ArrowRightLeft}
+        action={
+          <Button
+            className="w-full sm:w-auto h-11 sm:h-10 text-sm font-semibold shadow-sm"
+            onClick={handleOpenNewTransfer}
+          >
+            <Plus className="size-4 mr-1.5" />
+            บันทึกการโอนเงิน
+          </Button>
+        }
+      />
 
       {/* Summary Card for Mobile & Desktop */}
       {transfers && transfers.length > 0 && (

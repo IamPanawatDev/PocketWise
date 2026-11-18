@@ -23,6 +23,7 @@ import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ListRowsSkeleton } from "@/components/shared/Skeletons";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   ArrowDown,
   ArrowUp,
@@ -120,27 +121,23 @@ export function TagsView() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
-            <Tags className="size-6 text-[var(--pw-primary)]" />
-            แท็ก
-          </h1>
-          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
-            ติดแท็กให้รายการเพื่อรวบรวมและค้นหาค่าใช้จ่ายตามเรื่องที่สนใจ
-          </p>
-        </div>
-        <Button
-          className="w-full sm:w-auto"
-          onClick={() => {
-            clearForm();
-            setIsFormOpen(true);
-          }}
-        >
-          <Plus />
-          เพิ่มแท็ก
-        </Button>
-      </div>
+      <PageHeader
+        title="แท็ก"
+        icon={Tags}
+        action={
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => {
+              clearForm();
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus />
+            เพิ่มแท็ก
+          </Button>
+        }
+        className="mb-4 sm:mb-6"
+      />
 
       {/* Form in BottomSheet */}
       <BottomSheet

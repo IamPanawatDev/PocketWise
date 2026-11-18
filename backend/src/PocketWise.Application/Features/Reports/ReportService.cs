@@ -185,7 +185,7 @@ public sealed class ReportService : IReportService
                     t.CategoryName,
                     t.MerchantName,
                     t.Description,
-                    Account = t.BankAccountId.HasValue ? $"{t.BankName} - {t.AccountName}" : null,
+                    Account = t.BankAccountId.HasValue ? $"{t.BankName} - {t.AccountName}" : (!t.CreditCardId.HasValue ? "เงินสด" : null),
                     Card = t.CreditCardId.HasValue ? $"{t.CreditCardBankName} - {t.CardName}" : null
                 })
             };
@@ -337,7 +337,7 @@ public sealed class ReportService : IReportService
                 ? $"{t.BankName} - {t.AccountName}"
                 : t.CreditCardId.HasValue
                     ? $"{t.CreditCardBankName} - {t.CardName}"
-                    : "-";
+                    : "เงินสด";
 
             sb.AppendLine(string.Join(",",
                 index++,

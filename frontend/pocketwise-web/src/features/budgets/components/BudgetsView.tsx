@@ -28,6 +28,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   Select,
   SelectContent,
@@ -175,27 +176,23 @@ export function BudgetsView() {
   return (
     <div>
       {/* Header with Title and Add Button */}
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
-            <Wallet className="size-6 text-[var(--pw-primary)]" />
-            งบประมาณ
-          </h1>
-          <p className="mt-1 text-sm text-[var(--pw-ink)]/65">
-            ติดตามรายจ่ายในสกุลเงินหลักของคุณ และรับการแจ้งเตือนเมื่อใกล้ถึงวงเงิน
-          </p>
-        </div>
-        <Button
-          className="w-full sm:w-auto"
-          onClick={() => {
-            resetForm();
-            setIsFormOpen(true);
-          }}
-        >
-          <Plus />
-          ตั้งงบประมาณใหม่
-        </Button>
-      </div>
+      <PageHeader
+        title="งบประมาณ"
+        icon={Wallet}
+        action={
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => {
+              resetForm();
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus />
+            ตั้งงบประมาณใหม่
+          </Button>
+        }
+        className="mb-4 sm:mb-6"
+      />
 
       {/* Form inside BottomSheet */}
       <BottomSheet

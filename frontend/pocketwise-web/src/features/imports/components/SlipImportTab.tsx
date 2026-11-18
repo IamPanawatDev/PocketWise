@@ -51,6 +51,7 @@ import {
   useConfirmSlip,
   useRejectSlip,
 } from "@/features/imports/hooks/useImports";
+import { useQueryClient } from "@tanstack/react-query";
 import type { SlipImportResponse } from "@/types/import.types";
 import { toast } from "sonner";
 import { formatDisplayDateTime } from "@/lib/date-utils";
@@ -92,6 +93,7 @@ export function SlipImportTab() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const appendFileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   // Batch Queue State
   const [batchItems, setBatchItems] = useState<BatchSlipItem[]>([]);
@@ -258,10 +260,22 @@ export function SlipImportTab() {
 
       const res = await apiClient.post<SlipImportResponse>("/api/v1/imports/slips", formData);
       if (res) {
-        const matched = findMatchingBankAccount(res.bankCode, bankAccounts);
-        const lastBankId =
-          typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
-        const initialBankId = matched ? String(matched.bankAccountId) : lastBankId || "";
+        if (res.isAutoCreatedBankAccount) {
+          queryClient.invalidateQueries({ queryKey: ["bankAccounts"] });
+          toast.success("อัปโหลดสำเร็จ!", {
+            description: `สร้างและเลือกบัญชี "${res.suggestedBankAccountName}" ให้โดยอัตโนมัติ`,
+          });
+        }
+
+        let initialBankId = "";
+        if (res.suggestedBankAccountId) {
+          initialBankId = String(res.suggestedBankAccountId);
+        } else {
+          const matched = findMatchingBankAccount(res.bankCode, bankAccounts);
+          const lastBankId =
+            typeof window !== "undefined" ? localStorage.getItem("pocketwise_last_bank_account_id") : null;
+          initialBankId = matched ? String(matched.bankAccountId) : lastBankId || "";
+        }
 
         let initialDate = toThailandDateTimeInputValue(new Date());
         if (res.detectedAt) {
@@ -296,24 +310,18 @@ export function SlipImportTab() {
           )
         );
 
-        const providerText = res.ocrProvider === "OCR" ? "อ่านด้วย OCR" : "อ่านด้วย AI";
-        const durationText =
-          typeof res.processingDurationSeconds === "number"
-            ? `${res.processingDurationSeconds.toFixed(2)} วินาที`
-            : "";
-
-        if (isSingleToast) {
+        if (isSingleToast && !res.isAutoCreatedBankAccount) {
           if (res.isDuplicate) {
-            toast.warning("อ่านสลิปสำเร็จ (ตรวจพบสลิปซ้ำในระบบ)", {
-              description: `${providerText}${durationText ? ` • ใช้เวลา ${durationText}` : ""} — กรุณาตรวจสอบก่อนบันทึก`,
+            toast.success("อัปโหลดสลิปสำเร็จ!", {
+              description: "ตรวจพบว่าสลิปนี้อาจเคยบันทึกแล้ว กรุณาตรวจสอบก่อนบันทึก",
             });
           } else if (res.detectedAmount != null) {
-            toast.success("อ่านข้อมูลสลิปสำเร็จ!", {
-              description: `ยอดเงิน ${formatCurrency(res.detectedAmount, "THB")} (${providerText}${durationText ? ` • ${durationText}` : ""})`,
+            toast.success("อัปโหลดและอ่านข้อมูลสลิปสำเร็จ!", {
+              description: `ยอดเงิน ${formatCurrency(res.detectedAmount, "THB")}`,
             });
           } else {
-            toast.warning("อัปโหลดสลิปสำเร็จ แต่ไม่พบยอดเงินอัตโนมัติ", {
-              description: `${providerText}${durationText ? ` • ${durationText}` : ""} — กรุณาระบุจำนวนเงินด้วยตนเอง`,
+            toast.success("อัปโหลดสลิปสำเร็จ!", {
+              description: "กรุณาระบุจำนวนเงินด้วยตนเอง",
             });
           }
         }
@@ -894,7 +902,7 @@ export function SlipImportTab() {
             <UploadCloud className="size-7 sm:size-8" />
           </div>
           <h3 className="text-base sm:text-lg font-bold text-[var(--pw-ink)]">
-            สแกนสลิปโอนเงิน (AI OCR)
+            สแกนสลิปโอนเงิน
           </h3>
           <p className="mt-1 max-w-sm text-xs sm:text-sm text-[var(--pw-ink)]/65">
             เลือกรูปภาพสลิปจากอัลบั้มหรือลากเข้ามาพร้อมกันได้หลายใบเพื่ออ่านยอดและลงรายการอัตโนมัติ
@@ -938,7 +946,7 @@ export function SlipImportTab() {
                   คิวสลิป ({batchItems.length} ใบ)
                 </h3>
                 {batchStats.ready > 0 && (
-                  <span className="rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30 text-[11px] px-2 py-0.5 font-semibold">
+                  <span className="rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 text-[11px] px-2 py-0.5 font-semibold">
                     พร้อมตรวจ {batchStats.ready}
                   </span>
                 )}
@@ -1175,6 +1183,21 @@ export function SlipImportTab() {
                         alt="Slip Preview"
                         className="object-contain w-full max-h-[260px] sm:max-h-[380px] transition-transform group-hover:scale-102"
                       />
+                      {currentItem.status === "uploading" && (
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                          <motion.div
+                            initial={{ top: "-10%" }}
+                            animate={{ top: "110%" }}
+                            transition={{
+                              repeat: Infinity,
+                              duration: 1.8,
+                              ease: "easeInOut",
+                            }}
+                            className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--pw-primary)] to-transparent shadow-[0_0_12px_2px_var(--pw-primary)]"
+                          />
+                          <div className="absolute inset-0 bg-[var(--pw-primary)]/10 animate-pulse pointer-events-none" />
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <span className="rounded-full bg-black/70 text-white text-xs px-3 py-1 font-medium flex items-center gap-1">
                           <Maximize2 className="size-3.5" />
@@ -1228,77 +1251,112 @@ export function SlipImportTab() {
 
               {/* Form & Verification Column */}
               <div className="lg:col-span-7">
-                <Card className="p-4 sm:p-6 bg-[var(--pw-surface-raised)]/60 border border-[var(--pw-hairline)] backdrop-blur-md space-y-4">
-                  {/* Card Header with Top-Right Thumbnail on Mobile */}
-                  <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--pw-hairline)]">
-                    <div className="space-y-1.5 min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-bold text-[var(--pw-ink)]">
-                          ตรวจสอบข้อมูลสลิป #{currentIndex + 1}
-                        </h3>
-                        {currentItem.slipData ? (
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border",
-                              currentItem.slipData.ocrProvider === "OCR"
-                                ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
-                                : "bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border-[var(--pw-primary)]/30"
-                            )}
-                          >
-                            <Sparkles className="size-3" />
-                            {currentItem.slipData.ocrProvider === "OCR"
-                              ? "OCR อ่านข้อมูลสำเร็จ"
-                              : "AI อ่านข้อมูลสำเร็จ"}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--pw-primary)]">
-                            <Sparkles className="size-3" />
-                            อ่านด้วย AI / OCR
-                          </span>
-                        )}
-                        {currentItem.slipData?.processingDurationSeconds != null && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--pw-ink)]/80">
-                            ⏱️ {currentItem.slipData.processingDurationSeconds.toFixed(2)} วินาที
-                          </span>
-                        )}
-                        {currentItem.slipData && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--pw-ink)]/80">
-                            🖼️ อัปโหลด {currentItem.slipData.batchImageCount ?? batchItems.length} รูป
-                          </span>
-                        )}
-                      </div>
+                {currentItem.status === "uploading" ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    className="relative overflow-hidden rounded-2xl border border-[var(--pw-primary)]/40 bg-[var(--pw-surface-raised)]/70 p-6 sm:p-8 backdrop-blur-xl shadow-lg"
+                  >
+                    {/* Animated laser scanning line effect sweeping over the card */}
+                    <motion.div
+                      initial={{ top: "-10%" }}
+                      animate={{ top: "110%" }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 2.2,
+                        ease: "easeInOut",
+                      }}
+                      className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--pw-primary)] to-transparent shadow-[0_0_16px_3px_var(--pw-primary)] pointer-events-none"
+                    />
 
-                      <div className="flex items-center gap-2 pt-0.5">
-                        <span
-                          className={cn(
-                            "px-2.5 py-0.5 rounded-full text-xs font-semibold",
-                            currentItem.status === "confirmed"
-                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                              : currentItem.status === "rejected"
-                              ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
-                              : currentItem.status === "uploading"
-                              ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                              : currentItem.status === "error"
-                              ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
-                              : currentItem.slipData?.isDuplicate
-                              ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                              : "bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/30"
-                          )}
-                        >
-                          {currentItem.status === "confirmed"
-                            ? "บันทึกแล้ว"
-                            : currentItem.status === "rejected"
-                            ? "ปฏิเสธแล้ว"
-                            : currentItem.status === "uploading"
-                            ? "กำลังอ่านข้อมูล..."
-                            : currentItem.status === "error"
-                            ? "เกิดข้อผิดพลาด"
-                            : currentItem.slipData?.isDuplicate
-                            ? "ตรวจพบซ้ำ"
-                            : "รอตรวจสอบ"}
-                        </span>
+                    {/* AI scanning badge and message */}
+                    <div className="flex flex-col items-center justify-center text-center space-y-3 pb-6 border-b border-[var(--pw-hairline)]/70">
+                      <div className="relative flex size-14 items-center justify-center rounded-2xl bg-[var(--pw-primary)]/15 border border-[var(--pw-primary)]/30 text-[var(--pw-primary)] shadow-inner">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+                          className="absolute inset-0 rounded-2xl border-2 border-dashed border-[var(--pw-primary)]/40"
+                        />
+                        <Sparkles className="size-7 animate-pulse text-[var(--pw-primary)]" />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-bold text-[var(--pw-ink)]">
+                          กำลังวิเคราะห์และอ่านข้อมูลสลิปด้วย AI...
+                        </h3>
+                        <p className="mt-1 text-xs sm:text-sm text-[var(--pw-ink)]/70 max-w-md mx-auto">
+                          ระบบกำลังสกัดยอดเงิน วันที่ บัญชี และผู้รับโอนจากรูปภาพของคุณ
+                        </p>
                       </div>
                     </div>
+
+                    {/* Skeletons simulating the transaction fields layout */}
+                    <div className="mt-6 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <div className="h-4 w-20 rounded bg-[var(--pw-hairline)] animate-pulse" />
+                          <div className="h-10 w-full rounded-xl bg-[var(--pw-surface-sunken)]/60 border border-[var(--pw-hairline)]/50 animate-pulse" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="h-4 w-24 rounded bg-[var(--pw-hairline)] animate-pulse" />
+                          <div className="h-10 w-full rounded-xl bg-[var(--pw-surface-sunken)]/60 border border-[var(--pw-hairline)]/50 animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="h-4 w-28 rounded bg-[var(--pw-hairline)] animate-pulse" />
+                        <div className="h-10 w-full rounded-xl bg-[var(--pw-surface-sunken)]/60 border border-[var(--pw-hairline)]/50 animate-pulse" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <div className="h-4 w-20 rounded bg-[var(--pw-hairline)] animate-pulse" />
+                          <div className="h-10 w-full rounded-xl bg-[var(--pw-surface-sunken)]/60 border border-[var(--pw-hairline)]/50 animate-pulse" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="h-4 w-24 rounded bg-[var(--pw-hairline)] animate-pulse" />
+                          <div className="h-10 w-full rounded-xl bg-[var(--pw-surface-sunken)]/60 border border-[var(--pw-hairline)]/50 animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <div className="h-10 w-28 rounded-xl bg-[var(--pw-hairline)] animate-pulse" />
+                        <div className="h-10 w-36 rounded-xl bg-[var(--pw-primary)]/20 animate-pulse" />
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <Card className="p-4 sm:p-6 bg-[var(--pw-surface-raised)]/60 border border-[var(--pw-hairline)] backdrop-blur-md space-y-4">
+                    {/* Card Header with Top-Right Thumbnail on Mobile */}
+                    <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--pw-hairline)]">
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-bold text-[var(--pw-ink)]">
+                            ตรวจสอบข้อมูลสลิป #{currentIndex + 1}
+                          </h3>
+                          <span
+                            className={cn(
+                              "px-2.5 py-0.5 rounded-full text-xs font-semibold",
+                              currentItem.status === "confirmed"
+                                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                : currentItem.status === "rejected"
+                                ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                                : currentItem.status === "error"
+                                ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                                : currentItem.slipData?.isDuplicate
+                                ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                : "bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/30"
+                            )}
+                          >
+                            {currentItem.status === "confirmed"
+                              ? "บันทึกแล้ว"
+                              : currentItem.status === "rejected"
+                              ? "ปฏิเสธแล้ว"
+                              : currentItem.status === "error"
+                              ? "เกิดข้อผิดพลาด"
+                              : currentItem.slipData?.isDuplicate
+                              ? "ตรวจพบซ้ำ"
+                              : "รอตรวจสอบ"}
+                          </span>
+                        </div>
+                      </div>
 
                     {/* Top-Right Slip Thumbnail on Mobile */}
                     {currentItem.previewUrl && (
@@ -1354,7 +1412,7 @@ export function SlipImportTab() {
                       min={0.01}
                       placeholder="0.00"
                       value={currentItem.amount}
-                      disabled={currentItem.status === "confirmed" || currentItem.status === "uploading"}
+                      disabled={currentItem.status === "confirmed"}
                       onChange={(e) => updateCurrentItem({ amount: e.target.value })}
                       prefixNode={<span className="text-xl font-bold text-[var(--pw-ink)]/50">฿</span>}
                       className="h-14 text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--pw-ink)] bg-[var(--pw-surface-black)]/35 border-[var(--pw-input-border)] focus:border-[var(--pw-primary)] rounded-[var(--pw-rounded-sm)]"
@@ -1431,7 +1489,7 @@ export function SlipImportTab() {
                           <Select
                             value={currentItem.categoryId || "none"}
                             onValueChange={(val) => handleSelectCategory(val === "none" ? null : Number(val))}
-                            disabled={currentItem.status === "confirmed" || currentItem.status === "uploading"}
+                            disabled={currentItem.status === "confirmed"}
                           >
                             <SelectTrigger id="slip-category-select">
                               <SelectValue placeholder="— เลือกจากหมวดหมู่ทั้งหมด —" />
@@ -1489,7 +1547,7 @@ export function SlipImportTab() {
                         <div className="space-y-1.5">
                           <DateTimeInput
                             value={currentItem.transactionDate}
-                            disabled={currentItem.status === "confirmed" || currentItem.status === "uploading"}
+                            disabled={currentItem.status === "confirmed"}
                             onChange={(val) => updateCurrentItem({ transactionDate: val })}
                           />
                           <div className="flex justify-end">
@@ -1520,7 +1578,7 @@ export function SlipImportTab() {
                             } catch {}
                           }
                         }}
-                        disabled={currentItem.status === "confirmed" || currentItem.status === "uploading"}
+                        disabled={currentItem.status === "confirmed"}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="— ไม่ระบุ —" />
@@ -1555,7 +1613,7 @@ export function SlipImportTab() {
                       <Input
                         placeholder="เช่น บจก. ซีพี ออลล์, ร้านกาแฟ"
                         value={currentItem.payeeName}
-                        disabled={currentItem.status === "confirmed" || currentItem.status === "uploading"}
+                        disabled={currentItem.status === "confirmed"}
                         onChange={(e) => updateCurrentItem({ payeeName: e.target.value })}
                       />
                     </FormField>
@@ -1566,7 +1624,7 @@ export function SlipImportTab() {
                     <Input
                       placeholder="เช่น ค่าอาหารกลางวัน, ชำระค่าสินค้า"
                       value={currentItem.description}
-                      disabled={currentItem.status === "confirmed" || currentItem.status === "uploading"}
+                      disabled={currentItem.status === "confirmed"}
                       onChange={(e) => updateCurrentItem({ description: e.target.value })}
                     />
                   </FormField>
@@ -1617,7 +1675,7 @@ export function SlipImportTab() {
                                   type="checkbox"
                                   className="sr-only"
                                   checked={checked}
-                                  disabled={currentItem.status === "confirmed" || currentItem.status === "uploading"}
+                                  disabled={currentItem.status === "confirmed"}
                                   aria-label={`เลือกแท็ก ${t.tagName}`}
                                   onChange={(e) => {
                                     const next = e.target.checked
@@ -1709,21 +1767,11 @@ export function SlipImportTab() {
                     ) : currentItem.status !== "confirmed" ? (
                       <Button
                         type="button"
-                        className={cn(
-                          "w-full min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all shadow-md cursor-pointer order-1 text-white",
-                          currentItem.status === "uploading"
-                            ? "bg-blue-600 hover:bg-blue-700 disabled:opacity-85 disabled:bg-blue-600 disabled:text-white"
-                            : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
-                        )}
-                        disabled={isActionLoading || currentItem.status === "uploading"}
+                        className="w-full min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all shadow-md cursor-pointer order-1 text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+                        disabled={isActionLoading}
                         onClick={handleConfirmCurrent}
                       >
-                        {currentItem.status === "uploading" ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin text-white" />
-                            <span>กำลังอ่านข้อมูลสลิป...</span>
-                          </>
-                        ) : isActionLoading ? (
+                        {isActionLoading ? (
                           <>
                             <Loader2 className="size-4 animate-spin text-white" />
                             <span>กำลังบันทึก...</span>
@@ -1824,6 +1872,7 @@ export function SlipImportTab() {
                     </div>
                   </div>
                 </Card>
+              )}
               </div>
             </div>
           )}

@@ -14,6 +14,9 @@ export interface SlipImportResponse {
   isDuplicate: boolean;
   suggestedCategoryId?: number | null;
   suggestedCategoryName?: string | null;
+  suggestedBankAccountId?: number | null;
+  suggestedBankAccountName?: string | null;
+  isAutoCreatedBankAccount?: boolean;
   ocrProvider?: "AI" | "OCR" | string;
   ocrEngine?: string | null;
   processingDurationSeconds?: number | null;

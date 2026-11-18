@@ -56,7 +56,7 @@ public class ImportServiceTests
         // Use reflection to call private static ParseSlipText
         var method = typeof(TesseractSlipOcrService).GetMethod("ParseSlipText", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         var result = new SlipExtractedData();
-        method.Invoke(null, new object[] { sampleText, result });
+        method!.Invoke(null, new object[] { sampleText, result });
 
         Assert.NotNull(result.DetectedAt);
         Assert.Equal(expectedYear, result.DetectedAt.Value.Year);
@@ -263,6 +263,65 @@ public class ImportServiceTests
 
         Assert.True(res2.IsDuplicate);
         Assert.Equal(ReviewStatus.Duplicate.ToString(), res2.ReviewStatus, ignoreCase: true);
+    }
+
+    [Fact]
+    public async Task SlipImport_UploadSlip_AutoCreatesBankAccount_WhenNoMatchingAccountExists()
+    {
+        var repo = new FakeImportRepository();
+        var storage = new FakeFileStorageService();
+        var ocr = new FakeSlipOcrService { BankCode = "KBANK" };
+        var bankRepo = new FakeBankAccountRepository();
+        var service = new SlipImportService(repo, storage, ocr, bankAccountRepository: bankRepo);
+
+        var fileBytes = Encoding.UTF8.GetBytes("slip bytes kbank");
+        using var stream = new MemoryStream(fileBytes);
+
+        var res = await service.UploadSlipAsync(1, stream, "kbank_slip.jpg", "image/jpeg", fileBytes.Length);
+
+        Assert.True(res.IsAutoCreatedBankAccount);
+        Assert.NotNull(res.SuggestedBankAccountId);
+        Assert.Equal("บัญชีธนาคารกสิกรไทย", res.SuggestedBankAccountName);
+        Assert.Single(bankRepo.Accounts);
+        var created = bankRepo.Accounts[0];
+        Assert.Equal(1, created.UserId);
+        Assert.Equal("KBANK", created.BankCode);
+        Assert.Equal("ธนาคารกสิกรไทย", created.BankName);
+        Assert.Equal("บัญชีธนาคารกสิกรไทย", created.AccountName);
+        Assert.Equal(AccountType.Bank, created.AccountType);
+        Assert.True(created.IsActive);
+        Assert.Equal(created.BankAccountId, res.SuggestedBankAccountId);
+    }
+
+    [Fact]
+    public async Task SlipImport_UploadSlip_MatchesExistingBankAccount_WhenBankCodeMatches()
+    {
+        var repo = new FakeImportRepository();
+        var storage = new FakeFileStorageService();
+        var ocr = new FakeSlipOcrService { BankCode = "SCB" };
+        var bankRepo = new FakeBankAccountRepository();
+        await bankRepo.AddAsync(new BankAccount
+        {
+            BankAccountId = 99,
+            UserId = 1,
+            BankCode = "SCB",
+            BankName = "ธนาคารไทยพาณิชย์",
+            AccountName = "บัญชีเงินเดือน SCB",
+            AccountType = AccountType.Bank,
+            IsActive = true
+        });
+
+        var service = new SlipImportService(repo, storage, ocr, bankAccountRepository: bankRepo);
+
+        var fileBytes = Encoding.UTF8.GetBytes("slip bytes scb");
+        using var stream = new MemoryStream(fileBytes);
+
+        var res = await service.UploadSlipAsync(1, stream, "scb_slip.jpg", "image/jpeg", fileBytes.Length);
+
+        Assert.False(res.IsAutoCreatedBankAccount);
+        Assert.Equal(99, res.SuggestedBankAccountId);
+        Assert.Equal("บัญชีเงินเดือน SCB", res.SuggestedBankAccountName);
+        Assert.Single(bankRepo.Accounts); // Did not create a duplicate
     }
 
     [Fact]
@@ -587,6 +646,7 @@ public class ImportServiceTests
     private class FakeSlipOcrService : ISlipOcrService
     {
         public bool ShouldThrow { get; set; }
+        public string? BankCode { get; set; }
 
         public Task<SlipExtractedData> ExtractDataAsync(Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
         {
@@ -597,6 +657,7 @@ public class ImportServiceTests
 
             return Task.FromResult(new SlipExtractedData
             {
+                BankCode = BankCode,
                 DetectedAmount = 350.00m,
                 DetectedAt = DateTime.UtcNow,
                 PayeeName = "ร้านกาแฟดี",
@@ -604,6 +665,65 @@ public class ImportServiceTests
                 OcrProvider = "AI",
                 OcrEngine = "Gemini (gemini-3.1-flash-lite)"
             });
+        }
+    }
+
+    private class FakeBankAccountRepository : IBankAccountRepository
+    {
+        public List<BankAccount> Accounts { get; } = new();
+        private long _idCounter = 1;
+
+        public Task<BankAccount?> GetByIdAsync(long id, long userId, CancellationToken cancellationToken = default)
+        {
+            var acc = Accounts.FirstOrDefault(a => a.BankAccountId == id && a.UserId == userId);
+            return Task.FromResult(acc);
+        }
+
+        public Task<IReadOnlyList<BankAccount>> GetAllAsync(long userId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<BankAccount>>(
+                Accounts.Where(a => a.UserId == userId).ToList());
+        }
+
+        public Task<Dictionary<long, decimal>> GetBalancesAsync(long userId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<long, decimal>());
+        }
+
+        public Task<decimal> GetBalanceAsync(long bankAccountId, long userId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(0m);
+        }
+
+        public Task AddAsync(BankAccount account, CancellationToken cancellationToken = default)
+        {
+            if (account.BankAccountId == 0)
+            {
+                account.BankAccountId = _idCounter++;
+            }
+            Accounts.Add(account);
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateAsync(BankAccount account, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> HasTransactionsAsync(long id, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task SoftDeleteAsync(BankAccount account, CancellationToken cancellationToken = default)
+        {
+            account.IsDeleted = true;
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 
