@@ -44,17 +44,19 @@ flowchart TD
   - ต้องไม่มีไฟล์ขยะ เช่น `.env.local`, ไฟล์ logs, mock scripts หรือ screenshots ค้างอยู่ใน staging
   - ตรวจสอบว่าไม่มี Secrets หรือ API Keys ฮาร์ดโค้ดลงในไฟล์
 
-### Step 2: ทดสอบ Build ทั้งสองฝั่ง (Quality Gates)
-*ต้องคอมไพล์ผ่าน 100% ทั้งสองส่วนก่อนดำเนินการต่อ:*
-- **Backend Build**:
+### Step 2: ทดสอบ Build (Smart Scoped Quality Gates)
+*ต้องคอมไพล์ผ่าน 100% ตามขอบเขตการเปลี่ยนแปลงก่อนดำเนินการต่อ:*
+- **กรณีงานแก้ไขเฉพาะ Frontend**:
   ```bash
-  dotnet build backend/PocketWise.sln -c Release
+  cd frontend/pocketwise-web && npm run lint && npm run build
   ```
-- **Frontend Build**:
+  *(ตรวจผ่าน 41 Routes โดยไม่ต้องรัน .NET ซ้ำซ้อน)*
+- **กรณีงานแก้ไขเฉพาะ Backend**:
   ```bash
-  cd frontend/pocketwise-web && npm run build
+  dotnet build backend/PocketWise.sln -c Release && dotnet test backend/PocketWise.sln -c Release --no-build
   ```
-  *(ต้องผ่านทั้ง 41 Routes โดยไม่มี Type Error หรือ Compile Error)*
+  *(ตรวจผ่าน 100% โดยไม่ต้องรัน Next.js ซ้ำซ้อน)*
+- **กรณี Full-Stack / Cross-Cutting หรือก่อน Final Merge**: ตรวจสอบทั้งสองฝั่งครบถ้วน 100%
 
 ### Step 3: เช็คฐานข้อมูลตามกฎ Zero Schema Drift (Database Check)
 - หากการเปลี่ยนแปลงมีผลต่อโครงสร้างฐานข้อมูล (Entity, Table, Column, Constraint, Index):
