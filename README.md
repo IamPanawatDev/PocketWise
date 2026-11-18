@@ -30,7 +30,7 @@ PostgreSQL (Local Docker: 5432 / Production: Supabase)
 | Monitoring | UptimeRobot (Free Plan - 24/7 Keep-Alive Pinger ทุก 5 นาที) |
 | Real-time | ASP.NET Core SignalR (server) + `@microsoft/signalr` (^10.0.11 client) |
 | UI/Animation | Tailwind CSS 4, shadcn/ui, `motion` (^14.5.0), `recharts` (^3.10.1) |
-| Testing | xUnit + WebApplicationFactory / Playwright (Brave Browser Visible UI) |
+| Testing | xUnit + WebApplicationFactory / Playwright (E2E Browser Testing) |
 
 รายละเอียดเต็ม: [docs/Tech_Stack.md](docs/Tech_Stack.md) และสารบัญเครื่องมือฉบับสมบูรณ์: [docs/TOOLS_REFERENCE.md](docs/TOOLS_REFERENCE.md)
 

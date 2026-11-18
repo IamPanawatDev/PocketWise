@@ -73,6 +73,100 @@ function getActionBadge(action: string) {
   }
 }
 
+interface SlipAuditMetrics {
+  ocrProvider?: string;
+  durationSeconds?: number;
+  uploadedImageCount?: number;
+  status?: string;
+}
+
+function parseSlipAuditMetrics(log: AuditLogResponse): SlipAuditMetrics | null {
+  if (log.entityType !== "SlipImportFiles" || !log.detailsJson) return null;
+  try {
+    const parsed = JSON.parse(log.detailsJson) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const ocrProvider = (parsed.ocrProvider ?? parsed.OcrProvider) as string | undefined;
+    const rawDuration =
+      parsed.durationSeconds ??
+      parsed.DurationSeconds ??
+      parsed.processingDurationSeconds ??
+      parsed.ProcessingDurationSeconds;
+    const durationSeconds = typeof rawDuration === "number" ? rawDuration : undefined;
+    const rawCount =
+      parsed.uploadedImageCount ??
+      parsed.UploadedImageCount ??
+      parsed.batchImageCount ??
+      parsed.BatchImageCount;
+    const uploadedImageCount = typeof rawCount === "number" ? rawCount : undefined;
+    const status = (parsed.status ?? parsed.Status) as string | undefined;
+
+    if (
+      ocrProvider === undefined &&
+      durationSeconds === undefined &&
+      uploadedImageCount === undefined &&
+      status === undefined
+    ) {
+      return null;
+    }
+
+    return { ocrProvider, durationSeconds, uploadedImageCount, status };
+  } catch {
+    return null;
+  }
+}
+
+function renderSlipMetricsBadges(metrics: SlipAuditMetrics | null) {
+  if (!metrics) return null;
+  const isAI = metrics.ocrProvider?.toUpperCase() === "AI";
+  const isSuccess =
+    metrics.status?.toLowerCase() === "success" ||
+    metrics.status?.toLowerCase() === "completed" ||
+    metrics.status?.toLowerCase() === "ready";
+  const isFailed =
+    metrics.status?.toLowerCase() === "failed" ||
+    metrics.status?.toLowerCase() === "error";
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+      {metrics.ocrProvider && (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+            isAI
+              ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+              : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+          }`}
+        >
+          {isAI ? "อ่านด้วย AI" : "อ่านด้วย OCR"}
+        </span>
+      )}
+      {typeof metrics.durationSeconds === "number" && (
+        <span className="inline-flex items-center rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--pw-ink)]/80">
+          ⏱️ {metrics.durationSeconds.toFixed(2)} วินาที
+        </span>
+      )}
+      {typeof metrics.uploadedImageCount === "number" && (
+        <span className="inline-flex items-center rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--pw-ink)]/80">
+          🖼️ {metrics.uploadedImageCount} รูป
+        </span>
+      )}
+      {metrics.status && (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+            isFailed
+              ? "bg-rose-500/15 text-rose-400 border-rose-500/30"
+              : isSuccess
+              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+              : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+          }`}
+        >
+          {isFailed ? "ล้มเหลว" : isSuccess ? "สำเร็จ" : metrics.status}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function AuditLogTable({
   logs,
   page,
@@ -121,6 +215,7 @@ export function AuditLogTable({
             <tbody className="divide-y divide-[var(--pw-hairline)]">
               {logs.map((log) => {
                 const badge = getActionBadge(log.action);
+                const slipMetrics = parseSlipAuditMetrics(log);
                 return (
                   <tr
                     key={log.auditLogId}
@@ -135,8 +230,9 @@ export function AuditLogTable({
                         {badge.label}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-medium text-[var(--pw-link)]">
-                      {log.entityType}
+                    <td className="px-4 py-3 font-medium text-[var(--pw-link)]">
+                      <div>{log.entityType}</div>
+                      {renderSlipMetricsBadges(slipMetrics)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-[var(--pw-ink)]/70">
                       {log.entityId ?? "-"}
@@ -169,6 +265,7 @@ export function AuditLogTable({
       <AnimatedList className="space-y-3 md:hidden">
         {logs.map((log) => {
           const badge = getActionBadge(log.action);
+          const slipMetrics = parseSlipAuditMetrics(log);
           return (
             <AnimatedListItem key={log.auditLogId}>
               <Card className="p-4">
@@ -179,6 +276,7 @@ export function AuditLogTable({
                       {badge.label}
                     </span>
                     <span className="ml-2 font-semibold text-[var(--pw-link)]">{log.entityType}</span>
+                    {renderSlipMetricsBadges(slipMetrics)}
                   </div>
                   <Button
                     type="button"

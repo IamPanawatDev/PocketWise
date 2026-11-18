@@ -9,4 +9,7 @@ public class SlipExtractedData
     public DateTime? DetectedAt { get; set; }
     public string? TransactionReference { get; set; }
     public string? RawText { get; set; }
+    public string OcrProvider { get; set; } = "OCR";
+    public string OcrEngine { get; set; } = "Tesseract OCR";
+    public double ProcessingDurationSeconds { get; set; }
 }

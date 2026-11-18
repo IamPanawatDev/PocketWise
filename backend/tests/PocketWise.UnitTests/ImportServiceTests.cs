@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json;
 using PocketWise.Application.DTOs;
+using PocketWise.Application.DTOs.AuditLogs;
 using PocketWise.Application.DTOs.CategoryRules;
 using PocketWise.Application.Features.Imports;
 using PocketWise.Application.Features.Imports.DTOs;
@@ -244,11 +246,16 @@ public class ImportServiceTests
         var fileBytes = Encoding.UTF8.GetBytes("slip image bytes 12345");
         using var stream1 = new MemoryStream(fileBytes);
 
-        var res1 = await service.UploadSlipAsync(1, stream1, "slip.jpg", "image/jpeg", fileBytes.Length);
+        var res1 = await service.UploadSlipAsync(1, stream1, "slip.jpg", "image/jpeg", fileBytes.Length, batchImageCount: 3);
         Assert.False(res1.IsDuplicate);
         Assert.Equal("slip.jpg", res1.OriginalFileName);
         Assert.Equal(ReviewStatus.Pending.ToString(), res1.ReviewStatus, ignoreCase: true);
+        Assert.Equal("AI", res1.OcrProvider);
+        Assert.Equal("Gemini (gemini-3.1-flash-lite)", res1.OcrEngine);
+        Assert.True(res1.ProcessingDurationSeconds >= 0);
+        Assert.Equal(3, res1.BatchImageCount);
         Assert.Single(repo.Slips);
+        Assert.NotNull(repo.ImportJobs[0].CompletedAt);
 
         // Upload same file bytes again
         using var stream2 = new MemoryStream(fileBytes);
@@ -383,6 +390,52 @@ public class ImportServiceTests
         Assert.Equal(ReviewStatus.Rejected, slip.ReviewStatus);
     }
 
+    [Fact]
+    public async Task SlipImport_UploadSlip_WritesAuditLogWithMetrics_OnSuccessAndFailure()
+    {
+        var repo = new FakeImportRepository();
+        var storage = new FakeFileStorageService();
+        var ocr = new FakeSlipOcrService();
+        var auditLog = new FakeAuditLogService();
+        var service = new SlipImportService(repo, storage, ocr, null, auditLog);
+
+        var fileBytes = Encoding.UTF8.GetBytes("slip image bytes for audit test");
+        using var stream1 = new MemoryStream(fileBytes);
+
+        var res = await service.UploadSlipAsync(1, stream1, "slip_audit.jpg", "image/jpeg", fileBytes.Length, batchImageCount: 2);
+
+        Assert.Single(auditLog.Logs);
+        var logEntry = auditLog.Logs[0];
+        Assert.Equal(1L, logEntry.UserId);
+        Assert.Equal(AuditAction.Import, logEntry.Action);
+        Assert.Equal("SlipImportFiles", logEntry.EntityType);
+        Assert.Equal(res.SlipImportFileId.ToString(), logEntry.EntityId);
+
+        var json = JsonSerializer.Serialize(logEntry.Details);
+        Assert.Contains("\"OcrProvider\":\"AI\"", json);
+        Assert.Contains("\"UploadedImageCount\":2", json);
+        Assert.Contains("\"Status\":\"Success\"", json);
+        Assert.Contains("\"IsExtractionSuccess\":true", json);
+
+        // Now test failure audit logging
+        ocr.ShouldThrow = true;
+        using var stream2 = new MemoryStream(fileBytes);
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.UploadSlipAsync(1, stream2, "slip_fail.jpg", "image/jpeg", fileBytes.Length, batchImageCount: 4));
+
+        Assert.Equal(2, auditLog.Logs.Count);
+        var failEntry = auditLog.Logs[1];
+        Assert.Equal(1L, failEntry.UserId);
+        Assert.Equal(AuditAction.Import, failEntry.Action);
+        Assert.Equal("SlipImportFiles", failEntry.EntityType);
+        Assert.Null(failEntry.EntityId);
+
+        var failJson = JsonSerializer.Serialize(failEntry.Details);
+        Assert.Contains("\"Status\":\"Failed\"", failJson);
+        Assert.Contains("\"UploadedImageCount\":4", failJson);
+        Assert.Contains("\"IsExtractionSuccess\":false", failJson);
+    }
+
     #endregion
 
     #region StatementImportService Tests
@@ -502,16 +555,54 @@ public class ImportServiceTests
         }
     }
 
+    private class FakeAuditLogService : IAuditLogService
+    {
+        public List<(long? UserId, AuditAction Action, string EntityType, string? EntityId, object? Details)> Logs { get; } = new();
+
+        public Task LogAsync(long? userId, AuditAction action, string entityType, string? entityId, object? details = null, CancellationToken cancellationToken = default)
+        {
+            Logs.Add((userId, action, entityType, entityId, details));
+            return Task.CompletedTask;
+        }
+
+        public Task<PagedResult<AuditLogResponse>> GetLogsPagedAsync(long currentUserId, bool isAdmin, AuditLogFilter filter, int page, int pageSize, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AuditLogResponse?> GetLogByIdAsync(long id, long currentUserId, bool isAdmin, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<IReadOnlyList<string>> GetEntityTypesAsync(long currentUserId, bool isAdmin, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AuditLogSettingsResponse> GetSettingsAsync(CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task SetSettingsAsync(bool enabled, long actorUserId, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<PurgeAuditLogsResponse> PurgeLogsAsync(int olderThanDays, long actorUserId, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+    }
+
     private class FakeSlipOcrService : ISlipOcrService
     {
+        public bool ShouldThrow { get; set; }
+
         public Task<SlipExtractedData> ExtractDataAsync(Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
         {
+            if (ShouldThrow)
+            {
+                throw new InvalidOperationException("Simulated OCR failure");
+            }
+
             return Task.FromResult(new SlipExtractedData
             {
                 DetectedAmount = 350.00m,
                 DetectedAt = DateTime.UtcNow,
                 PayeeName = "ร้านกาแฟดี",
-                TransactionReference = "REF998811"
+                TransactionReference = "REF998811",
+                OcrProvider = "AI",
+                OcrEngine = "Gemini (gemini-3.1-flash-lite)"
             });
         }
     }

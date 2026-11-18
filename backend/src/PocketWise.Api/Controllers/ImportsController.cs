@@ -33,7 +33,8 @@ public class ImportsController : ControllerBase
     public async Task<ActionResult<ApiResponse<SlipImportResponse>>> UploadSlipAsync(
         IFormFile? file,
         [FromForm] string? bankCode,
-        CancellationToken cancellationToken)
+        [FromForm] int batchImageCount = 1,
+        CancellationToken cancellationToken = default)
     {
         if (file == null || file.Length == 0)
         {
@@ -50,6 +51,7 @@ public class ImportsController : ControllerBase
             file.ContentType,
             file.Length,
             bankCode,
+            Math.Max(1, batchImageCount),
             cancellationToken);
 
         return Ok(ApiResponse<SlipImportResponse>.Ok(result));

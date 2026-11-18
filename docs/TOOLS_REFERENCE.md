@@ -14,7 +14,7 @@ PocketWise Ecosystem
 ├── 🗄️ Database: PostgreSQL (Local Docker: 5432 / Production: Supabase)
 ├── ☁️ Hosting & Cloud: Vercel (Frontend) + Render (Backend API)
 ├── ⏱️ Monitoring: UptimeRobot (Free Plan - 24/7 Keep-Alive Pinger ทุก 5 นาที)
-├── 🧪 Testing & QA: Playwright (Brave Browser Headed Mode) + xUnit (.NET 10)
+├── 🧪 Testing & QA: Playwright (Standard E2E Browser Testing) + xUnit (.NET 10)
 └── 🚀 DevOps & CI/CD: GitHub Actions (Automated PR Gates) + GitHub CLI (gh)
 ```
 
@@ -66,7 +66,7 @@ PocketWise Ecosystem
 
 | ชื่อเครื่องมือ | ประเภท | หน้าที่และวัตถุประสงค์ (What & Why) | คำสั่งมาตรฐานที่ใช้ |
 | :--- | :---: | :--- | :--- |
-| **Playwright + Brave Browser** | E2E QA Testing | ชุดทดสอบการทำงานของเว็บแบบมองเห็นหน้าจอจริง (**Visible Headed Mode: `headless: false`**) โดยเปิดผ่าน **Brave Browser** เพื่อให้ผู้ใช้มองเห็นทุกขั้นตอนการทดสอบ (ปุ่ม, ฟอร์ม, โมดอล, การตอบสนองของ UI) ได้อย่างโปร่งใส | `node tests/e2e/<script>.cjs`<br>Browser: Brave Application |
+| **Playwright** | E2E QA Testing | ชุดทดสอบการทำงานของเว็บแบบ End-to-End ผ่าน Playwright มาตรฐาน (Chromium) โดยไม่จำเป็นต้องพึ่งพา Brave Browser เพื่อตรวจสอบปุ่ม, ฟอร์ม, โมดอล และการตอบสนองของ UI ทั้งกรณี Success และ Error | `node tests/e2e/<script>.cjs` |
 | **xUnit Test Framework** | Unit & Integration Testing | ชุดทดสอบฝั่ง Backend ครอบคลุม Domain Logic, Service Operations, Repository Mappings, และ Security Controllers (98 tests) | `dotnet test backend/PocketWise.sln` |
 | **Next.js Linter (ESLint)** | Static Analysis | ตรวจสอบคุณภาพโค้ด TypeScript/React, กฎของ Hooks และ Best Practices | `npm run lint` (ในโฟลเดอร์ frontend) |
 
@@ -96,7 +96,7 @@ cd frontend/pocketwise-web
 npm run lint
 npm run build
 
-# 4. ทดสอบ QA บนหน้าจอจริงด้วย Brave Browser UI (Headed Mode)
+# 4. ทดสอบ QA E2E ด้วย Playwright
 node tests/e2e/qa_step5_brave_ci_validation.cjs
 ```
 

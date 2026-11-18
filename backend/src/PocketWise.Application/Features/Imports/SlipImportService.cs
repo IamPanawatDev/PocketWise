@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using PocketWise.Application.DTOs.Transactions;
@@ -59,8 +60,12 @@ public class SlipImportService : ISlipImportService
         string contentType,
         long fileSize,
         string? bankCode = null,
+        int batchImageCount = 1,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
+        var effectiveBatchCount = Math.Max(1, batchImageCount);
+
         if (fileSize <= 0)
         {
             throw new BusinessException("VALIDATION_ERROR", "ขนาดไฟล์ต้องมากกว่า 0 ไบต์");
@@ -76,139 +81,211 @@ public class SlipImportService : ISlipImportService
             throw new BusinessException("VALIDATION_ERROR", "รองรับเฉพาะไฟล์รูปภาพ (JPEG, PNG, WEBP) หรือ PDF เท่านั้น");
         }
 
-        _logger?.LogInformation("[SlipImportService] Processing slip upload: FileName='{FileName}', Size={Size} bytes, Mime='{Mime}', UserId={UserId}", fileName, fileSize, contentType, userId);
+        _logger?.LogInformation("[SlipImportService] Processing slip upload: FileName='{FileName}', Size={Size} bytes, Mime='{Mime}', UserId={UserId}, BatchImageCount={BatchImageCount}", fileName, fileSize, contentType, userId, effectiveBatchCount);
 
-        // Calculate SHA-256 Hash for duplicate file detection
-        using var sha256 = SHA256.Create();
-        fileStream.Seek(0, SeekOrigin.Begin);
-        var hashBytes = await sha256.ComputeHashAsync(fileStream, cancellationToken);
-        var fileHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
-
-        // Check if duplicate file already exists for this user
-        var existingSlip = await _repository.GetSlipByHashAsync(userId, fileHash, cancellationToken);
-        var isDuplicate = existingSlip != null;
-
-        // Save file to storage
-        var subFolder = Path.Combine("slips", userId.ToString(), DateTime.UtcNow.ToString("yyyyMM"));
-        var storageKey = await _fileStorageService.SaveFileAsync(fileStream, fileName, contentType, subFolder, cancellationToken);
-
-        // Run OCR / extraction
-        fileStream.Seek(0, SeekOrigin.Begin);
-        var extracted = await _ocrService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
-
-        if (!string.IsNullOrWhiteSpace(bankCode))
+        try
         {
-            extracted.BankCode = bankCode;
-        }
+            // Calculate SHA-256 Hash for duplicate file detection
+            using var sha256 = SHA256.Create();
+            fileStream.Seek(0, SeekOrigin.Begin);
+            var hashBytes = await sha256.ComputeHashAsync(fileStream, cancellationToken);
+            var fileHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
 
-        _logger?.LogInformation("[SlipImportService] OCR extraction finished: Bank={Bank}, Amount={Amt}, Date={Date}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
-            extracted.BankCode, extracted.DetectedAmount, extracted.DetectedAt, extracted.PayerName, extracted.PayeeName, extracted.TransactionReference);
+            // Check if duplicate file already exists for this user
+            var existingSlip = await _repository.GetSlipByHashAsync(userId, fileHash, cancellationToken);
+            var isDuplicate = existingSlip != null;
 
-        // Suggest category
-        var (suggestedCatId, suggestedCatName) = await _repository.SuggestCategoryAsync(
-            userId,
-            extracted.PayeeName ?? extracted.PayerName ?? Path.GetFileNameWithoutExtension(fileName),
-            cancellationToken);
+            // Save file to storage
+            var subFolder = Path.Combine("slips", userId.ToString(), DateTime.UtcNow.ToString("yyyyMM"));
+            var storageKey = await _fileStorageService.SaveFileAsync(fileStream, fileName, contentType, subFolder, cancellationToken);
 
-        // Create ImportJob
-        var importJob = new ImportJob
-        {
-            UserId = userId,
-            ImportType = ImportType.Slip,
-            FileName = fileName,
-            Status = ImportJobStatus.NeedsReview,
-            TotalRecords = 1,
-            ImportedRecords = 0,
-            DuplicateRecords = isDuplicate ? 1 : 0,
-            StartedAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
-        };
-        await _repository.AddImportJobAsync(importJob, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
+            // Run OCR / extraction
+            fileStream.Seek(0, SeekOrigin.Begin);
+            var extracted = await _ocrService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
 
-        // Create SlipImportFile
-        var slip = new SlipImportFile
-        {
-            UserId = userId,
-            ImportJobId = importJob.ImportJobId,
-            StorageKey = storageKey,
-            OriginalFileName = fileName,
-            MimeType = contentType,
-            FileSizeBytes = fileSize,
-            BankCode = extracted.BankCode,
-            PayerName = extracted.PayerName,
-            PayeeName = extracted.PayeeName,
-            DetectedAmount = extracted.DetectedAmount,
-            DetectedAt = extracted.DetectedAt,
-            TransactionReference = extracted.TransactionReference,
-            FileHash = fileHash,
-            ReviewStatus = isDuplicate ? ReviewStatus.Duplicate : ReviewStatus.Pending,
-            CreatedAt = DateTime.UtcNow
-        };
-        await _repository.AddSlipImportFileAsync(slip, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
+            stopwatch.Stop();
+            var durationSeconds = Math.Round(stopwatch.Elapsed.TotalSeconds, 2);
+            extracted.ProcessingDurationSeconds = durationSeconds;
 
-        // Send SignalR notification
-        if (_notificationSender != null)
-        {
-            var notifTitle = isDuplicate ? "พบสลิปซ้ำในระบบ" : "อัปโหลดสลิปสำเร็จ รอการตรวจสอบ";
-            var notifMsg = isDuplicate
-                ? $"ไฟล์ {fileName} ตรงกับสลิปที่เคยอัปโหลดแล้ว"
-                : $"สลิป {fileName} จำนวนเงิน {(extracted.DetectedAmount.HasValue ? extracted.DetectedAmount.Value.ToString("N2") : "-")} พร้อมตรวจสอบ";
-
-            await _notificationSender.SendNotificationToUserAsync(userId, new NotificationResponse
+            if (!string.IsNullOrWhiteSpace(bankCode))
             {
-                NotificationId = importJob.ImportJobId,
-                Title = notifTitle,
-                Message = notifMsg,
-                NotificationType = isDuplicate ? "SLIP_IMPORT_DUPLICATE" : "SLIP_IMPORT_REVIEW",
-                Channel = "inApp",
-                Status = "sent",
-                RelatedEntityType = "Slip",
-                RelatedEntityId = slip.SlipImportFileId,
-                CreatedAt = DateTime.UtcNow
-            }, cancellationToken);
-        }
+                extracted.BankCode = bankCode;
+            }
 
-        if (_auditLogService != null)
-        {
-            await _auditLogService.LogAsync(
+            _logger?.LogInformation("[SlipImportService] OCR extraction finished: Bank={Bank}, Amount={Amt}, Date={Date}, Payer={Payer}, Payee={Payee}, Ref={Ref}",
+                extracted.BankCode, extracted.DetectedAmount, extracted.DetectedAt, extracted.PayerName, extracted.PayeeName, extracted.TransactionReference);
+
+            // Suggest category
+            var (suggestedCatId, suggestedCatName) = await _repository.SuggestCategoryAsync(
                 userId,
-                AuditAction.Import,
-                "SlipImportFiles",
-                slip.SlipImportFileId.ToString(),
-                new
-                {
-                    slip.OriginalFileName,
-                    slip.FileSizeBytes,
-                    slip.DetectedAmount,
-                    slip.BankCode,
-                    slip.PayeeName,
-                    slip.PayerName,
-                    ReviewStatus = slip.ReviewStatus.ToString()
-                },
+                extracted.PayeeName ?? extracted.PayerName ?? Path.GetFileNameWithoutExtension(fileName),
                 cancellationToken);
-        }
 
-        return new SlipImportResponse
+            // Create ImportJob
+            var importJob = new ImportJob
+            {
+                UserId = userId,
+                ImportType = ImportType.Slip,
+                FileName = fileName,
+                Status = ImportJobStatus.NeedsReview,
+                TotalRecords = 1,
+                ImportedRecords = 0,
+                DuplicateRecords = isDuplicate ? 1 : 0,
+                StartedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _repository.AddImportJobAsync(importJob, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
+
+            // Create SlipImportFile
+            var slip = new SlipImportFile
+            {
+                UserId = userId,
+                ImportJobId = importJob.ImportJobId,
+                StorageKey = storageKey,
+                OriginalFileName = fileName,
+                MimeType = contentType,
+                FileSizeBytes = fileSize,
+                BankCode = extracted.BankCode,
+                PayerName = extracted.PayerName,
+                PayeeName = extracted.PayeeName,
+                DetectedAmount = extracted.DetectedAmount,
+                DetectedAt = extracted.DetectedAt,
+                TransactionReference = extracted.TransactionReference,
+                FileHash = fileHash,
+                ReviewStatus = isDuplicate ? ReviewStatus.Duplicate : ReviewStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _repository.AddSlipImportFileAsync(slip, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
+
+            // Send SignalR notification
+            if (_notificationSender != null)
+            {
+                var notifTitle = isDuplicate ? "พบสลิปซ้ำในระบบ" : "อัปโหลดสลิปสำเร็จ รอการตรวจสอบ";
+                var notifMsg = isDuplicate
+                    ? $"ไฟล์ {fileName} ตรงกับสลิปที่เคยอัปโหลดแล้ว"
+                    : $"สลิป {fileName} จำนวนเงิน {(extracted.DetectedAmount.HasValue ? extracted.DetectedAmount.Value.ToString("N2") : "-")} พร้อมตรวจสอบ";
+
+                await _notificationSender.SendNotificationToUserAsync(userId, new NotificationResponse
+                {
+                    NotificationId = importJob.ImportJobId,
+                    Title = notifTitle,
+                    Message = notifMsg,
+                    NotificationType = isDuplicate ? "SLIP_IMPORT_DUPLICATE" : "SLIP_IMPORT_REVIEW",
+                    Channel = "inApp",
+                    Status = "sent",
+                    RelatedEntityType = "Slip",
+                    RelatedEntityId = slip.SlipImportFileId,
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+            }
+
+            _logger?.LogInformation(
+                "Slip upload processed: UserId={UserId}, Provider={OcrProvider}, Engine={OcrEngine}, DurationSeconds={DurationSeconds}s, UploadedImageCount={UploadedImageCount}, Status=Success, FileName={FileName}, DetectedAmount={DetectedAmount}",
+                userId,
+                extracted.OcrProvider,
+                extracted.OcrEngine,
+                durationSeconds,
+                effectiveBatchCount,
+                fileName,
+                extracted.DetectedAmount);
+
+            if (_auditLogService != null)
+            {
+                await _auditLogService.LogAsync(
+                    userId,
+                    AuditAction.Import,
+                    "SlipImportFiles",
+                    slip.SlipImportFileId.ToString(),
+                    new
+                    {
+                        slip.OriginalFileName,
+                        slip.FileSizeBytes,
+                        OcrProvider = extracted.OcrProvider,
+                        OcrEngine = extracted.OcrEngine,
+                        DurationSeconds = durationSeconds,
+                        UploadedImageCount = effectiveBatchCount,
+                        Status = "Success",
+                        IsExtractionSuccess = extracted.DetectedAmount.HasValue || !string.IsNullOrWhiteSpace(extracted.TransactionReference),
+                        slip.DetectedAmount,
+                        slip.BankCode,
+                        slip.PayeeName,
+                        slip.PayerName,
+                        ReviewStatus = slip.ReviewStatus.ToString()
+                    },
+                    cancellationToken);
+            }
+
+            return new SlipImportResponse
+            {
+                SlipImportFileId = slip.SlipImportFileId,
+                ImportJobId = importJob.ImportJobId,
+                OriginalFileName = slip.OriginalFileName,
+                FileSizeBytes = slip.FileSizeBytes,
+                FileHash = slip.FileHash,
+                BankCode = slip.BankCode,
+                PayerName = slip.PayerName,
+                PayeeName = slip.PayeeName,
+                DetectedAmount = slip.DetectedAmount,
+                DetectedAt = slip.DetectedAt,
+                TransactionReference = slip.TransactionReference,
+                ReviewStatus = slip.ReviewStatus.ToString().ToLowerInvariant(),
+                IsDuplicate = isDuplicate,
+                SuggestedCategoryId = suggestedCatId,
+                SuggestedCategoryName = suggestedCatName,
+                OcrProvider = extracted.OcrProvider,
+                OcrEngine = extracted.OcrEngine,
+                ProcessingDurationSeconds = durationSeconds,
+                BatchImageCount = effectiveBatchCount,
+                CreatedAt = slip.CreatedAt
+            };
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            SlipImportFileId = slip.SlipImportFileId,
-            ImportJobId = importJob.ImportJobId,
-            OriginalFileName = slip.OriginalFileName,
-            FileSizeBytes = slip.FileSizeBytes,
-            FileHash = slip.FileHash,
-            BankCode = slip.BankCode,
-            PayerName = slip.PayerName,
-            PayeeName = slip.PayeeName,
-            DetectedAmount = slip.DetectedAmount,
-            DetectedAt = slip.DetectedAt,
-            TransactionReference = slip.TransactionReference,
-            ReviewStatus = slip.ReviewStatus.ToString().ToLowerInvariant(),
-            IsDuplicate = isDuplicate,
-            SuggestedCategoryId = suggestedCatId,
-            SuggestedCategoryName = suggestedCatName,
-            CreatedAt = slip.CreatedAt
-        };
+            stopwatch.Stop();
+            var durationSeconds = Math.Round(stopwatch.Elapsed.TotalSeconds, 2);
+
+            _logger?.LogWarning(
+                ex,
+                "Slip upload failed: UserId={UserId}, DurationSeconds={DurationSeconds}s, UploadedImageCount={UploadedImageCount}, Status=Failed, FileName={FileName}",
+                userId,
+                durationSeconds,
+                effectiveBatchCount,
+                fileName);
+
+            if (_auditLogService != null)
+            {
+                try
+                {
+                    await _auditLogService.LogAsync(
+                        userId,
+                        AuditAction.Import,
+                        "SlipImportFiles",
+                        null,
+                        new
+                        {
+                            OriginalFileName = fileName,
+                            FileSizeBytes = fileSize,
+                            OcrProvider = "Unknown",
+                            OcrEngine = "Unknown",
+                            DurationSeconds = durationSeconds,
+                            UploadedImageCount = effectiveBatchCount,
+                            Status = "Failed",
+                            IsExtractionSuccess = false,
+                            ErrorMessage = ex.Message
+                        },
+                        cancellationToken);
+                }
+                catch (Exception auditEx)
+                {
+                    _logger?.LogWarning(auditEx, "Failed to write audit log for failed slip upload.");
+                }
+            }
+
+            throw;
+        }
     }
 
     public async Task<SlipImportResponse?> GetSlipByIdAsync(

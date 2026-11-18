@@ -60,7 +60,10 @@ public class GeminiSlipOcrService : ISlipOcrService
         {
             _logger?.LogWarning("[GeminiSlipOcrService] GEMINI_API_KEY is not configured. Falling back to Tesseract.");
             fileStream.Seek(0, SeekOrigin.Begin);
-            return await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
+            var fallbackResult = await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
+            fallbackResult.OcrProvider = "OCR";
+            fallbackResult.OcrEngine = "Tesseract OCR";
+            return fallbackResult;
         }
 
         try
@@ -74,7 +77,10 @@ public class GeminiSlipOcrService : ISlipOcrService
             {
                 _logger?.LogWarning("[GeminiSlipOcrService] Empty file stream provided for {FileName}.", fileName);
                 fileStream.Seek(0, SeekOrigin.Begin);
-                return await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
+                var emptyFallback = await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
+                emptyFallback.OcrProvider = "OCR";
+                emptyFallback.OcrEngine = "Tesseract OCR";
+                return emptyFallback;
             }
 
             var mimeType = NormalizeMimeType(contentType, fileName);
@@ -99,6 +105,8 @@ public class GeminiSlipOcrService : ISlipOcrService
                 result = await TryAnalyzeWithGeminiAsync(apiKey, model, base64Data, mimeType, cancellationToken);
                 if (result != null && (result.DetectedAmount.HasValue || !string.IsNullOrWhiteSpace(result.TransactionReference)))
                 {
+                    result.OcrProvider = "AI";
+                    result.OcrEngine = $"Gemini ({model})";
                     _logger?.LogInformation("[GeminiSlipOcrService] Gemini ({Model}) extracted successfully: Bank={Bank}, Amount={Amt}, Date={Date}, Payee={Payee}, Ref={Ref}",
                         model, result.BankCode, result.DetectedAmount, result.DetectedAt, result.PayeeName, result.TransactionReference);
                     return result;
@@ -114,7 +122,10 @@ public class GeminiSlipOcrService : ISlipOcrService
 
         // Fallback to local Tesseract
         fileStream.Seek(0, SeekOrigin.Begin);
-        return await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
+        var finalFallback = await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
+        finalFallback.OcrProvider = "OCR";
+        finalFallback.OcrEngine = "Tesseract OCR";
+        return finalFallback;
     }
 
     private async Task<SlipExtractedData?> TryAnalyzeWithGeminiAsync(

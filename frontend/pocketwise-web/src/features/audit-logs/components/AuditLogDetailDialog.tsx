@@ -3,7 +3,7 @@
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { formatDisplayDateTime } from "@/lib/date-utils";
 import type { AuditLogResponse } from "@/types/audit-log.types";
-import { CheckCircle2, Clock, FileCode, Layers, Tag, User, Copy, Check } from "lucide-react";
+import { CheckCircle2, Clock, FileCode, Layers, Tag, User, Copy, Check, Sparkles, Image as ImageIcon, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BottomSheetFooter } from "@/components/ui/bottom-sheet";
@@ -83,6 +83,49 @@ export function AuditLogDetailDialog({
     "before" in (parsedDetails as Record<string, unknown>) &&
     "after" in (parsedDetails as Record<string, unknown>);
 
+  const slipDetailsObj =
+    log.entityType === "SlipImportFiles" &&
+    parsedDetails &&
+    typeof parsedDetails === "object" &&
+    !Array.isArray(parsedDetails)
+      ? (parsedDetails as Record<string, unknown>)
+      : null;
+
+  const slipOcrProvider = slipDetailsObj
+    ? ((slipDetailsObj.ocrProvider ?? slipDetailsObj.OcrProvider) as string | undefined)
+    : undefined;
+  const slipOcrEngine = slipDetailsObj
+    ? ((slipDetailsObj.ocrEngine ?? slipDetailsObj.OcrEngine) as string | undefined)
+    : undefined;
+  const slipDurationRaw = slipDetailsObj
+    ? (slipDetailsObj.durationSeconds ??
+      slipDetailsObj.DurationSeconds ??
+      slipDetailsObj.processingDurationSeconds ??
+      slipDetailsObj.ProcessingDurationSeconds)
+    : undefined;
+  const slipDurationSeconds = typeof slipDurationRaw === "number" ? slipDurationRaw : undefined;
+  const slipImageCountRaw = slipDetailsObj
+    ? (slipDetailsObj.uploadedImageCount ??
+      slipDetailsObj.UploadedImageCount ??
+      slipDetailsObj.batchImageCount ??
+      slipDetailsObj.BatchImageCount)
+    : undefined;
+  const slipImageCount = typeof slipImageCountRaw === "number" ? slipImageCountRaw : undefined;
+  const slipStatus = slipDetailsObj
+    ? ((slipDetailsObj.status ?? slipDetailsObj.Status) as string | undefined)
+    : undefined;
+  const slipErrorMessage = slipDetailsObj
+    ? ((slipDetailsObj.errorMessage ?? slipDetailsObj.ErrorMessage) as string | undefined)
+    : undefined;
+
+  const hasSlipSummary =
+    log.entityType === "SlipImportFiles" &&
+    (slipOcrProvider !== undefined ||
+      slipOcrEngine !== undefined ||
+      slipDurationSeconds !== undefined ||
+      slipImageCount !== undefined ||
+      slipStatus !== undefined);
+
   return (
     <BottomSheet
       open={open}
@@ -130,6 +173,77 @@ export function AuditLogDetailDialog({
             </span>
           </div>
         </div>
+
+        {/* Slip Upload & OCR Summary Grid */}
+        {hasSlipSummary && (
+          <div className="space-y-2.5 rounded-[var(--pw-rounded-sm)] border border-[var(--pw-primary)]/30 bg-[var(--pw-surface-indigo)]/60 backdrop-blur-xl p-4">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--pw-ink)]">
+              <Sparkles className="size-4 text-[var(--pw-primary)]" />
+              สรุปข้อมูลการอัปโหลดและอ่านสลิป (Slip OCR Metrics)
+            </h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+              <div className="rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/40 p-3">
+                <div className="text-xs text-[var(--pw-ink)]/60">ระบบที่ใช้อ่านสลิป</div>
+                <div className="mt-1 font-bold text-[var(--pw-ink)] flex items-center gap-1.5">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border ${
+                      slipOcrProvider?.toUpperCase() === "AI"
+                        ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                        : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                    }`}
+                  >
+                    {slipOcrProvider?.toUpperCase() === "AI" ? "อ่านด้วย AI" : "อ่านด้วย OCR"}
+                  </span>
+                  <span className="text-xs text-[var(--pw-ink)]/75">
+                    ({slipOcrEngine || (slipOcrProvider?.toUpperCase() === "AI" ? "AI (Gemini)" : "OCR (Tesseract)")})
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/40 p-3">
+                <div className="text-xs text-[var(--pw-ink)]/60">เวลาที่ใช้ในการอ่าน</div>
+                <div className="mt-1 font-bold text-[var(--pw-ink)]">
+                  {typeof slipDurationSeconds === "number"
+                    ? `⏱️ ${slipDurationSeconds.toFixed(2)} วินาที`
+                    : "-"}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/40 p-3">
+                <div className="text-xs text-[var(--pw-ink)]/60">จำนวนรูปภาพที่อัปโหลด</div>
+                <div className="mt-1 font-bold text-[var(--pw-ink)] flex items-center gap-1.5">
+                  <ImageIcon className="size-4 text-[var(--pw-primary)]" />
+                  <span>{typeof slipImageCount === "number" ? `${slipImageCount} รูปภาพ` : "1 รูปภาพ"}</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/40 p-3">
+                <div className="text-xs text-[var(--pw-ink)]/60">สถานะการอัปโหลด/อ่าน</div>
+                <div className="mt-1 font-bold flex items-center gap-1.5">
+                  {slipStatus?.toLowerCase() === "failed" || slipStatus?.toLowerCase() === "error" ? (
+                    <span className="inline-flex items-center rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 px-2.5 py-0.5 text-xs font-semibold">
+                      ล้มเหลว
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold">
+                      สำเร็จ
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {slipErrorMessage && (
+                <div className="sm:col-span-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300 flex items-start gap-2">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5 text-rose-400" />
+                  <div>
+                    <span className="font-bold text-rose-400">สาเหตุข้อผิดพลาด: </span>
+                    <span>{slipErrorMessage}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Change details / Before & After diff */}
         {isDiffObject ? (

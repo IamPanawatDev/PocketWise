@@ -225,12 +225,13 @@ public class AuthService : IAuthService
         if (storedToken.RevokedAt is not null)
         {
             if (storedToken.ReasonRevoked == RevokeReason.Rotated &&
-                storedToken.RevokedAt > DateTime.UtcNow.AddSeconds(-60))
+                storedToken.RevokedAt > DateTime.UtcNow.AddMinutes(-5))
             {
                 return await GenerateTokenPairAndSaveAsync(user, ipAddress, userAgent, cancellationToken);
             }
 
             // Revoked token reused! Revoke token family and log security event
+            var elapsedSeconds = Math.Round((DateTime.UtcNow - storedToken.RevokedAt.Value).TotalSeconds, 1);
             await _refreshTokenRepository.RevokeAllForUserAsync(user.Id, ipAddress, RevokeReason.Compromised.ToString(), cancellationToken);
             await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
 
@@ -243,7 +244,14 @@ public class AuthService : IAuthService
                     succeeded: false,
                     ipAddress: ipAddress,
                     userAgent: userAgent,
-                    details: new { reason = "Revoked refresh token reuse detected", tokenId = storedToken.RefreshTokenId },
+                    details: new
+                    {
+                        reason = "Revoked refresh token reuse detected",
+                        tokenId = storedToken.RefreshTokenId,
+                        revokedAt = storedToken.RevokedAt,
+                        reasonRevoked = storedToken.ReasonRevoked?.ToString(),
+                        elapsedSeconds
+                    },
                     cancellationToken: cancellationToken);
             }
 

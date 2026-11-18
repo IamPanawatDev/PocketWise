@@ -33,10 +33,20 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
+  const getRedirectTarget = () => {
+    if (typeof window === "undefined") return "/transactions";
+    const params = new URLSearchParams(window.location.search);
+    const from = params.get("from");
+    if (from && from.startsWith("/") && !from.startsWith("//") && !from.startsWith("/login")) {
+      return from;
+    }
+    return "/transactions";
+  };
+
   useEffect(() => {
-    // If user already has an active session, go straight to /transactions
+    // If user already has an active session, go straight to target or /transactions
     if (isSuccess && user) {
-      router.replace("/transactions");
+      router.replace(getRedirectTarget());
       return;
     }
 
@@ -47,6 +57,7 @@ export function LoginForm() {
 
     setIsRestoring(true);
     let isCancelled = false;
+    const maxRetries = 4;
 
     const attemptRestore = async (retryCount = 0) => {
       if (isCancelled) return;
@@ -54,7 +65,7 @@ export function LoginForm() {
         setRestoreStatus(
           retryCount === 0
             ? "กำลังเชื่อมต่อเซิร์ฟเวอร์และกู้คืนเซสชัน..."
-            : `เซิร์ฟเวอร์กำลังเตรียมความพร้อม กำลังลองใหม่อีกครั้ง (${retryCount}/2)...`
+            : `เซิร์ฟเวอร์กำลังเตรียมความพร้อม กำลังลองใหม่อีกครั้ง (${retryCount}/${maxRetries})...`
         );
 
         const res = await fetch("/api/auth/token?refresh=true", {
@@ -78,7 +89,7 @@ export function LoginForm() {
           }
 
           // If Render is waking up (502/503/504/timeout), retry after delay
-          if (retryCount < 2) {
+          if (retryCount < maxRetries) {
             setRestoreStatus("เซิร์ฟเวอร์กำลังเริ่มต้นทำงาน กำลังเชื่อมต่อใหม่ใน 3 วินาที...");
             setTimeout(() => {
               if (!isCancelled) {
@@ -100,7 +111,7 @@ export function LoginForm() {
           } catch {}
         }
         setRestoreStatus("เข้าสู่ระบบสำเร็จ กำลังพาไปยังหน้ารายการ...");
-        window.location.href = "/transactions";
+        window.location.href = getRedirectTarget();
       } catch {
         if (!isCancelled) {
           setIsRestoring(false);
@@ -115,7 +126,12 @@ export function LoginForm() {
     };
   }, [isSuccess, user, router]);
 
-  const onSubmit = (values: LoginFormValues) => login.mutate(values);
+  const onSubmit = (values: LoginFormValues) =>
+    login.mutate(values, {
+      onSuccess: () => {
+        window.location.href = getRedirectTarget();
+      },
+    });
 
   if (isRestoring) {
     return (

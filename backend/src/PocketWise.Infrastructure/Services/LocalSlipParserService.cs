@@ -29,7 +29,9 @@ public class LocalSlipParserService : ISlipOcrService
         var result = new SlipExtractedData
         {
             DetectedAt = DateTime.UtcNow,
-            TransactionReference = null
+            TransactionReference = null,
+            OcrProvider = "OCR",
+            OcrEngine = "Tesseract OCR"
         };
 
         var fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);

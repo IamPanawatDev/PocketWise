@@ -105,6 +105,15 @@ async function request<T>(
     clearTimeout(timer);
   }
 
+  if (typeof window !== "undefined") {
+    const rotatedRefresh = res.headers.get("x-pw-refresh-token");
+    if (rotatedRefresh) {
+      try {
+        localStorage.setItem("pw_fallback_refresh", rotatedRefresh);
+      } catch {}
+    }
+  }
+
   // If 401 and not an auth route itself, try one token refresh and retry
   if (res.status === 401 && !path.startsWith("/api/auth/")) {
     const refreshed = await attemptClientRefresh();
