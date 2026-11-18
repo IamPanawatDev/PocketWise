@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import {
   cn,
   thailandDateBoundaryToUtcIso,
@@ -256,16 +256,7 @@ export function AuditLogFilterBar({
             </FormField>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 pt-4 border-t border-[var(--pw-hairline)] sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-            className="w-full sm:w-auto"
-              onClick={onReset}
-              disabled={activeFilterCount === 0}
-            >
-              ล้างตัวกรอง
-            </Button>
+          <BottomSheetFooter>
             <Button
               type="button"
               className="w-full sm:w-auto"
@@ -273,7 +264,16 @@ export function AuditLogFilterBar({
             >
               ดูผลลัพธ์
             </Button>
-          </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={onReset}
+              disabled={activeFilterCount === 0}
+            >
+              ล้างตัวกรอง
+            </Button>
+          </BottomSheetFooter>
         </div>
       </BottomSheet>
     </div>

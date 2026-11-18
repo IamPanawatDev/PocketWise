@@ -47,6 +47,9 @@ export function BottomSheet({
       animatingOut.current = false;
       touchStartY.current = null;
       if (sheetContentRef.current) {
+        sheetContentRef.current.removeAttribute("data-dismissed");
+        sheetContentRef.current.style.display = "";
+        sheetContentRef.current.style.opacity = "";
         sheetContentRef.current.style.transform = "";
         sheetContentRef.current.style.transition = "";
         sheetContentRef.current.style.animation = "";
@@ -153,6 +156,11 @@ export function BottomSheet({
         overlayRef.current.style.opacity = "0";
       }
       window.setTimeout(() => {
+        if (sheetContentRef.current) {
+          sheetContentRef.current.setAttribute("data-dismissed", "true");
+          sheetContentRef.current.style.display = "none";
+          sheetContentRef.current.style.opacity = "0";
+        }
         onOpenChange(false);
         animatingOut.current = false;
         if (sheetContentRef.current) {
@@ -166,7 +174,7 @@ export function BottomSheet({
         }
       }, 240);
     } else {
-      // Spring back up smoothly if released before threshold
+      // Spring back up smoothly if released before threshold (user changed mind)
       if (sheetContentRef.current) {
         sheetContentRef.current.style.transition = "transform 220ms cubic-bezier(0.2, 1, 0.3, 1)";
         sheetContentRef.current.style.transform = "translateY(0) translateZ(0)";
@@ -178,9 +186,10 @@ export function BottomSheet({
       window.setTimeout(() => {
         if (!animatingOut.current) {
           if (sheetContentRef.current) {
-            sheetContentRef.current.style.transform = "";
+            sheetContentRef.current.style.transform = "translateY(0)";
             sheetContentRef.current.style.transition = "";
-            sheetContentRef.current.style.animation = "";
+            // Crucial: keep animation = "none" so the browser never re-triggers @keyframes pw-sheet-slide-in!
+            sheetContentRef.current.style.animation = "none";
           }
           if (overlayRef.current) {
             overlayRef.current.style.opacity = "";

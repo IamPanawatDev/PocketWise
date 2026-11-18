@@ -21,7 +21,6 @@ import {
   Megaphone,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   Sparkles,
   ArrowRight,
   TrendingUp,
@@ -34,6 +33,7 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useAdminOverviewQuery, useUpdateMaintenanceMutation } from "@/features/admin-operations/hooks/useAdminOperations";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
 
 export default function AdminOverviewPage() {
@@ -49,7 +49,7 @@ export default function AdminOverviewPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-          ปฏิเสธการเข้าถึง (Access Denied)
+          ปฏิเสธการเข้าถึง
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
           คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงหน้าแดชบอร์ดภาพรวมผู้ดูแลระบบได้
@@ -83,30 +83,22 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-            <Server className="size-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[var(--pw-ink)]">
-              ภาพรวมระบบและการดำเนินงาน (Admin Overview)
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--pw-ink)]/70">
-              ติดตามสถานะความปลอดภัย ผู้ใช้งาน และงานระบบทั้งระบบแบบเรียลไทม์
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => refetch()}
-          disabled={isLoading}
-          className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-3.5 py-2 sm:py-1.5 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 active:scale-95 transition-all"
-        >
-          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-          <span>รีเฟรชข้อมูล</span>
-        </button>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="ภาพรวมระบบและการดำเนินงาน"
+        icon={Server}
+        description="ติดตามสถานะความปลอดภัย ผู้ใช้งาน และงานระบบทั้งระบบแบบเรียลไทม์"
+        action={
+          <button
+            onClick={() => refetch()}
+            disabled={isLoading}
+            className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-3.5 py-2 sm:py-1.5 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 active:scale-95 transition-all"
+          >
+            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            <span>รีเฟรชข้อมูล</span>
+          </button>
+        }
+      />
 
       {/* Maintenance Mode Banner / Warning */}
       {overview && (
@@ -139,8 +131,8 @@ export default function AdminOverviewPage() {
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm sm:text-base">
                   {overview.maintenanceStatus.isEnabled
-                    ? "โหมดปรับปรุงระบบกำลังเปิดใช้งาน (Maintenance Active)"
-                    : "ระบบทำงานปกติ (All Systems Operational)"}
+                    ? "โหมดปรับปรุงระบบกำลังเปิดใช้งาน"
+                    : "ระบบทำงานปกติ"}
                 </span>
                 <span
                   className={cn(
@@ -252,7 +244,7 @@ export default function AdminOverviewPage() {
               <div className="flex items-center gap-2">
                 <FileStack className="size-5 text-[var(--pw-primary)]" />
                 <h3 className="font-semibold text-base text-[var(--pw-ink)]">
-                  งานนำเข้าข้อมูลระบบ (Import Operations)
+                  งานนำเข้าข้อมูลระบบ
                 </h3>
               </div>
               <Link
@@ -306,7 +298,7 @@ export default function AdminOverviewPage() {
               <div className="flex items-center gap-2">
                 <Lock className="size-5 text-[var(--pw-primary)]" />
                 <h3 className="font-semibold text-base text-[var(--pw-ink)]">
-                  เหตุการณ์ความปลอดภัย 24 ชม. (Security Logs)
+                  เหตุการณ์ความปลอดภัย 24 ชม.
                 </h3>
               </div>
               <Link

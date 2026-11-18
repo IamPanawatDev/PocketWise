@@ -255,7 +255,7 @@ export function AuditLogDetailDialog({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-[var(--pw-rounded-sm)] border border-rose-500/30 bg-rose-950/20 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-rose-400">ก่อนแก้ไข (Before)</span>
+                  <span className="text-xs font-bold text-rose-400">ก่อนแก้ไข</span>
                   <button
                     type="button"
                     onClick={() =>
@@ -278,7 +278,7 @@ export function AuditLogDetailDialog({
 
               <div className="rounded-[var(--pw-rounded-sm)] border border-emerald-500/30 bg-emerald-950/20 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-400">หลังแก้ไข (After)</span>
+                  <span className="text-xs font-bold text-emerald-400">หลังแก้ไข</span>
                   <button
                     type="button"
                     onClick={() =>

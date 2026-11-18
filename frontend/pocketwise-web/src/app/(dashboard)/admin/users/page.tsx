@@ -58,6 +58,7 @@ import {
 import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { ListRowsSkeleton } from "@/components/shared/Skeletons";
+import { PageHeader } from "@/components/shared/PageHeader";
 import type { AdminUserListItem, AdminUserDetail } from "@/types/admin-operations.types";
 
 export default function AdminUsersPage() {
@@ -143,7 +144,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-          ปฏิเสธการเข้าถึง (Access Denied)
+          ปฏิเสธการเข้าถึง
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
           คุณต้องมีบทบาทระดับ Admin จึงจะสามารถเข้าถึงและจัดการบัญชีผู้ใช้งานได้
@@ -288,22 +289,12 @@ export default function AdminUsersPage() {
       transition={{ duration: 0.25 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-            <Users className="size-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[var(--pw-ink)]">
-              จัดการบัญชีผู้ใช้งาน (User Account Operations)
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--pw-ink)]/75">
-              ค้นหา ตรวจสอบเซสชัน ระงับ/ยกเลิกการระงับ และส่งลิงก์กู้คืนบัญชี
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="จัดการบัญชีผู้ใช้งาน"
+        icon={Users}
+        description="ค้นหา ตรวจสอบเซสชัน ระงับ/ยกเลิกการระงับ และส่งลิงก์กู้คืนบัญชี"
+      />
 
       {/* Search & Filter Trigger Bar */}
       <div className="p-3 sm:p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-3">
@@ -676,10 +667,10 @@ export default function AdminUsersPage() {
               onValueChange={(val) => setSelectedRole(val === "ALL" ? "" : val)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="ทุกบทบาท (All Roles)" />
+                <SelectValue placeholder="ทุกบทบาท" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">ทุกบทบาท (All Roles)</SelectItem>
+                <SelectItem value="ALL">ทุกบทบาท</SelectItem>
                 <SelectItem value="Admin">Admin (ผู้ดูแลระบบ)</SelectItem>
                 <SelectItem value="Member">Member (สมาชิกทั่วไป)</SelectItem>
               </SelectContent>
@@ -688,7 +679,7 @@ export default function AdminUsersPage() {
 
           <div>
             <label className="text-xs font-semibold text-[var(--pw-ink)] block mb-1.5">
-              สถานะการระงับ (Suspension Status)
+              สถานะการระงับ
             </label>
             <Select
               value={suspendedFilter || "ALL"}
@@ -699,15 +690,15 @@ export default function AdminUsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">สถานะการระงับ (ทั้งหมด)</SelectItem>
-                <SelectItem value="false">ปกติ (Active)</SelectItem>
-                <SelectItem value="true">ถูกระงับ (Suspended)</SelectItem>
+                <SelectItem value="false">ปกติ</SelectItem>
+                <SelectItem value="true">ถูกระงับ</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-[var(--pw-ink)] block mb-1.5">
-              สถานะยืนยันอีเมล (Email Verification)
+              สถานะยืนยันอีเมล
             </label>
             <Select
               value={verifiedFilter || "ALL"}
@@ -718,8 +709,8 @@ export default function AdminUsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">สถานะการยืนยันอีเมล (ทั้งหมด)</SelectItem>
-                <SelectItem value="true">ยืนยันแล้ว (Verified)</SelectItem>
-                <SelectItem value="false">ยังไม่ยืนยัน (Unverified)</SelectItem>
+                <SelectItem value="true">ยืนยันแล้ว</SelectItem>
+                <SelectItem value="false">ยังไม่ยืนยัน</SelectItem>
               </SelectContent>
             </Select>
           </div>

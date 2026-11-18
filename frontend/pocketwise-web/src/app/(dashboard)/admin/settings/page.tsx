@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import {
   Sliders,
   ShieldAlert,
   Save,
-  CheckCircle2,
-  AlertTriangle,
-  RefreshCw,
   Power,
   X,
   Edit2,
@@ -39,16 +36,17 @@ import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { TableSkeleton, ListRowsSkeleton } from "@/components/shared/Skeletons";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import type { SystemSettingItem } from "@/types/admin-operations.types";
 
 const getCategoryBadge = (key: string) => {
   if (key.startsWith("Jwt:")) return { label: "ความปลอดภัย & JWT", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" };
-  if (key.startsWith("AuditLog")) return { label: "ประวัติการใช้งาน (Audit)", color: "bg-purple-500/10 text-purple-500 border-purple-500/20" };
+  if (key.startsWith("AuditLog")) return { label: "ประวัติการใช้งาน", color: "bg-purple-500/10 text-purple-500 border-purple-500/20" };
   if (key.startsWith("RefreshToken")) return { label: "การทำความสะอาดโทเคน", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" };
-  if (key.startsWith("RecurringJob")) return { label: "ธุรกรรมประจำ (Recurring)", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
-  if (key.startsWith("Email")) return { label: "อีเมลแจ้งเตือน (Email)", color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" };
+  if (key.startsWith("RecurringJob")) return { label: "ธุรกรรมประจำ", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
+  if (key.startsWith("Email")) return { label: "อีเมลแจ้งเตือน", color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" };
   if (key.startsWith("Maintenance")) return { label: "โหมดบำรุงรักษา", color: "bg-rose-500/10 text-rose-500 border-rose-500/20" };
   return { label: "ทั่วไป", color: "bg-gray-500/10 text-gray-500 border-gray-500/20" };
 };
@@ -97,7 +95,7 @@ export default function AdminSettingsPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="size-16 text-[var(--pw-expense)] mb-4" />
         <h1 className="text-xl font-bold text-[var(--pw-ink)]">
-          ปฏิเสธการเข้าถึง (Access Denied)
+          ปฏิเสธการเข้าถึง
         </h1>
         <p className="text-sm text-[var(--pw-ink)]/70 mt-2 max-w-md">
           คุณต้องมีบทบาทระดับ Admin จึงจะสามารถจัดการการตั้งค่าระบบได้
@@ -159,22 +157,12 @@ export default function AdminSettingsPage() {
       className="space-y-6"
     >
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[var(--pw-primary)]/10 text-[var(--pw-primary)]">
-            <Sliders className="size-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[var(--pw-ink)]">
-              การตั้งค่าระบบ & โหมดปรับปรุง (System Settings & Maintenance)
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--pw-ink)]/75">
-              จัดการเปิด/ปิดการบำรุงรักษาระบบ (Maintenance Mode) และกำหนดค่าคอนฟิกกลาง
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="การตั้งค่าระบบ & โหมดปรับปรุง"
+        icon={Sliders}
+        description="จัดการเปิด/ปิดการบำรุงรักษาระบบ และกำหนดค่าคอนฟิกกลาง"
+      />
 
       {/* Section 1: Maintenance Mode Configuration Card */}
       <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-5">
@@ -185,7 +173,7 @@ export default function AdminSettingsPage() {
             </div>
             <div>
               <h2 className="font-bold text-base text-[var(--pw-ink)]">
-                โหมดปรับปรุงระบบ (Maintenance Mode)
+                โหมดปรับปรุงระบบ
               </h2>
               <p className="text-xs text-[var(--pw-ink)]/60">
                 เมื่อเปิดใช้งาน ผู้ใช้ทั่วไปจะได้รับรหัส HTTP 503 MAINTENANCE_MODE และไม่สามารถเข้าถึงแอปได้
@@ -202,7 +190,7 @@ export default function AdminSettingsPage() {
                   : "bg-[var(--pw-hairline)] text-[var(--pw-ink)]/70"
               )}
             >
-              {maintenanceEnabled ? "เปิดใช้งาน (ENABLED)" : "ปิด (DISABLED)"}
+              {maintenanceEnabled ? "เปิดใช้งาน" : "ปิดการใช้งาน"}
             </span>
 
             <label className="relative inline-flex items-center cursor-pointer">
@@ -233,7 +221,7 @@ export default function AdminSettingsPage() {
 
           <div>
             <label className="block font-semibold text-xs text-[var(--pw-ink)] mb-1">
-              รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้ (Allowlisted User IDs)
+              รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้
             </label>
             <Input
               type="text"
@@ -249,7 +237,7 @@ export default function AdminSettingsPage() {
 
           {/* Unified DateTimeInputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="เวลาเริ่มต้น (Starts At - Optional)" htmlFor="maintenance-starts-at">
+            <FormField label="เวลาเริ่มต้น (ไม่บังคับ)" htmlFor="maintenance-starts-at">
               <DateTimeInput
                 id="maintenance-starts-at"
                 value={startsAt}
@@ -257,7 +245,7 @@ export default function AdminSettingsPage() {
               />
             </FormField>
 
-            <FormField label="เวลาสิ้นสุดโดยประมาณ (Ends At - Optional)" htmlFor="maintenance-ends-at">
+            <FormField label="เวลาสิ้นสุดโดยประมาณ (ไม่บังคับ)" htmlFor="maintenance-ends-at">
               <DateTimeInput
                 id="maintenance-ends-at"
                 value={endsAt}
@@ -283,7 +271,7 @@ export default function AdminSettingsPage() {
       <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-4">
         <div>
           <h2 className="font-bold text-base text-[var(--pw-ink)]">
-            ตารางการตั้งค่าระบบ (System Settings Key-Value)
+            ตารางการตั้งค่าระบบ
           </h2>
           <p className="text-xs text-[var(--pw-ink)]/60">
             ค่าตัวแปรคอนฟิกส่วนกลางที่จัดเก็บในตาราง SystemSettings
@@ -472,8 +460,8 @@ export default function AdminSettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="true">เปิดใช้งาน (true / Enabled)</SelectItem>
-                        <SelectItem value="false">ปิดใช้งาน (false / Disabled)</SelectItem>
+                        <SelectItem value="true">เปิดใช้งาน (true)</SelectItem>
+                        <SelectItem value="false">ปิดใช้งาน (false)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

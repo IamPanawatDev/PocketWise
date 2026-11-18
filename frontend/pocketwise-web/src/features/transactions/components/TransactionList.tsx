@@ -1506,13 +1506,18 @@ export function TransactionList({
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
                   <span className="text-[var(--pw-ink)]/60">ช่องทางชำระเงิน</span>
-                  <span className="font-medium text-[var(--pw-ink)]">
-                    {selectedTransaction.bankAccountName ??
+                  <PaymentMethodBadge
+                    bankAccountId={selectedTransaction.bankAccountId}
+                    bankAccountName={
+                      selectedTransaction.bankAccountName ??
+                      bankAccounts?.find((b) => b.bankAccountId === selectedTransaction.bankAccountId)?.accountName
+                    }
+                    creditCardId={selectedTransaction.creditCardId}
+                    creditCardName={
                       selectedTransaction.creditCardName ??
-                      bankAccounts?.find((b) => b.bankAccountId === selectedTransaction.bankAccountId)?.accountName ??
-                      creditCards?.find((c) => c.creditCardId === selectedTransaction.creditCardId)?.cardName ??
-                      "💵 เงินสด"}
-                  </span>
+                      creditCards?.find((c) => c.creditCardId === selectedTransaction.creditCardId)?.cardName
+                    }
+                  />
                 </div>
                 {selectedTransaction.tags.length > 0 && (
                   <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">

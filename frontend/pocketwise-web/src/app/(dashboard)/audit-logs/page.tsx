@@ -4,7 +4,7 @@ import { AuditLogsView } from "@/features/audit-logs/components/AuditLogsView";
 import { TableSkeleton } from "@/components/shared/Skeletons";
 
 export const metadata: Metadata = {
-  title: "ประวัติการเปลี่ยนแปลง (Audit Logs) — PocketWise",
+  title: "ประวัติการเปลี่ยนแปลง — PocketWise",
 };
 
 export default function AuditLogsPage() {

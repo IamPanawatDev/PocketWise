@@ -720,7 +720,7 @@ export function SystemCategoriesManager() {
                     htmlFor="cat-active"
                     className="mb-0 cursor-pointer text-sm font-medium leading-none text-[var(--pw-ink)] select-none"
                   >
-                    เปิดให้ผู้ใช้สามารถเลือกหมวดหมู่นี้ได้ (Active)
+                    เปิดให้ผู้ใช้สามารถเลือกหมวดหมู่นี้ได้
                   </Label>
                 </div>
               )}
