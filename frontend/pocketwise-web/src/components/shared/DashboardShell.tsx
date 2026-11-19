@@ -754,45 +754,47 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className={cn("flex min-h-dvh min-w-0 flex-col transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]", isCollapsed ? "md:ml-20" : "md:ml-72")}>
-        {/* Mobile Top Header with Back Navigation */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/85 px-4 backdrop-blur-md md:hidden">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="mr-1 -ml-1 p-2 rounded-lg text-[var(--pw-ink)]/75 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all flex items-center justify-center"
-              aria-label="ย้อนกลับ"
-              title="ย้อนกลับ"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-            <Image
-              src="/brand-logo.png"
-              alt="PocketWise brand"
-              width={32}
-              height={32}
-              priority
-              className="size-8 shrink-0 object-contain drop-shadow"
-            />
-            <span className="truncate text-base font-bold text-[var(--pw-ink)]">PocketWise</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent("pocketwise:open-command-palette"))}
-              className="p-2 rounded-lg text-[var(--pw-ink)]/75 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all flex items-center justify-center cursor-pointer"
-              aria-label="ค้นหาด่วน"
-              title="ค้นหาด่วน (Ctrl+K)"
-            >
-              <Search className="size-5" />
-            </button>
-            <ThemeToggle />
+        {/* Mobile Top Header with Back Navigation and iOS Safe Area Top */}
+        <header className="sticky top-0 z-30 flex flex-col justify-end border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/90 px-4 backdrop-blur-md md:hidden pt-[env(safe-area-inset-top,0px)]">
+          <div className="flex h-14 w-full items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="mr-1 -ml-1 p-2 rounded-lg text-[var(--pw-ink)]/75 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all flex items-center justify-center"
+                aria-label="ย้อนกลับ"
+                title="ย้อนกลับ"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <Image
+                src="/brand-logo.png"
+                alt="PocketWise brand"
+                width={32}
+                height={32}
+                priority
+                className="size-8 shrink-0 object-contain drop-shadow"
+              />
+              <span className="truncate text-base font-bold text-[var(--pw-ink)]">PocketWise</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("pocketwise:open-command-palette"))}
+                className="p-2 rounded-lg text-[var(--pw-ink)]/75 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all flex items-center justify-center cursor-pointer"
+                aria-label="ค้นหาด่วน"
+                title="ค้นหาด่วน (Ctrl+K)"
+              >
+                <Search className="size-5" />
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
         {/* Mobile Admin Quick Subnav Bar (< md) */}
         {(pathname.startsWith("/admin") || pathname === "/audit-logs") && (
-          <div className="sticky top-14 z-20 flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/90 px-3 py-2 backdrop-blur-md md:hidden overscroll-contain">
+          <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-20 flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/90 px-3 py-2 backdrop-blur-md md:hidden overscroll-contain">
             {adminMobileShortcuts.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
