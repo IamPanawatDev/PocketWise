@@ -44,6 +44,7 @@ import {
   Loader2,
   Plus,
   Save,
+  Search,
   Sparkles,
   Tag as TagIcon,
   X,
@@ -129,6 +130,7 @@ export function TransactionForm({
   // UX State
   const [isCustomDateTime, setIsCustomDateTime] = useState(Boolean(editing));
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState("");
   const [showTagsSection, setShowTagsSection] = useState(Boolean(editing?.tags && editing.tags.length > 0));
   const [presets] = useState<QuickPreset[]>(() => {
     if (typeof window === "undefined") return DEFAULT_PRESETS;
@@ -312,6 +314,15 @@ export function TransactionForm({
     if (quickCategories.some((c) => c.categoryId === selectedCategoryId)) return null;
     return availableCategories.find((c) => c.categoryId === selectedCategoryId) ?? null;
   }, [availableCategories, quickCategories, selectedCategoryId]);
+
+  // Filtered categories for searchable category panel
+  const filteredAllCategories = useMemo(() => {
+    if (!categorySearchTerm.trim()) return availableCategories;
+    const term = categorySearchTerm.toLowerCase();
+    return availableCategories.filter((c) =>
+      c.categoryName.toLowerCase().includes(term)
+    );
+  }, [availableCategories, categorySearchTerm]);
 
   // Format date summary for progressive disclosure
   const displayDateSummary = useMemo(() => {
@@ -502,13 +513,22 @@ export function TransactionForm({
       )}
 
       {/* Hero Amount Input */}
-      <FormField label="จำนวนเงิน (บาท) — รองรับสูตร เช่น 50+35" htmlFor="transaction-amount" error={errors.amount?.message}>
+      <FormField
+        label={
+          <span className="flex items-center justify-between w-full">
+            <span>จำนวนเงิน (บาท)</span>
+            <span className="text-[10px] text-[var(--pw-ink)]/50 font-normal">รองรับสูตร เช่น 50+35</span>
+          </span>
+        }
+        htmlFor="transaction-amount"
+        error={errors.amount?.message}
+      >
         <NumberInput
           id="transaction-amount"
           enableQuickMath={true}
           step="0.01"
           min="0.01"
-          placeholder="0.00 (พิมพ์สูตร เช่น 50+35 ได้)"
+          placeholder="0.00"
           inputMode="decimal"
           prefixNode={<span className="text-xl font-bold text-[var(--pw-ink)]/50">฿</span>}
           className="h-14 text-2xl sm:text-3xl font-extrabold tracking-tight bg-[var(--pw-surface-black)]/35 border-[var(--pw-input-border)] focus:border-[var(--pw-primary)] rounded-[var(--pw-rounded-sm)]"
@@ -519,7 +539,7 @@ export function TransactionForm({
       {/* Quick Category Chips & Smart Learning (ดึงหมวดหมู่ที่ใช้บ่อยจริง/สร้างเองมาแสดง) */}
       <FormField label="หมวดหมู่" htmlFor="transaction-category" error={errors.categoryId?.message}>
         <div className="space-y-2">
-          {/* Quick Chips Grid */}
+          {/* Quick Chips Grid (Fixed Item Count to Eliminate CLS) */}
           <div className="flex flex-wrap items-center gap-1.5">
             {quickCategories.map((cat) => {
               const isSelected = selectedCategoryId === cat.categoryId;
@@ -541,63 +561,106 @@ export function TransactionForm({
               );
             })}
 
-            {/* If selected category is outside the top 6, display it prominently as an active chip */}
-            {outsideSelectedCategory && (
-              <button
-                type="button"
-                onClick={() => handleSelectCategory(null)}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold bg-[var(--pw-primary)] text-[var(--pw-on-primary)] border border-[var(--pw-primary)] shadow-sm scale-102 cursor-pointer"
-              >
-                <Check className="size-3 stroke-[3]" />
-                <span>{outsideSelectedCategory.categoryName}</span>
-              </button>
-            )}
-
-            {/* Toggle All Categories Dropdown */}
+            {/* Toggle All Categories / Selected Other Category (Zero Layout Shift) */}
             <button
               type="button"
-              onClick={() => setShowAllCategories((prev) => !prev)}
+              onClick={() => {
+                setShowAllCategories((prev) => !prev);
+                setCategorySearchTerm("");
+              }}
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium border border-dashed transition-all cursor-pointer",
-                showAllCategories
+                "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium border transition-all cursor-pointer",
+                outsideSelectedCategory
+                  ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)] border-[var(--pw-primary)] shadow-sm font-semibold scale-102"
+                  : showAllCategories
                   ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] font-semibold"
-                  : "border-[var(--pw-hairline)] text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)] hover:border-[var(--pw-ink)]/40"
+                  : "border-dashed border-[var(--pw-hairline)] text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:border-[var(--pw-primary)]/50 bg-[var(--pw-surface-indigo)]/40"
               )}
             >
-              <Plus className="size-3" />
-              <span>{showAllCategories ? "ซ่อนรายการทั้งหมด" : "หมวดหมู่อื่นๆ"}</span>
+              {outsideSelectedCategory ? (
+                <>
+                  <Check className="size-3 stroke-[3]" />
+                  <span>{outsideSelectedCategory.categoryName}</span>
+                  <ChevronDown className="size-3 opacity-70 ml-0.5" />
+                </>
+              ) : (
+                <>
+                  <Plus className="size-3" />
+                  <span>{showAllCategories ? "ปิดค้นหา" : "หมวดหมู่อื่นๆ..."}</span>
+                </>
+              )}
             </button>
           </div>
 
-          {/* Full Category Select Dropdown */}
+          {/* Searchable Native Category Selector Panel */}
           {showAllCategories && (
-            <div className="pt-1">
-              <Controller
-                control={control}
-                name="categoryId"
-                render={({ field }) => (
-                  <Select
-                    value={field.value == null ? "none" : String(field.value)}
-                    onValueChange={(value) => {
-                      const id = value === "none" ? null : Number(value);
-                      field.onChange(id);
-                      handleSelectCategory(id);
-                    }}
+            <div className="space-y-2 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-2.5">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--pw-ink)]/40" />
+                <input
+                  type="text"
+                  value={categorySearchTerm}
+                  onChange={(e) => setCategorySearchTerm(e.target.value)}
+                  placeholder="ค้นหาหมวดหมู่ทั้งหมด..."
+                  className="h-8.5 w-full rounded-lg border border-[var(--pw-input-border)] bg-[var(--pw-surface-black)]/30 pl-8 pr-7 text-xs text-[var(--pw-ink)] placeholder:text-[var(--pw-ink)]/40 focus:border-[var(--pw-primary)] focus:outline-none"
+                />
+                {categorySearchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setCategorySearchTerm("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--pw-ink)]/40 hover:text-[var(--pw-ink)]"
                   >
-                    <SelectTrigger id="transaction-category">
-                      <SelectValue placeholder="— เลือกจากหมวดหมู่ทั้งหมด —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">— ไม่ระบุ —</SelectItem>
-                      {availableCategories.map((category) => (
-                        <SelectItem key={category.categoryId} value={String(category.categoryId)}>
-                          {category.categoryName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <X className="size-3" />
+                  </button>
                 )}
-              />
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto overscroll-contain p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectCategory(null);
+                    setShowAllCategories(false);
+                    setCategorySearchTerm("");
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-colors cursor-pointer",
+                    selectedCategoryId == null
+                      ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-semibold"
+                      : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 text-[var(--pw-ink)]/70 hover:bg-[var(--pw-surface-onyx)]"
+                  )}
+                >
+                  — ไม่ระบุหมวดหมู่ —
+                </button>
+                {filteredAllCategories.map((category) => {
+                  const isSelected = selectedCategoryId === category.categoryId;
+                  return (
+                    <button
+                      key={category.categoryId}
+                      type="button"
+                      onClick={() => {
+                        handleSelectCategory(category.categoryId);
+                        setShowAllCategories(false);
+                        setCategorySearchTerm("");
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border transition-all active:scale-95 cursor-pointer",
+                        isSelected
+                          ? "border-[var(--pw-primary)] bg-[var(--pw-primary)] text-[var(--pw-on-primary)] font-semibold shadow-xs"
+                          : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 text-[var(--pw-ink)]/85 hover:border-[var(--pw-primary)]/50 hover:bg-[var(--pw-surface-onyx)]"
+                      )}
+                    >
+                      {isSelected && <Check className="size-3 stroke-[3]" />}
+                      <span>{category.categoryName}</span>
+                    </button>
+                  );
+                })}
+                {filteredAllCategories.length === 0 && (
+                  <p className="py-2 px-1 text-xs text-[var(--pw-ink)]/50">
+                    ไม่พบหมวดหมู่ที่ตรงกับ &quot;{categorySearchTerm}&quot;
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -621,7 +684,7 @@ export function TransactionForm({
       <FormField label="รายละเอียด / หมายเหตุ" htmlFor="transaction-description" error={errors.description?.message}>
         <Input
           id="transaction-description"
-          placeholder="เช่น ข้าวกลางวัน, 7-Eleven, BTS หมอชิต..."
+          placeholder="เช่น ข้าวกลางวัน, 7-Eleven"
           {...register("description")}
         />
       </FormField>

@@ -147,6 +147,8 @@ body {
   min-height: 100%;
   background-color: var(--pw-canvas);
   color: var(--pw-ink);
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -157,6 +159,7 @@ body {
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -167,6 +170,32 @@ body {
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
+  /* Prevent accidental text selection on interactive elements */
+  button,
+  nav,
+  [role="button"],
+  .cursor-pointer {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* ==========================================================================
+   Mobile Bottom Navigation PWA Polish & Hardware Compositing Fix
+   Prevents WebKit / iOS Safari fixed-position drift during momentum scroll
+   ========================================================================== */
+.pw-mobile-bottom-nav {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  transform: translate3d(0, 0, 0) !important;
+  -webkit-transform: translate3d(0, 0, 0) !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
 }
 
 

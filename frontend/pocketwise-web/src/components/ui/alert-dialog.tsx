@@ -28,21 +28,74 @@ function AlertDialogContent({
   children,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const touchStartY = React.useRef<number | null>(null);
+  const currentDragY = React.useRef<number>(0);
+
+  const handleTouchStart = React.useCallback((e: React.TouchEvent) => {
+    if (typeof window !== "undefined" && window.innerWidth >= 640) return;
+    touchStartY.current = e.touches[0].clientY;
+    currentDragY.current = 0;
+  }, []);
+
+  const handleTouchMove = React.useCallback((e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+    if (deltaY > 0) {
+      currentDragY.current = deltaY;
+      const content = contentRef.current;
+      if (content) {
+        content.style.transform = `translateY(${deltaY}px)`;
+        content.style.transition = "none";
+      }
+    }
+  }, []);
+
+  const handleTouchEnd = React.useCallback(() => {
+    if (touchStartY.current === null) return;
+    touchStartY.current = null;
+    const content = contentRef.current;
+    if (content) {
+      if (currentDragY.current > 70) {
+        // Trigger cancel button to safely close via Radix lifecycle
+        const cancelBtn = content.querySelector<HTMLButtonElement>('[data-slot="alert-dialog-cancel"]');
+        if (cancelBtn) {
+          cancelBtn.click();
+        } else {
+          content.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        }
+      } else {
+        content.style.transition = "transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)";
+        content.style.transform = "translateY(0)";
+      }
+    }
+    currentDragY.current = 0;
+  }, []);
+
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
+        ref={contentRef}
         className={cn(
-          // Mobile: Glassmorphism Bottom Sheet pinned to bottom
-          "fixed inset-x-0 bottom-0 z-50 flex max-h-[92vh] flex-col rounded-t-[28px] border-t border-[var(--pw-hairline)] bg-[var(--pw-surface)]/98 sm:bg-[var(--pw-surface)]/95 backdrop-blur-2xl p-6 text-[var(--pw-ink)] shadow-[0_-10px_40px_rgba(0,0,0,0.35)] outline-none pw-bottom-sheet-content",
+          // Mobile: Glassmorphism Bottom Sheet pinned to bottom with safe-area bottom padding
+          "fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col rounded-t-[28px] border-t border-[var(--pw-hairline)] bg-[var(--pw-surface)]/98 sm:bg-[var(--pw-surface)]/95 backdrop-blur-2xl p-6 pb-[max(1.5rem,calc(1rem+env(safe-area-inset-bottom)))] text-[var(--pw-ink)] shadow-[0_-10px_40px_rgba(0,0,0,0.35)] outline-none pw-bottom-sheet-content overscroll-contain touch-pan-y",
           // Desktop: Centered Dialog with Glassmorphism
-          "sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[85vh] sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--pw-rounded-lg)] sm:border sm:border-[var(--pw-hairline)] sm:shadow-2xl sm:p-6",
+          "sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[85vh] sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--pw-rounded-lg)] sm:border sm:border-[var(--pw-hairline)] sm:shadow-2xl sm:p-6 sm:pb-6",
           className,
         )}
         {...props}
       >
-        {/* Mobile Drag Handle */}
-        <div className="mx-auto mb-3 h-1.5 w-12 shrink-0 rounded-full bg-[var(--pw-ink)]/20 sm:hidden" />
+        {/* Mobile Drag Handle Bar with Touch Event Listener for Swipe-Down-To-Dismiss */}
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="w-full pt-1 pb-3 cursor-grab active:cursor-grabbing touch-none select-none sm:hidden flex items-center justify-center -mt-2"
+          title="ลากลงเพื่อยกเลิก"
+        >
+          <div className="h-1.5 w-12 shrink-0 rounded-full bg-[var(--pw-ink)]/25 hover:bg-[var(--pw-ink)]/40 transition-colors" />
+        </div>
         {children}
       </AlertDialogPrimitive.Content>
     </AlertDialogPortal>

@@ -10,10 +10,15 @@ const baseUrl =
     : "https://pocket-wise-self.vercel.app");
 
 export const viewport: Viewport = {
-  themeColor: "#0a0d3a",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#060818" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {

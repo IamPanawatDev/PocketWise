@@ -340,6 +340,30 @@ export function TransactionList({
     return count;
   }, [filter, sortBy, sortDesc, activeQuickPeriod]);
 
+  // Sub-counters for Filter Bottom Sheet Information Chunking
+  const periodAndTypeCount = useMemo(() => {
+    let count = 0;
+    if (filter.type) count++;
+    if (activeQuickPeriod === "custom") count++;
+    return count;
+  }, [filter.type, activeQuickPeriod]);
+
+  const accountAndSourceCount = useMemo(() => {
+    let count = 0;
+    if (filter.bankAccountId !== undefined) count++;
+    if (filter.creditCardId !== undefined) count++;
+    if (filter.sourceType) count++;
+    return count;
+  }, [filter.bankAccountId, filter.creditCardId, filter.sourceType]);
+
+  const categoryAndSortCount = useMemo(() => {
+    let count = 0;
+    if (filter.categoryId !== undefined) count++;
+    if (filter.tagId !== undefined) count++;
+    if (sortBy !== "transactionDate" || !sortDesc) count++;
+    return count;
+  }, [filter.categoryId, filter.tagId, sortBy, sortDesc]);
+
    const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     if (!data) return { totalIncome: 0, totalExpense: 0, netBalance: 0 };
     if (typeof data.totalIncome === "number" && typeof data.totalExpense === "number") {
@@ -358,6 +382,37 @@ export function TransactionList({
     return { totalIncome: income, totalExpense: expense, netBalance: income - expense };
   }, [data]);
 
+  // Group transactions by date for native-like daily sections on mobile (< sm)
+  const groupedMobileItems = useMemo(() => {
+    if (!data?.items || data.items.length === 0) return [];
+    const groups: {
+      dateKey: string;
+      displayDate: string;
+      items: TransactionResponse[];
+      dailyExpense: number;
+      dailyIncome: number;
+    }[] = [];
+
+    for (const item of data.items) {
+      const displayDate = formatDisplayDate(item.transactionDate);
+      let group = groups.find((g) => g.displayDate === displayDate);
+      if (!group) {
+        group = {
+          dateKey: item.transactionDate.slice(0, 10),
+          displayDate,
+          items: [],
+          dailyExpense: 0,
+          dailyIncome: 0,
+        };
+        groups.push(group);
+      }
+      group.items.push(item);
+      if (item.transactionType === "expense") group.dailyExpense += item.amount;
+      else if (item.transactionType === "income") group.dailyIncome += item.amount;
+    }
+    return groups;
+  }, [data]);
+
   const resetFilters = () => {
     setFilter({});
     setIsCustomDateMode(false);
@@ -368,8 +423,9 @@ export function TransactionList({
 
   return (
     <div>
+      {/* Desktop Header (sm+) */}
       <PageHeader
-        title="รายการรายรับรายจ่าย"
+        title="รายการรายรับ-รายจ่าย"
         icon={ReceiptText}
         action={
           <div className="hidden sm:block">
@@ -379,8 +435,31 @@ export function TransactionList({
             </Button>
           </div>
         }
-        className="mb-4 sm:mb-6"
+        className="hidden sm:flex mb-6"
       />
+
+      {/* Mobile-Only Top Compact Header (< sm) */}
+      <div className="flex sm:hidden items-center justify-between mb-2.5 pt-0.5">
+        <div className="flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] shadow-2xs">
+            <ReceiptText className="size-4.5" />
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-[var(--pw-ink)] leading-tight">รายการรายรับ-รายจ่าย</h1>
+            <p className="text-[11px] text-[var(--pw-ink)]/60">
+              {data?.totalItems ?? 0} รายการ
+            </p>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          className="h-8.5 px-3 text-xs font-semibold gap-1.5 shadow-xs bg-[var(--pw-primary)] text-white hover:bg-[var(--pw-primary)]/90 cursor-pointer"
+          onClick={() => { setEditing(null); setShowForm(true); }}
+        >
+          <Plus className="size-3.5 stroke-[2.5]" />
+          <span>เพิ่มรายการ</span>
+        </Button>
+      </div>
 
       <BottomSheet
         open={showForm || editing !== null}
@@ -404,34 +483,30 @@ export function TransactionList({
         />
       </BottomSheet>
 
-            {/* Mobile: Compact Financial Pulse Bar (Single Row, ~60px, 3 Columns) */}
-      <div className="mb-3.5 block sm:hidden">
-        <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)]/70 bg-[var(--pw-surface)]/70 p-2.5 shadow-xs backdrop-blur-md">
-          <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[var(--pw-hairline)]/60 text-[11px] text-[var(--pw-ink)]/60">
-            <span className="font-medium">สรุปตามเงื่อนไข ({data?.totalItems ?? 0} รายการ)</span>
-            <Link
-              href="/reports"
-              className="inline-flex items-center gap-0.5 text-[var(--pw-primary)] font-semibold hover:underline"
-            >
-              <span>ดูรายงานภาพรวม</span>
-              <ChevronRight className="size-3" />
+      {/* Mobile: Ultra-Clean Financial Pulse Bar (Single Row, ~50px, 3 Columns) */}
+      <div className="mb-2.5 block sm:hidden">
+        <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)]/70 bg-[var(--pw-surface)]/75 p-2 shadow-xs backdrop-blur-md">
+          <div className="flex items-center justify-between pb-1 mb-1 border-b border-[var(--pw-hairline)]/50 text-[10px] text-[var(--pw-ink)]/60">
+            <span>สรุปตามเงื่อนไข</span>
+            <Link href="/reports" className="text-[var(--pw-primary)] font-semibold hover:underline">
+              ดูรายงาน →
             </Link>
           </div>
-          <div className="grid grid-cols-3 divide-x divide-[var(--pw-hairline)]/60 text-center">
+          <div className="grid grid-cols-3 divide-x divide-[var(--pw-hairline)]/60 text-center items-center">
             <div className="px-1">
-              <p className="text-[10px] text-[var(--pw-ink)]/60">รายรับ</p>
+              <p className="text-[10px] text-[var(--pw-ink)]/60 font-medium">รายรับ</p>
               <p className="text-xs font-bold text-[var(--pw-green)] truncate">
                 <AnimatedNumber value={totalIncome} prefix="+" />
               </p>
             </div>
             <div className="px-1">
-              <p className="text-[10px] text-[var(--pw-ink)]/60">รายจ่าย</p>
+              <p className="text-[10px] text-[var(--pw-ink)]/60 font-medium">รายจ่าย</p>
               <p className="text-xs font-bold text-[var(--pw-expense)] truncate">
                 <AnimatedNumber value={totalExpense} prefix="-" />
               </p>
             </div>
             <div className="px-1">
-              <p className="text-[10px] text-[var(--pw-ink)]/60">คงเหลือ</p>
+              <p className="text-[10px] text-[var(--pw-ink)]/60 font-medium">คงเหลือ</p>
               <p className={cn("text-xs font-bold truncate", netBalance >= 0 ? "text-[var(--pw-ink)]" : "text-[var(--pw-expense)]")}>
                 <AnimatedNumber value={netBalance} />
               </p>
@@ -480,12 +555,12 @@ export function TransactionList({
       </div>
 
       {/* 1-Tap Quick Period Filter Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar mb-3">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar mb-2.5">
         <button
           type="button"
           onClick={() => handleFilterChange({ fromDate: undefined, toDate: undefined })}
           className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
             activeQuickPeriod === "all"
               ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
               : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -503,7 +578,7 @@ export function TransactionList({
             });
           }}
           className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
             activeQuickPeriod === "today"
               ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
               : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -521,7 +596,7 @@ export function TransactionList({
             });
           }}
           className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
             activeQuickPeriod === "week"
               ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
               : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -539,7 +614,7 @@ export function TransactionList({
             });
           }}
           className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
             activeQuickPeriod === "month"
               ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
               : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -557,7 +632,7 @@ export function TransactionList({
             });
           }}
           className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
+            "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
             activeQuickPeriod === "year"
               ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
               : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -568,12 +643,12 @@ export function TransactionList({
       </div>
 
       {/* 1-Tap Quick Transaction Type Switcher */}
-      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-[var(--pw-surface-indigo)]/50 border border-[var(--pw-hairline)] mb-3">
+      <div className="grid grid-cols-3 gap-1 p-0.5 sm:p-1 rounded-xl bg-[var(--pw-surface-indigo)]/50 border border-[var(--pw-hairline)] mb-2.5">
         <button
           type="button"
           onClick={() => handleFilterChange({ type: undefined })}
           className={cn(
-            "py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center",
+            "py-1 sm:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center",
             !filter.type
               ? "bg-[var(--pw-surface-raised)] text-[var(--pw-ink)] shadow-xs"
               : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
@@ -585,7 +660,7 @@ export function TransactionList({
           type="button"
           onClick={() => handleFilterChange({ type: "expense" })}
           className={cn(
-            "py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-1",
+            "py-1 sm:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-1",
             filter.type === "expense"
               ? "bg-[var(--pw-expense)] text-white shadow-xs font-bold"
               : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-expense)]"
@@ -598,7 +673,7 @@ export function TransactionList({
           type="button"
           onClick={() => handleFilterChange({ type: "income" })}
           className={cn(
-            "py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-1",
+            "py-1 sm:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-1",
             filter.type === "income"
               ? "bg-[var(--pw-green)] text-[var(--pw-on-green)] shadow-xs font-bold"
               : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-green)]"
@@ -610,13 +685,13 @@ export function TransactionList({
       </div>
 
       {/* Search & Filter Trigger Bar */}
-      <div className="mb-4 space-y-2">
+      <div className="mb-3 space-y-2">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--pw-ink)]/50 pointer-events-none" />
             <Input
               id="transaction-search"
-              className="pl-9 pr-3 py-2 text-base md:text-sm bg-[var(--pw-canvas)] w-full"
+              className="pl-9 pr-3 h-9 sm:h-10 text-xs sm:text-sm bg-[var(--pw-canvas)] w-full"
               placeholder="ค้นหารายการ, ร้านค้า, หมายเหตุ..."
               value={filter.q ?? ""}
               onChange={(e) => handleFilterChange({ q: e.target.value || undefined })}
@@ -626,7 +701,7 @@ export function TransactionList({
             type="button"
             variant="outline"
             className={cn(
-              "shrink-0 relative gap-2 font-medium transition-all shadow-xs",
+              "shrink-0 relative gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-3 text-xs font-medium transition-all shadow-xs",
               activeFilterCount > 0
                 ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
                 : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]",
@@ -635,10 +710,10 @@ export function TransactionList({
             onClick={() => setShowFilterSheet(true)}
             aria-label="เปิดตัวกรองรายการ"
           >
-            <SlidersHorizontal className="size-4" />
+            <SlidersHorizontal className="size-3.5 sm:size-4" />
             <span>ตัวกรอง</span>
             {activeFilterCount > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[11px] font-bold text-[var(--pw-on-primary)]">
+              <span className="flex size-4.5 sm:size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[10px] sm:text-[11px] font-bold text-[var(--pw-on-primary)]">
                 {activeFilterCount}
               </span>
             )}
@@ -648,7 +723,7 @@ export function TransactionList({
             type="button"
             variant={isSelectionMode ? "default" : "outline"}
             className={cn(
-              "shrink-0 gap-1.5 font-medium transition-all shadow-xs",
+              "shrink-0 gap-1.5 h-9 sm:h-10 px-2.5 sm:px-3 text-xs font-medium transition-all shadow-xs",
               isSelectionMode
                 ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)] hover:bg-[var(--pw-primary)]/90"
                 : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]"
@@ -656,7 +731,7 @@ export function TransactionList({
             onClick={toggleSelectionMode}
             aria-label={isSelectionMode ? "ยกเลิกโหมดเลือกหลายรายการ" : "เปิดโหมดเลือกหลายรายการ"}
           >
-            <CheckSquare className="size-4" />
+            <CheckSquare className="size-3.5 sm:size-4" />
             <span className="hidden sm:inline">{isSelectionMode ? "เสร็จสิ้น" : "เลือกหลายรายการ"}</span>
           </Button>
         </div>
@@ -809,306 +884,8 @@ export function TransactionList({
         open={showFilterSheet}
         onOpenChange={setShowFilterSheet}
         title="ตัวกรองและจัดเรียงรายการ"
-      >
-        <div className="flex flex-col max-h-[75vh]">
-          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
-          <FormField label="ประเภทธุรกรรม" htmlFor="sheet-type-filter" className="w-full min-w-0">
-            <div id="sheet-type-filter" className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="กรองประเภทธุรกรรม">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!filter.type}
-                onClick={() => handleFilterChange({ type: undefined })}
-                className={cn(
-                  "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
-                  !filter.type
-                    ? "border-[var(--pw-primary)] bg-[var(--pw-primary)] text-white shadow-sm"
-                    : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-primary)] hover:text-[var(--pw-primary)]",
-                )}
-              >
-                <Layers className="size-3.5" />
-                ทั้งหมด
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={filter.type === "expense"}
-                onClick={() => handleFilterChange({ type: "expense" })}
-                className={cn(
-                  "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
-                  filter.type === "expense"
-                    ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
-                    : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
-                )}
-              >
-                <ArrowDownRight className="size-3.5" />
-                รายจ่าย
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={filter.type === "income"}
-                onClick={() => handleFilterChange({ type: "income" })}
-                className={cn(
-                  "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
-                  filter.type === "income"
-                    ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-[var(--pw-on-green)] font-semibold shadow-sm"
-                    : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
-                )}
-              >
-                <ArrowUpRight className="size-3.5" />
-                รายรับ
-              </button>
-            </div>
-          </FormField>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="หมวดหมู่" htmlFor="sheet-category-filter" className="w-full min-w-0">
-              <Select
-                value={filter.categoryId === undefined ? "all" : String(filter.categoryId)}
-                onValueChange={(value) => handleFilterChange({
-                  categoryId: value === "all" ? undefined : Number(value),
-                })}
-              >
-                <SelectTrigger id="sheet-category-filter">
-                  <SelectValue placeholder="ทุกหมวดหมู่" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
-                  {categories?.map((category) => (
-                    <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-
-            <FormField label="แท็ก" htmlFor="sheet-tag-filter" className="w-full min-w-0">
-              <Select
-                value={filter.tagId === undefined ? "all" : String(filter.tagId)}
-                onValueChange={(value) => handleFilterChange({
-                  tagId: value === "all" ? undefined : Number(value),
-                })}
-              >
-                <SelectTrigger id="sheet-tag-filter">
-                  <SelectValue placeholder="ทุกแท็ก" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทุกแท็ก</SelectItem>
-                  {tags?.map((tag) => (
-                    <SelectItem key={tag.tagId} value={String(tag.tagId)}>{tag.tagName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="บัญชีธนาคาร" htmlFor="sheet-account-filter" className="w-full min-w-0">
-              <Select
-                value={filter.bankAccountId === undefined ? "all" : String(filter.bankAccountId)}
-                onValueChange={(value) => handleFilterChange({
-                  bankAccountId: value === "all" ? undefined : Number(value),
-                })}
-              >
-                <SelectTrigger id="sheet-account-filter">
-                  <SelectValue placeholder="ทุกบัญชี" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทุกบัญชี</SelectItem>
-                  {bankAccounts?.map((account) => (
-                    <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>{account.accountName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-
-            <FormField label="บัตรเครดิต" htmlFor="sheet-credit-card-filter" className="w-full min-w-0">
-              <Select
-                value={filter.creditCardId === undefined ? "all" : String(filter.creditCardId)}
-                onValueChange={(value) => handleFilterChange({
-                  creditCardId: value === "all" ? undefined : Number(value),
-                })}
-              >
-                <SelectTrigger id="sheet-credit-card-filter">
-                  <SelectValue placeholder="ทุกบัตรเครดิต" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทุกบัตรเครดิต</SelectItem>
-                  {creditCards?.map((card) => (
-                    <SelectItem key={card.creditCardId} value={String(card.creditCardId)}>{card.cardName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-          </div>
-
-          <FormField label="แหล่งที่มา" htmlFor="sheet-source-filter" className="w-full min-w-0">
-            <Select
-              value={filter.sourceType ?? "all"}
-              onValueChange={(value) => handleFilterChange({
-                sourceType: value === "all" ? undefined : value,
-              })}
-            >
-              <SelectTrigger id="sheet-source-filter">
-                <SelectValue placeholder="ทุกแหล่งที่มา" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกแหล่งที่มา</SelectItem>
-                <SelectItem value="manual">บันทึกเอง</SelectItem>
-                <SelectItem value="slip">สลิปโอนเงิน</SelectItem>
-                <SelectItem value="cardStatement">ใบแจ้งยอดบัตรเครดิต</SelectItem>
-                <SelectItem value="recurring">รายการประจำ</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
-
-          {/* Month Picker as Primary with Progressive Disclosure for Custom Dates */}
-          {!isCustomDateMode ? (
-            <div className="space-y-1.5">
-              <FormField label="เลือกช่วงเดือน" htmlFor="sheet-month-filter" className="w-full min-w-0">
-                <Select
-                  value={
-                    activeQuickPeriod === "all"
-                      ? "all"
-                      : monthOptions.some((m) => m.value === currentMonthValue)
-                      ? currentMonthValue
-                      : "custom"
-                  }
-                  onValueChange={(val) => {
-                    if (val === "custom") {
-                      setIsCustomDateMode(true);
-                    } else {
-                      handleMonthSelect(val);
-                    }
-                  }}
-                >
-                  <SelectTrigger id="sheet-month-filter" className="w-full">
-                    <SelectValue placeholder="เลือกเดือน" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="all">ทุกช่วงเวลา (ทั้งหมด)</SelectItem>
-                    {monthOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                    {activeQuickPeriod === "custom" && (
-                      <SelectItem value="custom">กำหนดช่วงวันที่เอง (กำลังใช้งาน)</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </FormField>
-              <div className="flex justify-end pt-0.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCustomDateMode(true)}
-                  className="text-xs text-[var(--pw-primary)] hover:underline flex items-center gap-1 cursor-pointer font-medium py-0.5"
-                >
-                  <Calendar className="size-3.5" />
-                  กำหนดช่วงวันที่เอง (ขั้นสูง)
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3">
-              <div className="flex items-center justify-between pb-1">
-                <span className="text-xs font-semibold text-[var(--pw-ink)] flex items-center gap-1.5">
-                  <Calendar className="size-3.5 text-[var(--pw-primary)]" />
-                  กำหนดช่วงวันที่เอง (วัน/เดือน/ปี)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCustomDateMode(false);
-                    const thisMonth = getThisMonthRange();
-                    handleFilterChange({
-                      fromDate: thailandDateBoundaryToUtcIso(thisMonth.from),
-                      toDate: thailandDateBoundaryToUtcIso(thisMonth.to, true),
-                    });
-                  }}
-                  className="text-xs text-[var(--pw-primary)] hover:underline cursor-pointer font-medium"
-                >
-                  กลับไปเลือกรายเดือน
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormField label="ตั้งแต่วันที่" htmlFor="sheet-from-date" className="w-full min-w-0">
-                  <DateInput
-                    id="sheet-from-date"
-                    className="px-3 py-2 text-base md:text-sm"
-                    value={filter.fromDate ? toThailandDateInputValue(filter.fromDate) : ""}
-                    onChange={(value) => {
-                      if (value && !isGregorianDateInput(value)) {
-                        toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
-                        return;
-                      }
-                      handleFilterChange({
-                        fromDate: value ? thailandDateBoundaryToUtcIso(value) : undefined,
-                      });
-                    }}
-                  />
-                </FormField>
-                <FormField label="ถึงวันที่" htmlFor="sheet-to-date" className="w-full min-w-0">
-                  <DateInput
-                    id="sheet-to-date"
-                    className="px-3 py-2 text-base md:text-sm"
-                    value={filter.toDate ? toThailandDateInputValue(filter.toDate) : ""}
-                    onChange={(value) => {
-                      if (value && !isGregorianDateInput(value)) {
-                        toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
-                        return;
-                      }
-                      handleFilterChange({
-                        toDate: value ? thailandDateBoundaryToUtcIso(value, true) : undefined,
-                      });
-                    }}
-                  />
-                </FormField>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="เรียงตาม" htmlFor="sheet-sort-by" className="w-full min-w-0">
-              <Select
-                value={sortBy}
-                onValueChange={(value) => {
-                  setSortBy(value === "amount" ? "amount" : "transactionDate");
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger id="sheet-sort-by">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="transactionDate">วันที่</SelectItem>
-                  <SelectItem value="amount">จำนวนเงิน</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField label="ลำดับ" htmlFor="sheet-sort-order" className="w-full min-w-0">
-              <Select
-                value={sortDesc ? "desc" : "asc"}
-                onValueChange={(value) => {
-                  setSortDesc(value === "desc");
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger id="sheet-sort-order">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="desc">มากไปน้อย / ใหม่ไปเก่า</SelectItem>
-                  <SelectItem value="asc">น้อยไปมาก / เก่าไปใหม่</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormField>
-          </div>
-
-          </div>
-
-          {/* Sticky Mobile-First Footer (Confirm Top, Reset Bottom) */}
-          <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)]/50 mt-3 flex flex-col gap-2 z-10">
+        footer={
+          <div className="flex flex-col gap-2 w-full">
             <Button
               type="button"
               className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
@@ -1125,6 +902,346 @@ export function TransactionList({
             >
               ล้างค่าตัวกรองทั้งหมด
             </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 pt-1">
+          {/* Section 1: ประเภทและช่วงเวลา */}
+          <div className="rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3 sm:p-4 space-y-3">
+            <div className="flex items-center justify-between pb-0.5">
+              <span className="text-xs font-bold text-[var(--pw-ink)] flex items-center gap-1.5">
+                <Calendar className="size-3.5 text-[var(--pw-primary)]" />
+                ประเภทและช่วงเวลา
+              </span>
+              {periodAndTypeCount > 0 && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/30">
+                  เลือก {periodAndTypeCount}
+                </span>
+              )}
+            </div>
+
+            <FormField label="ประเภทธุรกรรม" htmlFor="sheet-type-filter" className="w-full min-w-0">
+              <div id="sheet-type-filter" className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="กรองประเภทธุรกรรม">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!filter.type}
+                  onClick={() => handleFilterChange({ type: undefined })}
+                  className={cn(
+                    "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                    !filter.type
+                      ? "border-[var(--pw-primary)] bg-[var(--pw-primary)] text-white shadow-sm"
+                      : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-primary)] hover:text-[var(--pw-primary)]",
+                  )}
+                >
+                  <Layers className="size-3.5" />
+                  ทั้งหมด
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={filter.type === "expense"}
+                  onClick={() => handleFilterChange({ type: "expense" })}
+                  className={cn(
+                    "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                    filter.type === "expense"
+                      ? "border-[var(--pw-expense)] bg-[var(--pw-expense)] text-white shadow-sm"
+                      : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-expense)] hover:text-[var(--pw-expense)]",
+                  )}
+                >
+                  <ArrowDownRight className="size-3.5" />
+                  รายจ่าย
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={filter.type === "income"}
+                  onClick={() => handleFilterChange({ type: "income" })}
+                  className={cn(
+                    "flex h-10 cursor-pointer items-center justify-center gap-1 rounded-[var(--pw-rounded-sm)] border text-xs sm:text-sm font-medium transition-colors",
+                    filter.type === "income"
+                      ? "border-[var(--pw-green)] bg-[var(--pw-green)] text-[var(--pw-on-green)] font-semibold shadow-sm"
+                      : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]/75 hover:border-[var(--pw-green)] hover:text-[var(--pw-green)]",
+                  )}
+                >
+                  <ArrowUpRight className="size-3.5" />
+                  รายรับ
+                </button>
+              </div>
+            </FormField>
+
+            {/* Month Picker as Primary with Progressive Disclosure for Custom Dates */}
+            {!isCustomDateMode ? (
+              <div className="space-y-1.5">
+                <FormField label="เลือกช่วงเดือน" htmlFor="sheet-month-filter" className="w-full min-w-0">
+                  <Select
+                    value={
+                      activeQuickPeriod === "all"
+                        ? "all"
+                        : monthOptions.some((m) => m.value === currentMonthValue)
+                        ? currentMonthValue
+                        : "custom"
+                    }
+                    onValueChange={(val) => {
+                      if (val === "custom") {
+                        setIsCustomDateMode(true);
+                      } else {
+                        handleMonthSelect(val);
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="sheet-month-filter" className="w-full">
+                      <SelectValue placeholder="เลือกเดือน" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value="all">ทุกช่วงเวลา (ทั้งหมด)</SelectItem>
+                      {monthOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                      {activeQuickPeriod === "custom" && (
+                        <SelectItem value="custom">กำหนดช่วงวันที่เอง (กำลังใช้งาน)</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <div className="flex justify-end pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomDateMode(true)}
+                    className="text-xs text-[var(--pw-primary)] hover:underline flex items-center gap-1 cursor-pointer font-medium py-0.5"
+                  >
+                    <Calendar className="size-3.5" />
+                    กำหนดช่วงวันที่เอง (ขั้นสูง)
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 p-3">
+                <div className="flex items-center justify-between pb-1">
+                  <span className="text-xs font-semibold text-[var(--pw-ink)] flex items-center gap-1.5">
+                    <Calendar className="size-3.5 text-[var(--pw-primary)]" />
+                    กำหนดช่วงวันที่เอง (วัน/เดือน/ปี)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomDateMode(false);
+                      const thisMonth = getThisMonthRange();
+                      handleFilterChange({
+                        fromDate: thailandDateBoundaryToUtcIso(thisMonth.from),
+                        toDate: thailandDateBoundaryToUtcIso(thisMonth.to, true),
+                      });
+                    }}
+                    className="text-xs text-[var(--pw-primary)] hover:underline cursor-pointer font-medium"
+                  >
+                    กลับไปเลือกรายเดือน
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label="ตั้งแต่วันที่" htmlFor="sheet-from-date" className="w-full min-w-0">
+                    <DateInput
+                      id="sheet-from-date"
+                      className="px-3 py-2 text-base md:text-sm"
+                      value={filter.fromDate ? toThailandDateInputValue(filter.fromDate) : ""}
+                      onChange={(value) => {
+                        if (value && !isGregorianDateInput(value)) {
+                          toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
+                          return;
+                        }
+                        handleFilterChange({
+                          fromDate: value ? thailandDateBoundaryToUtcIso(value) : undefined,
+                        });
+                      }}
+                    />
+                  </FormField>
+                  <FormField label="ถึงวันที่" htmlFor="sheet-to-date" className="w-full min-w-0">
+                    <DateInput
+                      id="sheet-to-date"
+                      className="px-3 py-2 text-base md:text-sm"
+                      value={filter.toDate ? toThailandDateInputValue(filter.toDate) : ""}
+                      onChange={(value) => {
+                        if (value && !isGregorianDateInput(value)) {
+                          toast.error("กรุณาใช้ปี ค.ศ. (Gregorian) ไม่ใช่ปี พ.ศ.");
+                          return;
+                        }
+                        handleFilterChange({
+                          toDate: value ? thailandDateBoundaryToUtcIso(value, true) : undefined,
+                        });
+                      }}
+                    />
+                  </FormField>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: บัญชีและการชำระเงิน */}
+          <div className="rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3 sm:p-4 space-y-3">
+            <div className="flex items-center justify-between pb-0.5">
+              <span className="text-xs font-bold text-[var(--pw-ink)] flex items-center gap-1.5">
+                <CreditCard className="size-3.5 text-[var(--pw-primary)]" />
+                บัญชีและการชำระเงิน
+              </span>
+              {accountAndSourceCount > 0 && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/30">
+                  เลือก {accountAndSourceCount}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormField label="บัญชีธนาคาร" htmlFor="sheet-account-filter" className="w-full min-w-0">
+                <Select
+                  value={filter.bankAccountId === undefined ? "all" : String(filter.bankAccountId)}
+                  onValueChange={(value) => handleFilterChange({
+                    bankAccountId: value === "all" ? undefined : Number(value),
+                  })}
+                >
+                  <SelectTrigger id="sheet-account-filter">
+                    <SelectValue placeholder="ทุกบัญชี" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกบัญชี</SelectItem>
+                    {bankAccounts?.map((account) => (
+                      <SelectItem key={account.bankAccountId} value={String(account.bankAccountId)}>{account.accountName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              <FormField label="บัตรเครดิต" htmlFor="sheet-credit-card-filter" className="w-full min-w-0">
+                <Select
+                  value={filter.creditCardId === undefined ? "all" : String(filter.creditCardId)}
+                  onValueChange={(value) => handleFilterChange({
+                    creditCardId: value === "all" ? undefined : Number(value),
+                  })}
+                >
+                  <SelectTrigger id="sheet-credit-card-filter">
+                    <SelectValue placeholder="ทุกบัตรเครดิต" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกบัตรเครดิต</SelectItem>
+                    {creditCards?.map((card) => (
+                      <SelectItem key={card.creditCardId} value={String(card.creditCardId)}>{card.cardName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            </div>
+
+            <FormField label="แหล่งที่มา" htmlFor="sheet-source-filter" className="w-full min-w-0">
+              <Select
+                value={filter.sourceType ?? "all"}
+                onValueChange={(value) => handleFilterChange({
+                  sourceType: value === "all" ? undefined : value,
+                })}
+              >
+                <SelectTrigger id="sheet-source-filter">
+                  <SelectValue placeholder="ทุกแหล่งที่มา" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกแหล่งที่มา</SelectItem>
+                  <SelectItem value="manual">บันทึกเอง</SelectItem>
+                  <SelectItem value="slip">สลิปโอนเงิน</SelectItem>
+                  <SelectItem value="cardStatement">ใบแจ้งยอดบัตรเครดิต</SelectItem>
+                  <SelectItem value="recurring">รายการประจำ</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+
+          {/* Section 3: หมวดหมู่และการจัดเรียง */}
+          <div className="rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3 sm:p-4 space-y-3">
+            <div className="flex items-center justify-between pb-0.5">
+              <span className="text-xs font-bold text-[var(--pw-ink)] flex items-center gap-1.5">
+                <Tag className="size-3.5 text-[var(--pw-primary)]" />
+                หมวดหมู่และการจัดเรียง
+              </span>
+              {categoryAndSortCount > 0 && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/30">
+                  เลือก {categoryAndSortCount}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormField label="หมวดหมู่" htmlFor="sheet-category-filter" className="w-full min-w-0">
+                <Select
+                  value={filter.categoryId === undefined ? "all" : String(filter.categoryId)}
+                  onValueChange={(value) => handleFilterChange({
+                    categoryId: value === "all" ? undefined : Number(value),
+                  })}
+                >
+                  <SelectTrigger id="sheet-category-filter">
+                    <SelectValue placeholder="ทุกหมวดหมู่" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
+                    {categories?.map((category) => (
+                      <SelectItem key={category.categoryId} value={String(category.categoryId)}>{category.categoryName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              <FormField label="แท็ก" htmlFor="sheet-tag-filter" className="w-full min-w-0">
+                <Select
+                  value={filter.tagId === undefined ? "all" : String(filter.tagId)}
+                  onValueChange={(value) => handleFilterChange({
+                    tagId: value === "all" ? undefined : Number(value),
+                  })}
+                >
+                  <SelectTrigger id="sheet-tag-filter">
+                    <SelectValue placeholder="ทุกแท็ก" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกแท็ก</SelectItem>
+                    {tags?.map((tag) => (
+                      <SelectItem key={tag.tagId} value={String(tag.tagId)}>{tag.tagName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormField label="เรียงตาม" htmlFor="sheet-sort-by" className="w-full min-w-0">
+                <Select
+                  value={sortBy}
+                  onValueChange={(value) => {
+                    setSortBy(value === "amount" ? "amount" : "transactionDate");
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger id="sheet-sort-by">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="transactionDate">วันที่</SelectItem>
+                    <SelectItem value="amount">จำนวนเงิน</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="ลำดับ" htmlFor="sheet-sort-order" className="w-full min-w-0">
+                <Select
+                  value={sortDesc ? "desc" : "asc"}
+                  onValueChange={(value) => {
+                    setSortDesc(value === "desc");
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger id="sheet-sort-order">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">มากไปน้อย / ใหม่ไปเก่า</SelectItem>
+                    <SelectItem value="asc">น้อยไปมาก / เก่าไปใหม่</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+            </div>
           </div>
         </div>
       </BottomSheet>
@@ -1145,313 +1262,382 @@ export function TransactionList({
         />
       ) : (
         <div className="space-y-4">
-          <AnimatedList key={`page-${page}-${sortBy}-${sortDesc}`} className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {data.items.map((t) => (
-              <AnimatedListItem key={t.transactionId}>
-                {/* 1. Mobile Compact List Row (< sm) */}
-                <div
-                  onClick={() => {
-                    if (deletingId === t.transactionId) return;
-                    if (isSelectionMode) {
-                      toggleSelectItem(t.transactionId);
-                    } else {
-                      setSelectedTransaction(t);
-                    }
-                  }}
-                  className={cn(
-                    "sm:hidden relative flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer backdrop-blur-xs gap-3 overflow-hidden",
-                    deletingId === t.transactionId && "pointer-events-none opacity-60",
-                    isSelectionMode && selectedIds.has(t.transactionId)
-                      ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 ring-1 ring-[var(--pw-primary)]"
-                      : "border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-raised)] active:scale-[0.98]"
-                  )}
-                >
-                  {deletingId === t.transactionId && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--pw-surface)]/85 backdrop-blur-xs gap-2 text-xs font-semibold text-[var(--pw-expense)]">
-                      <LoaderCircle className="size-4 animate-spin" />
-                      <span>กำลังลบรายการ...</span>
-                    </div>
-                  )}
-
-                  {isSelectionMode && (
-                    <div
-                      className={cn(
-                        "flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
-                        selectedIds.has(t.transactionId)
-                          ? "bg-[var(--pw-primary)] border-[var(--pw-primary)] text-white shadow-xs"
-                          : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)]/50"
-                      )}
-                    >
-                      {selectedIds.has(t.transactionId) && <Check className="size-3.5 stroke-[3]" />}
-                    </div>
-                  )}
-                  <div
-                    className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                      t.transactionType === "expense"
-                        ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
-                        : t.transactionType === "income"
-                          ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
-                          : "bg-[var(--pw-link)]/15 text-[var(--pw-link)]"
-                    )}
-                  >
-                    {t.transactionType === "expense" ? (
-                      <ArrowDownRight className="size-5" />
-                    ) : t.transactionType === "income" ? (
-                      <ArrowUpRight className="size-5" />
-                    ) : (
-                      <ReceiptText className="size-5" />
-                    )}
+          {/* Mobile Grouped List with Sticky Daily Headers (< sm) */}
+          <div className="sm:hidden space-y-4">
+            {groupedMobileItems.map((group) => (
+              <div key={group.dateKey} className="space-y-2">
+                {/* Sticky Day Header */}
+                <div className="sticky top-14 z-10 -mx-1 px-2.5 py-1.5 rounded-lg bg-[var(--pw-surface)]/95 backdrop-blur-md border border-[var(--pw-hairline)] flex items-center justify-between text-xs shadow-xs">
+                  <div className="flex items-center gap-1.5 font-medium text-[var(--pw-ink)]/80">
+                    <Calendar className="size-3.5 text-[var(--pw-primary)]" />
+                    <span>{group.displayDate}</span>
                   </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-sm text-[var(--pw-ink)]">
-                      {t.description || "(ไม่ระบุรายละเอียด)"}
-                    </p>
-                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--pw-ink)]/60 mt-0.5 truncate">
-                      <span>{formatDisplayDate(t.transactionDate)}</span>
-                      <span>•</span>
-                      <span className="truncate">{t.categoryName ?? "ไม่มีหมวดหมู่"}</span>
-                      <span>•</span>
-                      <span className="truncate">
-                        {t.bankAccountName ??
-                          t.creditCardName ??
-                          bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName ??
-                          creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName ??
-                          "💵 เงินสด"}
+                  <div className="flex items-center gap-2 text-[11px] font-semibold">
+                    {group.dailyExpense > 0 && (
+                      <span className="text-[var(--pw-expense)]">
+                        -{formatCurrency(group.dailyExpense, group.items[0]?.currencyCode ?? "THB")}
                       </span>
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span
-                      className={cn(
-                        "text-sm font-bold block",
-                        t.transactionType === "expense"
-                          ? "text-[var(--pw-expense)]"
-                          : t.transactionType === "income"
-                            ? "text-[var(--pw-green)]"
-                            : "text-[var(--pw-link)]"
-                      )}
-                    >
-                      {t.transactionType === "expense" ? "-" : t.transactionType === "income" ? "+" : ""}
-                      {formatCurrency(t.amount, t.currencyCode)}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded inline-block mt-0.5",
-                        t.transactionType === "expense"
-                          ? "bg-[var(--pw-expense)]/10 text-[var(--pw-expense)]"
-                          : t.transactionType === "income"
-                            ? "bg-[var(--pw-green)]/10 text-[var(--pw-green)]"
-                            : "bg-[var(--pw-link)]/10 text-[var(--pw-link)]"
-                      )}
-                    >
-                      {t.transactionType === "expense" ? "รายจ่าย" : t.transactionType === "income" ? "รายรับ" : "โอน"}
-                    </span>
+                    )}
+                    {group.dailyIncome > 0 && (
+                      <span className="text-[var(--pw-green)]">
+                        +{formatCurrency(group.dailyIncome, group.items[0]?.currencyCode ?? "THB")}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* 2. Desktop Card Grid (>= sm) */}
-                <div
-                  onClick={() => {
-                    if (isSelectionMode && deletingId !== t.transactionId) {
-                      toggleSelectItem(t.transactionId);
-                    }
-                  }}
-                  className={cn(
-                    "hidden sm:flex relative flex-col justify-between rounded-lg border bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 backdrop-blur-xs h-full overflow-hidden",
-                    isSelectionMode && "cursor-pointer hover:border-[var(--pw-primary)]/70",
-                    !isSelectionMode && "hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80",
-                    deletingId === t.transactionId && "pointer-events-none opacity-60",
-                    isSelectionMode && selectedIds.has(t.transactionId)
-                      ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 ring-2 ring-[var(--pw-primary)]/40"
-                      : "border-[var(--pw-hairline)]",
-                    t.transactionType === "expense"
-                      ? "border-l-4 border-l-[var(--pw-expense)]"
-                      : t.transactionType === "income"
-                        ? "border-l-4 border-l-[var(--pw-green)]"
-                        : "border-l-4 border-l-[var(--pw-link)]",
-                  )}
-                >
-                  {deletingId === t.transactionId && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[var(--pw-surface)]/85 backdrop-blur-xs gap-1.5 text-xs font-semibold text-[var(--pw-expense)]">
-                      <LoaderCircle className="size-5 animate-spin" />
-                      <span>กำลังลบรายการ...</span>
-                    </div>
-                  )}
-                  <div>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        {isSelectionMode && (
-                          <div
-                            onClick={(e) => toggleSelectItem(t.transactionId, e)}
-                            className={cn(
-                              "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border transition-colors cursor-pointer",
-                              selectedIds.has(t.transactionId)
-                                ? "bg-[var(--pw-primary)] border-[var(--pw-primary)] text-white shadow-xs"
-                                : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)]/50 hover:border-[var(--pw-primary)]"
-                            )}
-                          >
-                            {selectedIds.has(t.transactionId) && <Check className="size-3.5 stroke-[3]" />}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          {t.description ? (
-                            <p className="break-words font-semibold text-base text-[var(--pw-ink)]">
-                              {t.description}
-                            </p>
-                          ) : (
-                            <p className="break-words text-sm italic font-normal text-[var(--pw-ink)]/40">
-                              (ไม่ระบุรายละเอียด)
-                            </p>
+                {/* Day Items */}
+                <div className="space-y-2">
+                  {group.items.map((t) => (
+                    <div
+                      key={t.transactionId}
+                      onClick={() => {
+                        if (deletingId === t.transactionId) return;
+                        if (isSelectionMode) {
+                          toggleSelectItem(t.transactionId);
+                        } else {
+                          setSelectedTransaction(t);
+                        }
+                      }}
+                      className={cn(
+                        "relative flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer backdrop-blur-xs gap-3 overflow-hidden",
+                        deletingId === t.transactionId && "pointer-events-none opacity-60",
+                        isSelectionMode && selectedIds.has(t.transactionId)
+                          ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 ring-1 ring-[var(--pw-primary)]"
+                          : "border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/60 hover:bg-[var(--pw-surface-raised)] active:scale-[0.98]"
+                      )}
+                    >
+                      {deletingId === t.transactionId && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--pw-surface)]/85 backdrop-blur-xs gap-2 text-xs font-semibold text-[var(--pw-expense)]">
+                          <LoaderCircle className="size-4 animate-spin" />
+                          <span>กำลังลบรายการ...</span>
+                        </div>
+                      )}
+
+                      {isSelectionMode && (
+                        <div
+                          className={cn(
+                            "flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
+                            selectedIds.has(t.transactionId)
+                              ? "bg-[var(--pw-primary)] border-[var(--pw-primary)] text-white shadow-xs"
+                              : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)]/50"
                           )}
-                          <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
-                            {formatDisplayDateTime(t.transactionDate)}
-                          </p>
+                        >
+                          {selectedIds.has(t.transactionId) && <Check className="size-3.5 stroke-[3]" />}
+                        </div>
+                      )}
+
+                      <div
+                        className={cn(
+                          "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                          t.transactionType === "expense"
+                            ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
+                            : t.transactionType === "income"
+                              ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
+                              : "bg-[var(--pw-link)]/15 text-[var(--pw-link)]"
+                        )}
+                      >
+                        {t.transactionType === "expense" ? (
+                          <ArrowDownRight className="size-5" />
+                        ) : t.transactionType === "income" ? (
+                          <ArrowUpRight className="size-5" />
+                        ) : (
+                          <ReceiptText className="size-5" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-sm text-[var(--pw-ink)]">
+                          {t.description || "(ไม่ระบุรายละเอียด)"}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--pw-ink)]/60 mt-0.5 truncate">
+                          <span className="truncate">{t.categoryName ?? "ไม่มีหมวดหมู่"}</span>
+                          <span>•</span>
+                          <span className="truncate">
+                            {t.bankAccountName ??
+                              t.creditCardName ??
+                              bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName ??
+                              creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName ??
+                              "💵 เงินสด"}
+                          </span>
                         </div>
                       </div>
+
                       <div className="text-right shrink-0">
                         <span
                           className={cn(
-                            "text-base font-bold sm:text-lg block",
+                            "text-sm font-bold block",
                             t.transactionType === "expense"
                               ? "text-[var(--pw-expense)]"
                               : t.transactionType === "income"
                                 ? "text-[var(--pw-green)]"
-                                : "text-[var(--pw-link)]",
+                                : "text-[var(--pw-link)]"
                           )}
                         >
-                          {t.transactionType === "expense" ? "-" : t.transactionType === "income" ? "+" : "↔"}
+                          {t.transactionType === "expense" ? "-" : t.transactionType === "income" ? "+" : ""}
                           {formatCurrency(t.amount, t.currencyCode)}
                         </span>
                         <span
                           className={cn(
-                            "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase",
+                            "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded inline-block mt-0.5",
                             t.transactionType === "expense"
-                              ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
+                              ? "bg-[var(--pw-expense)]/10 text-[var(--pw-expense)]"
                               : t.transactionType === "income"
-                                ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
-                                : "bg-[var(--pw-link)]/15 text-[var(--pw-link)]",
+                                ? "bg-[var(--pw-green)]/10 text-[var(--pw-green)]"
+                                : "bg-[var(--pw-link)]/10 text-[var(--pw-link)]"
                           )}
                         >
                           {t.transactionType === "expense" ? "รายจ่าย" : t.transactionType === "income" ? "รายรับ" : "โอน"}
                         </span>
                       </div>
                     </div>
-
-                    <div className="my-3 flex flex-wrap items-center gap-1.5 text-xs text-[var(--pw-ink)]/75">
-                      <span className="rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)]">
-                        {t.categoryName ?? "ไม่มีหมวดหมู่"}
-                      </span>
-                      <PaymentMethodBadge
-                        bankAccountId={t.bankAccountId}
-                        bankAccountName={
-                          t.bankAccountName ??
-                          bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName
-                        }
-                        creditCardId={t.creditCardId}
-                        creditCardName={
-                          t.creditCardName ??
-                          creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName
-                        }
-                      />
-                      {t.sourceType && t.sourceType !== "manual" && (
-                        <span className="inline-flex items-center rounded bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--pw-primary)]">
-                          {t.sourceType === "cardStatement" ? (
-                            <>
-                              <CreditCard className="mr-1 size-3" />
-                              บัตรเครดิต
-                            </>
-                          ) : t.sourceType === "slip" ? (
-                            "สลิป"
-                          ) : (
-                            t.sourceType
-                          )}
-                        </span>
-                      )}
-                      {t.tags.length > 0 &&
-                        t.tags.map((tag) => {
-                          const color = tags?.find((item) => item.tagId === tag.tagId)?.color ?? "#ec48bd";
-                          return (
-                            <span
-                              key={tag.tagId}
-                              className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                              style={{ backgroundColor: color, color: getReadableTextColor(color) }}
-                            >
-                              <Tag className="mr-1 size-2.5 opacity-80" />
-                              {tag.tagName}
-                            </span>
-                          );
-                        })}
-                    </div>
-                  </div>
-
-                  {!isSelectionMode && (
-                    <div className="flex items-center justify-end gap-2 border-t border-[var(--pw-hairline)] pt-3">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-8 text-xs px-3"
-                        onClick={() => {
-                          setEditing(t);
-                          setShowForm(false);
-                        }}
-                      >
-                        <Pencil className="size-3.5" />
-                        แก้ไข
-                      </Button>
-                      <ConfirmDialog
-                        title="ลบรายการนี้?"
-                        description="การลบจะไม่สามารถย้อนกลับได้"
-                        confirmLabel="ลบ"
-                        pending={deletingId === t.transactionId}
-                        onConfirm={() => {
-                          setDeletingId(t.transactionId);
-                          const toastId = toast.loading("กำลังลบรายการ...");
-                          remove.mutate(t.transactionId, {
-                            onSuccess: () => {
-                              setDeletingId(null);
-                              toast.success("ลบรายการแล้ว", { id: toastId });
-                            },
-                            onError: (e) => {
-                              setDeletingId(null);
-                              toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ", { id: toastId });
-                            },
-                          });
-                        }}
-                        trigger={
-                          <Button size="sm" variant="destructive" className="h-8 text-xs px-3" disabled={deletingId === t.transactionId}>
-                            {deletingId === t.transactionId ? (
-                              <LoaderCircle className="size-3.5 animate-spin" />
-                            ) : (
-                              <Trash2 className="size-3.5" />
-                            )}
-                            {deletingId === t.transactionId ? "กำลังลบ..." : "ลบ"}
-                          </Button>
-                        }
-                      />
-                    </div>
-                  )}
+                  ))}
                 </div>
-              </AnimatedListItem>
+              </div>
             ))}
-          </AnimatedList>
+          </div>
+
+          {/* Desktop Card Grid (>= sm) */}
+          <div className="hidden sm:block">
+            <AnimatedList key={`page-${page}-${sortBy}-${sortDesc}`} className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {data.items.map((t) => (
+                <AnimatedListItem key={t.transactionId}>
+                  <div
+                    onClick={() => {
+                      if (isSelectionMode && deletingId !== t.transactionId) {
+                        toggleSelectItem(t.transactionId);
+                      }
+                    }}
+                    className={cn(
+                      "relative flex flex-col justify-between rounded-lg border bg-[var(--pw-surface-raised)]/50 p-4 transition-all duration-200 backdrop-blur-xs h-full overflow-hidden",
+                      isSelectionMode && "cursor-pointer hover:border-[var(--pw-primary)]/70",
+                      !isSelectionMode && "hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--pw-surface-raised)]/80",
+                      deletingId === t.transactionId && "pointer-events-none opacity-60",
+                      isSelectionMode && selectedIds.has(t.transactionId)
+                        ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/10 ring-2 ring-[var(--pw-primary)]/40"
+                        : "border-[var(--pw-hairline)]",
+                      t.transactionType === "expense"
+                        ? "border-l-4 border-l-[var(--pw-expense)]"
+                        : t.transactionType === "income"
+                          ? "border-l-4 border-l-[var(--pw-green)]"
+                          : "border-l-4 border-l-[var(--pw-link)]",
+                    )}
+                  >
+                    {deletingId === t.transactionId && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[var(--pw-surface)]/85 backdrop-blur-xs gap-1.5 text-xs font-semibold text-[var(--pw-expense)]">
+                        <LoaderCircle className="size-5 animate-spin" />
+                        <span>กำลังลบรายการ...</span>
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          {isSelectionMode && (
+                            <div
+                              onClick={(e) => toggleSelectItem(t.transactionId, e)}
+                              className={cn(
+                                "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border transition-colors cursor-pointer",
+                                selectedIds.has(t.transactionId)
+                                  ? "bg-[var(--pw-primary)] border-[var(--pw-primary)] text-white shadow-xs"
+                                  : "border-[var(--pw-input-border)] bg-[var(--pw-surface-indigo)]/50 hover:border-[var(--pw-primary)]"
+                              )}
+                            >
+                              {selectedIds.has(t.transactionId) && <Check className="size-3.5 stroke-[3]" />}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            {t.description ? (
+                              <p className="break-words font-semibold text-base text-[var(--pw-ink)]">
+                                {t.description}
+                              </p>
+                            ) : (
+                              <p className="break-words text-sm italic font-normal text-[var(--pw-ink)]/40">
+                                (ไม่ระบุรายละเอียด)
+                              </p>
+                            )}
+                            <p className="mt-1 text-xs text-[var(--pw-ink)]/60">
+                              {formatDisplayDateTime(t.transactionDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span
+                            className={cn(
+                              "text-base font-bold sm:text-lg block",
+                              t.transactionType === "expense"
+                                ? "text-[var(--pw-expense)]"
+                                : t.transactionType === "income"
+                                  ? "text-[var(--pw-green)]"
+                                  : "text-[var(--pw-link)]",
+                            )}
+                          >
+                            {t.transactionType === "expense" ? "-" : t.transactionType === "income" ? "+" : "↔"}
+                            {formatCurrency(t.amount, t.currencyCode)}
+                          </span>
+                          <span
+                            className={cn(
+                              "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase",
+                              t.transactionType === "expense"
+                                ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
+                                : t.transactionType === "income"
+                                  ? "bg-[var(--pw-green)]/15 text-[var(--pw-green)]"
+                                  : "bg-[var(--pw-link)]/15 text-[var(--pw-link)]",
+                            )}
+                          >
+                            {t.transactionType === "expense" ? "รายจ่าย" : t.transactionType === "income" ? "รายรับ" : "โอน"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="my-3 flex flex-wrap items-center gap-1.5 text-xs text-[var(--pw-ink)]/75">
+                        <span className="rounded bg-[var(--pw-surface-indigo)] px-2 py-0.5 border border-[var(--pw-hairline)]">
+                          {t.categoryName ?? "ไม่มีหมวดหมู่"}
+                        </span>
+                        <PaymentMethodBadge
+                          bankAccountId={t.bankAccountId}
+                          bankAccountName={
+                            t.bankAccountName ??
+                            bankAccounts?.find((b) => b.bankAccountId === t.bankAccountId)?.accountName
+                          }
+                          creditCardId={t.creditCardId}
+                          creditCardName={
+                            t.creditCardName ??
+                            creditCards?.find((c) => c.creditCardId === t.creditCardId)?.cardName
+                          }
+                        />
+                        {t.sourceType && t.sourceType !== "manual" && (
+                          <span className="inline-flex items-center rounded bg-[var(--pw-primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--pw-primary)]">
+                            {t.sourceType === "cardStatement" ? (
+                              <>
+                                <CreditCard className="mr-1 size-3" />
+                                บัตรเครดิต
+                              </>
+                            ) : t.sourceType === "slip" ? (
+                              "สลิป"
+                            ) : (
+                              t.sourceType
+                            )}
+                          </span>
+                        )}
+                        {t.tags.length > 0 &&
+                          t.tags.map((tag) => {
+                            const color = tags?.find((item) => item.tagId === tag.tagId)?.color ?? "#ec48bd";
+                            return (
+                              <span
+                                key={tag.tagId}
+                                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                                style={{ backgroundColor: color, color: getReadableTextColor(color) }}
+                              >
+                                <Tag className="mr-1 size-2.5 opacity-80" />
+                                {tag.tagName}
+                              </span>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {!isSelectionMode && (
+                      <div className="flex items-center justify-end gap-2 border-t border-[var(--pw-hairline)] pt-3">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 text-xs px-3"
+                          onClick={() => {
+                            setEditing(t);
+                            setShowForm(false);
+                          }}
+                        >
+                          <Pencil className="size-3.5" />
+                          แก้ไข
+                        </Button>
+                        <ConfirmDialog
+                          title="ลบรายการนี้?"
+                          description="การลบจะไม่สามารถย้อนกลับได้"
+                          confirmLabel="ลบ"
+                          pending={deletingId === t.transactionId}
+                          onConfirm={() => {
+                            setDeletingId(t.transactionId);
+                            const toastId = toast.loading("กำลังลบรายการ...");
+                            remove.mutate(t.transactionId, {
+                              onSuccess: () => {
+                                setDeletingId(null);
+                                toast.success("ลบรายการแล้ว", { id: toastId });
+                              },
+                              onError: (e) => {
+                                setDeletingId(null);
+                                toast.error(e instanceof ApiError ? e.message : "ลบไม่สำเร็จ", { id: toastId });
+                              },
+                            });
+                          }}
+                          trigger={
+                            <Button size="sm" variant="destructive" className="h-8 text-xs px-3" disabled={deletingId === t.transactionId}>
+                              {deletingId === t.transactionId ? (
+                                <LoaderCircle className="size-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="size-3.5" />
+                              )}
+                              {deletingId === t.transactionId ? "กำลังลบ..." : "ลบ"}
+                            </Button>
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                </AnimatedListItem>
+              ))}
+            </AnimatedList>
+          </div>
 
           {data.totalPages > 1 && (
-            <div className="flex items-center justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/30 px-4 py-3">
-              <Button variant="ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                <ChevronLeft />
-                ก่อนหน้า
-              </Button>
-              <span className="text-sm text-[var(--pw-ink)]/70">
-                หน้า {page} / {data.totalPages} ({data.totalItems} รายการ)
-              </span>
-              <Button variant="ghost" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>
-                ถัดไป
-                <ChevronRight />
-              </Button>
-            </div>
+            <>
+              {/* Desktop Pagination (>= sm) */}
+              <div className="hidden sm:flex items-center justify-between rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/30 px-4 py-3">
+                <Button variant="ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  <ChevronLeft />
+                  ก่อนหน้า
+                </Button>
+                <span className="text-sm text-[var(--pw-ink)]/70">
+                  หน้า {page} / {data.totalPages} ({data.totalItems} รายการ)
+                </span>
+                <Button variant="ghost" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>
+                  ถัดไป
+                  <ChevronRight />
+                </Button>
+              </div>
+
+              {/* Mobile Thumb-Zone Friendly Pagination (< sm) */}
+              <div className="sm:hidden flex items-center gap-2 pt-1 pb-4">
+                <Button
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => {
+                    setPage((p) => p - 1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="flex-1 h-11 rounded-xl border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/80 font-medium text-xs active:scale-98 shadow-xs"
+                >
+                  <ChevronLeft className="size-4 mr-1" />
+                  ก่อนหน้า
+                </Button>
+                <div className="px-3 py-2 rounded-xl bg-[var(--pw-surface-raised)]/40 border border-[var(--pw-hairline)] text-center shrink-0 min-w-16">
+                  <span className="text-xs font-bold text-[var(--pw-ink)]">
+                    {page} <span className="font-normal text-[var(--pw-ink)]/50">/ {data.totalPages}</span>
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={page >= data.totalPages}
+                  onClick={() => {
+                    setPage((p) => p + 1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="flex-1 h-11 rounded-xl border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/80 font-medium text-xs active:scale-98 shadow-xs"
+                >
+                  ถัดไป
+                  <ChevronRight className="size-4 ml-1" />
+                </Button>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1463,92 +1649,9 @@ export function TransactionList({
         }}
         title="รายละเอียดรายการ"
         description="ข้อมูลและจัดการรายการธุรกรรม"
-      >
-        {selectedTransaction && (
-          <div className="flex flex-col max-h-[75vh]">
-            <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
-              {/* Amount Banner */}
-              <div
-                className={cn(
-                  "p-4 rounded-2xl border text-center flex flex-col items-center justify-center gap-1",
-                  selectedTransaction.transactionType === "expense"
-                    ? "bg-[var(--pw-expense)]/10 border-[var(--pw-expense)]/30 text-[var(--pw-expense)]"
-                    : selectedTransaction.transactionType === "income"
-                      ? "bg-[var(--pw-green)]/10 border-[var(--pw-green)]/30 text-[var(--pw-green)]"
-                      : "bg-[var(--pw-link)]/10 border-[var(--pw-link)]/30 text-[var(--pw-link)]"
-                )}
-              >
-                <span className="text-xs font-semibold uppercase tracking-wider">
-                  {selectedTransaction.transactionType === "expense"
-                    ? "รายจ่าย"
-                    : selectedTransaction.transactionType === "income"
-                      ? "รายรับ"
-                      : "โอน"}
-                </span>
-                <p className="text-3xl font-extrabold tracking-tight">
-                  {selectedTransaction.transactionType === "expense" ? "-" : selectedTransaction.transactionType === "income" ? "+" : ""}
-                  {formatCurrency(selectedTransaction.amount, selectedTransaction.currencyCode)}
-                </p>
-                <p className="text-xs text-[var(--pw-ink)]/70 mt-1">
-                  {formatDisplayDateTime(selectedTransaction.transactionDate)}
-                </p>
-              </div>
-
-              {/* Details List */}
-              <div className="space-y-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3.5 text-xs">
-                <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
-                  <span className="text-[var(--pw-ink)]/60">รายละเอียด / ร้านค้า</span>
-                  <span className="font-semibold text-[var(--pw-ink)] text-right">{selectedTransaction.description || "-"}</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
-                  <span className="text-[var(--pw-ink)]/60">หมวดหมู่</span>
-                  <span className="font-medium text-[var(--pw-ink)]">{selectedTransaction.categoryName ?? "ไม่มีหมวดหมู่"}</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
-                  <span className="text-[var(--pw-ink)]/60">ช่องทางชำระเงิน</span>
-                  <PaymentMethodBadge
-                    bankAccountId={selectedTransaction.bankAccountId}
-                    bankAccountName={
-                      selectedTransaction.bankAccountName ??
-                      bankAccounts?.find((b) => b.bankAccountId === selectedTransaction.bankAccountId)?.accountName
-                    }
-                    creditCardId={selectedTransaction.creditCardId}
-                    creditCardName={
-                      selectedTransaction.creditCardName ??
-                      creditCards?.find((c) => c.creditCardId === selectedTransaction.creditCardId)?.cardName
-                    }
-                  />
-                </div>
-                {selectedTransaction.tags.length > 0 && (
-                  <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
-                    <span className="text-[var(--pw-ink)]/60">แท็ก</span>
-                    <div className="flex flex-wrap gap-1 justify-end">
-                      {selectedTransaction.tags.map((tag) => (
-                        <span
-                          key={tag.tagId}
-                          className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-medium"
-                        >
-                          #{tag.tagName}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-[var(--pw-ink)]/60">ที่มาของข้อมูล</span>
-                  <span className="font-medium text-[var(--pw-ink)]/80">
-                    {selectedTransaction.sourceType === "slip"
-                      ? "สลิปโอนเงิน"
-                      : selectedTransaction.sourceType === "cardStatement"
-                        ? "ใบแจ้งยอดบัตรเครดิต"
-                        : "บันทึกเอง"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Sticky Action Footer (Rule 5: Action on Top, Cancel/Destructive on Bottom) */}
-            <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--pw-hairline)]/50 mt-3 flex flex-col gap-2 z-10">
+        footer={
+          selectedTransaction ? (
+            <div className="flex flex-col gap-2 w-full">
               <Button
                 type="button"
                 className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
@@ -1602,6 +1705,89 @@ export function TransactionList({
                   </Button>
                 }
               />
+            </div>
+          ) : null
+        }
+      >
+        {selectedTransaction && (
+          <div className="space-y-4 pt-1">
+            {/* Amount Banner */}
+            <div
+              className={cn(
+                "p-4 rounded-2xl border text-center flex flex-col items-center justify-center gap-1",
+                selectedTransaction.transactionType === "expense"
+                  ? "bg-[var(--pw-expense)]/10 border-[var(--pw-expense)]/30 text-[var(--pw-expense)]"
+                  : selectedTransaction.transactionType === "income"
+                    ? "bg-[var(--pw-green)]/10 border-[var(--pw-green)]/30 text-[var(--pw-green)]"
+                    : "bg-[var(--pw-link)]/10 border-[var(--pw-link)]/30 text-[var(--pw-link)]"
+              )}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                {selectedTransaction.transactionType === "expense"
+                  ? "รายจ่าย"
+                  : selectedTransaction.transactionType === "income"
+                    ? "รายรับ"
+                    : "โอน"}
+              </span>
+              <p className="text-3xl font-extrabold tracking-tight">
+                {selectedTransaction.transactionType === "expense" ? "-" : selectedTransaction.transactionType === "income" ? "+" : ""}
+                {formatCurrency(selectedTransaction.amount, selectedTransaction.currencyCode)}
+              </p>
+              <p className="text-xs text-[var(--pw-ink)]/70 mt-1">
+                {formatDisplayDateTime(selectedTransaction.transactionDate)}
+              </p>
+            </div>
+
+            {/* Details List */}
+            <div className="space-y-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3.5 text-xs">
+              <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                <span className="text-[var(--pw-ink)]/60">รายละเอียด / ร้านค้า</span>
+                <span className="font-semibold text-[var(--pw-ink)] text-right">{selectedTransaction.description || "-"}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                <span className="text-[var(--pw-ink)]/60">หมวดหมู่</span>
+                <span className="font-medium text-[var(--pw-ink)]">{selectedTransaction.categoryName ?? "ไม่มีหมวดหมู่"}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                <span className="text-[var(--pw-ink)]/60">ช่องทางชำระเงิน</span>
+                <PaymentMethodBadge
+                  bankAccountId={selectedTransaction.bankAccountId}
+                  bankAccountName={
+                    selectedTransaction.bankAccountName ??
+                    bankAccounts?.find((b) => b.bankAccountId === selectedTransaction.bankAccountId)?.accountName
+                  }
+                  creditCardId={selectedTransaction.creditCardId}
+                  creditCardName={
+                    selectedTransaction.creditCardName ??
+                    creditCards?.find((c) => c.creditCardId === selectedTransaction.creditCardId)?.cardName
+                  }
+                />
+              </div>
+              {selectedTransaction.tags.length > 0 && (
+                <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
+                  <span className="text-[var(--pw-ink)]/60">แท็ก</span>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {selectedTransaction.tags.map((tag) => (
+                      <span
+                        key={tag.tagId}
+                        className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-medium"
+                      >
+                        #{tag.tagName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-between items-center py-1">
+                <span className="text-[var(--pw-ink)]/60">ที่มาของข้อมูล</span>
+                <span className="font-medium text-[var(--pw-ink)]/80">
+                  {selectedTransaction.sourceType === "slip"
+                    ? "สลิปโอนเงิน"
+                    : selectedTransaction.sourceType === "cardStatement"
+                      ? "ใบแจ้งยอดบัตรเครดิต"
+                      : "บันทึกเอง"}
+                </span>
+              </div>
             </div>
           </div>
         )}

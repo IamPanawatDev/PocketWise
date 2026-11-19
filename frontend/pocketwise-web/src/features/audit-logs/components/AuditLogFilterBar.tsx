@@ -194,7 +194,7 @@ export function AuditLogFilterBar({
         title="ตัวกรองประวัติการใช้งาน"
         description="กรองบันทึกประวัติการใช้งาน"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] space-y-4">
+        <div className="space-y-4 pt-1">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="เหตุการณ์" className="w-full min-w-0">
               <Select

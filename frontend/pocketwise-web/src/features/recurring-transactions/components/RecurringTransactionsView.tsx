@@ -326,8 +326,7 @@ export function RecurringTransactionsView() {
         title={editing ? "แก้ไขรายการประจำ" : "ตั้งรายการประจำใหม่"}
         description="ตั้งค่ารายการที่เกิดขึ้นเป็นประจำ เช่น ค่าเช่า ค่าบริการรายเดือน หรือเงินเดือน"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 label="ประเภท"
@@ -608,7 +607,6 @@ export function RecurringTransactionsView() {
               </Button>
             </BottomSheetFooter>
           </form>
-        </div>
       </BottomSheet>
 
       {/* Monthly Fixed Cost & Commitments Summary */}

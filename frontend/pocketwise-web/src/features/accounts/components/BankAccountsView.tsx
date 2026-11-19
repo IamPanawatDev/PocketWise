@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { bankAccountSchema, type BankAccountFormValues } from "@/schemas/bank-account.schema";
 import { zodResolver } from "@/lib/zod-resolver";
+import { THAI_BANKS, inferBankCode, normalizeBankCode } from "@/lib/bank-matcher";
 import {
   useBankAccounts,
   useCreateBankAccount,
@@ -70,61 +71,82 @@ function getBankTheme(bankCode?: string | null, bankName?: string | null, accoun
       badge: "กระเป๋าเงินดิจิทัล",
     };
   }
-  const code = (bankCode || "").toUpperCase();
-  const name = (bankName || "").toLowerCase();
-  if (code.includes("KBANK") || name.includes("กสิกร") || code === "004") {
+
+  const code = normalizeBankCode(bankCode) || normalizeBankCode(bankName);
+  if (code === "KBANK") {
     return {
       gradient: "from-emerald-900 via-teal-950 to-green-950 border-emerald-500/30",
       accent: "text-emerald-400 bg-emerald-500/15",
       badge: "KBANK",
     };
   }
-  if (code.includes("SCB") || name.includes("ไทยพาณิชย์") || code === "014") {
+  if (code === "SCB") {
     return {
       gradient: "from-purple-900 via-indigo-950 to-violet-950 border-purple-500/30",
       accent: "text-purple-400 bg-purple-500/15",
       badge: "SCB",
     };
   }
-  if (code.includes("BBL") || name.includes("กรุงเทพ") || code === "002") {
+  if (code === "BBL") {
     return {
       gradient: "from-blue-900 via-indigo-950 to-slate-950 border-blue-500/30",
       accent: "text-blue-400 bg-blue-500/15",
       badge: "BBL",
     };
   }
-  if (code.includes("KTB") || name.includes("กรุงไทย") || code === "006") {
+  if (code === "KTB") {
     return {
       gradient: "from-cyan-900 via-sky-950 to-blue-950 border-cyan-500/30",
       accent: "text-cyan-400 bg-cyan-500/15",
       badge: "KTB",
     };
   }
-  if (code.includes("TTB") || name.includes("ทหารไทย") || name.includes("ธนชาต") || code === "011") {
+  if (code === "TTB") {
     return {
       gradient: "from-blue-950 via-slate-900 to-amber-950 border-orange-500/30",
       accent: "text-orange-400 bg-orange-500/15",
       badge: "TTB",
     };
   }
-  if (code.includes("BAY") || name.includes("กรุงศรี") || code === "025") {
+  if (code === "BAY") {
     return {
       gradient: "from-amber-900 via-stone-900 to-yellow-950 border-amber-500/30",
       accent: "text-amber-400 bg-amber-500/15",
       badge: "BAY",
     };
   }
-  if (code.includes("GSB") || name.includes("ออมสิน") || code === "030") {
+  if (code === "GSB") {
     return {
       gradient: "from-pink-900 via-rose-950 to-stone-950 border-pink-500/30",
       accent: "text-pink-400 bg-pink-500/15",
       badge: "GSB",
     };
   }
+  if (code === "UOB") {
+    return {
+      gradient: "from-blue-900 via-slate-900 to-indigo-950 border-blue-500/30",
+      accent: "text-blue-400 bg-blue-500/15",
+      badge: "UOB",
+    };
+  }
+  if (code === "CIMB") {
+    return {
+      gradient: "from-red-950 via-slate-900 to-rose-950 border-red-500/30",
+      accent: "text-red-400 bg-red-500/15",
+      badge: "CIMB",
+    };
+  }
+  if (code === "BAAC") {
+    return {
+      gradient: "from-emerald-950 via-slate-900 to-teal-950 border-emerald-500/30",
+      accent: "text-emerald-400 bg-emerald-500/15",
+      badge: "ธ.ก.ส.",
+    };
+  }
   return {
     gradient: "from-slate-900 via-indigo-950 to-slate-950 border-indigo-500/30",
     accent: "text-indigo-400 bg-indigo-500/15",
-    badge: bankCode || bankName || "ธนาคาร",
+    badge: code || bankCode || bankName || "ธนาคาร",
   };
 }
 
@@ -142,11 +164,22 @@ export function BankAccountsView() {
     control,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<BankAccountFormValues>({
     resolver: zodResolver(bankAccountSchema),
     defaultValues: initialBankValues,
   });
+
+  const currentAccountType = watch("accountType");
+  const currentBankCode = watch("bankCode");
+  const currentBankName = watch("bankName");
+
+  const matchedPreset = THAI_BANKS.find(
+    (b) => b.code === currentBankCode || (currentBankName ? inferBankCode(currentBankName) === b.code : false),
+  );
+  const selectedPresetCode = matchedPreset ? matchedPreset.code : "custom";
 
   const clearForm = () => {
     setEditing(null);
@@ -159,9 +192,12 @@ export function BankAccountsView() {
   };
 
   const onSubmit = (values: BankAccountFormValues) => {
+    const inferredCode = inferBankCode(values.bankCode) || inferBankCode(values.bankName);
+    const resolvedBankCode = values.bankCode?.trim().toUpperCase() || inferredCode || null;
+
     const payload = {
       ...values,
-      bankCode: values.bankCode?.trim().toUpperCase() || null,
+      bankCode: resolvedBankCode,
       accountNumberMasked: values.accountNumberMasked?.trim() || null,
     };
     if (editing !== null) {
@@ -224,19 +260,9 @@ export function BankAccountsView() {
         title={editing !== null ? "แก้ไขบัญชี" : "เพิ่มบัญชีใหม่"}
         description="ระบุรายละเอียดบัญชีสำหรับการบันทึกธุรกรรม"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField label="ชื่อบัญชี" htmlFor="account-name" error={errors.accountName?.message}>
-                <Input id="account-name" placeholder="เช่น เงินเดือน, บัญชีหลัก" {...register("accountName")} />
-              </FormField>
-              <FormField label="ชื่อธนาคาร / ผู้ให้บริการ" htmlFor="bank-name" error={errors.bankName?.message}>
-                <Input id="bank-name" placeholder="เช่น กสิกรไทย, ไทยพาณิชย์, TrueMoney" {...register("bankName")} />
-              </FormField>
-              <FormField label="รหัสธนาคาร (เช่น 004 หรือ KBANK)" htmlFor="bank-code" error={errors.bankCode?.message}>
-                <Input id="bank-code" placeholder="เช่น 004 หรือ KBANK" {...register("bankCode")} />
-              </FormField>
-              <FormField label="ประเภท" htmlFor="account-type" error={errors.accountType?.message}>
+              <FormField label="ประเภทบัญชี" htmlFor="account-type" error={errors.accountType?.message}>
                 <Controller
                   control={control}
                   name="accountType"
@@ -248,12 +274,71 @@ export function BankAccountsView() {
                       <SelectContent>
                         <SelectItem value="bank">ธนาคาร</SelectItem>
                         <SelectItem value="cash">เงินสด</SelectItem>
-                        <SelectItem value="wallet">กระเป๋าเงิน</SelectItem>
+                        <SelectItem value="wallet">กระเป๋าเงินดิจิทัล</SelectItem>
                         <SelectItem value="other">อื่น ๆ</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
+              </FormField>
+
+              <FormField label="ชื่อบัญชี" htmlFor="account-name" error={errors.accountName?.message}>
+                <Input id="account-name" placeholder="เช่น เงินเดือน, บัญชีหลัก" {...register("accountName")} />
+              </FormField>
+
+              {currentAccountType === "bank" && (
+                <FormField label="เลือกธนาคาร" htmlFor="preset-bank">
+                  <Select
+                    value={selectedPresetCode}
+                    onValueChange={(val) => {
+                      if (val === "custom") {
+                        // Keep current input
+                      } else {
+                        const bank = THAI_BANKS.find((b) => b.code === val);
+                        if (bank) {
+                          setValue("bankName", bank.name, { shouldValidate: true });
+                          setValue("bankCode", bank.code, { shouldValidate: true });
+                        }
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="preset-bank">
+                      <SelectValue placeholder="เลือกธนาคารหลัก" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {THAI_BANKS.map((b) => (
+                        <SelectItem key={b.code} value={b.code}>
+                          {b.name} ({b.code})
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">ระบุเอง / ธนาคารอื่น ๆ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+
+              <FormField label="ชื่อธนาคาร / ผู้ให้บริการ" htmlFor="bank-name" error={errors.bankName?.message}>
+                <Input
+                  id="bank-name"
+                  placeholder="เช่น กสิกรไทย, ไทยพาณิชย์, TrueMoney"
+                  {...register("bankName", {
+                    onChange: (e) => {
+                      const val = e.target.value;
+                      const inferred = inferBankCode(val);
+                      if (inferred) {
+                        setValue("bankCode", inferred, { shouldValidate: true });
+                      }
+                    },
+                  })}
+                />
+              </FormField>
+
+              <FormField label="รหัสธนาคาร (ตรวจจับอัตโนมัติ)" htmlFor="bank-code" error={errors.bankCode?.message}>
+                <Input id="bank-code" placeholder="เช่น KBANK หรือ 004" {...register("bankCode")} />
+              </FormField>
+
+              <FormField label="เลขที่บัญชี (ไม่บังคับ)" htmlFor="account-number" error={errors.accountNumberMasked?.message}>
+                <Input id="account-number" placeholder="เช่น 123-x-xxxx-4 หรือ 4 ตัวท้าย" {...register("accountNumberMasked")} />
               </FormField>
             </div>
 
@@ -296,7 +381,6 @@ export function BankAccountsView() {
               </Button>
             </BottomSheetFooter>
           </form>
-        </div>
       </BottomSheet>
 
       {/* Accounts List */}
@@ -337,7 +421,7 @@ export function BankAccountsView() {
                           <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider", theme.accent)}>
                             {theme.badge}
                           </span>
-                          {a.bankName && (
+                          {a.bankName && a.bankName.trim().toUpperCase() !== theme.badge.trim().toUpperCase() && (
                             <span className="text-xs text-white/70 truncate max-w-[150px]">
                               {a.bankName}
                             </span>
