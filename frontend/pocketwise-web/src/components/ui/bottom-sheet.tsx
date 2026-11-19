@@ -221,8 +221,8 @@ export function BottomSheet({
             }
           }}
           className={cn(
-            // Mobile (default): Bottom Sheet pinned to bottom, dynamic height (fit content up to 92vh), rounded top corners
-            "fixed inset-x-0 bottom-0 z-50 flex h-auto max-h-[92vh] flex-col rounded-t-[28px] border-t border-[var(--pw-hairline)] bg-[var(--pw-surface)]/98 sm:bg-[var(--pw-surface)]/95 backdrop-blur-2xl text-[var(--pw-ink)] shadow-[0_-10px_40px_rgba(0,0,0,0.35)] outline-none pw-bottom-sheet-content",
+            // Mobile (default): Bottom Sheet pinned to bottom, dynamic height (fit content up to 90dvh), rounded top corners
+            "fixed inset-x-0 bottom-0 z-50 flex h-auto max-h-[90dvh] flex-col rounded-t-[28px] border-t border-[var(--pw-hairline)] bg-[var(--pw-surface)]/98 sm:bg-[var(--pw-surface)]/95 backdrop-blur-2xl text-[var(--pw-ink)] shadow-[0_-10px_40px_rgba(0,0,0,0.35)] outline-none pw-bottom-sheet-content overscroll-contain",
             // Desktop (sm+): Centered Modal Dialog with Glassmorphism
             "sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[85vh] sm:w-full sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--pw-rounded-lg)] sm:border sm:border-[var(--pw-hairline)] sm:shadow-2xl",
             className
@@ -253,16 +253,16 @@ export function BottomSheet({
                 </DialogPrimitive.Title>
               )}
               {description && (
-                <DialogPrimitive.Description className="mt-0.5 text-xs sm:text-sm text-[var(--pw-ink)]/85 dark:text-[var(--pw-ink)]/75">
+                <DialogPrimitive.Description className="mt-0.5 text-xs sm:text-sm text-[var(--pw-ink)]/85 dark:text-[var(--pw-ink)]/75 hidden sm:block">
                   {description}
                 </DialogPrimitive.Description>
               )}
             </div>
             <DialogPrimitive.Close
-              className="flex size-10 sm:size-9 shrink-0 items-center justify-center rounded-full bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 transition-all hover:bg-[var(--pw-hairline)] hover:text-[var(--pw-ink)] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)] cursor-pointer"
+              className="flex size-8.5 sm:size-9 shrink-0 items-center justify-center rounded-full bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)]/85 transition-all hover:bg-[var(--pw-hairline)] hover:text-[var(--pw-ink)] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pw-primary)] cursor-pointer"
               aria-label="ปิด"
             >
-              <X className="size-4.5" />
+              <X className="size-4" />
             </DialogPrimitive.Close>
           </div>
 

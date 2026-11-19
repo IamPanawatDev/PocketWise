@@ -149,8 +149,7 @@ export function TagsView() {
         title={editing ? "แก้ไขแท็ก" : "เพิ่มแท็กใหม่"}
         description="ระบุชื่อและสีของแท็ก"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
             <FormField label="ชื่อแท็ก" htmlFor="tag-name" error={errors.tagName?.message}>
               <Input id="tag-name" placeholder="เช่น เที่ยวญี่ปุ่น, ช้อปปิ้ง, ค่าบ้าน" {...register("tagName")} />
             </FormField>
@@ -252,7 +251,6 @@ export function TagsView() {
               </Button>
             </BottomSheetFooter>
           </form>
-        </div>
       </BottomSheet>
 
       {/* Search Bar */}

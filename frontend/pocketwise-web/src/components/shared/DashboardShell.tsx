@@ -863,7 +863,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 backdrop-blur-xs px-3 py-4 mb-16 md:mb-0 text-xs text-[var(--pw-ink)]/55 sm:px-6">
+        <footer className="border-t border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 backdrop-blur-xs px-3 py-4 mb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:mb-0 text-xs text-[var(--pw-ink)]/55 sm:px-6">
           <div className="flex flex-col items-center justify-between gap-2 text-center sm:flex-row sm:text-left">
             <span>© 2026 PocketWise. สงวนลิขสิทธิ์ทุกประการ</span>
             <div className="flex items-center gap-3">
@@ -888,7 +888,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Floating Bottom Bar */}
       <nav
         aria-label="เมนูด่วนบนมือถือ"
-        className="fixed bottom-0 inset-x-0 z-30 flex h-16 items-center justify-around border-t border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/90 backdrop-blur-xl px-2 pb-[env(safe-area-inset-bottom)] md:hidden shadow-lg shadow-black/30"
+        className="pw-mobile-bottom-nav fixed bottom-0 inset-x-0 z-40 flex h-[calc(4rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl px-2 pb-[env(safe-area-inset-bottom,0px)] md:hidden shadow-lg shadow-black/30 translate-z-0"
       >
         <Link
           href="/transactions"

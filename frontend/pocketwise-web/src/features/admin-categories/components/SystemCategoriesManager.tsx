@@ -591,7 +591,7 @@ export function SystemCategoriesManager() {
         title={editingCategory ? `แก้ไขหมวดหมู่มาตรฐาน: ${editingCategory.categoryName}` : "เพิ่มหมวดหมู่มาตรฐานใหม่"}
         description="กำหนดชื่อ ประเภท ไอคอน และสีของหมวดหมู่มาตรฐานสำหรับผู้ใช้ทุกคน"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh] space-y-4">
+        <div className="space-y-4 pt-1">
           {formError && (
             <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
               <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />

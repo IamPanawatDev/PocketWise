@@ -108,9 +108,35 @@ export function SlipImportTab() {
 
   // UX States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isMobileSlipExpanded, setIsMobileSlipExpanded] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showTagsSection, setShowTagsSection] = useState(false);
   const [showDetectedPills, setShowDetectedPills] = useState(false);
+
+  // Touch Swipe for Mobile Batch Navigation
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const distance = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+    if (distance > minSwipeDistance && currentIndex < batchItems.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    } else if (distance < -minSwipeDistance && currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
 
   const { data: bankAccounts = [] } = useBankAccounts();
   const { data: categories = [] } = useCategories();
@@ -1323,10 +1349,15 @@ export function SlipImportTab() {
                     </div>
                   </motion.div>
                 ) : (
-                  <Card className="p-4 sm:p-6 bg-[var(--pw-surface-raised)]/60 border border-[var(--pw-hairline)] backdrop-blur-md space-y-4">
-                    {/* Card Header with Top-Right Thumbnail on Mobile */}
+                  <Card
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    className="p-4 sm:p-6 bg-[var(--pw-surface-raised)]/60 border border-[var(--pw-hairline)] backdrop-blur-md space-y-4"
+                  >
+                    {/* Card Header with Status and Swipe Hint */}
                     <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--pw-hairline)]">
-                      <div className="space-y-1.5 min-w-0 flex-1">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-base font-bold text-[var(--pw-ink)]">
                             ตรวจสอบข้อมูลสลิป #{currentIndex + 1}
@@ -1356,29 +1387,71 @@ export function SlipImportTab() {
                               : "รอตรวจสอบ"}
                           </span>
                         </div>
+                        {batchItems.length > 1 && (
+                          <p className="text-[11px] text-[var(--pw-ink)]/50 sm:hidden">
+                            👉 ปัด ซ้าย-ขวา บนการ์ดเพื่อเปลี่ยนสลิป ({currentIndex + 1}/{batchItems.length})
+                          </p>
+                        )}
                       </div>
+                    </div>
 
-                    {/* Top-Right Slip Thumbnail on Mobile */}
+                    {/* Mobile Co-Location Slip Peek & Inspection Bar (< lg) */}
                     {currentItem.previewUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setIsLightboxOpen(true)}
-                        className="group relative size-16 sm:size-20 shrink-0 overflow-hidden rounded-xl border-2 border-[var(--pw-primary)]/40 bg-black/50 shadow-md active:scale-95 transition-all cursor-pointer lg:hidden"
-                        aria-label="ดูรูปสลิปขยายเต็มจอ"
-                        title="แตะเพื่อดูรูปสลิปขยายเต็มจอ"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={currentItem.previewUrl}
-                          alt="Slip Thumbnail"
-                          className="size-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">
-                          <Maximize2 className="size-4 text-white drop-shadow" />
+                      <div className="lg:hidden rounded-xl border border-[var(--pw-hairline)] bg-black/40 overflow-hidden transition-all shadow-inner">
+                        {/* Peek Control Header */}
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--pw-surface-raised)]/90 border-b border-[var(--pw-hairline)] text-xs">
+                          <div className="flex items-center gap-1.5 text-[var(--pw-ink)]/80 font-medium">
+                            <Receipt className="size-3.5 text-[var(--pw-primary)]" />
+                            <span>สลิปต้นฉบับ #{currentIndex + 1}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsMobileSlipExpanded((prev) => !prev)}
+                              className="text-[11px] font-medium text-[var(--pw-primary)] hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>{isMobileSlipExpanded ? "ย่อรูป" : "ขยายดูรูป"}</span>
+                              <ChevronDown className={cn("size-3 transition-transform", isMobileSlipExpanded && "rotate-180")} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsLightboxOpen(true)}
+                              className="text-[11px] font-medium text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] flex items-center gap-1 cursor-pointer pl-2 border-l border-[var(--pw-hairline)]"
+                              title="ดูรูปขยายเต็มจอ"
+                            >
+                              <Maximize2 className="size-3" />
+                              <span>เต็มจอ</span>
+                            </button>
+                          </div>
                         </div>
-                      </button>
+
+                        {/* Slip Image Viewport */}
+                        <div
+                          onClick={() => setIsMobileSlipExpanded((prev) => !prev)}
+                          className={cn(
+                            "relative flex justify-center items-center overflow-hidden transition-all duration-300 cursor-pointer bg-black/60",
+                            isMobileSlipExpanded ? "max-h-[380px] p-2" : "max-h-[145px] p-1.5"
+                          )}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={currentItem.previewUrl}
+                            alt="Slip Preview"
+                            className={cn(
+                              "object-contain w-full transition-all duration-200",
+                              isMobileSlipExpanded ? "max-h-[365px]" : "max-h-[135px]"
+                            )}
+                          />
+                          {!isMobileSlipExpanded && (
+                            <div className="absolute inset-x-0 bottom-0 py-1 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex justify-center pointer-events-none">
+                              <span className="text-[10px] text-white/90 font-medium flex items-center gap-1 drop-shadow">
+                                แตะเพื่อขยายดูสลิปทั้งใบ
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </div>
 
                   {/* Error Banner visible on both Mobile and Desktop inside the Form Card */}
                   {currentItem.status === "error" && (
@@ -1751,13 +1824,13 @@ export function SlipImportTab() {
                     </div>
                   )}
 
-                  {/* 8. ACTION BUTTONS HIERARCHY (Mobile Standard: Confirm Top, Cancel Below, Target >= 44px) */}
-                  <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-[var(--pw-hairline)]/80 mt-4 flex flex-col gap-2.5 z-10 sm:static sm:bg-transparent sm:backdrop-blur-none sm:p-0 sm:border-t sm:border-[var(--pw-hairline)]">
-                    {/* Primary Action Button (Order 1 on mobile) */}
+                  {/* 8. ACTION BUTTONS HIERARCHY (Mobile Streamlined Thumb-Zone Standard) */}
+                  <div className="sticky bottom-0 bg-[var(--pw-surface)]/95 backdrop-blur-md pt-3 pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t border-[var(--pw-hairline)]/80 mt-4 flex flex-col gap-2 z-10 sm:static sm:bg-transparent sm:backdrop-blur-none sm:p-0 sm:border-t sm:border-[var(--pw-hairline)]">
+                    {/* Primary Action Button (Order 1 on mobile, solid filled, min 44px) */}
                     {currentItem.status === "error" ? (
                       <Button
                         type="button"
-                        className="w-full min-h-[44px] gap-2 font-bold bg-amber-600 hover:bg-amber-700 text-white active:scale-[0.98] transition-all shadow-md cursor-pointer order-1 disabled:opacity-85 disabled:bg-amber-600 disabled:text-white"
+                        className="w-full min-h-[44px] gap-2 font-bold bg-amber-600 hover:bg-amber-700 text-white active:scale-[0.98] transition-all shadow-md cursor-pointer disabled:opacity-85 disabled:bg-amber-600 disabled:text-white"
                         disabled={isActionLoading}
                         onClick={() => handleRetryItem(currentItem.id)}
                       >
@@ -1767,7 +1840,7 @@ export function SlipImportTab() {
                     ) : currentItem.status !== "confirmed" ? (
                       <Button
                         type="button"
-                        className="w-full min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all shadow-md cursor-pointer order-1 text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+                        className="w-full min-h-[44px] gap-2 font-bold active:scale-[0.98] transition-all shadow-md cursor-pointer text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
                         disabled={isActionLoading}
                         onClick={handleConfirmCurrent}
                       >
@@ -1788,7 +1861,7 @@ export function SlipImportTab() {
                         )}
                       </Button>
                     ) : (
-                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-xs font-semibold flex items-center justify-between order-1">
+                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-xs font-semibold flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
                           <Check className="size-4 stroke-[3]" />
                           สลิปนี้บันทึกรายการแล้ว
@@ -1808,38 +1881,39 @@ export function SlipImportTab() {
                       </div>
                     )}
 
-                    {/* Batch Confirm All Button (Order 2 on mobile) */}
+                    {/* Batch Confirm All Button (Compact option when multiple ready) */}
                     {batchStats.ready > 1 && (
                       <Button
                         type="button"
-                        className="w-full min-h-[44px] gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold active:scale-[0.98] transition-transform cursor-pointer order-2 shadow-md disabled:opacity-85 disabled:bg-emerald-600 disabled:text-white"
+                        size="sm"
+                        className="w-full h-9 gap-1.5 bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 dark:text-emerald-400 font-bold active:scale-[0.98] transition-transform cursor-pointer border border-emerald-500/30 rounded-xl text-xs disabled:opacity-85"
                         disabled={isConfirmingAll}
                         onClick={handleConfirmAll}
                       >
                         {isConfirmingAll ? (
-                          <Loader2 className="size-4 animate-spin text-white" />
+                          <Loader2 className="size-3.5 animate-spin text-emerald-500" />
                         ) : (
-                          <CheckCheck className="size-4 stroke-[2.5]" />
+                          <CheckCheck className="size-3.5 stroke-[2.5]" />
                         )}
                         <span>
                           {isConfirmingAll
                             ? "กำลังบันทึกทั้งหมด..."
-                            : `บันทึกทุกสลิปที่อ่านสำเร็จพร้อมกัน (${batchStats.ready} ใบ)`}
+                            : `บันทึกทุกสลิปพร้อมกัน (${batchStats.ready} ใบ)`}
                         </span>
                       </Button>
                     )}
 
-                    {/* Secondary Navigation & Cancel Actions (Order 3 & 4 on mobile) */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 order-3">
+                    {/* Secondary Navigation & Cancel Actions (Horizontal single row on mobile) */}
+                    <div className="flex items-center gap-2 pt-0.5">
                       {batchItems.length > 1 && (
                         <Button
                           type="button"
                           variant="ghost"
-                          className="w-full sm:w-auto min-h-[44px] gap-1.5 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-indigo)] cursor-pointer order-1 sm:order-none disabled:opacity-50"
+                          className="flex-1 min-h-[40px] gap-1.5 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-indigo)] cursor-pointer rounded-xl border border-[var(--pw-hairline)] disabled:opacity-50"
                           disabled={isActionLoading || isRejectingCurrent}
                           onClick={handleSkipCurrent}
                         >
-                          <SkipForward className="size-4" />
+                          <SkipForward className="size-3.5" />
                           <span>ข้ามสลิปนี้</span>
                         </Button>
                       )}
@@ -1848,7 +1922,8 @@ export function SlipImportTab() {
                         type="button"
                         variant={isRejectingCurrent ? "default" : "ghost"}
                         className={cn(
-                          "w-full sm:w-auto min-h-[44px] gap-1.5 text-xs cursor-pointer order-2 sm:order-none transition-all",
+                          "min-h-[40px] gap-1.5 text-xs cursor-pointer transition-all rounded-xl border border-[var(--pw-hairline)]",
+                          batchItems.length > 1 ? "flex-1" : "w-full",
                           isRejectingCurrent
                             ? "bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md disabled:opacity-85 disabled:bg-rose-600 disabled:text-white"
                             : "text-[var(--pw-accent-red)] hover:bg-[var(--pw-accent-red)]/10 font-semibold"
@@ -1857,16 +1932,16 @@ export function SlipImportTab() {
                         onClick={handleRemoveOrRejectCurrent}
                       >
                         {isRejectingCurrent ? (
-                          <Loader2 className="size-4 animate-spin text-white" />
+                          <Loader2 className="size-3.5 animate-spin text-white" />
                         ) : (
-                          <Trash2 className="size-4" />
+                          <Trash2 className="size-3.5" />
                         )}
                         <span>
                           {isRejectingCurrent
-                            ? "กำลังลบออกจากคิว..."
+                            ? "กำลังลบ..."
                             : currentItem.status === "confirmed"
-                            ? "ลบออกจากคิว"
-                            : "ข้าม/ลบสลิปนี้ออกจากคิว"}
+                            ? "ลบจากคิว"
+                            : "ลบสลิปนี้"}
                         </span>
                       </Button>
                     </div>
@@ -1876,20 +1951,6 @@ export function SlipImportTab() {
               </div>
             </div>
           )}
-        </div>
-      )}
-      {/* Mobile Floating Quick Slip Trigger (Thumb accessible from anywhere) */}
-      {currentItem && currentItem.previewUrl && !isLightboxOpen && (
-        <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-3 z-30 lg:hidden animate-in fade-in zoom-in-95 duration-200">
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setIsLightboxOpen(true)}
-            className="h-10 px-3.5 gap-1.5 rounded-full bg-[var(--pw-surface-raised)]/95 text-[var(--pw-ink)] border border-[var(--pw-hairline)] shadow-xl backdrop-blur-xl hover:bg-[var(--pw-surface-onyx)] text-xs font-semibold active:scale-95 transition-all cursor-pointer"
-          >
-            <Maximize2 className="size-3.5 text-[var(--pw-primary)]" />
-            <span>ดูรูปสลิป</span>
-          </Button>
         </div>
       )}
     </div>

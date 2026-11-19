@@ -214,8 +214,7 @@ export function CategoriesView() {
         title={editing ? "แก้ไขหมวดหมู่" : "เพิ่มหมวดหมู่ใหม่"}
         description="ระบุชื่อและประเภทของหมวดหมู่"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="ชื่อหมวดหมู่" htmlFor="category-name" error={errors.categoryName?.message}>
                 <Input id="category-name" placeholder="เช่น อาหาร, การเดินทาง, เงินเดือน" {...register("categoryName")} />
@@ -316,7 +315,6 @@ export function CategoriesView() {
               </Button>
             </BottomSheetFooter>
           </form>
-        </div>
       </BottomSheet>
 
       {/* Search & Segmented Filter Bar */}

@@ -204,8 +204,7 @@ export function BudgetsView() {
         title={editing ? "แก้ไขงบประมาณ" : "ตั้งงบประมาณใหม่"}
         description="กำหนดเป้าหมายวงเงินและขอบเขตเพื่อควบคุมค่าใช้จ่ายของคุณ"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="ชื่องบ" htmlFor="budget-name" error={errors.budgetName?.message}>
                 <Input id="budget-name" aria-invalid={!!errors.budgetName} {...register("budgetName")} />
@@ -367,7 +366,6 @@ export function BudgetsView() {
               </Button>
             </BottomSheetFooter>
           </form>
-        </div>
       </BottomSheet>
 
       {/* Main Content: Budgets List immediately visible */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Bar,
@@ -111,23 +111,33 @@ interface ReportsViewProps {
 }
 
 
+type PeriodMode = "all" | "day" | "week" | "month" | "year" | "custom";
+
+const THAI_MONTH_NAMES = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+];
+
 export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps) {
   const [fromDate, setFromDate] = useState(initialFromDate);
   const [toDate, setToDate] = useState(initialToDate);
   const [period, setPeriod] = useState<ReportPeriod>("monthly");
   const monthOptions = useMemo(() => getRecentMonthOptions(24, 1), []);
   const [isCustomDateMode, setIsCustomDateMode] = useState(false);
-  const [isNarrowMobile, setIsNarrowMobile] = useState(false);
   const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
+  type MobileReportTab = "categories" | "overview" | "channels";
+  const [mobileTab, setMobileTab] = useState<MobileReportTab>("categories");
+  const [showAllMobileCategories, setShowAllMobileCategories] = useState(false);
 
-  useEffect(() => {
-    const checkNarrowMobile = () => {
-      setIsNarrowMobile(window.innerWidth < 375);
-    };
-    checkNarrowMobile();
-    window.addEventListener("resize", checkNarrowMobile);
-    return () => window.removeEventListener("resize", checkNarrowMobile);
-  }, []);
+  const [periodMode, setPeriodMode] = useState<PeriodMode>(() => {
+    if (initialFromDate === "2000-01-01" && initialToDate === "2099-12-31") return "all";
+    if (initialFromDate && initialFromDate === initialToDate) return "day";
+    const thisWeek = getThisWeekRange();
+    if (initialFromDate === thisWeek.from && initialToDate === thisWeek.to) return "week";
+    const thisYear = getThisYearRange();
+    if (initialFromDate === thisYear.from && initialToDate === thisYear.to) return "year";
+    return "month";
+  });
 
   const currentMonthValue = useMemo(() => {
     if (!fromDate) return "all";
@@ -139,6 +149,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
       setFromDate("2000-01-01");
       setToDate("2099-12-31");
       setPeriod("yearly");
+      setPeriodMode("all");
       return;
     }
     const selected = monthOptions.find((m) => m.value === value);
@@ -146,26 +157,83 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
       setFromDate(selected.from);
       setToDate(selected.to);
       setPeriod("monthly");
+      setPeriodMode("month");
     }
   };
 
-  const handlePrevMonth = () => {
+  const handlePrevPeriod = () => {
     setIsCustomDateMode(false);
-    const idx = monthOptions.findIndex((m) => m.value === currentMonthValue);
-    if (idx !== -1 && idx < monthOptions.length - 1) {
-      handleMonthSelect(monthOptions[idx + 1].value);
-    } else if (monthOptions.length > 0) {
-      handleMonthSelect(monthOptions[0].value);
+    if (periodMode === "day") {
+      const [y, m, d] = fromDate.split("-").map(Number);
+      const date = new Date(y, m - 1, d);
+      date.setDate(date.getDate() - 1);
+      const prevDateStr = toThailandDateInputValue(date);
+      setFromDate(prevDateStr);
+      setToDate(prevDateStr);
+      setPeriod("weekly");
+    } else if (periodMode === "week") {
+      const [fy, fm, fd] = fromDate.split("-").map(Number);
+      const [ty, tm, td] = toDate.split("-").map(Number);
+      const fDate = new Date(fy, fm - 1, fd);
+      const tDate = new Date(ty, tm - 1, td);
+      fDate.setDate(fDate.getDate() - 7);
+      tDate.setDate(tDate.getDate() - 7);
+      setFromDate(toThailandDateInputValue(fDate));
+      setToDate(toThailandDateInputValue(tDate));
+      setPeriod("weekly");
+    } else if (periodMode === "month") {
+      const [y, m] = fromDate.split("-").map(Number);
+      const prevDate = new Date(y, m - 1 - 1, 1);
+      const prevY = prevDate.getFullYear();
+      const prevM = prevDate.getMonth() + 1;
+      const prevLastDay = new Date(prevY, prevM, 0).getDate();
+      setFromDate(`${prevY}-${String(prevM).padStart(2, "0")}-01`);
+      setToDate(`${prevY}-${String(prevM).padStart(2, "0")}-${String(prevLastDay).padStart(2, "0")}`);
+      setPeriod("monthly");
+    } else if (periodMode === "year") {
+      const [y] = fromDate.split("-").map(Number);
+      const prevY = y - 1;
+      setFromDate(`${prevY}-01-01`);
+      setToDate(`${prevY}-12-31`);
+      setPeriod("yearly");
     }
   };
 
-  const handleNextMonth = () => {
+  const handleNextPeriod = () => {
     setIsCustomDateMode(false);
-    const idx = monthOptions.findIndex((m) => m.value === currentMonthValue);
-    if (idx > 0) {
-      handleMonthSelect(monthOptions[idx - 1].value);
-    } else if (monthOptions.length > 0) {
-      handleMonthSelect(monthOptions[0].value);
+    if (periodMode === "day") {
+      const [y, m, d] = fromDate.split("-").map(Number);
+      const date = new Date(y, m - 1, d);
+      date.setDate(date.getDate() + 1);
+      const nextDateStr = toThailandDateInputValue(date);
+      setFromDate(nextDateStr);
+      setToDate(nextDateStr);
+      setPeriod("weekly");
+    } else if (periodMode === "week") {
+      const [fy, fm, fd] = fromDate.split("-").map(Number);
+      const [ty, tm, td] = toDate.split("-").map(Number);
+      const fDate = new Date(fy, fm - 1, fd);
+      const tDate = new Date(ty, tm - 1, td);
+      fDate.setDate(fDate.getDate() + 7);
+      tDate.setDate(tDate.getDate() + 7);
+      setFromDate(toThailandDateInputValue(fDate));
+      setToDate(toThailandDateInputValue(tDate));
+      setPeriod("weekly");
+    } else if (periodMode === "month") {
+      const [y, m] = fromDate.split("-").map(Number);
+      const nextDate = new Date(y, m - 1 + 1, 1);
+      const nextY = nextDate.getFullYear();
+      const nextM = nextDate.getMonth() + 1;
+      const nextLastDay = new Date(nextY, nextM, 0).getDate();
+      setFromDate(`${nextY}-${String(nextM).padStart(2, "0")}-01`);
+      setToDate(`${nextY}-${String(nextM).padStart(2, "0")}-${String(nextLastDay).padStart(2, "0")}`);
+      setPeriod("monthly");
+    } else if (periodMode === "year") {
+      const [y] = fromDate.split("-").map(Number);
+      const nextY = y + 1;
+      setFromDate(`${nextY}-01-01`);
+      setToDate(`${nextY}-12-31`);
+      setPeriod("yearly");
     }
   };
 
@@ -239,6 +307,57 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
     activeQuickPeriod === "all" ||
     (fromDate === "2000-01-01" && toDate === "2099-12-31") ||
     (!fromDate && !toDate);
+
+  const isStepperDisabled = isAllTime || periodMode === "all" || periodMode === "custom";
+
+  const stepperLabel = useMemo(() => {
+    if (periodMode === "all" || isAllTime) return "ทั้งหมด";
+    if (periodMode === "day") {
+      const today = getTodayRange();
+      if (fromDate === today.from) {
+        return `วันนี้ (${formatDisplayDate(fromDate)})`;
+      }
+      return formatDisplayDate(fromDate);
+    }
+    if (periodMode === "week") {
+      return `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`;
+    }
+    if (periodMode === "month") {
+      if (fromDate) {
+        const [y, m] = fromDate.split("-").map(Number);
+        if (y && m && m >= 1 && m <= 12) {
+          const isThisMonth = getThisMonthRange().from === fromDate;
+          return `${THAI_MONTH_NAMES[m - 1]} ${y}${isThisMonth ? " (เดือนนี้)" : ""}`;
+        }
+      }
+      return monthOptions.find((m) => m.value === currentMonthValue)?.label ?? `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`;
+    }
+    if (periodMode === "year") {
+      if (fromDate) {
+        const [y] = fromDate.split("-");
+        const isThisYear = getThisYearRange().from === fromDate;
+        return `ปี ${y}${isThisYear ? " (ปีนี้)" : ""}`;
+      }
+      return "ปีนี้";
+    }
+    return `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`;
+  }, [periodMode, isAllTime, fromDate, toDate, monthOptions, currentMonthValue]);
+
+  const stepperAriaLabels = useMemo(() => {
+    if (isStepperDisabled) {
+      return { prev: "ไม่สามารถเลื่อนช่วงเวลาได้เมื่อเลือกทั้งหมด", next: "ไม่สามารถเลื่อนช่วงเวลาได้เมื่อเลือกทั้งหมด" };
+    }
+    if (periodMode === "day") {
+      return { prev: "วันก่อนหน้า", next: "วันถัดไป" };
+    }
+    if (periodMode === "week") {
+      return { prev: "สัปดาห์ก่อนหน้า", next: "สัปดาห์ถัดไป" };
+    }
+    if (periodMode === "year") {
+      return { prev: "ปีก่อนหน้า", next: "ปีถัดไป" };
+    }
+    return { prev: "เดือนก่อนหน้า", next: "เดือนถัดไป" };
+  }, [isStepperDisabled, periodMode]);
 
   const buildTransactionsUrl = (params: {
     categoryId?: number | null;
@@ -335,17 +454,56 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
-            <BarChart3 className="size-6 text-[var(--pw-primary)]" />
-            รายงานและภาพรวม
-          </h1>
-          <p className="hidden sm:block text-sm text-[var(--pw-ink)]/65 mt-0.5">
-            สรุปรายรับ รายจ่าย ภาพรวมสลิป บัตรเครดิต และแนวโน้มจากรายการที่ยืนยันแล้ว
-          </p>
+      <header className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between w-full sm:w-auto">
+          <div>
+            <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
+              <BarChart3 className="size-5 sm:size-6 text-[var(--pw-primary)]" />
+              <span>รายงาน</span>
+            </h1>
+            <p className="hidden sm:block text-sm text-[var(--pw-ink)]/65 mt-0.5">
+              สรุปรายรับ รายจ่าย ภาพรวมสลิป บัตรเครดิต และแนวโน้มจากรายการที่ยืนยันแล้ว
+            </p>
+          </div>
+
+          {/* Mobile Action Buttons in Header */}
+          <div className="flex items-center gap-1.5 sm:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={cn(
+                "relative h-9 px-2.5 gap-1.5 text-xs font-semibold rounded-xl cursor-pointer shadow-2xs",
+                activeFilterCount > 0
+                  ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-bold"
+                  : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)]"
+              )}
+              onClick={() => setShowFilterSheet(true)}
+            >
+              <Filter className="size-3.5 text-[var(--pw-primary)]" />
+              <span>ตัวกรอง</span>
+              {activeFilterCount > 0 && (
+                <span className="flex size-4 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[9px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsExportOpen(true)}
+              disabled={!validRange}
+              className="h-9 px-2.5 gap-1 text-xs font-medium rounded-xl border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] cursor-pointer"
+            >
+              <FileDown className="size-3.5 text-[var(--pw-primary)]" />
+              <span>ส่งออก</span>
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Desktop Action Buttons */}
+        <div className="hidden sm:flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
@@ -378,26 +536,26 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             aria-label="ส่งออกข้อมูลรายงาน"
           >
             <FileDown className="size-4 text-[var(--pw-primary)]" />
-            <span className="hidden sm:inline">ส่งออกข้อมูลรายงาน</span>
-            <span className="sm:hidden">ส่งออก</span>
+            <span>ส่งออกข้อมูลรายงาน</span>
           </Button>
         </div>
       </header>
 
       {/* Unified Time-Control Bar (Quick Pills & Month Stepper) */}
-      <div className="space-y-2.5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+      <div className="space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           {/* Quick Period Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
             <button
               type="button"
               onClick={() => {
                 setFromDate("2000-01-01");
                 setToDate("2099-12-31");
                 setPeriod("yearly");
+                setPeriodMode("all");
               }}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 h-8 flex items-center",
                 activeQuickPeriod === "all"
                   ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
                   : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -412,9 +570,10 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 setFromDate(r.from);
                 setToDate(r.to);
                 setPeriod("weekly");
+                setPeriodMode("day");
               }}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 h-8 flex items-center",
                 activeQuickPeriod === "today"
                   ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
                   : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -429,9 +588,10 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 setFromDate(r.from);
                 setToDate(r.to);
                 setPeriod("weekly");
+                setPeriodMode("week");
               }}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 h-8 flex items-center",
                 activeQuickPeriod === "week"
                   ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
                   : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -446,9 +606,10 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 setFromDate(r.from);
                 setToDate(r.to);
                 setPeriod("monthly");
+                setPeriodMode("month");
               }}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 h-8 flex items-center",
                 activeQuickPeriod === "month"
                   ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
                   : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -463,9 +624,10 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 setFromDate(r.from);
                 setToDate(r.to);
                 setPeriod("yearly");
+                setPeriodMode("year");
               }}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 min-h-[36px]",
+                "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95 h-8 flex items-center",
                 activeQuickPeriod === "year"
                   ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
                   : "bg-[var(--pw-surface-indigo)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-onyx)] hover:text-[var(--pw-ink)]"
@@ -475,38 +637,30 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             </button>
           </div>
 
-          {/* Quick Month Stepper */}
-          <div className="inline-flex items-center self-start sm:self-auto rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 p-0.5 text-xs shadow-2xs backdrop-blur-xs">
+          {/* Quick Period Stepper (Supports Day, Week, Month, Year) */}
+          <div className="flex items-center justify-between sm:justify-start gap-1 rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 px-1 py-0.5 text-xs shadow-2xs backdrop-blur-xs">
             <button
               type="button"
-              onClick={handlePrevMonth}
-              className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] active:scale-90 transition-all cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
-              aria-label="เดือนก่อนหน้า"
-              title="เดือนก่อนหน้า"
+              onClick={handlePrevPeriod}
+              disabled={isStepperDisabled}
+              className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] disabled:opacity-25 disabled:pointer-events-none active:scale-90 transition-all cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center shrink-0"
+              aria-label={stepperAriaLabels.prev}
+              title={stepperAriaLabels.prev}
             >
               <ChevronLeft className="size-4" />
             </button>
 
-            <span className="px-2.5 font-semibold text-[var(--pw-ink)] text-xs select-none">
-              {activeQuickPeriod === "all"
-                ? "ทั้งหมด"
-                : activeQuickPeriod === "today"
-                ? "วันนี้"
-                : activeQuickPeriod === "week"
-                ? "สัปดาห์นี้"
-                : activeQuickPeriod === "year"
-                ? "ปีนี้"
-                : monthOptions.find((m) => m.value === currentMonthValue)?.label ??
-                  `${formatDisplayDate(fromDate)} - ${formatDisplayDate(toDate)}`}
+            <span className="px-2 font-semibold text-[var(--pw-ink)] text-xs text-center select-none truncate flex-1 sm:flex-initial">
+              {stepperLabel}
             </span>
 
             <button
               type="button"
-              onClick={handleNextMonth}
-              disabled={monthOptions.findIndex((m) => m.value === currentMonthValue) === 0}
-              className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] disabled:opacity-30 disabled:pointer-events-none active:scale-90 transition-all cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
-              aria-label="เดือนถัดไป"
-              title="เดือนถัดไป"
+              onClick={handleNextPeriod}
+              disabled={isStepperDisabled}
+              className="p-1 rounded-full text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)] disabled:opacity-25 disabled:pointer-events-none active:scale-90 transition-all cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center shrink-0"
+              aria-label={stepperAriaLabels.next}
+              title={stepperAriaLabels.next}
             >
               <ChevronRight className="size-4" />
             </button>
@@ -579,8 +733,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
         onOpenChange={setShowFilterSheet}
         title="ตัวกรองรายงาน"
       >
-        <div className="flex flex-col max-h-[75vh]">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="space-y-4 pt-1">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Month Picker as Primary with Progressive Disclosure for Custom Dates */}
           {!isCustomDateMode ? (
@@ -597,6 +750,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                   onValueChange={(val) => {
                     if (val === "custom") {
                       setIsCustomDateMode(true);
+                      setPeriodMode("custom");
                     } else {
                       handleMonthSelect(val);
                     }
@@ -621,7 +775,10 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
               <div className="flex justify-end pt-0.5">
                 <button
                   type="button"
-                  onClick={() => setIsCustomDateMode(true)}
+                  onClick={() => {
+                    setIsCustomDateMode(true);
+                    setPeriodMode("custom");
+                  }}
                   className="text-xs text-[var(--pw-primary)] hover:underline flex items-center gap-1 cursor-pointer font-medium py-0.5"
                 >
                   <Calendar className="size-3.5" />
@@ -644,6 +801,7 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                     setFromDate(thisMonth.from);
                     setToDate(thisMonth.to);
                     setPeriod("monthly");
+                    setPeriodMode("month");
                   }}
                   className="text-xs text-[var(--pw-primary)] hover:underline cursor-pointer font-medium"
                 >
@@ -652,10 +810,24 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField label="ตั้งแต่วันที่" htmlFor="report-from-date">
-                  <DateInput id="report-from-date" value={fromDate} onChange={setFromDate} />
+                  <DateInput
+                    id="report-from-date"
+                    value={fromDate}
+                    onChange={(val) => {
+                      setFromDate(val);
+                      setPeriodMode("custom");
+                    }}
+                  />
                 </FormField>
                 <FormField label="ถึงวันที่" htmlFor="report-to-date">
-                  <DateInput id="report-to-date" value={toDate} onChange={setToDate} />
+                  <DateInput
+                    id="report-to-date"
+                    value={toDate}
+                    onChange={(val) => {
+                      setToDate(val);
+                      setPeriodMode("custom");
+                    }}
+                  />
                 </FormField>
               </div>
             </div>
@@ -748,7 +920,6 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
               </Button>
             </div>
           </BottomSheetFooter>
-        </div>
       </BottomSheet>
 
       {summaryQuery.isLoading || trendQuery.isLoading ? (
@@ -893,186 +1064,223 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
             </Card>
           </div>
 
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <Card className="p-4 sm:p-5">
-              <h2 className="mb-4 text-lg font-bold">แนวโน้มรายรับและรายจ่าย · {periodLabels[period]}</h2>
-              {trendPoints.length ? (
-                <div className="h-60 sm:h-72 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={trendPoints}
-                      margin={
-                        isNarrowMobile
-                          ? { top: 8, right: 4, left: -24, bottom: 10 }
-                          : { top: 8, right: 8, left: -16, bottom: 12 }
-                      }
-                    >
-                      <CartesianGrid stroke="var(--pw-hairline)" strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="label"
-                        interval="preserveStartEnd"
-                        angle={isNarrowMobile ? 0 : -15}
-                        textAnchor={isNarrowMobile ? "middle" : "end"}
-                        height={isNarrowMobile ? 30 : 42}
-                        tick={{ fill: "var(--pw-ink)", fontSize: 10 }}
-                      />
-                      <YAxis
-                        width={36}
-                        tick={{ fill: "var(--pw-ink)", fontSize: isNarrowMobile ? 10 : 11 }}
-                        tickFormatter={(v) => {
-                          if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
-                          if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
-                          return String(v);
-                        }}
-                      />
-                      <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
-                      <Legend
-                        layout="horizontal"
-                        verticalAlign="bottom"
-                        wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                      />
-                      <Bar
-                        dataKey="income"
-                        name="รายรับ"
-                        maxBarSize={32}
-                        fill="var(--pw-green)"
-                        radius={[4, 4, 0, 0]}
-                        isAnimationActive={true}
-                        animationDuration={850}
-                        animationEasing="ease-out"
-                      />
-                      <Bar
-                        dataKey="expense"
-                        name="รายจ่าย"
-                        maxBarSize={32}
-                        fill="var(--pw-expense)"
-                        radius={[4, 4, 0, 0]}
-                        isAnimationActive={true}
-                        animationDuration={850}
-                        animationEasing="ease-out"
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <p className="py-12 text-center text-sm text-[var(--pw-ink)]/60">ไม่มีข้อมูลแนวโน้มในช่วงนี้</p>
+          {/* Mobile Segmented View Switcher (< sm) */}
+          <div className="sm:hidden flex rounded-xl bg-[var(--pw-surface-indigo)]/50 p-1 border border-[var(--pw-hairline)] shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setMobileTab("categories")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all cursor-pointer",
+                mobileTab === "categories"
+                  ? "bg-[var(--pw-primary)] text-white shadow-xs"
+                  : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
               )}
-            </Card>
+            >
+              <ReceiptText className="size-3.5" />
+              <span>หมวดหมู่</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("overview")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all cursor-pointer",
+                mobileTab === "overview"
+                  ? "bg-[var(--pw-primary)] text-white shadow-xs"
+                  : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
+              )}
+            >
+              <BarChart3 className="size-3.5" />
+              <span>ภาพรวม</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("channels")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all cursor-pointer",
+                mobileTab === "channels"
+                  ? "bg-[var(--pw-primary)] text-white shadow-xs"
+                  : "text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
+              )}
+            >
+              <CreditCard className="size-3.5" />
+              <span>ช่องทางชำระ</span>
+            </button>
+          </div>
 
-            <Card className="p-4 sm:p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold">รายจ่ายตามหมวดหมู่</h2>
-                  <p className="text-xs text-[var(--pw-ink)]/60">สัดส่วนค่าใช้จ่ายและการกระจายตัวของเงิน</p>
+          {/* Mobile Tab Content (< sm) */}
+          <div className="sm:hidden space-y-4">
+            {mobileTab === "categories" && (
+              <Card className="p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-bold">รายจ่ายตามหมวดหมู่</h2>
+                    <p className="text-xs text-[var(--pw-ink)]/60">สัดส่วนค่าใช้จ่ายและการกระจายตัวของเงิน</p>
+                  </div>
+                  <span className="rounded-full bg-[var(--pw-surface-indigo)] px-2.5 py-0.5 text-xs font-semibold text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)]">
+                    {activeCurrency.categoryBreakdown.length} หมวด
+                  </span>
                 </div>
-                <span className="rounded-full bg-[var(--pw-surface-indigo)] px-2.5 py-0.5 text-xs font-semibold text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)]">
-                  {activeCurrency.categoryBreakdown.length} หมวดหมู่
-                </span>
-              </div>
-              {activeCurrency.categoryBreakdown.length ? (
-                <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
-                  <div className="h-64 sm:h-72 min-w-0 flex items-center justify-center">
+
+                {activeCurrency.categoryBreakdown.length ? (
+                  <div className="space-y-4">
+                    {/* Compact Donut on Mobile */}
+                    <div className="h-56 min-w-0 flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={activeCurrency.categoryBreakdown}
+                            dataKey="amount"
+                            nameKey="categoryName"
+                            innerRadius={46}
+                            outerRadius={76}
+                            paddingAngle={2}
+                            isAnimationActive={true}
+                            animationDuration={850}
+                            animationEasing="ease-out"
+                          >
+                            {activeCurrency.categoryBreakdown.map((item, index) => (
+                              <Cell key={`${item.categoryId ?? "none"}-${item.categoryName}`} fill={colors[index % colors.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Touch-Friendly Category List: No nested scroll trap! */}
+                    <div className="space-y-2">
+                      {(showAllMobileCategories
+                        ? activeCurrency.categoryBreakdown
+                        : activeCurrency.categoryBreakdown.slice(0, 5)
+                      ).map((item, index) => {
+                        const color = colors[index % colors.length];
+                        return (
+                          <div
+                            key={`${item.categoryId ?? "none"}-${item.categoryName}`}
+                            className="group relative rounded-xl border border-[var(--pw-hairline)]/70 bg-[var(--pw-surface-raised)]/40 p-3 transition-all hover:border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-raised)]/70"
+                          >
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <span
+                                  aria-hidden="true"
+                                  className="size-3 shrink-0 rounded-full"
+                                  style={{ backgroundColor: color }}
+                                />
+                                <Link
+                                  href={buildTransactionsUrl({ categoryId: item.categoryId, type: "expense" })}
+                                  className="truncate font-semibold text-[var(--pw-ink)] hover:text-[var(--pw-primary)] flex items-center gap-1 active:text-[var(--pw-primary)] py-0.5 flex-1 min-w-0"
+                                >
+                                  <span className="truncate">{item.categoryName}</span>
+                                  <ChevronRight className="size-3 text-[var(--pw-ink)]/40 shrink-0" />
+                                </Link>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="font-bold text-[var(--pw-ink)] block">
+                                  {formatCurrency(item.amount, activeCurrency.currencyCode)}
+                                </span>
+                                <span className="text-[10px] font-medium text-[var(--pw-ink)]/60">
+                                  {item.percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--pw-surface-sunken)]">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%`, backgroundColor: color }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Expand / Collapse toggle for > 5 categories */}
+                      {activeCurrency.categoryBreakdown.length > 5 && (
+                        <div className="pt-1 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setShowAllMobileCategories((prev) => !prev)}
+                            className="text-xs font-semibold text-[var(--pw-primary)] hover:underline flex items-center gap-1 py-1.5 px-3 rounded-full bg-[var(--pw-primary)]/10 cursor-pointer active:scale-95 transition-all"
+                          >
+                            <span>
+                              {showAllMobileCategories
+                                ? "ย่อเหลือ 5 หมวดหมู่แรก"
+                                : `ดูทั้งหมดอีก ${activeCurrency.categoryBreakdown.length - 5} หมวดหมู่`}
+                            </span>
+                            <ChevronDown className={cn("size-3.5 transition-transform", showAllMobileCategories && "rotate-180")} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="py-12 text-center text-sm text-[var(--pw-ink)]/60">ไม่มีรายจ่ายแยกตามหมวดหมู่</p>
+                )}
+              </Card>
+            )}
+
+            {mobileTab === "overview" && (
+              <Card className="p-4">
+                <h2 className="mb-3 text-base font-bold">แนวโน้มรายรับและรายจ่าย · {periodLabels[period]}</h2>
+                {trendPoints.length ? (
+                  <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={activeCurrency.categoryBreakdown}
-                          dataKey="amount"
-                          nameKey="categoryName"
-                          innerRadius={isNarrowMobile ? 44 : 52}
-                          outerRadius={isNarrowMobile ? 80 : 88}
-                          paddingAngle={2}
+                      <BarChart
+                        data={trendPoints}
+                        margin={{ top: 8, right: 4, left: -24, bottom: 10 }}
+                      >
+                        <CartesianGrid stroke="var(--pw-hairline)" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="label"
+                          interval="preserveStartEnd"
+                          height={30}
+                          tick={{ fill: "var(--pw-ink)", fontSize: 10 }}
+                        />
+                        <YAxis
+                          width={36}
+                          tick={{ fill: "var(--pw-ink)", fontSize: 10 }}
+                          tickFormatter={(v) => {
+                            if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+                            if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
+                            return String(v);
+                          }}
+                        />
+                        <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
+                        <Legend
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                        />
+                        <Bar
+                          dataKey="income"
+                          name="รายรับ"
+                          maxBarSize={28}
+                          fill="var(--pw-green)"
+                          radius={[4, 4, 0, 0]}
                           isAnimationActive={true}
                           animationDuration={850}
                           animationEasing="ease-out"
-                        >
-                          {activeCurrency.categoryBreakdown.map((item, index) => (
-                            <Cell key={`${item.categoryId ?? "none"}-${item.categoryName}`} fill={colors[index % colors.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
-                        {!isNarrowMobile && (
-                          <Legend
-                            layout="horizontal"
-                            verticalAlign="bottom"
-                            wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-                          />
-                        )}
-                      </PieChart>
+                        />
+                        <Bar
+                          dataKey="expense"
+                          name="รายจ่าย"
+                          maxBarSize={28}
+                          fill="var(--pw-expense)"
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true}
+                          animationDuration={850}
+                          animationEasing="ease-out"
+                        />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                    {activeCurrency.categoryBreakdown.map((item, index) => {
-                      const color = colors[index % colors.length];
-                      return (
-                        <div
-                          key={`${item.categoryId ?? "none"}-${item.categoryName}`}
-                          className="group relative rounded-xl border border-[var(--pw-hairline)]/70 bg-[var(--pw-surface-raised)]/40 p-2.5 transition-all hover:border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-raised)]/70"
-                        >
-                          <div className="flex items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span
-                                aria-hidden="true"
-                                className="size-2.5 shrink-0 rounded-full"
-                                style={{ backgroundColor: color }}
-                              />
-                              <Link
-                                href={buildTransactionsUrl({ categoryId: item.categoryId, type: "expense" })}
-                                className="truncate font-semibold text-[var(--pw-ink)] hover:text-[var(--pw-primary)] hover:underline flex items-center gap-1"
-                              >
-                                <span>{item.categoryName}</span>
-                                <ChevronRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </Link>
-                              {item.transactionCount !== undefined && item.transactionCount > 0 && (
-                                <span className="text-[10px] text-[var(--pw-ink)]/50 shrink-0">
-                                  ({item.transactionCount} รายการ)
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className="font-bold text-[var(--pw-ink)] block">
-                                {formatCurrency(item.amount, activeCurrency.currencyCode)}
-                              </span>
-                              <span className="text-[10px] font-medium text-[var(--pw-ink)]/60">
-                                {item.percentage.toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                          {/* Visual Progress Bar */}
-                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--pw-surface-sunken)]">
-                            <div
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%`, backgroundColor: color }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <p className="py-12 text-center text-sm text-[var(--pw-ink)]/60">ไม่มีรายจ่ายแยกตามหมวดหมู่</p>
-              )}
-            </Card>
-          </div>
+                ) : (
+                  <p className="py-12 text-center text-sm text-[var(--pw-ink)]/60">ไม่มีข้อมูลแนวโน้มในช่วงนี้</p>
+                )}
+              </Card>
+            )}
 
-          {/* Optional Deep Breakdown (ซ่อนไว้ให้หน้าจอสะอาด แต่กางดูได้เมื่อต้องการ) */}
-          <div className="pt-2">
-            <div className="flex justify-center">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDetailedBreakdown(!showDetailedBreakdown)}
-                className="gap-2 text-xs font-semibold text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-raised)] rounded-full px-4 py-2 cursor-pointer border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 transition-all"
-              >
-                <ChevronDown className={cn("size-3.5 transition-transform duration-300", showDetailedBreakdown && "rotate-180")} />
-                <span>{showDetailedBreakdown ? "ซ่อนรายละเอียดช่องทางชำระ" : "ดูรายละเอียดเชิงลึก (ตามบัญชีและช่องทางจ่าย)"}</span>
-              </Button>
-            </div>
-
-            {showDetailedBreakdown && (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3 mt-4">
+            {mobileTab === "channels" && (
+              <div className="space-y-4">
                 <BreakdownCard
                   title="ตามแหล่งที่มา"
                   icon={<Layers className="size-5 text-[var(--pw-primary)]" />}
@@ -1118,6 +1326,230 @@ export function ReportsView({ initialFromDate, initialToDate }: ReportsViewProps
                 />
               </div>
             )}
+          </div>
+
+          {/* Desktop Charts & Deep Breakdown View (>= sm) */}
+          <div className="hidden sm:block space-y-6">
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <Card className="p-4 sm:p-5">
+                <h2 className="mb-4 text-lg font-bold">แนวโน้มรายรับและรายจ่าย · {periodLabels[period]}</h2>
+                {trendPoints.length ? (
+                  <div className="h-60 sm:h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={trendPoints}
+                        margin={{ top: 8, right: 8, left: -16, bottom: 12 }}
+                      >
+                        <CartesianGrid stroke="var(--pw-hairline)" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="label"
+                          interval="preserveStartEnd"
+                          angle={-15}
+                          textAnchor="end"
+                          height={42}
+                          tick={{ fill: "var(--pw-ink)", fontSize: 10 }}
+                        />
+                        <YAxis
+                          width={36}
+                          tick={{ fill: "var(--pw-ink)", fontSize: 11 }}
+                          tickFormatter={(v) => {
+                            if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+                            if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
+                            return String(v);
+                          }}
+                        />
+                        <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
+                        <Legend
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                        />
+                        <Bar
+                          dataKey="income"
+                          name="รายรับ"
+                          maxBarSize={32}
+                          fill="var(--pw-green)"
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true}
+                          animationDuration={850}
+                          animationEasing="ease-out"
+                        />
+                        <Bar
+                          dataKey="expense"
+                          name="รายจ่าย"
+                          maxBarSize={32}
+                          fill="var(--pw-expense)"
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true}
+                          animationDuration={850}
+                          animationEasing="ease-out"
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p className="py-12 text-center text-sm text-[var(--pw-ink)]/60">ไม่มีข้อมูลแนวโน้มในช่วงนี้</p>
+                )}
+              </Card>
+
+              <Card className="p-4 sm:p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">รายจ่ายตามหมวดหมู่</h2>
+                    <p className="text-xs text-[var(--pw-ink)]/60">สัดส่วนค่าใช้จ่ายและการกระจายตัวของเงิน</p>
+                  </div>
+                  <span className="rounded-full bg-[var(--pw-surface-indigo)] px-2.5 py-0.5 text-xs font-semibold text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)]">
+                    {activeCurrency.categoryBreakdown.length} หมวดหมู่
+                  </span>
+                </div>
+                {activeCurrency.categoryBreakdown.length ? (
+                  <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
+                    <div className="h-64 sm:h-72 min-w-0 flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={activeCurrency.categoryBreakdown}
+                            dataKey="amount"
+                            nameKey="categoryName"
+                            innerRadius={52}
+                            outerRadius={88}
+                            paddingAngle={2}
+                            isAnimationActive={true}
+                            animationDuration={850}
+                            animationEasing="ease-out"
+                          >
+                            {activeCurrency.categoryBreakdown.map((item, index) => (
+                              <Cell key={`${item.categoryId ?? "none"}-${item.categoryName}`} fill={colors[index % colors.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => formatCurrency(Number(value), activeCurrency.currencyCode)} />
+                          <Legend
+                            layout="horizontal"
+                            verticalAlign="bottom"
+                            wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                      {activeCurrency.categoryBreakdown.map((item, index) => {
+                        const color = colors[index % colors.length];
+                        return (
+                          <div
+                            key={`${item.categoryId ?? "none"}-${item.categoryName}`}
+                            className="group relative rounded-xl border border-[var(--pw-hairline)]/70 bg-[var(--pw-surface-raised)]/40 p-2.5 transition-all hover:border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-raised)]/70"
+                          >
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span
+                                  aria-hidden="true"
+                                  className="size-2.5 shrink-0 rounded-full"
+                                  style={{ backgroundColor: color }}
+                                />
+                                <Link
+                                  href={buildTransactionsUrl({ categoryId: item.categoryId, type: "expense" })}
+                                  className="truncate font-semibold text-[var(--pw-ink)] hover:text-[var(--pw-primary)] hover:underline flex items-center gap-1"
+                                >
+                                  <span>{item.categoryName}</span>
+                                  <ChevronRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </Link>
+                                {item.transactionCount !== undefined && item.transactionCount > 0 && (
+                                  <span className="text-[10px] text-[var(--pw-ink)]/50 shrink-0">
+                                    ({item.transactionCount} รายการ)
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="font-bold text-[var(--pw-ink)] block">
+                                  {formatCurrency(item.amount, activeCurrency.currencyCode)}
+                                </span>
+                                <span className="text-[10px] font-medium text-[var(--pw-ink)]/60">
+                                  {item.percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                            {/* Visual Progress Bar */}
+                            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--pw-surface-sunken)]">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%`, backgroundColor: color }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="py-12 text-center text-sm text-[var(--pw-ink)]/60">ไม่มีรายจ่ายแยกตามหมวดหมู่</p>
+                )}
+              </Card>
+            </div>
+
+            {/* Optional Deep Breakdown on Desktop */}
+            <div className="pt-2">
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDetailedBreakdown(!showDetailedBreakdown)}
+                  className="gap-2 text-xs font-semibold text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-raised)] rounded-full px-4 py-2 cursor-pointer border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 transition-all"
+                >
+                  <ChevronDown className={cn("size-3.5 transition-transform duration-300", showDetailedBreakdown && "rotate-180")} />
+                  <span>{showDetailedBreakdown ? "ซ่อนรายละเอียดช่องทางชำระ" : "ดูรายละเอียดเชิงลึก (ตามบัญชีและช่องทางจ่าย)"}</span>
+                </Button>
+              </div>
+
+              {showDetailedBreakdown && (
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-3 mt-4">
+                  <BreakdownCard
+                    title="ตามแหล่งที่มา"
+                    icon={<Layers className="size-5 text-[var(--pw-primary)]" />}
+                    items={activeCurrency.sourceBreakdown.map((item) => ({
+                      label: formatSourceTypeName(item.sourceType),
+                      amount: item.amount,
+                      percentage: item.percentage,
+                      count: item.transactionCount,
+                      href: buildTransactionsUrl({ sourceType: item.sourceType }),
+                    }))}
+                    currencyCode={activeCurrency.currencyCode}
+                    emptyMessage="ไม่มีข้อมูลแหล่งที่มา"
+                  />
+                  <BreakdownCard
+                    title="ตามบัญชีธนาคาร"
+                    icon={<Landmark className="size-5 text-[var(--pw-primary)]" />}
+                    items={activeCurrency.bankAccountBreakdown
+                      .filter((item) => item.bankAccountId != null)
+                      .map((item) => ({
+                        label: item.bankName ? `${item.accountName} · ${item.bankName}` : item.accountName,
+                        amount: item.amount,
+                        percentage: item.percentage,
+                        count: item.transactionCount,
+                        href: buildTransactionsUrl({ bankAccountId: item.bankAccountId }),
+                      }))}
+                    currencyCode={activeCurrency.currencyCode}
+                    emptyMessage="ไม่มีรายการที่จ่ายผ่านบัญชีธนาคาร"
+                  />
+                  <BreakdownCard
+                    title="ตามบัตรเครดิต"
+                    icon={<CreditCard className="size-5 text-[var(--pw-magenta)]" />}
+                    items={activeCurrency.creditCardBreakdown
+                      .filter((item) => item.creditCardId != null || (item.cardName && item.cardName !== "ไม่ระบุบัตร"))
+                      .map((item) => ({
+                        label: item.bankName ? `${item.cardName} · ${item.bankName}` : item.cardName,
+                        amount: item.amount,
+                        percentage: item.percentage,
+                        count: item.transactionCount,
+                        href: item.creditCardId != null ? buildTransactionsUrl({ creditCardId: item.creditCardId }) : undefined,
+                      }))}
+                    currencyCode={activeCurrency.currencyCode}
+                    emptyMessage="ไม่มีรายการใช้จ่ายผ่านบัตรเครดิต"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}

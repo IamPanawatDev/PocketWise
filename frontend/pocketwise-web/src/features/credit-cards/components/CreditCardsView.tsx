@@ -134,8 +134,7 @@ export function CreditCardsView() {
         title={editing ? "แก้ไขบัตรเครดิต" : "เพิ่มบัตรเครดิตใหม่"}
         description="ลงทะเบียนบัตรเครดิตเพื่อใช้ติดตามยอดใช้จ่ายและรอบบิล"
       >
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75vh]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="ชื่อบัตร" htmlFor="credit-card-name" error={errors.cardName?.message}>
                 <Input id="credit-card-name" placeholder="เช่น KBank Passion, SCB Ultra Platinum" {...register("cardName")} />
@@ -195,7 +194,6 @@ export function CreditCardsView() {
               </Button>
             </BottomSheetFooter>
           </form>
-        </div>
       </BottomSheet>
 
       {/* Cards List */}

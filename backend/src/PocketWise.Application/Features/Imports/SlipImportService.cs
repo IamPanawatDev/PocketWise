@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
+using PocketWise.Application.Common;
 using PocketWise.Application.DTOs.Transactions;
 using PocketWise.Application.Features.Imports.DTOs;
 using PocketWise.Application.Features.Notifications.DTOs;
@@ -33,23 +34,6 @@ public class SlipImportService : ISlipImportService
     private readonly ICategoryRuleService? _categoryRuleService;
     private readonly IMerchantRepository? _merchantRepository;
     private readonly IBankAccountRepository? _bankAccountRepository;
-
-    private static readonly Dictionary<string, (string BankName, string DefaultAccountName)> ThaiBankDirectory = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["KBANK"] = ("ธนาคารกสิกรไทย", "บัญชีธนาคารกสิกรไทย"),
-        ["SCB"] = ("ธนาคารไทยพาณิชย์", "บัญชีธนาคารไทยพาณิชย์"),
-        ["BBL"] = ("ธนาคารกรุงเทพ", "บัญชีธนาคารกรุงเทพ"),
-        ["KTB"] = ("ธนาคารกรุงไทย", "บัญชีธนาคารกรุงไทย"),
-        ["TTB"] = ("ธนาคารทหารไทยธนชาต", "บัญชีธนาคารทหารไทยธนชาต"),
-        ["BAY"] = ("ธนาคารกรุงศรีอยุธยา", "บัญชีธนาคารกรุงศรีอยุธยา"),
-        ["GSB"] = ("ธนาคารออมสิน", "บัญชีธนาคารออมสิน"),
-        ["UOB"] = ("ธนาคารยูโอบี", "บัญชีธนาคารยูโอบี"),
-        ["CIMB"] = ("ธนาคารซีไอเอ็มบีไทย", "บัญชีธนาคารซีไอเอ็มบีไทย"),
-        ["BAAC"] = ("ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร", "บัญชี ธ.ก.ส."),
-        ["KKP"] = ("ธนาคารเกียรตินาคินภัทร", "บัญชีธนาคารเกียรตินาคินภัทร"),
-        ["TISCO"] = ("ธนาคารทิสโก้", "บัญชีธนาคารทิสโก้"),
-        ["LH"] = ("ธนาคารแลนด์ แอนด์ เฮ้าส์", "บัญชีธนาคารแลนด์ แอนด์ เฮ้าส์")
-    };
 
     public SlipImportService(
         IImportRepository repository,
@@ -631,21 +615,18 @@ public class SlipImportService : ISlipImportService
             return (null, null, false);
         }
 
-        var code = rawBankCode.Trim();
-        var (bankName, defaultAccountName) = ThaiBankDirectory.TryGetValue(code, out var info)
-            ? info
-            : ($"ธนาคาร {code.ToUpperInvariant()}", $"บัญชีธนาคาร {code.ToUpperInvariant()}");
+        var canonicalCode = ThaiBankHelper.NormalizeBankCode(rawBankCode) ?? rawBankCode.Trim().ToUpperInvariant();
+        var bankDef = ThaiBankHelper.GetBank(canonicalCode);
+        var bankName = bankDef?.OfficialName ?? $"ธนาคาร {canonicalCode}";
+        var defaultAccountName = bankDef?.DefaultAccountName ?? $"บัญชีธนาคาร {canonicalCode}";
 
         var accounts = await _bankAccountRepository.GetAllAsync(userId, cancellationToken);
-        var matched = accounts.FirstOrDefault(a => a.IsActive && !a.IsDeleted &&
-            (string.Equals(a.BankCode, code, StringComparison.OrdinalIgnoreCase) ||
-             (!string.IsNullOrEmpty(bankName) && a.AccountName.Contains(bankName, StringComparison.OrdinalIgnoreCase)) ||
-             (!string.IsNullOrEmpty(a.BankName) && (a.BankName.Contains(bankName, StringComparison.OrdinalIgnoreCase) || bankName.Contains(a.BankName, StringComparison.OrdinalIgnoreCase)))));
+        var matched = ThaiBankHelper.FindMatchingAccount(accounts, rawBankCode);
 
         if (matched != null)
         {
             _logger?.LogInformation("[SlipImportService] Matched existing bank account: AccountId={AccountId}, AccountName='{AccountName}' for BankCode='{BankCode}'",
-                matched.BankAccountId, matched.AccountName, code);
+                matched.BankAccountId, matched.AccountName, canonicalCode);
             return (matched.BankAccountId, matched.AccountName, false);
         }
 
@@ -655,7 +636,7 @@ public class SlipImportService : ISlipImportService
             UserId = userId,
             AccountName = defaultAccountName,
             BankName = bankName,
-            BankCode = code.ToUpperInvariant(),
+            BankCode = canonicalCode,
             AccountType = AccountType.Bank,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
@@ -680,16 +661,8 @@ public class SlipImportService : ISlipImportService
             return (null, null);
         }
 
-        var code = rawBankCode.Trim();
-        var (bankName, _) = ThaiBankDirectory.TryGetValue(code, out var info)
-            ? info
-            : ($"ธนาคาร {code.ToUpperInvariant()}", $"บัญชีธนาคาร {code.ToUpperInvariant()}");
-
         var accounts = await _bankAccountRepository.GetAllAsync(userId, cancellationToken);
-        var matched = accounts.FirstOrDefault(a => a.IsActive && !a.IsDeleted &&
-            (string.Equals(a.BankCode, code, StringComparison.OrdinalIgnoreCase) ||
-             (!string.IsNullOrEmpty(bankName) && a.AccountName.Contains(bankName, StringComparison.OrdinalIgnoreCase)) ||
-             (!string.IsNullOrEmpty(a.BankName) && (a.BankName.Contains(bankName, StringComparison.OrdinalIgnoreCase) || bankName.Contains(a.BankName, StringComparison.OrdinalIgnoreCase)))));
+        var matched = ThaiBankHelper.FindMatchingAccount(accounts, rawBankCode);
 
         if (matched != null)
         {

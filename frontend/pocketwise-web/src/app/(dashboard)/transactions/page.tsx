@@ -6,7 +6,7 @@ import { TransactionPageSkeleton } from "@/components/shared/Skeletons";
 import { getCurrentThailandMonthFilter } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "รายการธุรกรรม รายรับ-รายจ่าย (Transactions)",
+  title: "รายการรายรับ-รายจ่าย (Transactions)",
   description: "จัดการและติดตามรายการรายรับ รายจ่าย ทั้งหมดของคุณอย่างละเอียด พร้อมตัวกรองและหมวดหมู่",
 };
 

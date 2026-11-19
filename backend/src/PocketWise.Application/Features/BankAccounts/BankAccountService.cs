@@ -1,4 +1,5 @@
 using FluentValidation;
+using PocketWise.Application.Common;
 using PocketWise.Application.DTOs.BankAccounts;
 using PocketWise.Application.Interfaces;
 using PocketWise.Domain.Entities;
@@ -49,10 +50,14 @@ public class BankAccountService : IBankAccountService
     {
         await _createValidator.ValidateAndThrowAsync(request, cancellationToken);
 
+        var resolvedBankCode = ThaiBankHelper.NormalizeBankCode(request.BankCode)
+            ?? ThaiBankHelper.NormalizeBankCode(request.BankName)
+            ?? request.BankCode?.Trim().ToUpperInvariant();
+
         var entity = new BankAccount
         {
             UserId = userId,
-            BankCode = request.BankCode,
+            BankCode = resolvedBankCode,
             BankName = request.BankName,
             AccountName = request.AccountName,
             AccountNumberMasked = request.AccountNumberMasked,
@@ -105,7 +110,11 @@ public class BankAccountService : IBankAccountService
             entity.IsActive
         };
 
-        entity.BankCode = request.BankCode;
+        var resolvedBankCode = ThaiBankHelper.NormalizeBankCode(request.BankCode)
+            ?? ThaiBankHelper.NormalizeBankCode(request.BankName)
+            ?? request.BankCode?.Trim().ToUpperInvariant();
+
+        entity.BankCode = resolvedBankCode;
         entity.BankName = request.BankName;
         entity.AccountName = request.AccountName;
         entity.AccountNumberMasked = request.AccountNumberMasked;
