@@ -30,17 +30,26 @@ export async function callAuthEndpoint(
   path: string,
   body: unknown,
   originUrl?: string,
+  clientInfo?: { userAgent?: string; ip?: string },
 ): Promise<AuthEndpointResult> {
   const origin =
     originUrl ||
     (isProd ? "https://pocket-wise.vercel.app" : "http://localhost:3000");
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Origin: origin,
+  };
+  if (clientInfo?.userAgent) {
+    headers["User-Agent"] = clientInfo.userAgent;
+  }
+  if (clientInfo?.ip) {
+    headers["X-Forwarded-For"] = clientInfo.ip;
+  }
+
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Origin: origin,
-    },
+    headers,
     body: JSON.stringify(body),
     cache: "no-store",
   });

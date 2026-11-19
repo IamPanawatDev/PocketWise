@@ -31,6 +31,7 @@ import {
   ArrowRightLeft,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   CreditCard,
   FileUp,
   FolderTree,
@@ -191,6 +192,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data: unreadData } = useUnreadNotificationCount();
   const unreadCount = unreadData?.unreadCount ?? 0;
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isAdminHubOpen, setIsAdminHubOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<(Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> }) | null>(null);
 
@@ -379,6 +381,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Fragment key={item.href}>{link}</Fragment>
     );
   };
+
+  const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/audit-logs");
 
   return (
     <div className="min-h-dvh">
@@ -888,124 +892,313 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Floating Bottom Bar */}
-      <nav
-        aria-label="เมนูด่วนบนมือถือ"
-        className="pw-mobile-bottom-nav fixed bottom-0 inset-x-0 z-40 flex h-[calc(4rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl px-2 pb-[env(safe-area-inset-bottom,0px)] md:hidden shadow-lg shadow-black/30 translate-z-0"
-      >
-        <Link
-          href="/transactions"
-          onClick={() => triggerHaptic("light")}
-          className={cn(
-            "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
-            pathname.startsWith("/transactions")
-              ? "text-[var(--pw-primary)] font-semibold"
-              : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
-          )}
+      {isAdmin && isAdminRoute ? (
+        /* Admin-specific Mobile Bottom Navigation */
+        <nav
+          aria-label="เมนูด่วนผู้ดูแลระบบบนมือถือ"
+          className="pw-mobile-bottom-nav fixed bottom-0 inset-x-0 z-40 flex h-[calc(4rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl px-2 pb-[env(safe-area-inset-bottom,0px)] md:hidden shadow-lg shadow-black/30 translate-z-0"
         >
-          {pathname.startsWith("/transactions") && (
-            <motion.div
-              layoutId="mobileBottomIndicator"
-              className="absolute top-1 w-8 h-0.75 rounded-full bg-[var(--pw-primary)] shadow-[0_0_8px_var(--pw-primary)]"
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-          )}
-          <ReceiptText className="size-5 mt-1" />
-          <span className="text-[10px] mt-0.5">รายการ</span>
-        </Link>
-
-        <Link
-          href="/imports"
-          onClick={() => triggerHaptic("light")}
-          className={cn(
-            "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
-            pathname.startsWith("/imports")
-              ? "text-[var(--pw-primary)] font-semibold"
-              : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
-          )}
-          aria-label="สแกนสลิป"
-        >
-          {pathname.startsWith("/imports") && (
-            <motion.div
-              layoutId="mobileBottomIndicator"
-              className="absolute top-1 w-8 h-0.75 rounded-full bg-[var(--pw-primary)] shadow-[0_0_8px_var(--pw-primary)]"
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-          )}
-          <Sparkles className="size-5 mt-1 text-[var(--pw-primary)] animate-pulse" />
-          <span className="text-[10px] mt-0.5">สแกนสลิป</span>
-        </Link>
-
-        {/* Center Prominent Quick Add Button */}
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic("medium");
-            setIsQuickAddOpen(true);
-          }}
-          className="relative flex flex-col items-center justify-center flex-1 -top-3 active:scale-95 transition-transform cursor-pointer group"
-          aria-label="จดรายการด่วน"
-        >
-          <div
+          <Link
+            href="/admin/overview"
+            onClick={() => triggerHaptic("light")}
             className={cn(
-              "flex size-12 items-center justify-center rounded-full shadow-lg transition-all",
-              "bg-linear-to-tr from-[var(--pw-primary)] to-blue-500 text-white shadow-blue-500/35 hover:brightness-110 active:scale-90 group-hover:scale-105"
+              "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
+              pathname === "/admin/overview"
+                ? "text-amber-500 font-semibold"
+                : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
             )}
           >
-            <Plus className="size-6 stroke-[2.5]" />
-          </div>
-          <span className="text-[10px] mt-0.5 font-medium text-[var(--pw-ink)]/85">
-            จดด่วน
-          </span>
-        </button>
-
-        <Link
-          href="/reports"
-          onClick={() => triggerHaptic("light")}
-          className={cn(
-            "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
-            pathname.startsWith("/reports")
-              ? "text-[var(--pw-primary)] font-semibold"
-              : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
-          )}
-        >
-          {pathname.startsWith("/reports") && (
-            <motion.div
-              layoutId="mobileBottomIndicator"
-              className="absolute top-1 w-8 h-0.75 rounded-full bg-[var(--pw-primary)] shadow-[0_0_8px_var(--pw-primary)]"
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-          )}
-          <PieChart className="size-5 mt-1" />
-          <span className="text-[10px] mt-0.5">รายงาน</span>
-        </Link>
-
-        {/* More Menu Drawer Trigger */}
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic("light");
-            toggleNavigation();
-          }}
-          className={cn(
-            "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
-            isMobileOpen || (!["/transactions", "/budgets", "/imports", "/reports"].some(p => pathname.startsWith(p)))
-              ? "text-[var(--pw-primary)] font-semibold"
-              : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
-          )}
-          aria-label="เมนูทั้งหมด"
-        >
-          <div className="relative flex items-center justify-center">
-            <Menu className="size-5 mt-1" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex size-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pw-primary)] opacity-75" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-[var(--pw-primary)]" />
-              </span>
+            {pathname === "/admin/overview" && (
+              <motion.div
+                layoutId="adminMobileBottomIndicator"
+                className="absolute top-1 w-8 h-0.75 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
             )}
+            <LayoutDashboard className="size-5 mt-1" />
+            <span className="text-[10px] mt-0.5">ภาพรวม</span>
+          </Link>
+
+          <Link
+            href="/admin/users"
+            onClick={() => triggerHaptic("light")}
+            className={cn(
+              "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
+              pathname.startsWith("/admin/users")
+                ? "text-amber-500 font-semibold"
+                : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            {pathname.startsWith("/admin/users") && (
+              <motion.div
+                layoutId="adminMobileBottomIndicator"
+                className="absolute top-1 w-8 h-0.75 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <Users className="size-5 mt-1" />
+            <span className="text-[10px] mt-0.5">ผู้ใช้</span>
+          </Link>
+
+          {/* Center Prominent Admin Quick Hub FAB */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic("medium");
+              setIsAdminHubOpen(true);
+            }}
+            className="relative flex flex-col items-center justify-center flex-1 -top-3 active:scale-95 transition-transform cursor-pointer group"
+            aria-label="ศูนย์รวมเครื่องมือผู้ดูแลระบบ"
+          >
+            <div
+              className={cn(
+                "flex size-12 items-center justify-center rounded-full shadow-lg transition-all",
+                "bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 text-white shadow-amber-500/35 hover:brightness-110 active:scale-90 group-hover:scale-105 border-2 border-white/20"
+              )}
+            >
+              <ShieldCheck className="size-6 stroke-[2.2]" />
+            </div>
+            <span className="text-[10px] mt-0.5 font-bold text-amber-500">
+              แอดมินฮับ
+            </span>
+          </button>
+
+          <Link
+            href="/admin/security-events"
+            onClick={() => triggerHaptic("light")}
+            className={cn(
+              "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
+              pathname.startsWith("/admin/security-events")
+                ? "text-amber-500 font-semibold"
+                : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            {pathname.startsWith("/admin/security-events") && (
+              <motion.div
+                layoutId="adminMobileBottomIndicator"
+                className="absolute top-1 w-8 h-0.75 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <ShieldAlert className="size-5 mt-1" />
+            <span className="text-[10px] mt-0.5">ความปลอดภัย</span>
+          </Link>
+
+          <Link
+            href="/admin/settings"
+            onClick={() => triggerHaptic("light")}
+            className={cn(
+              "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
+              pathname.startsWith("/admin/settings")
+                ? "text-amber-500 font-semibold"
+                : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            {pathname.startsWith("/admin/settings") && (
+              <motion.div
+                layoutId="adminMobileBottomIndicator"
+                className="absolute top-1 w-8 h-0.75 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <Sliders className="size-5 mt-1" />
+            <span className="text-[10px] mt-0.5">ตั้งค่า</span>
+          </Link>
+        </nav>
+      ) : (
+        /* Regular User Financial Bottom Navigation */
+        <nav
+          aria-label="เมนูด่วนบนมือถือ"
+          className="pw-mobile-bottom-nav fixed bottom-0 inset-x-0 z-40 flex h-[calc(4rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl px-2 pb-[env(safe-area-inset-bottom,0px)] md:hidden shadow-lg shadow-black/30 translate-z-0"
+        >
+          <Link
+            href="/transactions"
+            onClick={() => triggerHaptic("light")}
+            className={cn(
+              "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
+              pathname.startsWith("/transactions")
+                ? "text-[var(--pw-primary)] font-semibold"
+                : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            {pathname.startsWith("/transactions") && (
+              <motion.div
+                layoutId="mobileBottomIndicator"
+                className="absolute top-1 w-8 h-0.75 rounded-full bg-[var(--pw-primary)] shadow-[0_0_8px_var(--pw-primary)]"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <ReceiptText className="size-5 mt-1" />
+            <span className="text-[10px] mt-0.5">รายการ</span>
+          </Link>
+
+          <Link
+            href="/imports"
+            onClick={() => triggerHaptic("light")}
+            className={cn(
+              "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
+              pathname.startsWith("/imports")
+                ? "text-[var(--pw-primary)] font-semibold"
+                : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
+            )}
+            aria-label="สแกนสลิป"
+          >
+            {pathname.startsWith("/imports") && (
+              <motion.div
+                layoutId="mobileBottomIndicator"
+                className="absolute top-1 w-8 h-0.75 rounded-full bg-[var(--pw-primary)] shadow-[0_0_8px_var(--pw-primary)]"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <Sparkles className="size-5 mt-1 text-[var(--pw-primary)] animate-pulse" />
+            <span className="text-[10px] mt-0.5">สแกนสลิป</span>
+          </Link>
+
+          {/* Center Prominent Quick Add Button */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic("medium");
+              setIsQuickAddOpen(true);
+            }}
+            className="relative flex flex-col items-center justify-center flex-1 -top-3 active:scale-95 transition-transform cursor-pointer group"
+            aria-label="จดรายการด่วน"
+          >
+            <div
+              className={cn(
+                "flex size-12 items-center justify-center rounded-full shadow-lg transition-all",
+                "bg-linear-to-tr from-[var(--pw-primary)] to-blue-500 text-white shadow-blue-500/35 hover:brightness-110 active:scale-90 group-hover:scale-105"
+              )}
+            >
+              <Plus className="size-6 stroke-[2.5]" />
+            </div>
+            <span className="text-[10px] mt-0.5 font-medium text-[var(--pw-ink)]/85">
+              จดด่วน
+            </span>
+          </button>
+
+          <Link
+            href="/reports"
+            onClick={() => triggerHaptic("light")}
+            className={cn(
+              "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
+              pathname.startsWith("/reports")
+                ? "text-[var(--pw-primary)] font-semibold"
+                : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            {pathname.startsWith("/reports") && (
+              <motion.div
+                layoutId="mobileBottomIndicator"
+                className="absolute top-1 w-8 h-0.75 rounded-full bg-[var(--pw-primary)] shadow-[0_0_8px_var(--pw-primary)]"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <PieChart className="size-5 mt-1" />
+            <span className="text-[10px] mt-0.5">รายงาน</span>
+          </Link>
+
+          {/* More Menu Drawer Trigger */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic("light");
+              toggleNavigation();
+            }}
+            className={cn(
+              "relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-transform active:scale-90",
+              isMobileOpen || (!["/transactions", "/budgets", "/imports", "/reports"].some(p => pathname.startsWith(p)))
+                ? "text-[var(--pw-primary)] font-semibold"
+                : "text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)]"
+            )}
+            aria-label="เมนูทั้งหมด"
+          >
+            <div className="relative flex items-center justify-center">
+              <Menu className="size-5 mt-1" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex size-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pw-primary)] opacity-75" />
+                  <span className="relative inline-flex size-2.5 rounded-full bg-[var(--pw-primary)]" />
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] mt-0.5">เมนู</span>
+          </button>
+        </nav>
+      )}
+
+      {/* Admin Quick Hub BottomSheet (Mobile Only) */}
+      <BottomSheet
+        open={isAdminHubOpen}
+        onOpenChange={setIsAdminHubOpen}
+        title={
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-500">
+              <ShieldCheck className="size-5" />
+            </div>
+            <span>ศูนย์รวมเครื่องมือผู้ดูแลระบบ</span>
           </div>
-          <span className="text-[10px] mt-0.5">เมนู</span>
-        </button>
-      </nav>
+        }
+        description="เลือกเครื่องมือจัดการระบบ หรือสลับไปยังหน้าการเงิน"
+      >
+        <div className="space-y-4 py-1">
+          <div className="grid grid-cols-2 gap-2">
+            {adminMobileShortcuts.map((item) => {
+              const Icon = item.icon;
+              const active = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setIsAdminHubOpen(false);
+                  }}
+                  className={cn(
+                    "group relative flex items-center gap-2.5 rounded-xl border p-2.5 transition-all duration-150 active:scale-95",
+                    active
+                      ? "border-amber-500 bg-amber-500/15 shadow-xs"
+                      : "border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 hover:bg-[var(--pw-surface-indigo)]/70"
+                  )}
+                >
+                  <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border", item.bg)}>
+                    <Icon className={cn("size-4", item.color)} />
+                  </div>
+                  <span className={cn("text-xs font-medium truncate", active ? "text-amber-500 font-bold" : "text-[var(--pw-ink)]/85")}>
+                    {item.label}
+                  </span>
+                  {active && (
+                    <span className="absolute right-2 top-2 size-1.5 rounded-full bg-amber-500" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Quick Return to Personal Finance */}
+          <div className="pt-2 border-t border-[var(--pw-hairline)]">
+            <Link
+              href="/transactions"
+              onClick={() => {
+                triggerHaptic("medium");
+                setIsAdminHubOpen(false);
+              }}
+              className="flex items-center justify-between p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 hover:bg-[var(--pw-surface-indigo)] active:scale-98 transition text-xs font-semibold text-[var(--pw-ink)]"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]">
+                  <ReceiptText className="size-4" />
+                </div>
+                <div>
+                  <p className="font-semibold text-xs text-[var(--pw-ink)]">กลับสู่หน้าบันทึกการเงิน</p>
+                  <p className="text-[10px] text-[var(--pw-ink)]/60">ดูรายการ รายรับ-รายจ่ายส่วนตัว</p>
+                </div>
+              </div>
+              <ChevronRight className="size-4 text-[var(--pw-ink)]/40" />
+            </Link>
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Global Quick Add Transaction BottomSheet */}
       <BottomSheet

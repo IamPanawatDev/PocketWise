@@ -17,6 +17,9 @@ import {
   AlertCircle,
   X,
   FileText,
+  ChevronRight,
+  Copy,
+  Check,
 
 } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
@@ -59,6 +62,8 @@ export default function AdminImportsPage() {
   const [selectedJobType, setSelectedJobType] = useState("");
   const [page, setPage] = useState(1);
   const [errorDetailsJob, setErrorDetailsJob] = useState<AdminImportJob | null>(null);
+  const [selectedJob, setSelectedJob] = useState<AdminImportJob | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
 
   const activeFilterCount = (selectedStatus ? 1 : 0) + (selectedJobType ? 1 : 0);
@@ -445,98 +450,71 @@ export default function AdminImportsPage() {
             </div>
           </div>
 
-          {/* Mobile Card List View (< md) */}
-          <AnimatedList className="space-y-3 md:hidden">
-            {importsData?.items.map((job) => (
-              <AnimatedListItem key={job.importJobId}>
-                <div className="rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] p-4 shadow-xs space-y-3">
-                  {/* Card Header */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-[var(--pw-ink)]">
-                        <FileText className="size-4 text-[var(--pw-primary)] shrink-0" />
-                        <span className="truncate">{job.fileName || "ไม่มีชื่อไฟล์"}</span>
+          {/* Mobile Card List View (< md) - Compact Native Rows with Progressive Disclosure */}
+          <AnimatedList className="space-y-2.5 md:hidden">
+            {importsData?.items.map((job) => {
+              const isFailed = job.status === "Failed";
+              const isProcessing = job.status === "Processing" || job.status === "Pending";
+
+              return (
+                <AnimatedListItem key={job.importJobId}>
+                  <div
+                    onClick={() => setSelectedJob(job)}
+                    className={cn(
+                      "group rounded-2xl border bg-[var(--pw-surface)] p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer",
+                      isFailed
+                        ? "border-rose-500/30 hover:border-rose-500/50 bg-rose-500/[0.02]"
+                        : "border-[var(--pw-hairline)] hover:border-[var(--pw-primary)]/40"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2.5">
+                      {/* Left: Icon & Title */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div
+                          className={cn(
+                            "size-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                            isFailed
+                              ? "bg-rose-500/15 text-rose-500 border border-rose-500/20"
+                              : isProcessing
+                              ? "bg-blue-500/15 text-blue-500 border border-blue-500/20"
+                              : "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20"
+                          )}
+                        >
+                          <FileText className="size-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-xs sm:text-sm text-[var(--pw-ink)] truncate">
+                              {job.fileName || "ไม่มีชื่อไฟล์"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--pw-ink)]/55 truncate">
+                            <span className="font-mono text-[10px]">#{job.importJobId}</span>
+                            <span>•</span>
+                            <span className="font-medium text-[var(--pw-primary)]">{job.jobType}</span>
+                            <span>•</span>
+                            <span className="truncate">{job.userDisplayName || "ระบบ"}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--pw-ink)]/60">
-                        <span className="font-mono">#{job.importJobId}</span>
-                        <span>•</span>
-                        <span className="font-medium text-[var(--pw-primary)]">{job.jobType}</span>
+
+                      {/* Right: Status badge & Count & Chevron */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right">
+                          <div className="flex justify-end">{renderStatusBadge(job.status)}</div>
+                          <span className="text-[10px] text-[var(--pw-ink)]/50 block mt-0.5">
+                            {job.successRecords}/{job.totalRecords} รายการ
+                          </span>
+                        </div>
+                        <div className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-hairline)]/20 text-[var(--pw-ink)]/40 group-hover:text-[var(--pw-primary)] group-hover:translate-x-0.5 transition-all">
+                          <ChevronRight className="size-4" />
+                        </div>
                       </div>
                     </div>
-                    <div>{renderStatusBadge(job.status)}</div>
                   </div>
-
-                  {/* User info & Timestamps */}
-                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-[var(--pw-hairline)]/50">
-                    <div>
-                      <span className="text-[10px] text-[var(--pw-ink)]/50 block">ผู้ส่งนำเข้า</span>
-                      <span className="font-medium text-[var(--pw-ink)] truncate block">{job.userDisplayName || "-"}</span>
-                      <span className="text-[10px] text-[var(--pw-ink)]/60 truncate block">{job.userEmail || "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[var(--pw-ink)]/50 block">เวลาสร้าง</span>
-                      <span className="text-[var(--pw-ink)]/80 text-[11px] block">{formatDisplayDateTime(job.createdAt)}</span>
-                      <span className="text-[10px] text-[var(--pw-ink)]/50 mt-1 block">ลองใหม่: <strong className={job.retryCount >= 5 ? "text-[var(--pw-expense)]" : "text-[var(--pw-ink)]/80"}>{job.retryCount}/5</strong></span>
-                    </div>
-                  </div>
-
-                  {/* Records statistics */}
-                  <div className="flex items-center justify-between text-xs bg-[var(--pw-canvas)]/60 p-2.5 rounded-xl border border-[var(--pw-hairline)]/60">
-                    <div>
-                      <span className="text-[10px] text-[var(--pw-ink)]/50 block">ทั้งหมด</span>
-                      <span className="font-bold text-[var(--pw-ink)]">{job.totalRecords}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[var(--pw-income)] block">สำเร็จ</span>
-                      <span className="font-bold text-[var(--pw-income)]">{job.successRecords}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[var(--pw-expense)] block">ล้มเหลว</span>
-                      <span className="font-bold text-[var(--pw-expense)]">{job.failedRecords}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 pt-1">
-                    {job.errorMessage && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setErrorDetailsJob(job)}
-                        className="flex-1 min-h-[44px] text-xs border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
-                      >
-                        ดู Error
-                      </Button>
-                    )}
-                    {job.status === "Failed" && (
-                      <Button
-                        type="button"
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleRetry(job)}
-                        disabled={job.retryCount >= 5 || retryMutation.isPending}
-                        className="flex-1 min-h-[44px] text-xs"
-                      >
-                        <RotateCcw className="size-4 mr-1.5" /> ลองใหม่
-                      </Button>
-                    )}
-                    {(job.status === "Pending" || job.status === "Processing" || job.status === "NeedsReview") && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleCancel(job)}
-                        disabled={cancelMutation.isPending}
-                        className="flex-1 min-h-[44px] text-xs"
-                      >
-                        <Ban className="size-4 mr-1.5" /> ยกเลิก
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </AnimatedListItem>
-            ))}
+                </AnimatedListItem>
+              );
+            })}
           </AnimatedList>
 
           {/* Pagination */}
@@ -569,6 +547,161 @@ export default function AdminImportsPage() {
           )}
         </>
       )}
+
+      {/* Comprehensive Import Job Inspection BottomSheet (Mobile Detail Sheet) */}
+      <BottomSheet
+        open={Boolean(selectedJob)}
+        onOpenChange={(open) => !open && setSelectedJob(null)}
+        title={
+          selectedJob ? (
+            <div className="flex items-center gap-2 truncate">
+              <span className="truncate">{selectedJob.fileName || "รายละเอียดงานนำเข้า"}</span>
+              {renderStatusBadge(selectedJob.status)}
+            </div>
+          ) : undefined
+        }
+        description={
+          selectedJob
+            ? `รหัสงาน: #${selectedJob.importJobId} • ประเภท: ${selectedJob.jobType} • ${formatDisplayDateTime(selectedJob.createdAt)}`
+            : undefined
+        }
+        className="sm:max-w-xl"
+      >
+        {selectedJob && (
+          <div className="space-y-4 py-2">
+            {/* User & Meta info */}
+            <div className="p-3.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/70 text-xs space-y-2">
+              <div className="flex justify-between items-center text-[11px] text-[var(--pw-ink)]/60">
+                <span>ผู้ส่งนำเข้า:</span>
+                <span className="font-semibold text-[var(--pw-ink)]">
+                  {selectedJob.userDisplayName || "-"} ({selectedJob.userEmail || "-"})
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-[var(--pw-ink)]/60">
+                <span>สร้างเมื่อ:</span>
+                <span className="text-[var(--pw-ink)]">{formatDisplayDateTime(selectedJob.createdAt)}</span>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-[var(--pw-ink)]/60">
+                <span>จำนวนครั้งที่ลองใหม่ (Retry):</span>
+                <span className={cn("font-bold", selectedJob.retryCount >= 5 ? "text-[var(--pw-expense)]" : "text-[var(--pw-ink)]")}>
+                  {selectedJob.retryCount} / 5 ครั้ง
+                </span>
+              </div>
+            </div>
+
+            {/* Records Progress Summary */}
+            <div className="p-3.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-semibold text-[var(--pw-ink)]">ความคืบหน้าการนำเข้า</span>
+                <span className="font-mono text-xs font-bold text-[var(--pw-primary)]">
+                  {selectedJob.totalRecords > 0
+                    ? `${Math.round((selectedJob.successRecords / selectedJob.totalRecords) * 100)}%`
+                    : "0%"}
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="w-full h-2 rounded-full bg-[var(--pw-hairline)] overflow-hidden flex">
+                <div
+                  className="bg-[var(--pw-income)] h-full transition-all"
+                  style={{
+                    width: `${selectedJob.totalRecords > 0 ? (selectedJob.successRecords / selectedJob.totalRecords) * 100 : 0}%`,
+                  }}
+                />
+                <div
+                  className="bg-[var(--pw-expense)] h-full transition-all"
+                  style={{
+                    width: `${selectedJob.totalRecords > 0 ? (selectedJob.failedRecords / selectedJob.totalRecords) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center pt-1 text-xs">
+                <div>
+                  <span className="text-[10px] text-[var(--pw-ink)]/50 block">ทั้งหมด</span>
+                  <span className="font-bold text-[var(--pw-ink)]">{selectedJob.totalRecords}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[var(--pw-income)] block">สำเร็จ</span>
+                  <span className="font-bold text-[var(--pw-income)]">{selectedJob.successRecords}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[var(--pw-expense)] block">ล้มเหลว</span>
+                  <span className="font-bold text-[var(--pw-expense)]">{selectedJob.failedRecords}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Message callout */}
+            {selectedJob.errorMessage && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[var(--pw-expense)] flex items-center gap-1.5">
+                    <AlertCircle className="size-4" />
+                    <span>ข้อความข้อผิดพลาด (Error Trace)</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!selectedJob.errorMessage) return;
+                      await navigator.clipboard.writeText(selectedJob.errorMessage);
+                      setIsCopied(true);
+                      toast.success("คัดลอกข้อความ Error แล้ว");
+                      setTimeout(() => setIsCopied(false), 2000);
+                    }}
+                    className="min-h-[36px] px-2.5 py-1 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 active:scale-95 transition-all flex items-center gap-1.5"
+                  >
+                    {isCopied ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
+                    <span>{isCopied ? "คัดลอกแล้ว" : "คัดลอก"}</span>
+                  </button>
+                </div>
+                <pre className="p-3 rounded-xl border border-[var(--pw-expense)]/30 bg-[var(--pw-expense)]/10 text-xs font-mono text-[var(--pw-ink)]/90 max-h-48 overflow-y-auto whitespace-pre-wrap break-all leading-relaxed overscroll-contain">
+                  {selectedJob.errorMessage}
+                </pre>
+              </div>
+            )}
+
+            {/* Actions in Thumb Zone */}
+            <BottomSheetFooter>
+              {selectedJob.status === "Failed" && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    handleRetry(selectedJob);
+                    setSelectedJob(null);
+                  }}
+                  disabled={selectedJob.retryCount >= 5 || retryMutation.isPending}
+                  className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/90 text-white font-bold shadow-md"
+                >
+                  <RotateCcw className="size-4 mr-1.5" />
+                  <span>ลองประมวลผลใหม่อีกครั้ง ({selectedJob.retryCount + 1}/5)</span>
+                </Button>
+              )}
+              {(selectedJob.status === "Pending" || selectedJob.status === "Processing" || selectedJob.status === "NeedsReview") && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => {
+                    handleCancel(selectedJob);
+                    setSelectedJob(null);
+                  }}
+                  disabled={cancelMutation.isPending}
+                  className="w-full min-h-[44px] font-bold"
+                >
+                  <Ban className="size-4 mr-1.5" />
+                  <span>ยกเลิกงานนำเข้านี้</span>
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedJob(null)}
+                className="w-full min-h-[44px]"
+              >
+                ปิด
+              </Button>
+            </BottomSheetFooter>
+          </div>
+        )}
+      </BottomSheet>
 
       {/* Error Details Bottom Sheet */}
       <BottomSheet

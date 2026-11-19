@@ -20,7 +20,6 @@ import {
   FileStack,
   Megaphone,
   AlertTriangle,
-  CheckCircle2,
   Sparkles,
   ArrowRight,
   TrendingUp,
@@ -30,6 +29,8 @@ import {
   MailQuestion,
   Lock,
   RefreshCw,
+  Activity,
+  ChevronRight,
 } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useAdminOverviewQuery, useUpdateMaintenanceMutation } from "@/features/admin-operations/hooks/useAdminOperations";
@@ -100,80 +101,168 @@ export default function AdminOverviewPage() {
         }
       />
 
-      {/* Maintenance Mode Banner / Warning */}
-      {overview && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            "p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm",
-            overview.maintenanceStatus.isEnabled
-              ? "bg-[var(--pw-expense)]/10 border-[var(--pw-expense)]/40 text-[var(--pw-ink)]"
-              : "bg-[var(--pw-income)]/10 border-[var(--pw-income)]/30 text-[var(--pw-ink)]"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "p-2 rounded-lg shrink-0",
-                overview.maintenanceStatus.isEnabled
-                  ? "bg-[var(--pw-expense)]/20 text-[var(--pw-expense)]"
-                  : "bg-[var(--pw-income)]/20 text-[var(--pw-income)]"
-              )}
-            >
-              {overview.maintenanceStatus.isEnabled ? (
-                <AlertTriangle className="size-5 animate-pulse" />
-              ) : (
-                <CheckCircle2 className="size-5" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm sm:text-base">
-                  {overview.maintenanceStatus.isEnabled
-                    ? "โหมดปรับปรุงระบบกำลังเปิดใช้งาน"
-                    : "ระบบทำงานปกติ"}
-                </span>
-                <span
+      {/* Executive System Health Pulse Hero Card */}
+      {overview && (() => {
+        const failedImports = overview.importJobsSummary.failed ?? 0;
+        const tokenReuses = overview.securityEvents24Hours.tokenReuses ?? 0;
+        const suspendedUsers = overview.suspendedUsers ?? 0;
+        const unverifiedUsers = overview.unverifiedEmailUsers ?? 0;
+        const isMaintenanceActive = overview.maintenanceStatus.isEnabled;
+        const hasAlerts = isMaintenanceActive || failedImports > 0 || tokenReuses > 0;
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "rounded-2xl border p-4 sm:p-5 shadow-xs transition-all space-y-3.5",
+              isMaintenanceActive
+                ? "bg-[var(--pw-expense)]/10 border-[var(--pw-expense)]/40 text-[var(--pw-ink)]"
+                : hasAlerts
+                ? "bg-amber-500/10 border-amber-500/35 text-[var(--pw-ink)]"
+                : "bg-gradient-to-r from-emerald-500/10 via-[var(--pw-surface)] to-teal-500/10 border-[var(--pw-hairline)] text-[var(--pw-ink)]"
+            )}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div
                   className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
-                    overview.maintenanceStatus.isEnabled
-                      ? "bg-[var(--pw-expense)] text-white"
-                      : "bg-[var(--pw-income)] text-white"
+                    "size-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                    isMaintenanceActive
+                      ? "bg-[var(--pw-expense)]/20 text-[var(--pw-expense)] border border-[var(--pw-expense)]/30"
+                      : hasAlerts
+                      ? "bg-amber-500/20 text-amber-500 border border-amber-500/30"
+                      : "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30"
                   )}
                 >
-                  {overview.maintenanceStatus.isEnabled ? "ACTIVE" : "ONLINE"}
-                </span>
+                  {isMaintenanceActive ? (
+                    <AlertTriangle className="size-5 animate-pulse" />
+                  ) : hasAlerts ? (
+                    <ShieldAlert className="size-5 animate-pulse text-amber-500" />
+                  ) : (
+                    <Activity className="size-5 text-emerald-500" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-bold text-sm sm:text-base">
+                      {isMaintenanceActive
+                        ? "โหมดปรับปรุงระบบกำลังเปิดใช้งาน"
+                        : hasAlerts
+                        ? "พบประเด็นสำคัญที่ต้องตรวจสอบ"
+                        : "ทุกระบบทำงานปกติ (All Systems Operational)"}
+                    </h2>
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0",
+                        isMaintenanceActive
+                          ? "bg-[var(--pw-expense)] text-white"
+                          : hasAlerts
+                          ? "bg-amber-500 text-white"
+                          : "bg-emerald-600 text-white"
+                      )}
+                    >
+                      {isMaintenanceActive ? "MAINTENANCE" : hasAlerts ? "ATTENTION" : "HEALTHY"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--pw-ink)]/70 mt-0.5">
+                    {isMaintenanceActive
+                      ? overview.maintenanceStatus.message || "ระบบกำลังปิดปรับปรุงชั่วคราว"
+                      : hasAlerts
+                      ? "มีรายการงานหรือความปลอดภัยที่ต้องการการตรวจสอบจากผู้ดูแลระบบ"
+                      : "ฐานข้อมูล ระบบคิว การประมวลผล OCR และความปลอดภัยอยู่ในเกณฑ์สมบูรณ์"}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-[var(--pw-ink)]/75 mt-0.5">
-                {overview.maintenanceStatus.isEnabled
-                  ? overview.maintenanceStatus.message
-                  : "บริการทั้งหมดเปิดให้บริการสำหรับผู้ใช้ทุกคนตามปกติ"}
-              </p>
+
+              {/* Maintenance Toggle / Settings Shortcut */}
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={handleToggleMaintenance}
+                  disabled={updateMaintenance.isPending}
+                  className={cn(
+                    "min-h-[38px] px-3.5 text-xs font-bold rounded-lg transition-colors shadow-xs flex items-center justify-center",
+                    overview.maintenanceStatus.isEnabled
+                      ? "bg-[var(--pw-surface)] border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
+                      : "bg-[var(--pw-expense)] text-white hover:opacity-90"
+                  )}
+                >
+                  {overview.maintenanceStatus.isEnabled ? "ปิดโหมดปรับปรุง" : "เปิดโหมดปรับปรุง"}
+                </button>
+                <Link
+                  href="/admin/settings"
+                  className="min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/40 transition-colors flex items-center"
+                >
+                  ตั้งค่าระบบ
+                </Link>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
-            <button
-              onClick={handleToggleMaintenance}
-              disabled={updateMaintenance.isPending}
-              className={cn(
-                "min-h-[40px] px-4 text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center justify-center",
-                overview.maintenanceStatus.isEnabled
-                  ? "bg-[var(--pw-surface)] border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
-                  : "bg-[var(--pw-expense)] text-white hover:opacity-90"
+
+            {/* Quick Actionable Warp Pills */}
+            <div className="pt-2 border-t border-[var(--pw-hairline)]/50 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-[var(--pw-ink)]/50">ทางลัดด่วน:</span>
+              {failedImports > 0 ? (
+                <Link
+                  href="/admin/imports?status=Failed"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-500 border border-rose-500/25 hover:bg-rose-500/25 transition active:scale-95"
+                >
+                  <AlertTriangle className="size-3" />
+                  <span>{failedImports} งานนำเข้าล้มเหลว</span>
+                  <ChevronRight className="size-3" />
+                </Link>
+              ) : (
+                <Link
+                  href="/admin/imports"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition"
+                >
+                  <FileStack className="size-3 text-emerald-500" />
+                  <span>งานนำเข้า: ปกติ</span>
+                </Link>
               )}
-            >
-              {overview.maintenanceStatus.isEnabled ? "ปิดโหมดปรับปรุง" : "เปิดโหมดปรับปรุง"}
-            </button>
-            <Link
-              href="/admin/settings"
-              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/40 transition-colors"
-            >
-              ตั้งค่าเพิ่มเติม
-            </Link>
-          </div>
-        </motion.div>
-      )}
+
+              {tokenReuses > 0 ? (
+                <Link
+                  href="/admin/security-events"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/25 hover:bg-purple-500/25 transition active:scale-95"
+                >
+                  <ShieldAlert className="size-3" />
+                  <span>{tokenReuses} Token Reuse</span>
+                  <ChevronRight className="size-3" />
+                </Link>
+              ) : (
+                <Link
+                  href="/admin/security-events"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition"
+                >
+                  <Lock className="size-3 text-emerald-500" />
+                  <span>ความปลอดภัย: ปลอดภัย</span>
+                </Link>
+              )}
+
+              {suspendedUsers > 0 && (
+                <Link
+                  href="/admin/users?isSuspended=true"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition"
+                >
+                  <UserX className="size-3 text-[var(--pw-expense)]" />
+                  <span>{suspendedUsers} บัญชีถูกระงับ</span>
+                </Link>
+              )}
+
+              {unverifiedUsers > 0 && (
+                <Link
+                  href="/admin/users?isEmailVerified=false"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition"
+                >
+                  <MailQuestion className="size-3 text-amber-500" />
+                  <span>{unverifiedUsers} รอยืนยันอีเมล</span>
+                </Link>
+              )}
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* Primary Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
