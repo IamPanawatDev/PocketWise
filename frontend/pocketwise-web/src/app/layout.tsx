@@ -148,7 +148,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </Providers>
         </div>
-        <Toaster position="top-center" expand={true} richColors closeButton visibleToasts={3} gap={8} style={{ zIndex: 99999 }} />
+        <Toaster
+          position="top-center"
+          expand={true}
+          richColors
+          closeButton
+          visibleToasts={3}
+          gap={8}
+          style={{
+            zIndex: 99999,
+            top: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
+          }}
+        />
       </body>
     </html>
   );
