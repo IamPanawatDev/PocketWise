@@ -18,6 +18,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
   RotateCcw,
+  ChevronRight,
 } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import {
@@ -507,7 +508,7 @@ export default function AdminUsersPage() {
           </table>
         </div>
 
-        {/* Mobile User Cards List (visible on mobile only) */}
+        {/* Mobile User Cards List (visible on mobile only) - High Native Feel & Clean Hierarchy */}
         <div className="md:hidden divide-y divide-[var(--pw-hairline)]">
           {isLoading ? (
             <div className="py-10 text-center text-[var(--pw-ink)]/60">
@@ -521,99 +522,94 @@ export default function AdminUsersPage() {
           ) : (
             usersData.items.map((u) => {
               const isSelf = currentUser?.id === u.id;
+              const isAdminUser = u.roles.includes("Admin") || u.roles.includes("SuperAdmin");
+              
+              // Status determination:
+              // Suspended = Red, Active + Verified = Green, Active + Unverified = Amber
+              const statusDotColor = u.isSuspended
+                ? "bg-rose-500"
+                : u.isEmailVerified
+                ? "bg-emerald-500"
+                : "bg-amber-500";
+
               return (
-                <div key={u.id} className="p-3.5 space-y-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="size-8 rounded-full bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] font-bold flex items-center justify-center text-xs shrink-0">
-                        <User className="size-4" />
+                <div
+                  key={u.id}
+                  onClick={() => {
+                    setSelectedUserId(u.id);
+                    setActiveDetailTab("profile");
+                  }}
+                  className="group relative flex items-center justify-between p-3.5 hover:bg-[var(--pw-hairline)]/10 active:bg-[var(--pw-hairline)]/20 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                    {/* Avatar with Status Dot Indicator */}
+                    <div className="relative shrink-0">
+                      <div
+                        className={cn(
+                          "size-10 rounded-full font-bold flex items-center justify-center text-sm shadow-xs",
+                          isAdminUser
+                            ? "bg-gradient-to-br from-amber-500/20 to-amber-600/30 text-amber-500 border border-amber-500/30"
+                            : "bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/20"
+                        )}
+                      >
+                        {u.displayName?.charAt(0)?.toUpperCase() || <User className="size-5" />}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-semibold text-xs sm:text-sm text-[var(--pw-ink)] truncate">{u.displayName}</span>
-                          {isSelf && (
-                            <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-[var(--pw-primary)]/20 text-[var(--pw-primary)]">
-                              คุณ
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-[var(--pw-ink)]/60 truncate">{u.email}</p>
-                      </div>
+                      {/* Status Ping Dot */}
+                      <span
+                        className={cn(
+                          "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[var(--pw-surface)] shadow-xs",
+                          statusDotColor
+                        )}
+                        title={
+                          u.isSuspended
+                            ? "ถูกระงับใช้งาน"
+                            : u.isEmailVerified
+                            ? "อีเมลยืนยันแล้ว"
+                            : "ยังไม่ยืนยันอีเมล"
+                        }
+                      />
                     </div>
 
-                    <div className="flex flex-wrap gap-1 shrink-0">
-                      {u.roles.map((r) => (
-                        <span
-                          key={r}
-                          className={cn(
-                            "px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase",
-                            r === "Admin"
-                              ? "bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]"
-                              : "bg-[var(--pw-hairline)]/40 text-[var(--pw-ink)]/80"
-                          )}
-                        >
-                          {r}
+                    {/* User Identity & Info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-xs sm:text-sm text-[var(--pw-ink)] truncate">
+                          {u.displayName}
                         </span>
-                      ))}
+                        {isSelf && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-[var(--pw-primary)]/20 text-[var(--pw-primary)]">
+                            คุณ
+                          </span>
+                        )}
+                        {isAdminUser && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider bg-amber-500/15 text-amber-500 border border-amber-500/20">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[var(--pw-ink)]/60 truncate mt-0.5">
+                        {u.email}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--pw-ink)]/45">
+                        <span>เข้าสู่ระบบ: {formatDisplayDateTime(u.lastLoginAt, "ไม่เคยเข้าสู่ระบบ")}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  {/* Right Status Badge & Tap Cue */}
+                  <div className="flex items-center gap-2 shrink-0">
                     {u.isSuspended ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-bold bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]">
-                        <UserX className="size-3" /> ระงับใช้งาน
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-500 border border-rose-500/20">
+                        ระงับ
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-bold bg-[var(--pw-income)]/15 text-[var(--pw-income)]">
-                        <UserCheck className="size-3" /> ปกติ
+                    ) : !u.isEmailVerified ? (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/20">
+                        รอยืนยัน
                       </span>
-                    )}
-
-                    {u.isEmailVerified ? (
-                      <span className="inline-flex items-center gap-1 text-[var(--pw-income)] font-medium">
-                        <CheckCircle className="size-3" /> ยืนยันอีเมลแล้ว
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-amber-500 font-medium">
-                        <AlertTriangle className="size-3" /> ยังไม่ยืนยันอีเมล
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="text-[10px] text-[var(--pw-ink)]/50">
-                    เข้าสู่ระบบล่าสุด: {formatDisplayDateTime(u.lastLoginAt, "ไม่เคยเข้าสู่ระบบ")}
-                  </div>
-
-                  <div className="flex items-center gap-2.5 pt-1.5 border-t border-[var(--pw-hairline)]/40">
-                    <button
-                      onClick={() => {
-                        setSelectedUserId(u.id);
-                        setActiveDetailTab("profile");
-                      }}
-                      className="flex-1 min-h-[44px] px-3 py-2 text-xs font-semibold rounded-lg border border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20 active:scale-95 transition-all text-center flex items-center justify-center shadow-xs"
-                    >
-                      ตรวจสอบข้อมูล
-                    </button>
-                    {u.isSuspended ? (
-                      <button
-                        onClick={() => handleConfirmUnsuspend(u)}
-                        disabled={unsuspendMutation.isPending}
-                        className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg border border-[var(--pw-income)]/40 bg-[var(--pw-income)]/10 text-[var(--pw-income)] hover:bg-[var(--pw-income)]/20 active:scale-95 transition-all flex items-center justify-center shrink-0"
-                      >
-                        ยกเลิกระงับ
-                      </button>
-                    ) : isSelf ? (
-                      <span className="min-h-[44px] inline-flex items-center text-[11px] text-[var(--pw-ink)]/40 px-3 py-2 select-none">
-                        (บัญชีของคุณ)
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleOpenSuspendModal(u)}
-                        className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg border border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20 active:scale-95 transition-all flex items-center justify-center shrink-0"
-                      >
-                        ระงับบัญชี
-                      </button>
-                    )}
+                    ) : null}
+                    <div className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-hairline)]/20 text-[var(--pw-ink)]/40 group-hover:text-[var(--pw-primary)] group-hover:translate-x-0.5 transition-all">
+                      <ChevronRight className="size-4" />
+                    </div>
                   </div>
                 </div>
               );

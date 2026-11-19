@@ -10,7 +10,6 @@ import {
   XCircle,
   Eye,
   EyeOff,
-  Clock,
   Laptop,
 
   FileCode,
@@ -21,6 +20,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   SlidersHorizontal,
   RotateCcw,
 } from "lucide-react";
@@ -369,7 +369,7 @@ export default function AdminSecurityEventsPage() {
           </table>
         </div>
 
-        {/* Mobile Security Event Cards List (visible on mobile only) */}
+        {/* Mobile Security Event Cards List (visible on mobile only) - Clean Progressive Disclosure */}
         <div className="md:hidden divide-y divide-[var(--pw-hairline)]">
           {isLoading ? (
             <div className="py-10 text-center text-[var(--pw-ink)]/60 text-xs">
@@ -380,64 +380,85 @@ export default function AdminSecurityEventsPage() {
               ไม่พบเหตุการณ์ตามเงื่อนไขที่ค้นหา
             </div>
           ) : (
-            eventsData?.items.map((ev) => (
-              <div key={ev.securityEventId} className="p-3.5 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  {renderEventBadge(ev.eventType, ev.succeeded)}
-                  {ev.succeeded ? (
-                    <span className="inline-flex items-center gap-1 text-[var(--pw-income)] text-xs font-semibold">
-                      <CheckCircle2 className="size-3.5" /> สำเร็จ
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[var(--pw-expense)] text-xs font-semibold">
-                      <XCircle className="size-3.5" /> ล้มเหลว
-                    </span>
+            eventsData?.items.map((ev) => {
+              const hasDetails = Boolean(ev.detailsJson || ev.userAgent);
+              return (
+                <div
+                  key={ev.securityEventId}
+                  onClick={() => {
+                    if (hasDetails) {
+                      setSelectedEvent(ev);
+                      setIsUaExpanded(false);
+                    }
+                  }}
+                  className={cn(
+                    "group relative flex items-center justify-between p-3.5 transition-all",
+                    hasDetails
+                      ? "hover:bg-[var(--pw-hairline)]/10 active:bg-[var(--pw-hairline)]/20 cursor-pointer"
+                      : "opacity-80"
                   )}
-                </div>
+                >
+                  <div className="flex items-start gap-3 min-w-0 flex-1 mr-2">
+                    {/* Status Icon Indicator */}
+                    <div className="pt-0.5 shrink-0">
+                      <div
+                        className={cn(
+                          "size-8 rounded-lg flex items-center justify-center text-xs shadow-xs",
+                          ev.succeeded
+                            ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20"
+                            : "bg-rose-500/15 text-rose-500 border border-rose-500/20"
+                        )}
+                      >
+                        {ev.succeeded ? (
+                          <CheckCircle2 className="size-4" />
+                        ) : (
+                          <XCircle className="size-4" />
+                        )}
+                      </div>
+                    </div>
 
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--pw-ink)]/50">
-                    <Clock className="size-3" />
-                    <span>{formatDisplayDateTime(ev.occurredAt)}</span>
+                    {/* Event Content & Context */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {renderEventBadge(ev.eventType, ev.succeeded)}
+                        {ev.targetUserDisplayName && (
+                          <span className="text-xs font-semibold text-[var(--pw-ink)] truncate">
+                            {ev.targetUserDisplayName}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Sub-line: Actor, IP, Time */}
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--pw-ink)]/55">
+                        <span>{formatDisplayDateTime(ev.occurredAt)}</span>
+                        {ev.ipAddress && (
+                          <>
+                            <span>•</span>
+                            <span className="font-mono text-[10px]">{ev.ipAddress}</span>
+                          </>
+                        )}
+                        {ev.actorUserDisplayName && (
+                          <>
+                            <span>•</span>
+                            <span>โดย {ev.actorUserDisplayName}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  {ev.targetUserDisplayName && (
-                    <div className="text-[var(--pw-ink)] font-medium">
-                      เป้าหมาย: {ev.targetUserDisplayName}
-                      {ev.targetUserEmail && (
-                        <span className="text-[var(--pw-ink)]/50 text-[11px] ml-1">({ev.targetUserEmail})</span>
-                      )}
+                  {/* Right Action Hint */}
+                  {hasDetails && (
+                    <div className="flex items-center gap-1.5 shrink-0 text-[var(--pw-ink)]/40 group-hover:text-[var(--pw-primary)] transition-colors">
+                      <span className="text-[10px] font-mono text-[var(--pw-ink)]/50 hidden xs:inline">JSON</span>
+                      <div className="flex size-7 items-center justify-center rounded-full bg-[var(--pw-hairline)]/20 group-hover:translate-x-0.5 transition-transform">
+                        <ChevronRight className="size-4" />
+                      </div>
                     </div>
                   )}
-
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--pw-ink)]/70">
-                    <span>
-                      ผู้กระทำ: {ev.actorUserDisplayName ?? "ระบบ / ผู้ใช้"}
-                    </span>
-                    {ev.ipAddress && (
-                      <span className="font-mono text-[var(--pw-ink)]/50">
-                        IP: {ev.ipAddress}
-                      </span>
-                    )}
-                  </div>
                 </div>
-
-                {(ev.detailsJson || ev.userAgent) && (
-                  <div className="pt-1.5 border-t border-[var(--pw-hairline)]/40 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedEvent(ev);
-                        setIsUaExpanded(false);
-                      }}
-                      className="w-full min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <FileCode className="size-4" /> ดูรายละเอียด / JSON
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

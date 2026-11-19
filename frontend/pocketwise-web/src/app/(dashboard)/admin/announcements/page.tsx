@@ -269,10 +269,19 @@ export default function AdminAnnouncementsPage() {
           </div>
         ) : (
           announcements.map((item) => {
-            const isCurrentlyActive =
-              item.isActive &&
-              new Date(item.startsAt) <= new Date() &&
-              new Date(item.endsAt) >= new Date();
+            const now = new Date();
+            const startDate = new Date(item.startsAt);
+            const endDate = new Date(item.endsAt);
+            const isExpired = endDate < now;
+            const isUpcoming = startDate > now;
+            const isCurrentlyActive = item.isActive && !isExpired && !isUpcoming;
+
+            const diffDays = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            const countdownLabel = isExpired
+              ? "สิ้นสุดแล้ว"
+              : isUpcoming
+              ? "กำหนดแสดงผลล่วงหน้า"
+              : `เหลือ ${diffDays} วัน`;
 
             return (
               <motion.div
@@ -287,12 +296,12 @@ export default function AdminAnnouncementsPage() {
                     : "border-[var(--pw-hairline)] opacity-80"
                 )}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span
                       className={cn(
                         "size-2.5 rounded-full shrink-0",
-                        isCurrentlyActive ? "bg-[var(--pw-income)]" : "bg-zinc-400"
+                        isCurrentlyActive ? "bg-[var(--pw-income)] animate-pulse" : "bg-zinc-400"
                       )}
                     />
                     <h3 className="font-bold text-sm sm:text-base text-[var(--pw-ink)]">
@@ -300,36 +309,37 @@ export default function AdminAnnouncementsPage() {
                     </h3>
                     <span
                       className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
-                        item.isActive
-                          ? "bg-[var(--pw-income)]/15 text-[var(--pw-income)]"
-                          : "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)]"
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                        isCurrentlyActive
+                          ? "bg-[var(--pw-income)]/15 text-[var(--pw-income)] border border-[var(--pw-income)]/25"
+                          : "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] border border-[var(--pw-expense)]/25"
                       )}
                     >
-                      {item.isActive ? "เปิดใช้งาน" : "ปิดการใช้งาน"}
+                      {item.isActive ? countdownLabel : "ปิดการใช้งาน"}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                  {/* Action Buttons: Separated with safe touch targets to eliminate accidental deletion */}
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-1 sm:pt-0">
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleOpenEdit(item)}
-                      className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:size-8"
-                      title="แก้ไขประกาศ"
+                      className="min-h-[38px] px-3 text-xs font-semibold rounded-lg border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20 active:scale-95 transition-all flex items-center gap-1.5 shadow-xs"
                     >
                       <Edit2 className="size-3.5" />
+                      <span>แก้ไข</span>
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleDelete(item)}
-                      className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:size-8 border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10"
-                      title="ลบประกาศ"
+                      className="min-h-[38px] px-3 text-xs font-semibold rounded-lg border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 active:scale-95 transition-all flex items-center gap-1.5"
                     >
                       <Trash2 className="size-3.5" />
+                      <span>ลบ</span>
                     </Button>
                   </div>
                 </div>
@@ -362,6 +372,18 @@ export default function AdminAnnouncementsPage() {
             );
           })
         )}
+      </div>
+
+      {/* Mobile Floating Action Button (FAB) for Creating Announcement */}
+      <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-4 z-30 md:hidden">
+        <button
+          type="button"
+          onClick={handleOpenCreate}
+          className="flex size-14 items-center justify-center rounded-full bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-white shadow-xl shadow-blue-500/35 active:scale-90 transition-transform cursor-pointer border border-white/20"
+          aria-label="สร้างประกาศใหม่"
+        >
+          <Plus className="size-6 stroke-[2.5]" />
+        </button>
       </div>
 
       {/* ---------------------------------------------------------------- */}

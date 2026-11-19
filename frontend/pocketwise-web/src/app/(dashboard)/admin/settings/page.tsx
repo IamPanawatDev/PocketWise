@@ -10,7 +10,21 @@ import {
   X,
   Edit2,
   Lock,
+  CheckCircle2,
+  AlertTriangle,
+  Settings2,
+  Loader2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { toast } from "sonner";
 import {
@@ -66,6 +80,9 @@ export default function AdminSettingsPage() {
   const [allowedUserIdsStr, setAllowedUserIdsStr] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
+  const [pendingMaintenanceToggle, setPendingMaintenanceToggle] = useState<boolean | null>(null);
 
   // Edit setting modal
   const [editingSetting, setEditingSetting] = useState<SystemSettingItem | null>(null);
@@ -104,6 +121,41 @@ export default function AdminSettingsPage() {
     );
   }
 
+  const handleQuickToggleMaintenance = (nextState: boolean) => {
+    setPendingMaintenanceToggle(nextState);
+    setShowMaintenanceConfirm(true);
+  };
+
+  const handleConfirmQuickToggle = async () => {
+    if (pendingMaintenanceToggle === null) return;
+    const nextState = pendingMaintenanceToggle;
+    setShowMaintenanceConfirm(false);
+    try {
+      await updateMaintenanceMutation.mutateAsync({
+        isEnabled: nextState,
+        message: maintenanceMessage.trim() || undefined,
+        allowedUserIds: allowedUserIdsStr
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean)
+          .map(Number)
+          .filter((n) => !isNaN(n)),
+        startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
+        endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+      });
+      setMaintenanceEnabled(nextState);
+      toast.success(
+        nextState
+          ? "เปิดโหมดปรับปรุงระบบเรียบร้อยแล้ว"
+          : "ปิดโหมดปรับปรุงระบบเรียบร้อยแล้ว"
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "เกิดข้อผิดพลาดในการเปลี่ยนสถานะโหมดปรับปรุงระบบ");
+    } finally {
+      setPendingMaintenanceToggle(null);
+    }
+  };
+
   const handleSaveMaintenance = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -122,6 +174,7 @@ export default function AdminSettingsPage() {
         startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
         endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
       });
+      setShowMaintenanceModal(false);
       toast.success("บันทึกการตั้งค่า Maintenance Mode เรียบร้อยแล้ว");
     } catch (err: any) {
       toast.error(err?.message || "เกิดข้อผิดพลาดในการบันทึกโหมดปรับปรุงระบบ");
@@ -164,35 +217,102 @@ export default function AdminSettingsPage() {
         description="จัดการเปิด/ปิดการบำรุงรักษาระบบ และกำหนดค่าคอนฟิกกลาง"
       />
 
-      {/* Section 1: Maintenance Mode Configuration Card */}
-      <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--pw-hairline)]">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]">
+      {/* Section 1: Compact Maintenance Mode Widget & Quick Control */}
+      <div
+        className={cn(
+          "p-4 sm:p-5 rounded-2xl border shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4",
+          maintenanceEnabled
+            ? "bg-[var(--pw-expense)]/10 border-[var(--pw-expense)]/35 text-[var(--pw-ink)]"
+            : "bg-[var(--pw-surface)] border-[var(--pw-hairline)] text-[var(--pw-ink)]"
+        )}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className={cn(
+              "size-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+              maintenanceEnabled
+                ? "bg-[var(--pw-expense)]/20 text-[var(--pw-expense)] border border-[var(--pw-expense)]/30"
+                : "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20"
+            )}
+          >
+            {maintenanceEnabled ? (
+              <AlertTriangle className="size-5 animate-pulse" />
+            ) : (
+              <CheckCircle2 className="size-5" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="font-bold text-sm sm:text-base text-[var(--pw-ink)] truncate">
+                โหมดปรับปรุงระบบ (Maintenance)
+              </h2>
+              <span
+                className={cn(
+                  "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0",
+                  maintenanceEnabled
+                    ? "bg-[var(--pw-expense)] text-white shadow-xs"
+                    : "bg-emerald-600 text-white shadow-xs"
+                )}
+              >
+                {maintenanceEnabled ? "ACTIVE" : "ONLINE"}
+              </span>
+            </div>
+            <p className="text-xs text-[var(--pw-ink)]/65 truncate mt-0.5">
+              {maintenanceEnabled
+                ? maintenanceMessage || "ระบบกำลังอยู่ระหว่างปรับปรุงประสิทธิภาพ"
+                : "ระบบทำงานปกติ ผู้ใช้งานสามารถเข้าถึงบริการได้ทั้งหมด"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--pw-hairline)]/40 shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowMaintenanceModal(true)}
+            className="text-xs min-h-[40px] sm:min-h-0 px-3.5 gap-1.5"
+          >
+            <Settings2 className="size-3.5" />
+            <span>ตั้งค่ากำหนดเวลา & ข้อความ</span>
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={maintenanceEnabled}
+                onChange={(e) => handleQuickToggleMaintenance(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-[var(--pw-hairline)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--pw-expense)]"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Maintenance Mode Configuration BottomSheet */}
+      <BottomSheet
+        open={showMaintenanceModal}
+        onOpenChange={setShowMaintenanceModal}
+        title={
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]">
               <Power className="size-5" />
             </div>
-            <div>
-              <h2 className="font-bold text-base text-[var(--pw-ink)]">
-                โหมดปรับปรุงระบบ
-              </h2>
-              <p className="text-xs text-[var(--pw-ink)]/60">
-                เมื่อเปิดใช้งาน ผู้ใช้ทั่วไปจะได้รับรหัส HTTP 503 MAINTENANCE_MODE และไม่สามารถเข้าถึงแอปได้
-              </p>
-            </div>
+            <span>ตั้งค่าโหมดปรับปรุงระบบ (Maintenance Mode)</span>
           </div>
-
-          <div className="flex items-center gap-3">
-            <span
-              className={cn(
-                "text-xs font-bold px-2.5 py-1 rounded-full uppercase",
-                maintenanceEnabled
-                  ? "bg-[var(--pw-expense)]/15 text-[var(--pw-expense)] animate-pulse"
-                  : "bg-[var(--pw-hairline)] text-[var(--pw-ink)]/70"
-              )}
-            >
-              {maintenanceEnabled ? "เปิดใช้งาน" : "ปิดการใช้งาน"}
-            </span>
-
+        }
+        description="กำหนดข้อความแจ้งเตือน รายชื่อผู้ใช้ที่ยกเว้น และช่วงเวลากำหนดปิดปรับปรุง"
+        className="sm:max-w-xl"
+      >
+        <form onSubmit={handleSaveMaintenance} className="space-y-4 py-2">
+          {/* Status Toggle row inside sheet */}
+          <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/60">
+            <div>
+              <p className="text-xs font-semibold text-[var(--pw-ink)]">สถานะโหมดปรับปรุงระบบ</p>
+              <p className="text-[11px] text-[var(--pw-ink)]/60">บล็อกผู้ใช้ทั่วไปด้วยรหัส HTTP 503</p>
+            </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -200,12 +320,10 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setMaintenanceEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-12 h-6 bg-[var(--pw-hairline)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--pw-expense)]"></div>
+              <div className="w-11 h-6 bg-[var(--pw-hairline)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--pw-expense)]"></div>
             </label>
           </div>
-        </div>
 
-        <form onSubmit={handleSaveMaintenance} className="space-y-4">
           <div>
             <label className="block font-semibold text-xs text-[var(--pw-ink)] mb-1">
               ข้อความแจ้งเตือนผู้ใช้งานเมื่ออยู่ในโหมดปรับปรุง
@@ -221,7 +339,7 @@ export default function AdminSettingsPage() {
 
           <div>
             <label className="block font-semibold text-xs text-[var(--pw-ink)] mb-1">
-              รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้
+              รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้ (Allowed User IDs)
             </label>
             <Input
               type="text"
@@ -254,18 +372,72 @@ export default function AdminSettingsPage() {
             </FormField>
           </div>
 
-          <div className="pt-2 flex justify-end">
+          {/* Master Rule: Action on top (order-1), Cancel on bottom (order-2) on mobile, Solid Filled Button */}
+          <BottomSheetFooter>
             <Button
               type="submit"
               disabled={updateMaintenanceMutation.isPending}
-              className="w-full sm:w-auto"
+              className="w-full min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md disabled:bg-emerald-600 disabled:opacity-85 disabled:text-white"
             >
-              <Save className="size-4" />
-              <span>บันทึกการตั้งค่า Maintenance</span>
+              {updateMaintenanceMutation.isPending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin text-white" />
+                  <span>กำลังบันทึกการตั้งค่า...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="size-4 text-white" />
+                  <span>บันทึกการตั้งค่า Maintenance</span>
+                </>
+              )}
             </Button>
-          </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowMaintenanceModal(false)}
+              className="w-full min-h-[44px]"
+            >
+              ยกเลิก
+            </Button>
+          </BottomSheetFooter>
         </form>
-      </div>
+      </BottomSheet>
+
+      {/* Quick Toggle Maintenance Confirmation Dialog */}
+      <AlertDialog open={showMaintenanceConfirm} onOpenChange={setShowMaintenanceConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingMaintenanceToggle ? "ยืนยันการเปิดโหมดปรับปรุงระบบ" : "ยืนยันการปิดโหมดปรับปรุงระบบ"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingMaintenanceToggle
+                ? "เมื่อเปิดใช้งาน ผู้ใช้ทั่วไปทั้งหมดจะไม่สามารถเข้าสู่ระบบหรือทำธุรกรรมได้ชั่วคราว (จะได้รับ HTTP 503 Maintenance Mode)"
+                : "ระบบจะกลับสู่สถานะออนไลน์ปกติ และอนุญาตให้ผู้ใช้ทั่วไปเข้าใช้งานได้ทันที"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={handleConfirmQuickToggle}
+              className={cn(
+                "w-full min-h-[44px] font-bold text-white",
+                pendingMaintenanceToggle ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"
+              )}
+            >
+              {pendingMaintenanceToggle ? "เปิดโหมดปรับปรุงทันที" : "เปิดระบบออนไลน์ทันที"}
+            </AlertDialogAction>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowMaintenanceConfirm(false);
+                setPendingMaintenanceToggle(null);
+              }}
+              className="w-full min-h-[44px]"
+            >
+              ยกเลิก
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Section 2: General System Settings Key-Value Table */}
       <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-4">
@@ -443,8 +615,34 @@ export default function AdminSettingsPage() {
             {(() => {
               const lKey = editingSetting.settingKey.toLowerCase();
               const isBool = lKey.endsWith(":enabled") || editingValue === "true" || editingValue === "false";
-              const isDate = lKey.includes("at") || lKey.includes("date");
-              const isNumber = lKey.includes("count") || lKey.includes("limit") || lKey.includes("days") || lKey.includes("timeout") || /^\d+$/.test(editingValue);
+              // Only treat as date if the key actually ends with 'at' or 'date' (e.g. startsAt, endsAt, createdAt)
+              // NOTE: do NOT use lKey.includes("at") because "expiration" contains "at" which causes Jwt expiration minutes/days to become a date!
+              const isDate =
+                lKey.endsWith("at") ||
+                lKey.endsWith(":date") ||
+                lKey.endsWith("date") ||
+                lKey.endsWith(":starts_at") ||
+                lKey.endsWith(":ends_at");
+              const isNumber =
+                lKey.includes("minutes") ||
+                lKey.includes("hours") ||
+                lKey.includes("days") ||
+                lKey.includes("count") ||
+                lKey.includes("limit") ||
+                lKey.includes("timeout") ||
+                lKey.includes("retention") ||
+                lKey.includes("interval") ||
+                (/^\d+$/.test(editingValue.trim()) && !isBool && !isDate);
+
+              const unitLabel = lKey.includes("minutes")
+                ? "นาที"
+                : lKey.includes("hours")
+                ? "ชั่วโมง"
+                : lKey.includes("days")
+                ? "วัน"
+                : lKey.includes("seconds")
+                ? "วินาที"
+                : null;
 
               if (isBool) {
                 return (
@@ -500,16 +698,26 @@ export default function AdminSettingsPage() {
                 return (
                   <div>
                     <label className="block text-xs font-semibold text-[var(--pw-ink)] mb-1">
-                      ค่าที่กำหนด (ตัวเลข) <span className="text-[var(--pw-expense)]">*</span>
+                      ค่าที่กำหนด (ตัวเลข{unitLabel ? ` / ${unitLabel}` : ""}) <span className="text-[var(--pw-expense)]">*</span>
                     </label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      required
-                      value={editingValue}
-                      onChange={(e) => setEditingValue(e.target.value)}
-                      className="w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm font-mono rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]"
-                    />
+                    <div className="relative flex items-center">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        required
+                        value={editingValue}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        className={cn(
+                          "w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm font-mono rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-primary)]",
+                          unitLabel && "pr-14"
+                        )}
+                      />
+                      {unitLabel && (
+                        <span className="absolute right-3 text-xs font-medium text-[var(--pw-ink)]/50 pointer-events-none">
+                          {unitLabel}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               }
