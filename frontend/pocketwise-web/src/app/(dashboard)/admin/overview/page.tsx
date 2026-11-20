@@ -36,6 +36,7 @@ import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useAdminOverviewQuery, useUpdateMaintenanceMutation } from "@/features/admin-operations/hooks/useAdminOperations";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptic";
 
 export default function AdminOverviewPage() {
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
@@ -176,13 +177,16 @@ export default function AdminOverviewPage() {
               </div>
 
               {/* Maintenance Toggle / Settings Shortcut */}
-              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={handleToggleMaintenance}
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    handleToggleMaintenance();
+                  }}
                   disabled={updateMaintenance.isPending}
                   className={cn(
-                    "min-h-[38px] px-3.5 text-xs font-bold rounded-lg transition-colors shadow-xs flex items-center justify-center",
+                    "min-h-[44px] sm:min-h-[38px] px-3.5 text-xs font-bold rounded-xl transition-all active:scale-98 shadow-xs flex items-center justify-center cursor-pointer",
                     overview.maintenanceStatus.isEnabled
                       ? "bg-[var(--pw-surface)] border border-[var(--pw-hairline)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/30"
                       : "bg-[var(--pw-expense)] text-white hover:opacity-90"
@@ -192,7 +196,8 @@ export default function AdminOverviewPage() {
                 </button>
                 <Link
                   href="/admin/settings"
-                  className="min-h-[38px] px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/40 transition-colors flex items-center"
+                  onClick={() => triggerHaptic("light")}
+                  className="min-h-[44px] sm:min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-[var(--pw-ink)] hover:bg-[var(--pw-hairline)]/40 active:scale-98 transition-all flex items-center justify-center"
                 >
                   ตั้งค่าระบบ
                 </Link>
@@ -205,7 +210,8 @@ export default function AdminOverviewPage() {
               {failedImports > 0 ? (
                 <Link
                   href="/admin/imports?status=Failed"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-500 border border-rose-500/25 hover:bg-rose-500/25 transition active:scale-95"
+                  onClick={() => triggerHaptic("light")}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-500 border border-rose-500/25 hover:bg-rose-500/25 transition active:scale-95 select-none touch-pan-y"
                 >
                   <AlertTriangle className="size-3" />
                   <span>{failedImports} งานนำเข้าล้มเหลว</span>
@@ -214,7 +220,8 @@ export default function AdminOverviewPage() {
               ) : (
                 <Link
                   href="/admin/imports"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition"
+                  onClick={() => triggerHaptic("light")}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition select-none touch-pan-y"
                 >
                   <FileStack className="size-3 text-emerald-500" />
                   <span>งานนำเข้า: ปกติ</span>
@@ -224,7 +231,8 @@ export default function AdminOverviewPage() {
               {tokenReuses > 0 ? (
                 <Link
                   href="/admin/security-events"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/25 hover:bg-purple-500/25 transition active:scale-95"
+                  onClick={() => triggerHaptic("light")}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/25 hover:bg-purple-500/25 transition active:scale-95 select-none touch-pan-y"
                 >
                   <ShieldAlert className="size-3" />
                   <span>{tokenReuses} Token Reuse</span>
@@ -233,7 +241,8 @@ export default function AdminOverviewPage() {
               ) : (
                 <Link
                   href="/admin/security-events"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition"
+                  onClick={() => triggerHaptic("light")}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition select-none touch-pan-y"
                 >
                   <Lock className="size-3 text-emerald-500" />
                   <span>ความปลอดภัย: ปลอดภัย</span>
@@ -243,7 +252,8 @@ export default function AdminOverviewPage() {
               {suspendedUsers > 0 && (
                 <Link
                   href="/admin/users?isSuspended=true"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition"
+                  onClick={() => triggerHaptic("light")}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition select-none touch-pan-y"
                 >
                   <UserX className="size-3 text-[var(--pw-expense)]" />
                   <span>{suspendedUsers} บัญชีถูกระงับ</span>
@@ -253,7 +263,8 @@ export default function AdminOverviewPage() {
               {unverifiedUsers > 0 && (
                 <Link
                   href="/admin/users?isEmailVerified=false"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition"
+                  onClick={() => triggerHaptic("light")}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-[var(--pw-surface)] text-[var(--pw-ink)]/75 border border-[var(--pw-hairline)] hover:bg-[var(--pw-hairline)]/30 transition select-none touch-pan-y"
                 >
                   <MailQuestion className="size-3 text-amber-500" />
                   <span>{unverifiedUsers} รอยืนยันอีเมล</span>
@@ -263,6 +274,67 @@ export default function AdminOverviewPage() {
           </motion.div>
         );
       })()}
+
+      {/* Mobile Operations Launchpad (< sm) - Prioritized in Thumb Zone */}
+      {overview && (
+        <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+          <Link
+            href="/admin/users"
+            onClick={() => triggerHaptic("light")}
+            className="p-3 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 hover:bg-[var(--pw-surface-indigo)]/30 active:scale-95 transition-all shadow-xs flex items-center gap-2.5 select-none touch-pan-y"
+          >
+            <div className="size-9 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center shrink-0">
+              <Users className="size-4.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[var(--pw-ink)] truncate">จัดการผู้ใช้</div>
+              <div className="text-[10px] text-[var(--pw-ink)]/60 truncate">{overview.totalUsers.toLocaleString()} บัญชี</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/imports"
+            onClick={() => triggerHaptic("light")}
+            className="p-3 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 hover:bg-[var(--pw-surface-indigo)]/30 active:scale-95 transition-all shadow-xs flex items-center gap-2.5 select-none touch-pan-y"
+          >
+            <div className="size-9 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
+              <FileStack className="size-4.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[var(--pw-ink)] truncate">งานนำเข้า</div>
+              <div className="text-[10px] text-[var(--pw-ink)]/60 truncate">{overview.importJobsSummary.total ?? 0} งาน</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/security-events"
+            onClick={() => triggerHaptic("light")}
+            className="p-3 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 hover:bg-[var(--pw-surface-indigo)]/30 active:scale-95 transition-all shadow-xs flex items-center gap-2.5 select-none touch-pan-y"
+          >
+            <div className="size-9 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center shrink-0">
+              <Lock className="size-4.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[var(--pw-ink)] truncate">ความปลอดภัย</div>
+              <div className="text-[10px] text-[var(--pw-ink)]/60 truncate">{overview.securityEvents24Hours.total ?? 0} เหตุการณ์</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/settings"
+            onClick={() => triggerHaptic("light")}
+            className="p-3 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 hover:bg-[var(--pw-surface-indigo)]/30 active:scale-95 transition-all shadow-xs flex items-center gap-2.5 select-none touch-pan-y"
+          >
+            <div className="size-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
+              <Server className="size-4.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[var(--pw-ink)] truncate">ตั้งค่าระบบ</div>
+              <div className="text-[10px] text-[var(--pw-ink)]/60 truncate">คอนฟิก & โหมด</div>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Primary Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

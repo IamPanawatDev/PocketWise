@@ -26,6 +26,7 @@ import {
 } from "@/features/admin-operations/hooks/useAdminOperations";
 import { useAdminRoles } from "@/features/admin-permissions/hooks/useAdminRoles";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptic";
 import {
   formatDisplayDateTime,
 
@@ -49,7 +50,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { DateTimeInput } from "@/components/ui/date-input";
 import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
@@ -325,8 +326,11 @@ export default function AdminAnnouncementsPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleOpenEdit(item)}
-                      className="min-h-[38px] px-3 text-xs font-semibold rounded-lg border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20 active:scale-95 transition-all flex items-center gap-1.5 shadow-xs"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        handleOpenEdit(item);
+                      }}
+                      className="min-h-[40px] sm:min-h-[38px] px-3.5 text-xs font-semibold rounded-xl border-[var(--pw-primary)]/40 bg-[var(--pw-primary)]/10 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/20 active:scale-95 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <Edit2 className="size-3.5" />
                       <span>แก้ไข</span>
@@ -335,8 +339,11 @@ export default function AdminAnnouncementsPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(item)}
-                      className="min-h-[38px] px-3 text-xs font-semibold rounded-lg border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 active:scale-95 transition-all flex items-center gap-1.5"
+                      onClick={() => {
+                        triggerHaptic("medium");
+                        handleDelete(item);
+                      }}
+                      className="min-h-[40px] sm:min-h-[38px] px-3.5 text-xs font-semibold rounded-xl border-[var(--pw-expense)]/30 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <Trash2 className="size-3.5" />
                       <span>ลบ</span>
@@ -395,8 +402,37 @@ export default function AdminAnnouncementsPage() {
         title={editingId ? "แก้ไขประกาศระบบ" : "สร้างประกาศใหม่"}
         description="ระบุรายละเอียด ข้อความ และกลุ่มเป้าหมายที่จะได้รับประกาศนี้"
         className="sm:max-w-xl"
+        footer={
+          <div className="flex flex-col sm:flex-row-reverse gap-2.5 sm:gap-3 w-full">
+            <Button
+              type="submit"
+              form="announcement-form"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="w-full sm:w-auto min-h-[44px] font-bold shadow-md bg-[var(--pw-primary)] text-white hover:brightness-110 active:scale-98 cursor-pointer order-1 sm:order-none"
+            >
+              {createMutation.isPending || updateMutation.isPending ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin mr-1.5" />
+                  <span>กำลังบันทึก...</span>
+                </>
+              ) : editingId ? (
+                "บันทึกการแก้ไข"
+              ) : (
+                "สร้างประกาศ"
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] active:scale-98 cursor-pointer order-2 sm:order-none"
+              onClick={() => setIsModalOpen(false)}
+            >
+              ยกเลิก
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <form id="announcement-form" onSubmit={handleSubmit} className="space-y-4 py-2">
           {formError && (
             <div className="p-3 rounded-xl border border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-xs text-[var(--pw-expense)] flex items-center gap-2">
               <ShieldAlert className="size-4 shrink-0" />
@@ -556,25 +592,6 @@ export default function AdminAnnouncementsPage() {
               เปิดใช้งานประกาศนี้
             </label>
           </div>
-
-          {/* BottomSheet Button Hierarchy: Confirm on TOP, Cancel on BOTTOM */}
-          <BottomSheetFooter>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="w-full min-h-[44px] font-bold shadow-md"
-            >
-              {editingId ? "บันทึกการแก้ไข" : "สร้างประกาศ"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs"
-              onClick={() => setIsModalOpen(false)}
-            >
-              ยกเลิก
-            </Button>
-          </BottomSheetFooter>
         </form>
       </BottomSheet>
 

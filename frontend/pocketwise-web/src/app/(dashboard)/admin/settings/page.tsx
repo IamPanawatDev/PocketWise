@@ -776,9 +776,41 @@ export default function AdminSettingsPage() {
         title="แก้ไขค่าคอนฟิกระบบ"
         description={editingSetting?.description || editingSetting?.settingKey}
         className="sm:max-w-md"
+        footer={
+          editingSetting ? (
+            <div className="flex flex-col sm:flex-row-reverse gap-2.5 sm:gap-3 w-full">
+              <Button
+                type="submit"
+                form="edit-setting-form"
+                disabled={updateSettingMutation.isPending}
+                className="w-full sm:w-auto min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md disabled:opacity-85 disabled:text-white order-1 sm:order-none active:scale-98 cursor-pointer rounded-xl"
+              >
+                {updateSettingMutation.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-white mr-1.5" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4 text-white mr-1.5" />
+                    <span>บันทึกการเปลี่ยนแปลง</span>
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] order-2 sm:order-none active:scale-98 cursor-pointer rounded-xl"
+                onClick={() => setEditingSetting(null)}
+              >
+                ยกเลิก
+              </Button>
+            </div>
+          ) : undefined
+        }
       >
         {editingSetting && (
-          <form onSubmit={handleSaveSetting} className="space-y-4 py-2">
+          <form id="edit-setting-form" onSubmit={handleSaveSetting} className="space-y-4 py-2">
             <div>
               <label className="block text-xs font-semibold text-[var(--pw-ink)] mb-1">
                 คีย์การตั้งค่า (Key)
@@ -897,6 +929,29 @@ export default function AdminSettingsPage() {
                         </span>
                       )}
                     </div>
+                    {unitLabel && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        <span className="text-[10px] text-[var(--pw-ink)]/50">ค่าแนะนำ:</span>
+                        {(unitLabel === "นาที"
+                          ? ["15", "30", "60", "120"]
+                          : unitLabel === "วัน"
+                          ? ["7", "14", "30", "90"]
+                          : ["1", "5", "10"]
+                        ).map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => {
+                              triggerHaptic("light");
+                              setEditingValue(val);
+                            }}
+                            className="px-2 py-0.5 text-[11px] rounded-md border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] active:scale-95 transition-all cursor-pointer font-mono"
+                          >
+                            {val} {unitLabel}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -916,25 +971,6 @@ export default function AdminSettingsPage() {
                 </div>
               );
             })()}
-
-            {/* BottomSheet Button Hierarchy: Save on TOP, Cancel on BOTTOM */}
-            <BottomSheetFooter>
-              <Button
-                type="submit"
-                disabled={updateSettingMutation.isPending}
-                className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md disabled:opacity-85 disabled:text-white"
-              >
-                {updateSettingMutation.isPending ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs"
-                onClick={() => setEditingSetting(null)}
-              >
-                ยกเลิก
-              </Button>
-            </BottomSheetFooter>
           </form>
         )}
       </BottomSheet>
