@@ -829,6 +829,15 @@ export function SystemCategoriesManager() {
         }}
         title="จัดการหมวดหมู่มาตรฐาน"
         description="ดูรายละเอียด ปรับเปลี่ยนสถานะ ลำดับ หรือแก้ไขข้อมูลหมวดหมู่"
+        footer={
+          <button
+            type="button"
+            onClick={() => setSelectedCategoryForSheet(null)}
+            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-semibold text-sm active:scale-[0.98] transition-all shadow-sm flex items-center justify-center cursor-pointer"
+          >
+            ปิด
+          </button>
+        }
       >
         {currentSheetCategory && (
           <div className="space-y-4 pt-1">
@@ -877,8 +886,11 @@ export function SystemCategoriesManager() {
                   variant="outline"
                   size="sm"
                   disabled={isSheetFirst || reorderMutation.isPending}
-                  onClick={() => handleMove(currentSheetCategory, -1)}
-                  className="min-h-[40px] text-xs gap-1.5"
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    handleMove(currentSheetCategory, -1);
+                  }}
+                  className="min-h-[44px] text-xs gap-1.5 active:scale-95 transition-all cursor-pointer"
                 >
                   <ArrowUp className="size-4" />
                   เลื่อนขึ้นก่อนหน้า
@@ -888,8 +900,11 @@ export function SystemCategoriesManager() {
                   variant="outline"
                   size="sm"
                   disabled={isSheetLast || reorderMutation.isPending}
-                  onClick={() => handleMove(currentSheetCategory, 1)}
-                  className="min-h-[40px] text-xs gap-1.5"
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    handleMove(currentSheetCategory, 1);
+                  }}
+                  className="min-h-[44px] text-xs gap-1.5 active:scale-95 transition-all cursor-pointer"
                 >
                   <ArrowDown className="size-4" />
                   เลื่อนลงถัดไป
@@ -906,9 +921,10 @@ export function SystemCategoriesManager() {
                 onClick={() => {
                   const cat = currentSheetCategory;
                   setSelectedCategoryForSheet(null);
+                  triggerHaptic("light");
                   openEditDialog(cat);
                 }}
-                className="w-full min-h-[44px] text-sm font-semibold gap-2 bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white shadow-md cursor-pointer"
+                className="w-full min-h-[44px] text-sm font-semibold gap-2 bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white shadow-md active:scale-98 cursor-pointer rounded-xl"
               >
                 <Pencil className="size-4" />
                 แก้ไขข้อมูลหมวดหมู่
@@ -919,8 +935,11 @@ export function SystemCategoriesManager() {
                 variant="outline"
                 size="sm"
                 disabled={updateMutation.isPending}
-                onClick={() => handleToggleActive(currentSheetCategory)}
-                className="w-full min-h-[44px] text-sm font-medium gap-2 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-indigo)]/50 cursor-pointer"
+                onClick={() => {
+                  triggerHaptic("medium");
+                  handleToggleActive(currentSheetCategory);
+                }}
+                className="w-full min-h-[44px] text-sm font-medium gap-2 border-[var(--pw-hairline)] bg-[var(--pw-surface)] hover:bg-[var(--pw-surface-indigo)]/50 active:scale-98 cursor-pointer rounded-xl"
               >
                 {currentSheetCategory.isActive ? "ปิดการใช้งานหมวดหมู่นี้" : "เปิดใช้งานหมวดหมู่นี้"}
               </Button>
@@ -933,6 +952,7 @@ export function SystemCategoriesManager() {
                 onConfirm={() => {
                   const cat = currentSheetCategory;
                   setSelectedCategoryForSheet(null);
+                  triggerHaptic("heavy");
                   handleDelete(cat);
                 }}
                 trigger={
@@ -940,23 +960,13 @@ export function SystemCategoriesManager() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="w-full min-h-[44px] text-sm font-medium text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 hover:text-[var(--pw-expense)] cursor-pointer"
+                    className="w-full min-h-[44px] text-sm font-medium text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 hover:text-[var(--pw-expense)] active:scale-98 cursor-pointer rounded-xl"
                   >
                     <Trash2 className="size-4 mr-1.5" />
                     ลบหมวดหมู่มาตรฐาน
                   </Button>
                 }
               />
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedCategoryForSheet(null)}
-                className="w-full min-h-[40px] text-xs text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)] cursor-pointer"
-              >
-                ปิดหน้าต่าง
-              </Button>
             </div>
           </div>
         )}

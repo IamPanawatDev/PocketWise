@@ -18,10 +18,12 @@ import {
   X,
   FileText,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Check,
-
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/haptic";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import {
   useAdminImportsQuery,
@@ -64,6 +66,7 @@ export default function AdminImportsPage() {
   const [errorDetailsJob, setErrorDetailsJob] = useState<AdminImportJob | null>(null);
   const [selectedJob, setSelectedJob] = useState<AdminImportJob | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [isErrorExpanded, setIsErrorExpanded] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
 
   const activeFilterCount = (selectedStatus ? 1 : 0) + (selectedJobType ? 1 : 0);
@@ -459,9 +462,13 @@ export default function AdminImportsPage() {
               return (
                 <AnimatedListItem key={job.importJobId}>
                   <div
-                    onClick={() => setSelectedJob(job)}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setSelectedJob(job);
+                      setIsErrorExpanded(false);
+                    }}
                     className={cn(
-                      "group rounded-2xl border bg-[var(--pw-surface)] p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer",
+                      "group rounded-2xl border bg-[var(--pw-surface)] p-3.5 shadow-xs transition-all active:scale-[0.98] select-none touch-pan-y cursor-pointer",
                       isFailed
                         ? "border-rose-500/30 hover:border-rose-500/50 bg-rose-500/[0.02]"
                         : "border-[var(--pw-hairline)] hover:border-[var(--pw-primary)]/40"
@@ -566,6 +573,50 @@ export default function AdminImportsPage() {
             : undefined
         }
         className="sm:max-w-xl"
+        footer={
+          selectedJob ? (
+            <div className="flex flex-col gap-2.5 w-full">
+              {selectedJob.status === "Failed" && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    handleRetry(selectedJob);
+                    setSelectedJob(null);
+                  }}
+                  disabled={selectedJob.retryCount >= 5 || retryMutation.isPending}
+                  className="w-full min-h-[48px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/90 text-white font-bold shadow-md active:scale-98 cursor-pointer rounded-xl"
+                >
+                  <RotateCcw className="size-4 mr-1.5" />
+                  <span>ลองประมวลผลใหม่อีกครั้ง ({selectedJob.retryCount + 1}/5)</span>
+                </Button>
+              )}
+              {(selectedJob.status === "Pending" || selectedJob.status === "Processing" || selectedJob.status === "NeedsReview") && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    handleCancel(selectedJob);
+                    setSelectedJob(null);
+                  }}
+                  disabled={cancelMutation.isPending}
+                  className="w-full min-h-[48px] font-bold active:scale-98 cursor-pointer rounded-xl"
+                >
+                  <Ban className="size-4 mr-1.5" />
+                  <span>ยกเลิกงานนำเข้านี้</span>
+                </Button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedJob(null)}
+                className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-semibold text-sm active:scale-[0.98] transition-all shadow-sm flex items-center justify-center cursor-pointer"
+              >
+                ปิด
+              </button>
+            </div>
+          ) : undefined
+        }
       >
         {selectedJob && (
           <div className="space-y-4 py-2">
@@ -630,14 +681,19 @@ export default function AdminImportsPage() {
               </div>
             </div>
 
-            {/* Error Message callout */}
+            {/* Error Message callout with Progressive Disclosure */}
             {selectedJob.errorMessage && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[var(--pw-expense)] flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsErrorExpanded(!isErrorExpanded)}
+                    className="text-xs font-semibold text-[var(--pw-expense)] flex items-center gap-1.5 cursor-pointer hover:underline"
+                  >
                     <AlertCircle className="size-4" />
                     <span>ข้อความข้อผิดพลาด (Error Trace)</span>
-                  </span>
+                    {isErrorExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                  </button>
                   <button
                     type="button"
                     onClick={async () => {
@@ -653,52 +709,14 @@ export default function AdminImportsPage() {
                     <span>{isCopied ? "คัดลอกแล้ว" : "คัดลอก"}</span>
                   </button>
                 </div>
-                <pre className="p-3 rounded-xl border border-[var(--pw-expense)]/30 bg-[var(--pw-expense)]/10 text-xs font-mono text-[var(--pw-ink)]/90 max-h-48 overflow-y-auto whitespace-pre-wrap break-all leading-relaxed overscroll-contain">
+                <pre className={cn(
+                  "p-3 rounded-xl border border-[var(--pw-expense)]/30 bg-[var(--pw-expense)]/10 text-xs font-mono text-[var(--pw-ink)]/90 whitespace-pre-wrap break-all leading-relaxed overscroll-contain transition-all",
+                  isErrorExpanded ? "max-h-64 overflow-y-auto" : "max-h-20 overflow-hidden line-clamp-3"
+                )}>
                   {selectedJob.errorMessage}
                 </pre>
               </div>
             )}
-
-            {/* Actions in Thumb Zone */}
-            <BottomSheetFooter>
-              {selectedJob.status === "Failed" && (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    handleRetry(selectedJob);
-                    setSelectedJob(null);
-                  }}
-                  disabled={selectedJob.retryCount >= 5 || retryMutation.isPending}
-                  className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/90 text-white font-bold shadow-md"
-                >
-                  <RotateCcw className="size-4 mr-1.5" />
-                  <span>ลองประมวลผลใหม่อีกครั้ง ({selectedJob.retryCount + 1}/5)</span>
-                </Button>
-              )}
-              {(selectedJob.status === "Pending" || selectedJob.status === "Processing" || selectedJob.status === "NeedsReview") && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => {
-                    handleCancel(selectedJob);
-                    setSelectedJob(null);
-                  }}
-                  disabled={cancelMutation.isPending}
-                  className="w-full min-h-[44px] font-bold"
-                >
-                  <Ban className="size-4 mr-1.5" />
-                  <span>ยกเลิกงานนำเข้านี้</span>
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSelectedJob(null)}
-                className="w-full min-h-[44px]"
-              >
-                ปิด
-              </Button>
-            </BottomSheetFooter>
           </div>
         )}
       </BottomSheet>
@@ -715,6 +733,33 @@ export default function AdminImportsPage() {
         }
         description={errorDetailsJob ? `${errorDetailsJob.fileName} (${errorDetailsJob.userDisplayName})` : undefined}
         className="sm:max-w-lg"
+        footer={
+          errorDetailsJob ? (
+            <div className="flex flex-col gap-2.5 w-full">
+              {errorDetailsJob.status === "Failed" && errorDetailsJob.retryCount < 5 && (
+                <Button
+                  onClick={() => {
+                    const job = errorDetailsJob;
+                    setErrorDetailsJob(null);
+                    triggerHaptic("medium");
+                    handleRetry(job);
+                  }}
+                  className="w-full min-h-[48px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/90 text-white font-bold shadow-md rounded-xl active:scale-98 cursor-pointer"
+                >
+                  <RotateCcw className="size-4 mr-1.5" />
+                  ลองใหม่อีกครั้ง ({errorDetailsJob.retryCount + 1}/5)
+                </Button>
+              )}
+              <button
+                type="button"
+                onClick={() => setErrorDetailsJob(null)}
+                className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-semibold text-sm active:scale-[0.98] transition-all shadow-sm flex items-center justify-center cursor-pointer"
+              >
+                ปิด
+              </button>
+            </div>
+          ) : undefined
+        }
       >
         {errorDetailsJob && (
           <div className="space-y-4 py-2">
@@ -724,33 +769,9 @@ export default function AdminImportsPage() {
               <div><strong>จำนวนลองใหม่แล้ว:</strong> {errorDetailsJob.retryCount} / 5 ครั้ง</div>
             </div>
 
-            <div className="p-3.5 rounded-xl border border-[var(--pw-expense)]/30 bg-[var(--pw-expense)]/10 text-xs font-mono text-[var(--pw-ink)]/90 max-h-60 overflow-y-auto whitespace-pre-wrap">
+            <div className="p-3.5 rounded-xl border border-[var(--pw-expense)]/30 bg-[var(--pw-expense)]/10 text-xs font-mono text-[var(--pw-ink)]/90 max-h-60 overflow-y-auto whitespace-pre-wrap leading-relaxed overscroll-contain">
               {errorDetailsJob.errorMessage}
             </div>
-
-            {/* BottomSheet Button Hierarchy: Confirm on TOP, Cancel on BOTTOM */}
-            <BottomSheetFooter>
-              {errorDetailsJob.status === "Failed" && errorDetailsJob.retryCount < 5 && (
-                <Button
-                  onClick={() => {
-                    const job = errorDetailsJob;
-                    setErrorDetailsJob(null);
-                    handleRetry(job);
-                  }}
-                  className="w-full"
-                >
-                  <RotateCcw className="size-4 mr-1.5" />
-                  ลองใหม่อีกครั้ง ({errorDetailsJob.retryCount + 1}/5)
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => setErrorDetailsJob(null)}
-                className="w-full"
-              >
-                ปิด
-              </Button>
-            </BottomSheetFooter>
           </div>
         )}
       </BottomSheet>
