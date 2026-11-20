@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { formatDisplayDateTime } from "@/lib/date-utils";
+import { triggerHaptic } from "@/lib/haptic";
 import { toast } from "sonner";
 import {
   useAuditLogSettings,
@@ -86,6 +87,18 @@ export function AuditLogSettingsModal({ open, onClose }: AuditLogSettingsModalPr
       title="ตั้งค่าการบันทึกประวัติ"
       description="จัดการการเปิด/ปิดบันทึก Audit Log และการล้างข้อมูลเก่าเพื่อป้องกัน Database บวม"
       className="sm:max-w-2xl"
+      footer={
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic("light");
+            onClose();
+          }}
+          className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-semibold text-sm active:scale-[0.98] transition-all shadow-sm flex items-center justify-center cursor-pointer"
+        >
+          ปิด
+        </button>
+      }
     >
       <div className="flex-1 space-y-6 overflow-y-auto px-5 py-4 sm:px-6">
         {isLoading ? (

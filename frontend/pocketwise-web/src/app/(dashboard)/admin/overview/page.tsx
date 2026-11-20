@@ -417,30 +417,46 @@ export default function AdminOverviewPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center my-3 sm:my-4">
-              <div className="p-3 rounded-lg bg-[var(--pw-hairline)]/20">
+              <Link
+                href="/admin/imports"
+                onClick={() => triggerHaptic("light")}
+                className="p-3 rounded-lg bg-[var(--pw-hairline)]/20 hover:bg-[var(--pw-hairline)]/40 active:scale-95 transition-all"
+              >
                 <div className="text-xs text-[var(--pw-ink)]/70">ทั้งหมด</div>
                 <div className="text-lg font-bold text-[var(--pw-ink)] mt-1">
                   {overview?.importJobsSummary.total ?? 0}
                 </div>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--pw-income)]/10 text-[var(--pw-income)]">
+              </Link>
+              <Link
+                href="/admin/imports?status=Completed"
+                onClick={() => triggerHaptic("light")}
+                className="p-3 rounded-lg bg-[var(--pw-income)]/10 text-[var(--pw-income)] hover:bg-[var(--pw-income)]/20 active:scale-95 transition-all"
+              >
                 <div className="text-xs">สำเร็จ</div>
                 <div className="text-lg font-bold mt-1">
                   {overview?.importJobsSummary.completed ?? 0}
                 </div>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--pw-expense)]/10 text-[var(--pw-expense)]">
+              </Link>
+              <Link
+                href="/admin/imports?status=Failed"
+                onClick={() => triggerHaptic("light")}
+                className="p-3 rounded-lg bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20 active:scale-95 transition-all"
+              >
                 <div className="text-xs">ล้มเหลว</div>
                 <div className="text-lg font-bold mt-1">
                   {overview?.importJobsSummary.failed ?? 0}
                 </div>
-              </div>
-              <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
+              </Link>
+              <Link
+                href="/admin/imports?status=Processing"
+                onClick={() => triggerHaptic("light")}
+                className="p-3 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 active:scale-95 transition-all"
+              >
                 <div className="text-xs">กำลังทำงาน</div>
                 <div className="text-lg font-bold mt-1">
                   {(overview?.importJobsSummary.processing ?? 0) + (overview?.importJobsSummary.pending ?? 0)}
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
 
@@ -471,30 +487,46 @@ export default function AdminOverviewPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center my-3 sm:my-4">
-              <div className="p-3 rounded-lg bg-[var(--pw-hairline)]/20">
+              <Link
+                href="/admin/security-events"
+                onClick={() => triggerHaptic("light")}
+                className="p-3 rounded-lg bg-[var(--pw-hairline)]/20 hover:bg-[var(--pw-hairline)]/40 active:scale-95 transition-all"
+              >
                 <div className="text-xs text-[var(--pw-ink)]/70">เหตุการณ์</div>
                 <div className="text-lg font-bold text-[var(--pw-ink)] mt-1">
                   {overview?.securityEvents24Hours.total ?? 0}
                 </div>
-              </div>
-              <div className="p-3 rounded-lg bg-amber-500/10 text-amber-500">
+              </Link>
+              <Link
+                href="/admin/security-events?eventType=FailedLogin"
+                onClick={() => triggerHaptic("light")}
+                className="p-3 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 active:scale-95 transition-all"
+              >
                 <div className="text-xs">Login ผิดพลาด</div>
                 <div className="text-lg font-bold mt-1">
                   {overview?.securityEvents24Hours.failedLogins ?? 0}
                 </div>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--pw-expense)]/10 text-[var(--pw-expense)]">
+              </Link>
+              <Link
+                href="/admin/security-events?eventType=AccountSuspended"
+                onClick={() => triggerHaptic("light")}
+                className="p-3 rounded-lg bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/20 active:scale-95 transition-all"
+              >
                 <div className="text-xs">ระงับบัญชี</div>
                 <div className="text-lg font-bold mt-1">
                   {overview?.securityEvents24Hours.suspensions ?? 0}
                 </div>
-              </div>
-              <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500">
+              </Link>
+              <Link
+                href="/admin/security-events?eventType=TokenReuseDetected"
+                onClick={() => triggerHaptic("light")}
+                className="p-3 rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 active:scale-95 transition-all"
+              >
                 <div className="text-xs">Token Reuse</div>
                 <div className="text-lg font-bold mt-1">
                   {overview?.securityEvents24Hours.tokenReuses ?? 0}
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
 
@@ -507,8 +539,8 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
-      {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Quick Navigation Cards - Hidden on mobile viewport to prevent redundant scroll height */}
+      <div className="hidden sm:grid sm:grid-cols-3 gap-4">
         <Link
           href="/admin/users"
           className="p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] hover:border-[var(--pw-primary)]/50 transition-all shadow-sm group"

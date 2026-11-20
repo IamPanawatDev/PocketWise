@@ -207,30 +207,32 @@ function AdminMobileSubnav({ pathname }: { pathname: string }) {
   }, [pathname]);
 
   return (
-    <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-20 flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 px-2.5 py-1.5 backdrop-blur-xl md:hidden overscroll-contain shadow-2xs">
-      {adminMobileShortcuts.map((item) => {
-        const Icon = item.icon;
-        const isActive =
-          pathname === item.href ||
-          (item.href !== "/admin/overview" && pathname.startsWith(item.href));
-        return (
-          <Link
-            key={item.href}
-            ref={isActive ? activeRef : undefined}
-            href={item.href}
-            onClick={() => triggerHaptic("light")}
-            className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all active:scale-95 shadow-2xs min-h-[30px]",
-              isActive
-                ? "bg-[var(--pw-primary)] text-white font-semibold shadow-xs"
-                : "border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)]/70 hover:text-[var(--pw-ink)]"
-            )}
-          >
-            <Icon className="size-3.5" />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
+    <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-20 border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 backdrop-blur-xl md:hidden shadow-xs">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-3 py-2 overscroll-contain touch-pan-x">
+        {adminMobileShortcuts.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/admin/overview" && pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.href}
+              ref={isActive ? activeRef : undefined}
+              href={item.href}
+              onClick={() => triggerHaptic("light")}
+              className={cn(
+                "flex shrink-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 min-h-[40px] select-none touch-manipulation shadow-2xs",
+                isActive
+                  ? "bg-[var(--pw-primary)] text-white font-semibold shadow-xs"
+                  : "border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)]/70 hover:text-[var(--pw-ink)]"
+              )}
+            >
+              <Icon className="size-4 shrink-0" />
+              <span className="whitespace-nowrap">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -62,7 +62,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import type { CategoryResponse, CategoryType } from "@/types/category.types";
 
 const AVAILABLE_ICONS = [
@@ -660,6 +660,30 @@ export function SystemCategoriesManager() {
         }}
         title={editingCategory ? `แก้ไขหมวดหมู่มาตรฐาน: ${editingCategory.categoryName}` : "เพิ่มหมวดหมู่มาตรฐานใหม่"}
         description="กำหนดชื่อ ประเภท ไอคอน และสีของหมวดหมู่มาตรฐานสำหรับผู้ใช้ทุกคน"
+        footer={
+          <div className="flex flex-col gap-2.5 w-full">
+            <Button
+              type="submit"
+              form="category-form"
+              variant="default"
+              className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md disabled:opacity-85 disabled:text-white active:scale-[0.98] transition-all cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {(createMutation.isPending || updateMutation.isPending) && (
+                <LoaderCircle className="size-4 animate-spin mr-1.5" />
+              )}
+              {editingCategory ? "บันทึกการแก้ไข" : "สร้างหมวดหมู่"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              onClick={closeDialog}
+            >
+              ยกเลิก
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 pt-1">
           {formError && (
@@ -669,7 +693,7 @@ export function SystemCategoriesManager() {
             </div>
           )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="category-form" onSubmit={handleSubmit} className="space-y-4">
               {/* Category Name */}
               <FormField label="ชื่อหมวดหมู่ *" htmlFor="category-name">
                 <Input
@@ -688,7 +712,10 @@ export function SystemCategoriesManager() {
                     type="button"
                     role="radio"
                     aria-checked={formType === "expense"}
-                    onClick={() => setFormType("expense")}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setFormType("expense");
+                    }}
                     className={cn(
                       "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-medium transition-colors",
                       formType === "expense"
@@ -702,7 +729,10 @@ export function SystemCategoriesManager() {
                     type="button"
                     role="radio"
                     aria-checked={formType === "income"}
-                    onClick={() => setFormType("income")}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setFormType("income");
+                    }}
                     className={cn(
                       "flex h-10 cursor-pointer items-center justify-center rounded-[var(--pw-rounded-sm)] border text-sm font-semibold transition-colors",
                       formType === "income"
@@ -727,7 +757,10 @@ export function SystemCategoriesManager() {
                       <button
                         key={color}
                         type="button"
-                        onClick={() => setFormColor(color)}
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setFormColor(color);
+                        }}
                         className={cn(
                           "size-7 rounded-full border-2 transition-transform",
                           isSelected
@@ -762,7 +795,10 @@ export function SystemCategoriesManager() {
                       <button
                         key={item.name}
                         type="button"
-                        onClick={() => setFormIcon(item.name)}
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setFormIcon(item.name);
+                        }}
                         title={item.label}
                         className={cn(
                           "flex size-10 sm:size-9 items-center justify-center rounded-md border text-sm transition-all active:scale-95",
@@ -794,29 +830,6 @@ export function SystemCategoriesManager() {
                   </Label>
                 </div>
               )}
-
-              {/* Form Buttons: Confirm on TOP, Cancel on BOTTOM on mobile */}
-              <BottomSheetFooter className="pt-4 border-t border-[var(--pw-hairline)]">
-                <Button
-                  type="submit"
-                  variant="default"
-                  className="w-full sm:w-auto min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md disabled:opacity-85 disabled:text-white"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                >
-                  {(createMutation.isPending || updateMutation.isPending) && (
-                    <LoaderCircle className="size-4 animate-spin mr-1.5" />
-                  )}
-                  {editingCategory ? "บันทึกการแก้ไข" : "สร้างหมวดหมู่"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full sm:w-auto min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs"
-                  onClick={closeDialog}
-                >
-                  ยกเลิก
-                </Button>
-              </BottomSheetFooter>
             </form>
         </div>
       </BottomSheet>

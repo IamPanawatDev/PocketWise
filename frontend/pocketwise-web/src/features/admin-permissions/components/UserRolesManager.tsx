@@ -9,7 +9,8 @@ import {
   useAssignUserRolesMutation,
 } from "../hooks/useAdminRoles";
 import { Button } from "@/components/ui/button";
-import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { triggerHaptic } from "@/lib/haptic";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -130,7 +131,11 @@ export function UserRolesManager() {
             {filteredUsers.map((u) => (
               <AnimatedListItem key={u.userId}>
                 <Card
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-4"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    openAssignDialog(u);
+                  }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/40 p-4 hover:bg-[var(--pw-surface-indigo)]/30 active:scale-[0.99] transition-all cursor-pointer select-none touch-pan-y"
                 >
               <div className="flex items-start sm:items-center gap-3">
                 <div className="size-9 rounded-full bg-[var(--pw-surface-indigo)] border border-[var(--pw-hairline)] flex items-center justify-center shrink-0">
@@ -185,11 +190,15 @@ export function UserRolesManager() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => openAssignDialog(u)}
-                  className="h-8 text-xs shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerHaptic("light");
+                    openAssignDialog(u);
+                  }}
+                  className="min-h-[40px] sm:min-h-0 h-9 sm:h-8 text-xs font-semibold px-3 shrink-0 active:scale-95 transition-all"
                 >
-                  <Edit2 className="size-3.5" />
-                  แก้ไขบทบาท
+                  <Edit2 className="size-3.5 mr-1" />
+                  <span>แก้ไขบทบาท</span>
                 </Button>
               </div>
             </Card>
@@ -208,8 +217,35 @@ export function UserRolesManager() {
         title={`กำหนดบทบาท: ${selectedUser?.displayName ?? ""}`}
         description={selectedUser?.email}
         className="sm:max-w-md"
+        footer={
+          <div className="flex flex-col gap-2.5 w-full">
+            <Button
+              type="button"
+              variant="default"
+              className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md disabled:opacity-85 disabled:text-white active:scale-[0.98] transition-all cursor-pointer"
+              onClick={handleSave}
+              disabled={assignRolesMutation.isPending}
+            >
+              {assignRolesMutation.isPending ? (
+                <LoaderCircle className="size-4 animate-spin mr-1.5" />
+              ) : (
+                <Check className="size-4 mr-1.5" />
+              )}
+              บันทึกบทบาท
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              onClick={closeDialog}
+              disabled={assignRolesMutation.isPending}
+            >
+              ยกเลิก
+            </Button>
+          </div>
+        }
       >
-        <div className="space-y-4 px-5 py-4 sm:px-6">
+        <div className="space-y-4 px-1 py-1">
           {dialogError && (
             <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
               <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
@@ -218,7 +254,7 @@ export function UserRolesManager() {
           )}
 
           <div className="space-y-2">
-            <p className="text-xs font-medium text-[var(--pw-ink)]/80 mb-2">
+            <p className="text-xs font-semibold text-[var(--pw-ink)]/80 mb-2">
               เลือกบทบาทที่ต้องการมอบหมาย:
             </p>
 
@@ -227,8 +263,11 @@ export function UserRolesManager() {
               return (
                 <div
                   key={role.id}
-                  onClick={() => toggleRole(role.name)}
-                  className={`flex items-center justify-between p-3 rounded-[var(--pw-rounded-sm)] border cursor-pointer transition ${
+                  onClick={() => {
+                    triggerHaptic("light");
+                    toggleRole(role.name);
+                  }}
+                  className={`flex items-center justify-between p-3 min-h-[48px] rounded-[var(--pw-rounded-sm)] border cursor-pointer select-none touch-manipulation transition active:scale-[0.99] ${
                     checked
                       ? "bg-[var(--pw-primary)]/10 border-[var(--pw-primary)]/50"
                       : "bg-[var(--pw-canvas)] border-[var(--pw-hairline)] opacity-80 hover:opacity-100"
@@ -257,32 +296,6 @@ export function UserRolesManager() {
               );
             })}
           </div>
-
-          <BottomSheetFooter>
-            <Button
-              type="button"
-              variant="default"
-              className="w-full sm:w-auto"
-              onClick={handleSave}
-              disabled={assignRolesMutation.isPending}
-            >
-              {assignRolesMutation.isPending ? (
-                <LoaderCircle className="size-4 animate-spin mr-1.5" />
-              ) : (
-                <Check className="size-4 mr-1.5" />
-              )}
-              บันทึกบทบาท
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={closeDialog}
-              disabled={assignRolesMutation.isPending}
-            >
-              ยกเลิก
-            </Button>
-          </BottomSheetFooter>
         </div>
       </BottomSheet>
     </div>
