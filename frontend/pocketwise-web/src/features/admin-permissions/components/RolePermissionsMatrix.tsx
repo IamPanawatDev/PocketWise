@@ -15,8 +15,11 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptic";
 import {
   CheckSquare,
+  ChevronDown,
+  ChevronUp,
   FileUp,
   FolderTree,
   LoaderCircle,
@@ -58,6 +61,15 @@ export function RolePermissionsMatrix() {
 
   const [dirtyPermissionsMap, setDirtyPermissionsMap] = useState<Record<number, number[]>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
+
+  const toggleModuleCollapse = (moduleName: string) => {
+    triggerHaptic("light");
+    setCollapsedModules((prev) => ({
+      ...prev,
+      [moduleName]: !prev[moduleName],
+    }));
+  };
   const [statusFilter, setStatusFilter] = useState<"all" | "granted" | "revoked">("all");
 
   // Group permissions by module
@@ -399,55 +411,77 @@ export function RolePermissionsMatrix() {
             const selectedInModule = moduleIds.filter((id) => currentIds.has(id)).length;
             const isAllSelected = selectedInModule === moduleIds.length;
 
+            const isCollapsed = !!collapsedModules[moduleName];
+
             return (
               <Card
                 key={moduleName}
-                className="flex flex-col justify-between border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/25 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-xs"
+                className="flex flex-col justify-between border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/25 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-xs transition-all"
               >
                 <div>
-                  {/* Module Header */}
-                  <div className="flex items-center justify-between border-b border-[var(--pw-hairline)] pb-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <Icon className={`size-4.5 ${config.color}`} />
-                      <h3 className="font-semibold text-sm text-[var(--pw-ink)]">
+                  {/* Module Header - Clickable on Mobile to toggle accordion */}
+                  <div
+                    onClick={() => toggleModuleCollapse(moduleName)}
+                    className="flex items-center justify-between border-b border-[var(--pw-hairline)] pb-3 mb-3 cursor-pointer sm:cursor-default select-none"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon className={`size-4.5 shrink-0 ${config.color}`} />
+                      <h3 className="font-semibold text-sm text-[var(--pw-ink)] truncate">
                         {config.label}
                       </h3>
-                      <span className="text-xs font-mono font-medium text-[var(--pw-ink)]/50 bg-[var(--pw-surface-onyx)] px-2 py-0.5 rounded-full border border-[var(--pw-hairline)]">
+                      <span className="text-xs font-mono font-medium text-[var(--pw-ink)]/60 bg-[var(--pw-surface-onyx)] px-2 py-0.5 rounded-full border border-[var(--pw-hairline)] shrink-0">
                         {selectedInModule}/{moduleIds.length}
                       </span>
                     </div>
 
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleModule(perms)}
-                      className="h-7 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer"
-                    >
-                      {isAllSelected ? (
-                        <>
-                          <CheckSquare className="size-3.5 text-emerald-400" />
-                          ยกเลิกทั้งหมวด
-                        </>
-                      ) : (
-                        <>
-                          <Square className="size-3.5" />
-                          เลือกทั้งหมวด
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          triggerHaptic("medium");
+                          toggleModule(perms);
+                        }}
+                        className="h-8 min-h-[36px] px-2.5 py-1 rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-xs font-medium text-[var(--pw-ink)] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                        title={isAllSelected ? "ยกเลิกทั้งหมวด" : "เลือกทั้งหมวด"}
+                      >
+                        {isAllSelected ? (
+                          <>
+                            <CheckSquare className="size-3.5 text-emerald-400" />
+                            <span className="hidden xs:inline">ยกเลิกทั้งหมวด</span>
+                          </>
+                        ) : (
+                          <>
+                            <Square className="size-3.5 text-[var(--pw-ink)]/60" />
+                            <span className="hidden xs:inline">เลือกทั้งหมวด</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Mobile Accordion Toggle Indicator */}
+                      <div className="sm:hidden p-1 text-[var(--pw-ink)]/50">
+                        {isCollapsed ? (
+                          <ChevronDown className="size-4" />
+                        ) : (
+                          <ChevronUp className="size-4" />
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Permissions List */}
-                  <div className="space-y-2">
+                  {/* Permissions List - Collapsible on Mobile, Always expanded on Desktop */}
+                  <div className={cn("space-y-2", isCollapsed ? "hidden sm:block" : "block")}>
                     {perms.map((perm) => {
                       const checked = currentIds.has(perm.permissionId);
                       return (
                         <div
                           key={perm.permissionId}
-                          onClick={() => togglePermission(perm.permissionId)}
+                          onClick={() => {
+                            triggerHaptic("light");
+                            togglePermission(perm.permissionId);
+                          }}
                           className={cn(
-                            "flex items-start gap-3 p-3 rounded-xl border cursor-pointer select-none transition-all active:scale-[0.99]",
+                            "flex items-start gap-3 p-3 min-h-[48px] rounded-xl border cursor-pointer select-none touch-pan-y transition-all active:scale-[0.98]",
                             checked
                               ? "bg-[var(--pw-primary)]/10 border-[var(--pw-primary)]/50 text-[var(--pw-ink)] shadow-2xs"
                               : "bg-[var(--pw-surface)]/40 border-[var(--pw-hairline)] text-[var(--pw-ink)]/80 hover:bg-[var(--pw-surface-indigo)]/40 hover:text-[var(--pw-ink)]"
@@ -455,7 +489,7 @@ export function RolePermissionsMatrix() {
                         >
                           <Checkbox
                             checked={checked}
-                            className="pointer-events-none mt-0.5 shrink-0"
+                            className="pointer-events-none mt-1 shrink-0"
                             aria-hidden="true"
                           />
 

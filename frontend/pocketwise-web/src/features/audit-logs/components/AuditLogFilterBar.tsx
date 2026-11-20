@@ -193,6 +193,26 @@ export function AuditLogFilterBar({
         onOpenChange={setShowFilterSheet}
         title="ตัวกรองประวัติการใช้งาน"
         description="กรองบันทึกประวัติการใช้งาน"
+        footer={
+          <div className="flex flex-col sm:flex-row-reverse gap-2.5 sm:gap-3 w-full">
+            <Button
+              type="button"
+              className="w-full sm:w-auto min-h-[44px] order-1 sm:order-none bg-[var(--pw-primary)] hover:brightness-110 text-[var(--pw-on-primary)] font-bold shadow-md active:scale-98"
+              onClick={() => setShowFilterSheet(false)}
+            >
+              ดูผลลัพธ์ {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto min-h-[44px] order-2 sm:order-none border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] active:scale-98"
+              onClick={onReset}
+              disabled={activeFilterCount === 0}
+            >
+              ล้างตัวกรอง
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 pt-1">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -255,25 +275,6 @@ export function AuditLogFilterBar({
               />
             </FormField>
           </div>
-
-          <BottomSheetFooter>
-            <Button
-              type="button"
-              className="w-full sm:w-auto"
-              onClick={() => setShowFilterSheet(false)}
-            >
-              ดูผลลัพธ์
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={onReset}
-              disabled={activeFilterCount === 0}
-            >
-              ล้างตัวกรอง
-            </Button>
-          </BottomSheetFooter>
         </div>
       </BottomSheet>
     </div>

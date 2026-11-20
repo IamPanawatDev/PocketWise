@@ -27,6 +27,7 @@ import {
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useAdminSecurityEventsQuery } from "@/features/admin-operations/hooks/useAdminOperations";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptic";
 import { formatDisplayDateTime } from "@/lib/date-utils";
 import { toast } from "sonner";
 import {
@@ -387,14 +388,15 @@ export default function AdminSecurityEventsPage() {
                   key={ev.securityEventId}
                   onClick={() => {
                     if (hasDetails) {
+                      triggerHaptic("light");
                       setSelectedEvent(ev);
                       setIsUaExpanded(false);
                     }
                   }}
                   className={cn(
-                    "group relative flex items-center justify-between p-3.5 transition-all",
+                    "group relative flex items-center justify-between p-3.5 transition-all select-none touch-pan-y",
                     hasDetails
-                      ? "hover:bg-[var(--pw-hairline)]/10 active:bg-[var(--pw-hairline)]/20 cursor-pointer"
+                      ? "hover:bg-[var(--pw-hairline)]/10 active:bg-[var(--pw-hairline)]/20 active:scale-[0.99] cursor-pointer"
                       : "opacity-80"
                   )}
                 >
@@ -591,6 +593,15 @@ export default function AdminSecurityEventsPage() {
             : undefined
         }
         className="sm:max-w-2xl"
+        footer={
+          <button
+            type="button"
+            onClick={() => setSelectedEvent(null)}
+            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-semibold text-sm active:scale-[0.98] transition-all shadow-sm flex items-center justify-center cursor-pointer"
+          >
+            ปิด
+          </button>
+        }
       >
         {selectedEvent && (() => {
           let prettyJson = "";
@@ -680,17 +691,6 @@ export default function AdminSecurityEventsPage() {
                   ไม่มีรายละเอียด Payload เพิ่มเติม
                 </div>
               )}
-
-              <BottomSheetFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setSelectedEvent(null)}
-                  className="w-full min-h-[44px]"
-                >
-                  ปิด
-                </Button>
-              </BottomSheetFooter>
             </div>
           );
         })()}

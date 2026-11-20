@@ -11,6 +11,7 @@ import {
   BookOpen,
   Briefcase,
   Car,
+  ChevronRight,
   Coffee,
   Dumbbell,
   Film,
@@ -51,6 +52,7 @@ import {
 } from "@/features/admin-categories/hooks/useAdminCategories";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptic";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
@@ -131,6 +133,7 @@ export function SystemCategoriesManager() {
 
   // Modal State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCategoryForSheet, setSelectedCategoryForSheet] = useState<CategoryResponse | null>(null);
   const [editingCategory, setEditingCategory] = useState<CategoryResponse | null>(null);
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<CategoryType>("expense");
@@ -316,6 +319,20 @@ export function SystemCategoriesManager() {
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }, [categories, typeFilter, search]);
 
+  // Keep selectedCategoryForSheet in sync with latest categories data
+  const currentSheetCategory = useMemo(() => {
+    if (!selectedCategoryForSheet) return null;
+    return categories.find((c) => c.categoryId === selectedCategoryForSheet.categoryId) ?? selectedCategoryForSheet;
+  }, [categories, selectedCategoryForSheet]);
+
+  const currentSheetIndex = useMemo(() => {
+    if (!currentSheetCategory) return -1;
+    return filteredCategories.findIndex((c) => c.categoryId === currentSheetCategory.categoryId);
+  }, [currentSheetCategory, filteredCategories]);
+
+  const isSheetFirst = currentSheetIndex === 0;
+  const isSheetLast = currentSheetIndex === filteredCategories.length - 1;
+
   const expenseCount = categories.filter(
     (c) => c.categoryType?.toLowerCase() === "expense"
   ).length;
@@ -360,7 +377,7 @@ export function SystemCategoriesManager() {
               variant="default"
               size="sm"
               onClick={openCreateDialog}
-              className="gap-1.5 min-h-9"
+              className="gap-1.5 min-h-9 hidden sm:inline-flex"
             >
               <Plus className="size-4" />
               เพิ่มหมวดหมู่มาตรฐาน
@@ -458,123 +475,176 @@ export function SystemCategoriesManager() {
               <AnimatedListItem key={c.categoryId}>
                 <Card
                   className={cn(
-                    "flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between transition-colors border-[var(--pw-hairline)]",
+                    "p-3 sm:p-3.5 transition-colors border-[var(--pw-hairline)]",
                     !c.isActive && "opacity-60 bg-[var(--pw-surface-indigo)]/50"
                   )}
                 >
-                {/* Left: Reorder + Icon + Info */}
-                <div className="flex items-center gap-3 min-w-0">
-                  {/* Order control */}
-                  <div className="flex items-center gap-0.5">
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant="ghost"
-                      disabled={isFirst || reorderMutation.isPending}
-                      onClick={() => handleMove(c, -1)}
-                      title="เลื่อนขึ้น"
-                      aria-label={`เลื่อน ${c.categoryName} ขึ้น`}
-                      className="size-9 sm:size-7 touch-manipulation min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0"
-                    >
-                      <ArrowUp className="size-4 sm:size-3.5" />
-                    </Button>
-                    <span className="w-5 text-center text-xs font-mono text-[var(--pw-ink)]/50">
-                      {c.sortOrder}
-                    </span>
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant="ghost"
-                      disabled={isLast || reorderMutation.isPending}
-                      onClick={() => handleMove(c, 1)}
-                      title="เลื่อนลง"
-                      aria-label={`เลื่อน ${c.categoryName} ลง`}
-                      className="size-9 sm:size-7 touch-manipulation min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0"
-                    >
-                      <ArrowDown className="size-4 sm:size-3.5" />
-                    </Button>
-                  </div>
-
-                  {/* Icon badge */}
+                  {/* Mobile Compact View (< sm) */}
                   <div
-                    className="flex size-9 shrink-0 items-center justify-center rounded-lg shadow-xs"
-                    style={{
-                      backgroundColor: c.color ? `${c.color}25` : "rgba(100, 116, 139, 0.15)",
-                      color: c.color || "var(--pw-ink)",
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setSelectedCategoryForSheet(c);
                     }}
+                    className="flex sm:hidden items-center justify-between gap-2.5 cursor-pointer select-none active:scale-[0.99] transition-transform"
                   >
-                    <CategoryIcon name={c.icon} className="size-5" />
-                  </div>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-6 text-center text-xs font-mono font-medium text-[var(--pw-ink)]/60 bg-[var(--pw-surface-onyx)] py-1 rounded shrink-0 border border-[var(--pw-hairline)]">
+                        {c.sortOrder}
+                      </span>
 
-                  {/* Category Details */}
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-sm text-[var(--pw-ink)] truncate">
-                        {c.categoryName}
-                      </span>
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 text-[10px] font-medium rounded-full border",
-                          isExpense
-                            ? "bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] border-[var(--pw-expense)]/25"
-                            : "bg-[var(--pw-green)]/15 text-[var(--pw-green)] border-[var(--pw-green)]/30 font-semibold"
-                        )}
+                      <div
+                        className="flex size-9 shrink-0 items-center justify-center rounded-lg shadow-xs"
+                        style={{
+                          backgroundColor: c.color ? `${c.color}25` : "rgba(100, 116, 139, 0.15)",
+                          color: c.color || "var(--pw-ink)",
+                        }}
                       >
-                        {isExpense ? "รายจ่าย" : "รายรับ"}
-                      </span>
-                      {!c.isActive && (
-                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-neutral-500/10 text-neutral-400 border border-neutral-500/20">
-                          ปิดการใช้งาน
-                        </span>
-                      )}
+                        <CategoryIcon name={c.icon} className="size-5" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-sm text-[var(--pw-ink)] truncate">
+                            {c.categoryName}
+                          </span>
+                          <span
+                            className={cn(
+                              "px-1.5 py-0.2 text-[9px] font-semibold rounded-full border shrink-0",
+                              isExpense
+                                ? "bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] border-[var(--pw-expense)]/25"
+                                : "bg-[var(--pw-green)]/15 text-[var(--pw-green)] border-[var(--pw-green)]/30"
+                            )}
+                          >
+                            {isExpense ? "รายจ่าย" : "รายรับ"}
+                          </span>
+                        </div>
+                        {!c.isActive && (
+                          <p className="text-[10px] text-neutral-400 mt-0.5">ปิดการใช้งาน</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0 text-[var(--pw-ink)]/40">
+                      <ChevronRight className="size-4" />
                     </div>
                   </div>
-                </div>
 
-                {/* Right: Actions */}
-                <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleToggleActive(c)}
-                    disabled={updateMutation.isPending}
-                    className="text-xs min-h-[38px] sm:h-8 px-3 sm:px-2.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
-                  >
-                    {c.isActive ? "ปิดการใช้งาน" : "เปิดใช้งาน"}
-                  </Button>
+                  {/* Desktop Full View (>= sm) */}
+                  <div className="hidden sm:flex sm:items-center sm:justify-between gap-3">
+                    {/* Left: Reorder + Icon + Info */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Order control */}
+                      <div className="flex items-center gap-0.5">
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="ghost"
+                          disabled={isFirst || reorderMutation.isPending}
+                          onClick={() => handleMove(c, -1)}
+                          title="เลื่อนขึ้น"
+                          aria-label={`เลื่อน ${c.categoryName} ขึ้น`}
+                          className="size-7 touch-manipulation"
+                        >
+                          <ArrowUp className="size-3.5" />
+                        </Button>
+                        <span className="w-5 text-center text-xs font-mono text-[var(--pw-ink)]/50">
+                          {c.sortOrder}
+                        </span>
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="ghost"
+                          disabled={isLast || reorderMutation.isPending}
+                          onClick={() => handleMove(c, 1)}
+                          title="เลื่อนลง"
+                          aria-label={`เลื่อน ${c.categoryName} ลง`}
+                          className="size-7 touch-manipulation"
+                        >
+                          <ArrowDown className="size-3.5" />
+                        </Button>
+                      </div>
 
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => openEditDialog(c)}
-                    className="text-xs min-h-[38px] sm:h-8 px-3 sm:px-2.5 gap-1 font-medium"
-                  >
-                    <Pencil className="size-3.5" />
-                    แก้ไข
-                  </Button>
+                      {/* Icon badge */}
+                      <div
+                        className="flex size-9 shrink-0 items-center justify-center rounded-lg shadow-xs"
+                        style={{
+                          backgroundColor: c.color ? `${c.color}25` : "rgba(100, 116, 139, 0.15)",
+                          color: c.color || "var(--pw-ink)",
+                        }}
+                      >
+                        <CategoryIcon name={c.icon} className="size-5" />
+                      </div>
 
-                  <ConfirmDialog
-                    title={`ลบหมวดหมู่ "${c.categoryName}"?`}
-                    description="การลบหมวดหมู่มาตรฐานจะไม่สามารถทำได้หากมีรายการธุรกรรมอ้างอิงอยู่ หากต้องการระงับการใช้งาน แนะนำให้กด 'ปิดการใช้งาน' แทน"
-                    confirmLabel="ลบหมวดหมู่"
-                    pending={deleteMutation.isPending}
-                    onConfirm={() => handleDelete(c)}
-                    trigger={
+                      {/* Category Details */}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-sm text-[var(--pw-ink)] truncate">
+                            {c.categoryName}
+                          </span>
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 text-[10px] font-medium rounded-full border",
+                              isExpense
+                                ? "bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] border-[var(--pw-expense)]/25"
+                                : "bg-[var(--pw-green)]/15 text-[var(--pw-green)] border-[var(--pw-green)]/30 font-semibold"
+                            )}
+                          >
+                            {isExpense ? "รายจ่าย" : "รายรับ"}
+                          </span>
+                          {!c.isActive && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-neutral-500/10 text-neutral-400 border border-neutral-500/20">
+                              ปิดการใช้งาน
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-1.5">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-xs h-8 px-2 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 hover:text-[var(--pw-expense)]"
-                        title="ลบหมวดหมู่"
+                        onClick={() => handleToggleActive(c)}
+                        disabled={updateMutation.isPending}
+                        className="text-xs h-8 px-2.5 text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)]"
                       >
-                        <Trash2 className="size-3.5" />
+                        {c.isActive ? "ปิดการใช้งาน" : "เปิดใช้งาน"}
                       </Button>
-                    }
-                  />
-                </div>
-              </Card>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => openEditDialog(c)}
+                        className="text-xs h-8 px-2.5 gap-1 font-medium"
+                      >
+                        <Pencil className="size-3.5" />
+                        แก้ไข
+                      </Button>
+
+                      <ConfirmDialog
+                        title={`ลบหมวดหมู่ "${c.categoryName}"?`}
+                        description="การลบหมวดหมู่มาตรฐานจะไม่สามารถทำได้หากมีรายการธุรกรรมอ้างอิงอยู่ หากต้องการระงับการใช้งาน แนะนำให้กด 'ปิดการใช้งาน' แทน"
+                        confirmLabel="ลบหมวดหมู่"
+                        pending={deleteMutation.isPending}
+                        onConfirm={() => handleDelete(c)}
+                        trigger={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-8 px-2 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 hover:text-[var(--pw-expense)]"
+                            title="ลบหมวดหมู่"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </div>
+                </Card>
             </AnimatedListItem>
             );
           })}
@@ -750,6 +820,161 @@ export function SystemCategoriesManager() {
             </form>
         </div>
       </BottomSheet>
+
+      {/* Mobile Category Action Sheet (< sm) */}
+      <BottomSheet
+        open={Boolean(currentSheetCategory)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedCategoryForSheet(null);
+        }}
+        title="จัดการหมวดหมู่มาตรฐาน"
+        description="ดูรายละเอียด ปรับเปลี่ยนสถานะ ลำดับ หรือแก้ไขข้อมูลหมวดหมู่"
+      >
+        {currentSheetCategory && (
+          <div className="space-y-4 pt-1">
+            {/* Category Summary Card */}
+            <div className="flex items-center gap-3.5 p-3.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 backdrop-blur-md">
+              <div
+                className="flex size-11 shrink-0 items-center justify-center rounded-xl shadow-xs"
+                style={{
+                  backgroundColor: currentSheetCategory.color ? `${currentSheetCategory.color}25` : "rgba(100, 116, 139, 0.15)",
+                  color: currentSheetCategory.color || "var(--pw-ink)",
+                }}
+              >
+                <CategoryIcon name={currentSheetCategory.icon} className="size-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-base text-[var(--pw-ink)] truncate">
+                    {currentSheetCategory.categoryName}
+                  </h3>
+                  <span
+                    className={cn(
+                      "px-2 py-0.5 text-[10px] font-semibold rounded-full border shrink-0",
+                      currentSheetCategory.categoryType?.toLowerCase() === "expense"
+                        ? "bg-[var(--pw-expense)]/10 text-[var(--pw-expense)] border-[var(--pw-expense)]/25"
+                        : "bg-[var(--pw-green)]/15 text-[var(--pw-green)] border-[var(--pw-green)]/30"
+                    )}
+                  >
+                    {currentSheetCategory.categoryType?.toLowerCase() === "expense" ? "รายจ่าย" : "รายรับ"}
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--pw-ink)]/60 mt-0.5">
+                  สถานะ: {currentSheetCategory.isActive ? "เปิดใช้งานอยู่ในระบบ" : "ปิดการใช้งานชั่วคราว"} • ลำดับที่ #{currentSheetCategory.sortOrder}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Reorder Controls */}
+            <div className="p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/50 space-y-2">
+              <div className="flex items-center justify-between text-xs text-[var(--pw-ink)]/70">
+                <span className="font-medium">จัดลำดับการแสดงผล</span>
+                <span className="font-mono text-xs text-[var(--pw-ink)]/50">ลำดับปัจจุบัน: #{currentSheetCategory.sortOrder}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSheetFirst || reorderMutation.isPending}
+                  onClick={() => handleMove(currentSheetCategory, -1)}
+                  className="min-h-[40px] text-xs gap-1.5"
+                >
+                  <ArrowUp className="size-4" />
+                  เลื่อนขึ้นก่อนหน้า
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSheetLast || reorderMutation.isPending}
+                  onClick={() => handleMove(currentSheetCategory, 1)}
+                  className="min-h-[40px] text-xs gap-1.5"
+                >
+                  <ArrowDown className="size-4" />
+                  เลื่อนลงถัดไป
+                </Button>
+              </div>
+            </div>
+
+            {/* Action Buttons following Master UI Rule (Action/Confirm top, Cancel bottom) */}
+            <div className="space-y-2.5 pt-1">
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  const cat = currentSheetCategory;
+                  setSelectedCategoryForSheet(null);
+                  openEditDialog(cat);
+                }}
+                className="w-full min-h-[44px] text-sm font-semibold gap-2 bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white shadow-md cursor-pointer"
+              >
+                <Pencil className="size-4" />
+                แก้ไขข้อมูลหมวดหมู่
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={updateMutation.isPending}
+                onClick={() => handleToggleActive(currentSheetCategory)}
+                className="w-full min-h-[44px] text-sm font-medium gap-2 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-indigo)]/50 cursor-pointer"
+              >
+                {currentSheetCategory.isActive ? "ปิดการใช้งานหมวดหมู่นี้" : "เปิดใช้งานหมวดหมู่นี้"}
+              </Button>
+
+              <ConfirmDialog
+                title={`ลบหมวดหมู่ "${currentSheetCategory.categoryName}"?`}
+                description="การลบหมวดหมู่มาตรฐานจะไม่สามารถทำได้หากมีรายการธุรกรรมอ้างอิงอยู่ หากต้องการระงับการใช้งาน แนะนำให้กด 'ปิดการใช้งาน' แทน"
+                confirmLabel="ยืนยันลบหมวดหมู่"
+                pending={deleteMutation.isPending}
+                onConfirm={() => {
+                  const cat = currentSheetCategory;
+                  setSelectedCategoryForSheet(null);
+                  handleDelete(cat);
+                }}
+                trigger={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full min-h-[44px] text-sm font-medium text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 hover:text-[var(--pw-expense)] cursor-pointer"
+                  >
+                    <Trash2 className="size-4 mr-1.5" />
+                    ลบหมวดหมู่มาตรฐาน
+                  </Button>
+                }
+              />
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedCategoryForSheet(null)}
+                className="w-full min-h-[40px] text-xs text-[var(--pw-ink)]/60 hover:text-[var(--pw-ink)] cursor-pointer"
+              >
+                ปิดหน้าต่าง
+              </Button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
+
+      {/* Floating Action Button for Mobile (< sm) */}
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic("medium");
+          openCreateDialog();
+        }}
+        className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-4 z-30 flex sm:hidden items-center gap-2 rounded-full bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white px-4 py-3 shadow-xl shadow-[var(--pw-primary)]/30 font-semibold text-xs active:scale-95 transition-transform cursor-pointer"
+        aria-label="เพิ่มหมวดหมู่มาตรฐาน"
+      >
+        <Plus className="size-5" />
+        <span>เพิ่มหมวดหมู่</span>
+      </button>
     </div>
   );
 }
