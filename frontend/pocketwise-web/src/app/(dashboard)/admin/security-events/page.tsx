@@ -39,7 +39,6 @@ import {
 } from "@/components/ui/select";
 import {
   BottomSheet,
-  BottomSheetFooter,
 } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -499,6 +498,33 @@ export default function AdminSecurityEventsPage() {
         title="ตัวกรองเหตุการณ์ความปลอดภัย"
         description="เลือกประเภทเหตุการณ์และผลลัพธ์เพื่อคัดกรองข้อมูล"
         className="sm:max-w-md"
+        footer={
+          <div className="flex flex-col gap-2.5 w-full">
+            <Button
+              type="button"
+              className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md active:scale-[0.98] transition-all cursor-pointer"
+              onClick={() => {
+                triggerHaptic("light");
+                setShowFilterSheet(false);
+              }}
+            >
+              ใช้งานตัวกรอง {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              onClick={() => {
+                triggerHaptic("medium");
+                resetFilters();
+                setShowFilterSheet(false);
+              }}
+            >
+              <RotateCcw className="size-3.5 mr-1" />
+              ล้างตัวกรอง
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 py-2">
           <div>
@@ -550,28 +576,6 @@ export default function AdminSecurityEventsPage() {
               </SelectContent>
             </Select>
           </div>
-
-          <BottomSheetFooter>
-            <Button
-              type="button"
-              className="w-full min-h-[44px]"
-              onClick={() => setShowFilterSheet(false)}
-            >
-              ใช้งานตัวกรอง
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full min-h-[44px]"
-              onClick={() => {
-                resetFilters();
-                setShowFilterSheet(false);
-              }}
-            >
-              <RotateCcw className="size-3.5 mr-1" />
-              ล้างตัวกรอง
-            </Button>
-          </BottomSheetFooter>
         </div>
       </BottomSheet>
 

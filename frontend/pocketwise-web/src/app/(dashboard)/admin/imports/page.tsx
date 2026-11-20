@@ -50,7 +50,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton, ListRowsSkeleton } from "@/components/shared/Skeletons";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -285,7 +285,10 @@ export default function AdminImportsPage() {
             </div>
             <button
               type="button"
-              onClick={() => setShowFilterSheet(true)}
+              onClick={() => {
+                triggerHaptic("light");
+                setShowFilterSheet(true);
+              }}
               className={cn(
                 "min-h-[44px] px-3.5 py-2 text-xs rounded-lg border flex items-center gap-1.5 font-medium shrink-0 transition-all active:scale-95",
                 activeFilterCount > 0
@@ -302,6 +305,37 @@ export default function AdminImportsPage() {
                 </span>
               )}
             </button>
+          </div>
+
+          {/* Quick 1-Tap Status Pills on Mobile */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 overscroll-contain">
+            {[
+              { key: "", label: "ทั้งหมด" },
+              { key: "Failed", label: "ล้มเหลว" },
+              { key: "Processing", label: "กำลังทำงาน" },
+              { key: "Completed", label: "สำเร็จ" },
+            ].map((pill) => {
+              const isSelected = selectedStatus === pill.key;
+              return (
+                <button
+                  key={pill.key}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setSelectedStatus(pill.key);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 border transition-all active:scale-95 cursor-pointer shadow-2xs min-h-[34px]",
+                    isSelected
+                      ? "bg-[var(--pw-primary)] text-white border-[var(--pw-primary)] shadow-xs"
+                      : "bg-[var(--pw-surface)]/80 text-[var(--pw-ink)]/75 border-[var(--pw-hairline)] hover:bg-[var(--pw-surface-indigo)]/50"
+                  )}
+                >
+                  <span>{pill.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Active Filter Chips */}
@@ -783,6 +817,33 @@ export default function AdminImportsPage() {
         title="ตัวกรองงานนำเข้า"
         description="เลือกสถานะและประเภทงานเพื่อคัดกรองข้อมูล"
         className="sm:max-w-md"
+        footer={
+          <div className="flex flex-col gap-2.5 w-full">
+            <Button
+              type="button"
+              className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md active:scale-[0.98] transition-all cursor-pointer"
+              onClick={() => {
+                triggerHaptic("light");
+                setShowFilterSheet(false);
+              }}
+            >
+              ใช้งานตัวกรอง {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              onClick={() => {
+                triggerHaptic("medium");
+                resetFilters();
+                setShowFilterSheet(false);
+              }}
+            >
+              <RotateCcw className="size-3.5 mr-1" />
+              ล้างตัวกรอง
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 py-2">
           <div>
@@ -831,28 +892,6 @@ export default function AdminImportsPage() {
               </SelectContent>
             </Select>
           </div>
-
-          <BottomSheetFooter>
-            <Button
-              type="button"
-              className="w-full min-h-[44px]"
-              onClick={() => setShowFilterSheet(false)}
-            >
-              ใช้งานตัวกรอง
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full min-h-[44px]"
-              onClick={() => {
-                resetFilters();
-                setShowFilterSheet(false);
-              }}
-            >
-              <RotateCcw className="size-3.5 mr-1" />
-              ล้างตัวกรอง
-            </Button>
-          </BottomSheetFooter>
         </div>
       </BottomSheet>
 

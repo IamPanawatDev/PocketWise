@@ -4,6 +4,7 @@ import * as React from "react";
 import { Calculator, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { evaluateMathExpression, isMathExpression } from "@/lib/math-parser";
+import { triggerHaptic } from "@/lib/haptic";
 
 export interface NumberInputProps
   extends Omit<React.ComponentProps<"input">, "type"> {
@@ -96,6 +97,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
         const handleInsertOperator = React.useCallback(
       (operator: string) => {
+        triggerHaptic("light");
         const input = inputRef.current;
         if (!input || disabled) return;
 
@@ -139,6 +141,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     );
 
     const applyMathResult = React.useCallback((computedVal: number) => {
+      triggerHaptic("medium");
       const input = inputRef.current;
       if (!input || disabled) return;
 
@@ -341,40 +344,50 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
         {/* Quick Math Operator Accessory Toolbar for Mobile & Desktop */}
         {enableQuickMath && (
-          <div className="flex items-center gap-1.5 pt-1 overflow-x-auto text-xs pb-0.5 no-scrollbar">
-            <span className="text-[11px] font-medium text-[var(--pw-ink)]/60 shrink-0 flex items-center gap-1 mr-1 select-none">
-              <Calculator className="size-3.5 text-[var(--pw-primary)]" />
-              <span>สูตร:</span>
-            </span>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {["+", "-", "*", "/", "(", ")"].map((op) => (
-                <button
-                  key={op}
-                  type="button"
-                  tabIndex={-1}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleInsertOperator(op);
-                  }}
-                  className="h-9 min-w-[38px] px-2.5 rounded-lg border border-[var(--pw-hairline)] dark:border-white/20 bg-[var(--pw-card)] dark:bg-slate-800/95 text-sm font-bold font-mono text-[var(--pw-ink)] hover:bg-[var(--pw-primary)]/20 hover:border-[var(--pw-primary)]/50 active:scale-95 active:bg-[var(--pw-primary)]/30 transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-xs select-none"
-                  aria-label={`ใส่เครื่องหมาย ${op}`}
-                >
-                  {op === "*" ? "×" : op === "/" ? "÷" : op}
-                </button>
-              ))}
+          <div className="flex items-center justify-between gap-1 sm:gap-1.5 pt-1 text-xs select-none">
+            <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+              <span
+                className="text-[11px] font-medium text-[var(--pw-ink)]/60 shrink-0 flex items-center gap-1 mr-0.5 select-none"
+                title="สูตรคำนวณอัตโนมัติ"
+              >
+                <Calculator className="size-3.5 text-[var(--pw-primary)]" />
+                <span className="hidden sm:inline">สูตร:</span>
+              </span>
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                {["+", "-", "*", "/", "(", ")"].map((op) => (
+                  <button
+                    key={op}
+                    type="button"
+                    tabIndex={-1}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleInsertOperator(op);
+                    }}
+                    className={cn(
+                      "h-8 min-w-[28px] sm:min-w-[34px] px-1.5 sm:px-2 rounded-lg border border-[var(--pw-hairline)] dark:border-white/20 bg-[var(--pw-card)] dark:bg-slate-800/95 text-xs sm:text-sm font-bold font-mono text-[var(--pw-ink)] hover:bg-[var(--pw-primary)]/20 hover:border-[var(--pw-primary)]/50 active:scale-95 active:bg-[var(--pw-primary)]/30 transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-xs select-none",
+                      (op === "(" || op === ")") && (mathPreview !== null ? "hidden min-[420px]:flex" : "hidden min-[340px]:flex")
+                    )}
+                    aria-label={`ใส่เครื่องหมาย ${op}`}
+                  >
+                    {op === "*" ? "×" : op === "/" ? "÷" : op}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Prominent Calculation Result Action Button */}
+            {/* Prominent Calculation Result Action Button - Never Overflows or Clips */}
             {mathPreview !== null && (
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => applyMathResult(mathPreview)}
-                className="h-9 px-3 rounded-lg text-xs font-mono font-bold bg-[var(--pw-primary)] text-white shadow-xs hover:bg-[var(--pw-primary)]/90 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 ml-auto cursor-pointer animate-in fade-in zoom-in-95 duration-150"
+                className="h-8 px-2 sm:px-2.5 rounded-lg text-xs font-mono font-bold bg-[var(--pw-primary)] text-white shadow-xs hover:bg-[var(--pw-primary)]/90 active:scale-95 transition-all flex items-center gap-1 shrink-0 ml-auto cursor-pointer animate-in fade-in zoom-in-95 duration-150"
                 title="คลิกหรือกด Enter เพื่อใช้ยอดนี้"
               >
-                <span>= {mathPreview}฿</span>
-                <span className="text-[10px] bg-white/25 px-1 py-0.2 rounded font-sans">ใช้ยอดนี้</span>
+                <span className="truncate max-w-[100px] sm:max-w-none">= {mathPreview}฿</span>
+                <span className="text-[10px] bg-white/25 px-1 py-0.5 rounded font-sans hidden min-[390px]:inline">
+                  ใช้ยอดนี้
+                </span>
               </button>
             )}
           </div>

@@ -17,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormField } from "@/components/ui/form-field";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { triggerHaptic } from "@/lib/haptic";
 import {
   AlertCircle,
   Check,
@@ -134,9 +135,17 @@ export function RolesManager() {
           </p>
         </div>
 
-        <Button type="button" variant="default" onClick={openCreateDialog}>
+        <Button
+          type="button"
+          variant="default"
+          onClick={() => {
+            triggerHaptic("medium");
+            openCreateDialog();
+          }}
+          className="min-h-[44px] sm:min-h-0 text-xs sm:text-sm font-semibold shadow-xs active:scale-95 transition-all"
+        >
           <Plus className="size-4" />
-          เพิ่มบทบาทใหม่
+          <span>เพิ่มบทบาทใหม่</span>
         </Button>
       </div>
 
@@ -196,11 +205,14 @@ export function RolesManager() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => openEditDialog(role)}
-                  className="h-8 text-xs"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    openEditDialog(role);
+                  }}
+                  className="min-h-[40px] sm:min-h-0 h-9 sm:h-8 text-xs font-semibold px-3 active:scale-95 transition-all"
                 >
                   <Edit2 className="size-3.5 text-[var(--pw-primary)]" />
-                  แก้ไข
+                  <span>แก้ไข</span>
                 </Button>
 
                 {!isSystemRole && (
@@ -210,16 +222,19 @@ export function RolesManager() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-8 text-xs text-[var(--pw-expense)] hover:text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10"
+                        className="min-h-[40px] sm:min-h-0 h-9 sm:h-8 text-xs text-[var(--pw-expense)] hover:text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 px-3 active:scale-95 transition-all"
                       >
                         <Trash2 className="size-3.5" />
-                        ลบ
+                        <span>ลบ</span>
                       </Button>
                     }
                     title={`ยืนยันการลบบทบาท "${role.name}"`}
                     description="หากลบบทบาทนี้ ผู้ใช้ที่มีบทบาทนี้จะถูกนำออกจากบทบาทโดยอัตโนมัติ การดำเนินการนี้ไม่สามารถยกเลิกได้"
                     confirmLabel="ลบบทบาท"
-                    onConfirm={() => handleDelete(role)}
+                    onConfirm={() => {
+                      triggerHaptic("heavy");
+                      handleDelete(role);
+                    }}
                     pending={deleteMutation.isPending}
                   />
                 )}
@@ -239,8 +254,35 @@ export function RolesManager() {
         title={editingRole ? `แก้ไขบทบาท: ${editingRole.name}` : "เพิ่มบทบาทใหม่"}
         description={editingRole ? "แก้ไขชื่อหรือเปิด/ปิดการใช้งานบทบาทนี้" : "กำหนดชื่อและหน้าที่ความรับผิดชอบของบทบาทใหม่"}
         className="sm:max-w-md"
+        footer={
+          <div className="flex flex-col gap-2.5 w-full">
+            <Button
+              type="submit"
+              form="role-form"
+              variant="default"
+              className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md disabled:opacity-85 disabled:text-white active:scale-[0.98] transition-all cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {createMutation.isPending || updateMutation.isPending ? (
+                <LoaderCircle className="size-4 animate-spin mr-1.5" />
+              ) : (
+                <Check className="size-4 mr-1.5" />
+              )}
+              {editingRole ? "บันทึกการแก้ไข" : "สร้างบทบาท"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              onClick={closeDialog}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              ยกเลิก
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4 sm:px-6">
+        <form id="role-form" onSubmit={handleSubmit} className="space-y-4 px-1 py-1">
           {formError && (
             <div className="flex items-center gap-2 p-3 text-xs text-[var(--pw-magenta)] bg-[var(--pw-magenta)]/10 border border-[var(--pw-magenta)]/30 rounded-[var(--pw-rounded-xs)]">
               <AlertCircle className="size-4 shrink-0 text-[var(--pw-magenta)]" />
@@ -282,31 +324,6 @@ export function RolesManager() {
               เปิดใช้งานบทบาทนี้
             </Label>
           </div>
-
-          <BottomSheetFooter>
-            <Button
-              type="submit"
-              variant="default"
-              className="w-full sm:w-auto"
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {createMutation.isPending || updateMutation.isPending ? (
-                <LoaderCircle className="size-4 animate-spin mr-1.5" />
-              ) : (
-                <Check className="size-4 mr-1.5" />
-              )}
-              {editingRole ? "บันทึกการแก้ไข" : "สร้างบทบาท"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={closeDialog}
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              ยกเลิก
-            </Button>
-          </BottomSheetFooter>
         </form>
       </BottomSheet>
     </div>

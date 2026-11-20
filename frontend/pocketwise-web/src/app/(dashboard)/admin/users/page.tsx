@@ -58,7 +58,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BottomSheet, BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { ListRowsSkeleton } from "@/components/shared/Skeletons";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -655,6 +655,33 @@ export default function AdminUsersPage() {
         title="ตัวกรองบัญชีผู้ใช้งาน"
         description="เลือกเงื่อนไขเพื่อคัดกรองรายชื่อผู้ใช้งานในระบบ"
         className="sm:max-w-md"
+        footer={
+          <div className="flex flex-col gap-2.5 w-full">
+            <Button
+              type="button"
+              className="w-full min-h-[44px] bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white font-bold shadow-md active:scale-[0.98] transition-all cursor-pointer"
+              onClick={() => {
+                triggerHaptic("light");
+                setPage(1);
+                setShowFilterSheet(false);
+              }}
+            >
+              ใช้ตัวกรอง ({activeFilterCount})
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              onClick={() => {
+                triggerHaptic("medium");
+                resetFilters();
+              }}
+            >
+              <RotateCcw className="size-3.5 mr-1" />
+              ล้างตัวกรอง
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 py-2">
           <div>
@@ -713,29 +740,6 @@ export default function AdminUsersPage() {
               </SelectContent>
             </Select>
           </div>
-
-          {/* BottomSheet Button Hierarchy: Confirm on TOP, Cancel/Reset on BOTTOM */}
-          <BottomSheetFooter>
-            <Button
-              type="button"
-              className="w-full"
-              onClick={() => {
-                setPage(1);
-                setShowFilterSheet(false);
-              }}
-            >
-              ใช้ตัวกรอง ({activeFilterCount})
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={resetFilters}
-            >
-              <RotateCcw className="size-3.5 mr-1" />
-              ล้างตัวกรอง
-            </Button>
-          </BottomSheetFooter>
         </div>
       </BottomSheet>
 
@@ -752,6 +756,31 @@ export default function AdminUsersPage() {
             : undefined
         }
         className="sm:max-w-md"
+        footer={
+          suspendTarget ? (
+            <div className="flex flex-col gap-2.5 w-full">
+              <Button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("heavy");
+                  handleConfirmSuspend();
+                }}
+                disabled={suspendMutation.isPending || !suspendReason.trim()}
+                className="w-full min-h-[44px] bg-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/90 text-white font-bold shadow-md disabled:opacity-85 disabled:text-white active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {suspendMutation.isPending ? "กำลังระงับ..." : "ยืนยันการระงับบัญชี"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSuspendTarget(null)}
+                className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              >
+                ยกเลิก
+              </Button>
+            </div>
+          ) : undefined
+        }
       >
         {suspendTarget && (
           <div className="space-y-4 py-2">
@@ -767,38 +796,44 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--pw-ink)]">
-                เหตุผลในการระงับบัญชี <span className="text-[var(--pw-expense)]">*</span>
-              </label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-[var(--pw-ink)]">
+                  เหตุผลในการระงับบัญชี <span className="text-[var(--pw-expense)]">*</span>
+                </label>
+                <span className="text-[10px] text-[var(--pw-ink)]/50">เลือกเหตุผลด่วน:</span>
+              </div>
+
+              {/* Quick Preset Pills for Suspension Reasons */}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "ตรวจพบกิจกรรมผิดปกติ",
+                  "ละเมิดข้อกำหนดการใช้งาน",
+                  "เจ้าของบัญชีแจ้งระงับ",
+                  "สแปมหรือข้อมูลเท็จ",
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setSuspendReason(preset);
+                    }}
+                    className="px-2.5 py-1 text-[11px] rounded-full border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)]/80 active:scale-95 transition-all cursor-pointer"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 rows={3}
                 value={suspendReason}
                 onChange={(e) => setSuspendReason(e.target.value)}
-                placeholder="เช่น ละเมิดข้อกำหนดการใช้งาน, ตรวจพบกิจกรรมผิดปกติ หรือแจ้งจากเจ้าของบัญชี"
+                placeholder="ระบุเหตุผล หรือเลือกจากปุ่มลัดด้านบน"
                 className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-[var(--pw-hairline)] bg-transparent text-[var(--pw-ink)] focus:outline-none focus:border-[var(--pw-expense)]"
               />
             </div>
-
-            {/* BottomSheet Button Hierarchy: Confirm on TOP, Cancel on BOTTOM */}
-            <BottomSheetFooter>
-              <Button
-                type="button"
-                onClick={handleConfirmSuspend}
-                disabled={suspendMutation.isPending || !suspendReason.trim()}
-                className="w-full min-h-[44px] bg-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/90 text-white font-bold shadow-md disabled:opacity-85 disabled:text-white"
-              >
-                {suspendMutation.isPending ? "กำลังระงับ..." : "ยืนยันการระงับบัญชี"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSuspendTarget(null)}
-                className="w-full min-h-[44px] border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/70 hover:bg-[var(--pw-surface-onyx)] text-[var(--pw-ink)] order-2 shadow-2xs"
-              >
-                ยกเลิก
-              </Button>
-            </BottomSheetFooter>
           </div>
         )}
       </BottomSheet>

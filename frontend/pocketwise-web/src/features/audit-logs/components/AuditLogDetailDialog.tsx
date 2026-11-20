@@ -23,7 +23,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
-import { BottomSheetFooter } from "@/components/ui/bottom-sheet";
+import { triggerHaptic } from "@/lib/haptic";
 import { Button } from "@/components/ui/button";
 
 interface AuditLogDetailDialogProps {
@@ -207,6 +207,18 @@ export function AuditLogDetailDialog({
       title={`รายละเอียดประวัติ #${log.auditLogId}`}
       description="บันทึกการกระทำและรายละเอียดข้อมูลก่อน/หลังเปลี่ยนแปลง"
       className="sm:max-w-3xl"
+      footer={
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic("light");
+            onClose();
+          }}
+          className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-semibold text-sm active:scale-[0.98] transition-all shadow-sm flex items-center justify-center cursor-pointer"
+        >
+          ปิด
+        </button>
+      }
     >
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6">
         {/* Metadata grid */}
@@ -482,16 +494,6 @@ export function AuditLogDetailDialog({
             ไม่มีรายละเอียด JSON เพิ่มเติมสำหรับเหตุการณ์นี้
           </div>
         )}
-        <BottomSheetFooter className="pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full min-h-[44px]"
-            onClick={onClose}
-          >
-            ปิด
-          </Button>
-        </BottomSheetFooter>
       </div>
     </BottomSheet>
   );

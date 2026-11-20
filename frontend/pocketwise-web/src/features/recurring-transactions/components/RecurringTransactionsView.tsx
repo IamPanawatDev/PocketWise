@@ -797,9 +797,15 @@ export function RecurringTransactionsView() {
                         <h2 className="mt-2 break-words text-lg font-bold">
                           <AnimatedNumber value={item.amount} />
                         </h2>
-                        <p className="text-sm text-[var(--pw-ink)]/70">
-                          {item.description || "— ไม่ระบุรายละเอียด —"}
-                        </p>
+                        {item.description ? (
+                          <p className="text-sm font-semibold text-[var(--pw-ink)]">
+                            {item.description}
+                          </p>
+                        ) : (
+                          <p className="text-xs italic font-normal text-[var(--pw-ink)]/40">
+                            (ไม่ระบุรายละเอียด)
+                          </p>
+                        )}
                         {item.categoryName && (
                           <p className="text-xs text-[var(--pw-ink)]/50 mt-0.5">
                             หมวดหมู่: {item.categoryName}

@@ -96,6 +96,7 @@ export default function AdminAnnouncementsPage() {
   }
 
   const handleOpenCreate = () => {
+    triggerHaptic("light");
     setEditingId(null);
     setTitle("");
     setMessage("");
@@ -122,11 +123,13 @@ export default function AdminAnnouncementsPage() {
   };
 
   const handleAddTargetRule = () => {
+    triggerHaptic("light");
     setTargets([...targets, { targetType: "All" }]);
   };
 
   const handleRemoveTargetRule = (index: number) => {
     if (targets.length === 1) return;
+    triggerHaptic("medium");
     setTargets(targets.filter((_, i) => i !== index));
   };
 
@@ -385,7 +388,10 @@ export default function AdminAnnouncementsPage() {
       <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-4 z-30 md:hidden">
         <button
           type="button"
-          onClick={handleOpenCreate}
+          onClick={() => {
+            triggerHaptic("medium");
+            handleOpenCreate();
+          }}
           className="flex size-14 items-center justify-center rounded-full bg-gradient-to-tr from-[var(--pw-primary)] to-blue-500 text-white shadow-xl shadow-blue-500/35 active:scale-90 transition-transform cursor-pointer border border-white/20"
           aria-label="สร้างประกาศใหม่"
         >
@@ -507,12 +513,25 @@ export default function AdminAnnouncementsPage() {
               หากมีหลายเงื่อนไข ระบบจะรวมกลุ่มเป้าหมาย (Union) ให้ผู้ใช้ที่ตรงเงื่อนไขใดเงื่อนไขหนึ่งเห็นประกาศ
             </p>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {targets.map((rule, idx) => (
                 <div
                   key={idx}
-                  className="p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-hairline)]/10 flex flex-wrap items-center gap-2"
+                  className="p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 sm:bg-[var(--pw-hairline)]/10 space-y-2.5 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-2 shadow-xs"
                 >
+                  <div className="flex items-center justify-between sm:hidden pb-1 border-b border-[var(--pw-hairline)]/60 text-xs">
+                    <span className="font-medium text-[var(--pw-ink)]/70">เงื่อนไขที่ {idx + 1}</span>
+                    {targets.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTargetRule(idx)}
+                        className="text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 active:scale-90 p-1 rounded-md transition-all flex items-center gap-1 text-[11px]"
+                      >
+                        <Trash2 className="size-3.5" /> ลบ
+                      </button>
+                    )}
+                  </div>
+
                   <div className="w-full sm:w-48">
                     <Select
                       value={rule.targetType}
@@ -570,7 +589,8 @@ export default function AdminAnnouncementsPage() {
                     <button
                       type="button"
                       onClick={() => handleRemoveTargetRule(idx)}
-                      className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 p-2 sm:p-1 rounded-lg text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 active:scale-95 transition-all flex items-center justify-center ml-auto"
+                      className="hidden sm:flex min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 p-2 sm:p-1 rounded-lg text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 active:scale-95 transition-all items-center justify-center ml-auto"
+                      title="ลบเงื่อนไขนี้"
                     >
                       <X className="size-4" />
                     </button>

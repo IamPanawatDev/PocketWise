@@ -47,6 +47,7 @@ import { PaymentMethodBadge } from "@/components/shared/PaymentMethodBadge";
 import { TransactionCardsSkeleton } from "@/components/shared/Skeletons";
 import { TransactionForm } from "./TransactionForm";
 import { formatDisplayDate, formatDisplayDateTime, getRecentMonthOptions } from "@/lib/date-utils";
+import { triggerHaptic } from "@/lib/haptic";
 import {
   ArrowDownRight,
   Calendar,
@@ -438,27 +439,27 @@ export function TransactionList({
         className="hidden sm:flex mb-6"
       />
 
-      {/* Mobile-Only Top Compact Header (< sm) */}
-      <div className="flex sm:hidden items-center justify-between mb-2.5 pt-0.5">
+      {/* Mobile-Only Top Compact Header (< sm) - Sleek Native Header */}
+      <div className="flex sm:hidden items-center justify-between mb-2 pt-0.5">
         <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-xl bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] shadow-2xs">
-            <ReceiptText className="size-4.5" />
+          <div className="flex size-7.5 items-center justify-center rounded-xl bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] shadow-2xs">
+            <ReceiptText className="size-4" />
           </div>
-          <div>
-            <h1 className="text-base font-bold text-[var(--pw-ink)] leading-tight">รายการรายรับ-รายจ่าย</h1>
-            <p className="text-[11px] text-[var(--pw-ink)]/60">
-              {data?.totalItems ?? 0} รายการ
-            </p>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-sm font-bold text-[var(--pw-ink)] leading-tight">รายการรายรับ-รายจ่าย</h1>
+            <span className="rounded-full bg-[var(--pw-hairline)]/60 px-2 py-0.5 text-[10px] font-mono text-[var(--pw-ink)]/60">
+              {data?.totalItems ?? 0}
+            </span>
           </div>
         </div>
-        <Button
-          size="sm"
-          className="h-8.5 px-3 text-xs font-semibold gap-1.5 shadow-xs bg-[var(--pw-primary)] text-white hover:bg-[var(--pw-primary)]/90 cursor-pointer"
-          onClick={() => { setEditing(null); setShowForm(true); }}
+        <Link
+          href="/reports"
+          onClick={() => triggerHaptic("light")}
+          className="text-[11px] font-semibold text-[var(--pw-primary)] hover:underline flex items-center gap-0.5 active:scale-95 transition-all"
         >
-          <Plus className="size-3.5 stroke-[2.5]" />
-          <span>เพิ่มรายการ</span>
-        </Button>
+          <span>ดูรายงาน</span>
+          <ChevronRight className="size-3" />
+        </Link>
       </div>
 
       <BottomSheet
@@ -483,15 +484,9 @@ export function TransactionList({
         />
       </BottomSheet>
 
-      {/* Mobile: Ultra-Clean Financial Pulse Bar (Single Row, ~50px, 3 Columns) */}
-      <div className="mb-2.5 block sm:hidden">
+      {/* Mobile: Ultra-Clean Financial Pulse Bar (Single Row, ~44px, 3 Columns) */}
+      <div className="mb-2 block sm:hidden">
         <div className="relative overflow-hidden rounded-xl border border-[var(--pw-hairline)]/70 bg-[var(--pw-surface)]/75 p-2 shadow-xs backdrop-blur-md">
-          <div className="flex items-center justify-between pb-1 mb-1 border-b border-[var(--pw-hairline)]/50 text-[10px] text-[var(--pw-ink)]/60">
-            <span>สรุปตามเงื่อนไข</span>
-            <Link href="/reports" className="text-[var(--pw-primary)] font-semibold hover:underline">
-              ดูรายงาน →
-            </Link>
-          </div>
           <div className="grid grid-cols-3 divide-x divide-[var(--pw-hairline)]/60 text-center items-center">
             <div className="px-1">
               <p className="text-[10px] text-[var(--pw-ink)]/60 font-medium">รายรับ</p>
@@ -555,10 +550,13 @@ export function TransactionList({
       </div>
 
       {/* 1-Tap Quick Period Filter Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar mb-2.5">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar mb-2">
         <button
           type="button"
-          onClick={() => handleFilterChange({ fromDate: undefined, toDate: undefined })}
+          onClick={() => {
+            triggerHaptic("light");
+            handleFilterChange({ fromDate: undefined, toDate: undefined });
+          }}
           className={cn(
             "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 transition-all cursor-pointer border active:scale-95",
             activeQuickPeriod === "all"
@@ -571,6 +569,7 @@ export function TransactionList({
         <button
           type="button"
           onClick={() => {
+            triggerHaptic("light");
             const today = getTodayRange();
             handleFilterChange({
               fromDate: thailandDateBoundaryToUtcIso(today.from),
@@ -589,6 +588,7 @@ export function TransactionList({
         <button
           type="button"
           onClick={() => {
+            triggerHaptic("light");
             const week = getThisWeekRange();
             handleFilterChange({
               fromDate: thailandDateBoundaryToUtcIso(week.from),
@@ -607,6 +607,7 @@ export function TransactionList({
         <button
           type="button"
           onClick={() => {
+            triggerHaptic("light");
             const month = getThisMonthRange();
             handleFilterChange({
               fromDate: thailandDateBoundaryToUtcIso(month.from),
@@ -625,6 +626,7 @@ export function TransactionList({
         <button
           type="button"
           onClick={() => {
+            triggerHaptic("light");
             const year = getThisYearRange();
             handleFilterChange({
               fromDate: thailandDateBoundaryToUtcIso(year.from),
@@ -643,10 +645,13 @@ export function TransactionList({
       </div>
 
       {/* 1-Tap Quick Transaction Type Switcher */}
-      <div className="grid grid-cols-3 gap-1 p-0.5 sm:p-1 rounded-xl bg-[var(--pw-surface-indigo)]/50 border border-[var(--pw-hairline)] mb-2.5">
+      <div className="grid grid-cols-3 gap-1 p-0.5 sm:p-1 rounded-xl bg-[var(--pw-surface-indigo)]/50 border border-[var(--pw-hairline)] mb-2">
         <button
           type="button"
-          onClick={() => handleFilterChange({ type: undefined })}
+          onClick={() => {
+            triggerHaptic("light");
+            handleFilterChange({ type: undefined });
+          }}
           className={cn(
             "py-1 sm:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center",
             !filter.type
@@ -658,7 +663,10 @@ export function TransactionList({
         </button>
         <button
           type="button"
-          onClick={() => handleFilterChange({ type: "expense" })}
+          onClick={() => {
+            triggerHaptic("light");
+            handleFilterChange({ type: "expense" });
+          }}
           className={cn(
             "py-1 sm:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-1",
             filter.type === "expense"
@@ -671,7 +679,10 @@ export function TransactionList({
         </button>
         <button
           type="button"
-          onClick={() => handleFilterChange({ type: "income" })}
+          onClick={() => {
+            triggerHaptic("light");
+            handleFilterChange({ type: "income" });
+          }}
           className={cn(
             "py-1 sm:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-1",
             filter.type === "income"
@@ -685,8 +696,8 @@ export function TransactionList({
       </div>
 
       {/* Search & Filter Trigger Bar */}
-      <div className="mb-3 space-y-2">
-        <div className="flex items-center gap-2">
+      <div className="mb-2.5 space-y-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--pw-ink)]/50 pointer-events-none" />
             <Input
@@ -701,17 +712,19 @@ export function TransactionList({
             type="button"
             variant="outline"
             className={cn(
-              "shrink-0 relative gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-3 text-xs font-medium transition-all shadow-xs",
+              "shrink-0 relative gap-1.5 h-9 sm:h-10 px-2.5 sm:px-3 text-xs font-medium transition-all shadow-xs cursor-pointer active:scale-95",
               activeFilterCount > 0
                 ? "border-[var(--pw-primary)] bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] hover:bg-[var(--pw-primary)]/25 font-semibold"
                 : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]",
             )}
-
-            onClick={() => setShowFilterSheet(true)}
+            onClick={() => {
+              triggerHaptic("light");
+              setShowFilterSheet(true);
+            }}
             aria-label="เปิดตัวกรองรายการ"
           >
             <SlidersHorizontal className="size-3.5 sm:size-4" />
-            <span>ตัวกรอง</span>
+            <span className="hidden xs:inline">ตัวกรอง</span>
             {activeFilterCount > 0 && (
               <span className="flex size-4.5 sm:size-5 items-center justify-center rounded-full bg-[var(--pw-primary)] text-[10px] sm:text-[11px] font-bold text-[var(--pw-on-primary)]">
                 {activeFilterCount}
@@ -723,12 +736,15 @@ export function TransactionList({
             type="button"
             variant={isSelectionMode ? "default" : "outline"}
             className={cn(
-              "shrink-0 gap-1.5 h-9 sm:h-10 px-2.5 sm:px-3 text-xs font-medium transition-all shadow-xs",
+              "shrink-0 gap-1.5 h-9 sm:h-10 px-2.5 sm:px-3 text-xs font-medium transition-all shadow-xs cursor-pointer active:scale-95",
               isSelectionMode
                 ? "bg-[var(--pw-primary)] text-[var(--pw-on-primary)] hover:bg-[var(--pw-primary)]/90"
                 : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)] text-[var(--pw-ink)] hover:bg-[var(--pw-surface-onyx)]"
             )}
-            onClick={toggleSelectionMode}
+            onClick={() => {
+              triggerHaptic("medium");
+              toggleSelectionMode();
+            }}
             aria-label={isSelectionMode ? "ยกเลิกโหมดเลือกหลายรายการ" : "เปิดโหมดเลือกหลายรายการ"}
           >
             <CheckSquare className="size-3.5 sm:size-4" />
@@ -1294,8 +1310,10 @@ export function TransactionList({
                       onClick={() => {
                         if (deletingId === t.transactionId) return;
                         if (isSelectionMode) {
+                          triggerHaptic("light");
                           toggleSelectItem(t.transactionId);
                         } else {
+                          triggerHaptic("light");
                           setSelectedTransaction(t);
                         }
                       }}
@@ -1347,9 +1365,15 @@ export function TransactionList({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-sm text-[var(--pw-ink)]">
-                          {t.description || "(ไม่ระบุรายละเอียด)"}
-                        </p>
+                        {t.description ? (
+                          <p className="truncate font-semibold text-sm text-[var(--pw-ink)]">
+                            {t.description}
+                          </p>
+                        ) : (
+                          <p className="truncate font-normal text-xs text-[var(--pw-ink)]/40 italic">
+                            (ไม่ระบุรายละเอียด)
+                          </p>
+                        )}
                         <div className="flex items-center gap-1.5 text-[11px] text-[var(--pw-ink)]/60 mt-0.5 truncate">
                           <span className="truncate">{t.categoryName ?? "ไม่มีหมวดหมู่"}</span>
                           <span>•</span>
@@ -1451,7 +1475,7 @@ export function TransactionList({
                                 {t.description}
                               </p>
                             ) : (
-                              <p className="break-words text-sm italic font-normal text-[var(--pw-ink)]/40">
+                              <p className="break-words text-xs italic font-normal text-[var(--pw-ink)]/40">
                                 (ไม่ระบุรายละเอียด)
                               </p>
                             )}
@@ -1651,11 +1675,12 @@ export function TransactionList({
         description="ข้อมูลและจัดการรายการธุรกรรม"
         footer={
           selectedTransaction ? (
-            <div className="flex flex-col gap-2 w-full">
+            <div className="flex flex-col gap-2.5 w-full">
               <Button
                 type="button"
-                className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
+                className="w-full min-h-[44px] text-sm font-semibold shadow-sm cursor-pointer bg-[var(--pw-primary)] hover:bg-[var(--pw-primary-hover)] text-white order-1 active:scale-[0.98] transition-all"
                 onClick={() => {
+                  triggerHaptic("medium");
                   const itemToEdit = selectedTransaction;
                   setSelectedTransaction(null);
                   setTimeout(() => {
@@ -1670,10 +1695,11 @@ export function TransactionList({
 
               <ConfirmDialog
                 title="ลบรายการนี้?"
-                description="การลบจะไม่สามารถย้อนกลับได้"
-                confirmLabel="ลบ"
+                description="การลบจะไม่สามารถย้อนกลับได้ ข้อมูลรายการนี้จะถูกลบออกจากระบบอย่างถาวร"
+                confirmLabel="ลบรายการ"
                 pending={deletingId === selectedTransaction.transactionId}
                 onConfirm={() => {
+                  triggerHaptic("heavy");
                   const id = selectedTransaction.transactionId;
                   setDeletingId(id);
                   const toastId = toast.loading("กำลังลบรายการ...");
@@ -1692,19 +1718,31 @@ export function TransactionList({
                 trigger={
                   <Button
                     type="button"
-                    variant="destructive"
+                    variant="outline"
                     disabled={deletingId === selectedTransaction.transactionId}
-                    className="w-full h-11 text-sm font-semibold shadow-sm cursor-pointer"
+                    className="w-full min-h-[44px] text-sm font-semibold shadow-sm cursor-pointer border-[var(--pw-expense)]/40 text-[var(--pw-expense)] hover:bg-[var(--pw-expense)]/10 hover:border-[var(--pw-expense)] order-2 active:scale-[0.98] transition-all"
                   >
                     {deletingId === selectedTransaction.transactionId ? (
                       <LoaderCircle className="size-4 mr-1.5 animate-spin" />
                     ) : (
                       <Trash2 className="size-4 mr-1.5" />
                     )}
-                    {deletingId === selectedTransaction.transactionId ? "กำลังลบ..." : "ลบรายการ"}
+                    {deletingId === selectedTransaction.transactionId ? "กำลังลบ..." : "ลบรายการนี้"}
                   </Button>
                 }
               />
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full min-h-[44px] text-sm font-medium border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-onyx)] order-3 active:scale-[0.98] transition-all"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setSelectedTransaction(null);
+                }}
+              >
+                ปิด
+              </Button>
             </div>
           ) : null
         }
@@ -1742,7 +1780,11 @@ export function TransactionList({
             <div className="space-y-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/30 p-3.5 text-xs">
               <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
                 <span className="text-[var(--pw-ink)]/60">รายละเอียด / ร้านค้า</span>
-                <span className="font-semibold text-[var(--pw-ink)] text-right">{selectedTransaction.description || "-"}</span>
+                {selectedTransaction.description ? (
+                  <span className="font-semibold text-[var(--pw-ink)] text-right">{selectedTransaction.description}</span>
+                ) : (
+                  <span className="font-normal text-xs italic text-[var(--pw-ink)]/40 text-right">(ไม่ระบุรายละเอียด)</span>
+                )}
               </div>
               <div className="flex justify-between items-center py-1 border-b border-[var(--pw-hairline)]">
                 <span className="text-[var(--pw-ink)]/60">หมวดหมู่</span>
