@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -178,6 +178,62 @@ const adminMobileShortcuts: MobileMenuCardItem[] = [
   { href: "/admin/settings", label: "การตั้งค่าระบบ", icon: Sliders, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
   { href: "/audit-logs", label: "ประวัติการใช้งาน", icon: History, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
 ];
+
+const adminOperationsShortcuts: MobileMenuCardItem[] = [
+  { href: "/admin/users", label: "จัดการผู้ใช้งาน", icon: Users, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
+  { href: "/admin/imports", label: "งานนำเข้าระบบ", icon: FileStack, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+  { href: "/admin/announcements", label: "ประกาศระบบ", icon: Megaphone, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
+  { href: "/admin/categories", label: "หมวดมาตรฐาน", icon: FolderTree, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
+];
+
+const adminSecurityShortcuts: MobileMenuCardItem[] = [
+  { href: "/admin/security-events", label: "ความปลอดภัย", icon: ShieldAlert, color: "text-rose-500", bg: "bg-rose-500/10 border-rose-500/20" },
+  { href: "/admin/permissions", label: "สิทธิ์และบทบาท", icon: ShieldCheck, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
+  { href: "/audit-logs", label: "ประวัติการใช้งาน", icon: History, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
+  { href: "/admin/settings", label: "การตั้งค่าระบบ", icon: Sliders, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
+];
+
+function AdminMobileSubnav({ pathname }: { pathname: string }) {
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
+
+  useEffect(() => {
+    if (activeRef.current) {
+      activeRef.current.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [pathname]);
+
+  return (
+    <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-20 flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/95 px-2.5 py-1.5 backdrop-blur-xl md:hidden overscroll-contain shadow-2xs">
+      {adminMobileShortcuts.map((item) => {
+        const Icon = item.icon;
+        const isActive =
+          pathname === item.href ||
+          (item.href !== "/admin/overview" && pathname.startsWith(item.href));
+        return (
+          <Link
+            key={item.href}
+            ref={isActive ? activeRef : undefined}
+            href={item.href}
+            onClick={() => triggerHaptic("light")}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all active:scale-95 shadow-2xs min-h-[30px]",
+              isActive
+                ? "bg-[var(--pw-primary)] text-white font-semibold shadow-xs"
+                : "border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)]/70 hover:text-[var(--pw-ink)]"
+            )}
+          >
+            <Icon className="size-3.5" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -796,29 +852,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Mobile Admin Quick Subnav Bar (< md) */}
+        {/* Mobile Admin Quick Subnav Bar (< md) with Auto-scroll */}
         {(pathname.startsWith("/admin") || pathname === "/audit-logs") && (
-          <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-20 flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-[var(--pw-hairline)] bg-[var(--pw-surface-black)]/90 px-3 py-2 backdrop-blur-md md:hidden overscroll-contain">
-            {adminMobileShortcuts.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all active:scale-95 shadow-2xs",
-                    isActive
-                      ? "bg-[var(--pw-primary)] text-white font-semibold shadow-xs"
-                      : "border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)]/70 hover:text-[var(--pw-ink)]"
-                  )}
-                >
-                  <Icon className="size-3.5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
+          <AdminMobileSubnav pathname={pathname} />
         )}
 
         {/* Desktop Top-Right Floating Theme Toggle */}
@@ -1141,41 +1177,128 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         }
         description="เลือกเครื่องมือจัดการระบบ หรือสลับไปยังหน้าการเงิน"
       >
-        <div className="space-y-4 py-1">
-          <div className="grid grid-cols-2 gap-2">
-            {adminMobileShortcuts.map((item) => {
-              const Icon = item.icon;
-              const active = pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => {
-                    triggerHaptic("light");
-                    setIsAdminHubOpen(false);
-                  }}
-                  className={cn(
-                    "group relative flex items-center gap-2.5 rounded-xl border p-2.5 transition-all duration-150 active:scale-95",
-                    active
-                      ? "border-amber-500 bg-amber-500/15 shadow-xs"
-                      : "border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/60 hover:bg-[var(--pw-surface-indigo)]/70"
-                  )}
-                >
-                  <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border", item.bg)}>
-                    <Icon className={cn("size-4", item.color)} />
+        <div className="space-y-3.5 py-1">
+          {/* 1. Hero Card: ภาพรวมระบบ */}
+          {(() => {
+            const isOverviewActive = pathname === "/admin/overview";
+            return (
+              <Link
+                href="/admin/overview"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setIsAdminHubOpen(false);
+                }}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-2xl border transition-all active:scale-[0.98]",
+                  isOverviewActive
+                    ? "border-amber-500/60 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent shadow-sm"
+                    : "border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 hover:bg-[var(--pw-surface-indigo)]/70"
+                )}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 shadow-2xs">
+                    <LayoutDashboard className="size-5" />
                   </div>
-                  <span className={cn("text-xs font-medium truncate", active ? "text-amber-500 font-bold" : "text-[var(--pw-ink)]/85")}>
-                    {item.label}
-                  </span>
-                  {active && (
-                    <span className="absolute right-2 top-2 size-1.5 rounded-full bg-amber-500" />
-                  )}
-                </Link>
-              );
-            })}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-xs text-[var(--pw-ink)]">
+                        ภาพรวมระบบ (Overview)
+                      </span>
+                      {isOverviewActive && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-amber-500 text-white">
+                          หน้าปัจจุบัน
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[var(--pw-ink)]/60 truncate mt-0.5">
+                      ดูสถานะเซิร์ฟเวอร์, Health Pulse และสถิติรวม
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="size-4 text-[var(--pw-ink)]/40 shrink-0" />
+              </Link>
+            );
+          })()}
+
+          {/* 2. Section: การจัดการและข้อมูล (Operations) */}
+          <div className="space-y-1.5 pt-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--pw-ink)]/50 px-1">
+              การจัดการและข้อมูล (Operations)
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {adminOperationsShortcuts.map((item) => {
+                const Icon = item.icon;
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setIsAdminHubOpen(false);
+                    }}
+                    className={cn(
+                      "group relative flex items-center gap-2.5 rounded-xl border p-2.5 min-h-[50px] transition-all duration-150 active:scale-95",
+                      active
+                        ? "border-amber-500/60 bg-amber-500/15 shadow-2xs"
+                        : "border-[var(--pw-hairline)] bg-[var(--pw-surface)]/70 hover:bg-[var(--pw-surface-indigo)]/70"
+                    )}
+                  >
+                    <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border", item.bg)}>
+                      <Icon className={cn("size-4", item.color)} />
+                    </div>
+                    <span className={cn("text-xs font-medium truncate", active ? "text-amber-500 font-bold" : "text-[var(--pw-ink)]/85")}>
+                      {item.label}
+                    </span>
+                    {active && (
+                      <span className="absolute right-2 top-2 size-1.5 rounded-full bg-amber-500" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Quick Return to Personal Finance */}
+          {/* 3. Section: ความปลอดภัยและระบบ (Security & Governance) */}
+          <div className="space-y-1.5 pt-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--pw-ink)]/50 px-1">
+              ความปลอดภัยและระบบ (Security & Governance)
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {adminSecurityShortcuts.map((item) => {
+                const Icon = item.icon;
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setIsAdminHubOpen(false);
+                    }}
+                    className={cn(
+                      "group relative flex items-center gap-2.5 rounded-xl border p-2.5 min-h-[50px] transition-all duration-150 active:scale-95",
+                      active
+                        ? "border-amber-500/60 bg-amber-500/15 shadow-2xs"
+                        : "border-[var(--pw-hairline)] bg-[var(--pw-surface)]/70 hover:bg-[var(--pw-surface-indigo)]/70"
+                    )}
+                  >
+                    <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg border", item.bg)}>
+                      <Icon className={cn("size-4", item.color)} />
+                    </div>
+                    <span className={cn("text-xs font-medium truncate", active ? "text-amber-500 font-bold" : "text-[var(--pw-ink)]/85")}>
+                      {item.label}
+                    </span>
+                    {active && (
+                      <span className="absolute right-2 top-2 size-1.5 rounded-full bg-amber-500" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4. Quick Return to Personal Finance */}
           <div className="pt-2 border-t border-[var(--pw-hairline)]">
             <Link
               href="/transactions"
@@ -1183,15 +1306,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 triggerHaptic("medium");
                 setIsAdminHubOpen(false);
               }}
-              className="flex items-center justify-between p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 hover:bg-[var(--pw-surface-indigo)] active:scale-98 transition text-xs font-semibold text-[var(--pw-ink)]"
+              className="flex items-center justify-between p-3 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/50 hover:bg-[var(--pw-surface-indigo)] active:scale-98 transition text-xs font-semibold text-[var(--pw-ink)] shadow-2xs"
             >
               <div className="flex items-center gap-2.5">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-[var(--pw-primary)]/15 text-[var(--pw-primary)]">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/20 shadow-2xs">
                   <ReceiptText className="size-4" />
                 </div>
                 <div>
-                  <p className="font-semibold text-xs text-[var(--pw-ink)]">กลับสู่หน้าบันทึกการเงิน</p>
-                  <p className="text-[10px] text-[var(--pw-ink)]/60">ดูรายการ รายรับ-รายจ่ายส่วนตัว</p>
+                  <p className="font-semibold text-xs text-[var(--pw-ink)]">กลับสู่หน้าบันทึกการเงินส่วนตัว</p>
+                  <p className="text-[10px] text-[var(--pw-ink)]/60">ดูรายการ รายรับ-รายจ่าย และบัญชีเงินฝาก</p>
                 </div>
               </div>
               <ChevronRight className="size-4 text-[var(--pw-ink)]/40" />

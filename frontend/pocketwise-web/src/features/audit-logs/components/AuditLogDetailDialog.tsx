@@ -1,10 +1,27 @@
 "use client";
 
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { formatDisplayDateTime } from "@/lib/date-utils";
 import type { AuditLogResponse } from "@/types/audit-log.types";
-import { CheckCircle2, Clock, FileCode, Layers, Tag, User, Copy, Check, Sparkles, Image as ImageIcon, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Code,
+  Copy,
+  FileCode,
+  Image as ImageIcon,
+  Layers,
+  Sparkles,
+  Tag,
+  User,
+} from "lucide-react";
 import { toast } from "sonner";
 import { BottomSheetFooter } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
@@ -46,12 +63,58 @@ function getActionBadge(action: string) {
   }
 }
 
+interface FieldDiff {
+  key: string;
+  beforeVal: unknown;
+  afterVal: unknown;
+  status: "modified" | "added" | "removed";
+}
+
+function computeFieldDiffs(
+  before: Record<string, unknown> | null | undefined,
+  after: Record<string, unknown> | null | undefined
+): FieldDiff[] {
+  if (!before && !after) return [];
+  const b = before && typeof before === "object" ? before : {};
+  const a = after && typeof after === "object" ? after : {};
+  const allKeys = Array.from(new Set([...Object.keys(b), ...Object.keys(a)]));
+
+  const diffs: FieldDiff[] = [];
+  for (const key of allKeys) {
+    const hasBefore = key in b;
+    const hasAfter = key in a;
+    const valBefore = b[key];
+    const valAfter = a[key];
+
+    const strBefore = JSON.stringify(valBefore);
+    const strAfter = JSON.stringify(valAfter);
+
+    if (hasBefore && !hasAfter) {
+      diffs.push({ key, beforeVal: valBefore, afterVal: undefined, status: "removed" });
+    } else if (!hasBefore && hasAfter) {
+      diffs.push({ key, beforeVal: undefined, afterVal: valAfter, status: "added" });
+    } else if (strBefore !== strAfter) {
+      diffs.push({ key, beforeVal: valBefore, afterVal: valAfter, status: "modified" });
+    }
+  }
+
+  return diffs;
+}
+
+function formatDiffVal(val: unknown): string {
+  if (val === null || val === undefined) return "null";
+  if (typeof val === "boolean") return val ? "true" : "false";
+  if (typeof val === "object") return JSON.stringify(val);
+  return String(val);
+}
+
 export function AuditLogDetailDialog({
   log,
   open,
   onClose,
 }: AuditLogDetailDialogProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showRawJson, setShowRawJson] = useState(false);
 
   const handleCopy = async (text: string, label: string) => {
     try {
@@ -82,6 +145,15 @@ export function AuditLogDetailDialog({
     typeof parsedDetails === "object" &&
     "before" in (parsedDetails as Record<string, unknown>) &&
     "after" in (parsedDetails as Record<string, unknown>);
+
+  const beforeObj = isDiffObject
+    ? ((parsedDetails as Record<string, unknown>).before as Record<string, unknown>)
+    : null;
+  const afterObj = isDiffObject
+    ? ((parsedDetails as Record<string, unknown>).after as Record<string, unknown>)
+    : null;
+
+  const fieldDiffs = isDiffObject ? computeFieldDiffs(beforeObj, afterObj) : [];
 
   const slipDetailsObj =
     log.entityType === "SlipImportFiles" &&
@@ -245,60 +317,139 @@ export function AuditLogDetailDialog({
           </div>
         )}
 
-        {/* Change details / Before & After diff */}
+        {/* Change details / Visual Field Diff Inspector */}
         {isDiffObject ? (
           <div className="space-y-3">
-            <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--pw-ink)]">
-              <FileCode className="size-4 text-[var(--pw-primary)]" />
-              เปรียบเทียบข้อมูลก่อนและหลังการแก้ไข
-            </h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-[var(--pw-rounded-sm)] border border-rose-500/30 bg-rose-950/20 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-rose-400">ก่อนแก้ไข</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleCopy(
-                        JSON.stringify((parsedDetails as Record<string, unknown>).before, null, 2),
-                        "ข้อมูลก่อนแก้ไข"
-                      )
-                    }
-                    className="min-h-[32px] px-2 py-1 text-[11px] rounded border border-rose-500/40 text-rose-300 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center gap-1"
-                    title="คัดลอกข้อมูลก่อนแก้ไข"
-                  >
-                    {copiedField === "ข้อมูลก่อนแก้ไข" ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                    <span>{copiedField === "ข้อมูลก่อนแก้ไข" ? "คัดลอกแล้ว" : "คัดลอก"}</span>
-                  </button>
-                </div>
-                <pre className="max-h-64 overflow-auto rounded bg-black/40 p-2 font-mono text-xs text-[var(--pw-ink)]/90 overscroll-contain">
-                  {JSON.stringify((parsedDetails as Record<string, unknown>).before, null, 2)}
-                </pre>
-              </div>
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--pw-ink)]">
+                <FileCode className="size-4 text-[var(--pw-primary)]" />
+                <span>การเปลี่ยนแปลงของข้อมูล</span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[var(--pw-primary)]/15 text-[var(--pw-primary)] border border-[var(--pw-primary)]/20 font-semibold">
+                  {fieldDiffs.length} ฟิลด์ที่แก้ไข
+                </span>
+              </h3>
 
-              <div className="rounded-[var(--pw-rounded-sm)] border border-emerald-500/30 bg-emerald-950/20 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-400">หลังแก้ไข</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleCopy(
-                        JSON.stringify((parsedDetails as Record<string, unknown>).after, null, 2),
-                        "ข้อมูลหลังแก้ไข"
-                      )
-                    }
-                    className="min-h-[32px] px-2 py-1 text-[11px] rounded border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 active:scale-95 transition-all flex items-center gap-1"
-                    title="คัดลอกข้อมูลหลังแก้ไข"
-                  >
-                    {copiedField === "ข้อมูลหลังแก้ไข" ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                    <span>{copiedField === "ข้อมูลหลังแก้ไข" ? "คัดลอกแล้ว" : "คัดลอก"}</span>
-                  </button>
-                </div>
-                <pre className="max-h-64 overflow-auto rounded bg-black/40 p-2 font-mono text-xs text-[var(--pw-ink)]/90 overscroll-contain">
-                  {JSON.stringify((parsedDetails as Record<string, unknown>).after, null, 2)}
-                </pre>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowRawJson(!showRawJson)}
+                className="text-xs text-[var(--pw-primary)] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Code className="size-3.5" />
+                <span>{showRawJson ? "ซ่อน JSON" : "ดู JSON ดิบ"}</span>
+                {showRawJson ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+              </button>
             </div>
+
+            {/* Visual Field Diffs List */}
+            {fieldDiffs.length > 0 ? (
+              <div className="space-y-2">
+                {fieldDiffs.map((diff) => (
+                  <div
+                    key={diff.key}
+                    className="p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/70 backdrop-blur-md space-y-1.5 shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-bold text-xs text-[var(--pw-ink)]">
+                        {diff.key}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                          diff.status === "modified"
+                            ? "bg-amber-500/15 text-amber-400 border-amber-500/25"
+                            : diff.status === "added"
+                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                            : "bg-rose-500/15 text-rose-400 border-rose-500/25"
+                        )}
+                      >
+                        {diff.status === "modified"
+                          ? "แก้ไขค่า"
+                          : diff.status === "added"
+                          ? "เพิ่มฟิลด์ใหม่"
+                          : "ลบฟิลด์ออก"}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs">
+                      {diff.status === "modified" ? (
+                        <>
+                          <span className="px-2 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono text-[11px] line-through break-all">
+                            {formatDiffVal(diff.beforeVal)}
+                          </span>
+                          <ArrowRight className="size-3 text-[var(--pw-ink)]/40 shrink-0" />
+                          <span className="px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono text-[11px] font-semibold break-all">
+                            {formatDiffVal(diff.afterVal)}
+                          </span>
+                        </>
+                      ) : diff.status === "added" ? (
+                        <span className="px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono text-[11px] font-semibold break-all">
+                          + {formatDiffVal(diff.afterVal)}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono text-[11px] line-through break-all">
+                          - {formatDiffVal(diff.beforeVal)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/40 text-center text-xs text-[var(--pw-ink)]/60">
+                ไม่มีฟิลด์ที่ตรวจพบความแตกต่าง (ข้อมูลก่อนและหลังเหมือนกัน)
+              </div>
+            )}
+
+            {/* Collapsible Raw JSON blocks */}
+            {showRawJson && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-2 border-t border-[var(--pw-hairline)]">
+                <div className="rounded-[var(--pw-rounded-sm)] border border-rose-500/30 bg-rose-950/20 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-bold text-rose-400">ก่อนแก้ไข (Before JSON)</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy(
+                          JSON.stringify(beforeObj, null, 2),
+                          "ข้อมูลก่อนแก้ไข"
+                        )
+                      }
+                      className="min-h-[32px] px-2 py-1 text-[11px] rounded border border-rose-500/40 text-rose-300 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                      title="คัดลอกข้อมูลก่อนแก้ไข"
+                    >
+                      {copiedField === "ข้อมูลก่อนแก้ไข" ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                      <span>{copiedField === "ข้อมูลก่อนแก้ไข" ? "คัดลอกแล้ว" : "คัดลอก"}</span>
+                    </button>
+                  </div>
+                  <pre className="max-h-64 overflow-auto rounded bg-black/40 p-2 font-mono text-xs text-[var(--pw-ink)]/90 overscroll-contain">
+                    {JSON.stringify(beforeObj, null, 2)}
+                  </pre>
+                </div>
+
+                <div className="rounded-[var(--pw-rounded-sm)] border border-emerald-500/30 bg-emerald-950/20 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-400">หลังแก้ไข (After JSON)</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy(
+                          JSON.stringify(afterObj, null, 2),
+                          "ข้อมูลหลังแก้ไข"
+                        )
+                      }
+                      className="min-h-[32px] px-2 py-1 text-[11px] rounded border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                      title="คัดลอกข้อมูลหลังแก้ไข"
+                    >
+                      {copiedField === "ข้อมูลหลังแก้ไข" ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                      <span>{copiedField === "ข้อมูลหลังแก้ไข" ? "คัดลอกแล้ว" : "คัดลอก"}</span>
+                    </button>
+                  </div>
+                  <pre className="max-h-64 overflow-auto rounded bg-black/40 p-2 font-mono text-xs text-[var(--pw-ink)]/90 overscroll-contain">
+                    {JSON.stringify(afterObj, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            )}
           </div>
         ) : parsedDetails ? (
           <div className="space-y-2">

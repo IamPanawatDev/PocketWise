@@ -19,7 +19,9 @@ import {
   SlidersHorizontal,
   RotateCcw,
   ChevronRight,
+  Shield,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/haptic";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import {
   useAdminUsersQuery,
@@ -536,10 +538,11 @@ export default function AdminUsersPage() {
                 <div
                   key={u.id}
                   onClick={() => {
+                    triggerHaptic("light");
                     setSelectedUserId(u.id);
                     setActiveDetailTab("profile");
                   }}
-                  className="group relative flex items-center justify-between p-3.5 hover:bg-[var(--pw-hairline)]/10 active:bg-[var(--pw-hairline)]/20 transition-all cursor-pointer"
+                  className="group relative flex items-center justify-between p-3.5 hover:bg-[var(--pw-hairline)]/10 active:bg-[var(--pw-hairline)]/20 active:scale-[0.99] transition-all cursor-pointer select-none touch-pan-y"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
                     {/* Avatar with Status Dot Indicator */}
@@ -818,6 +821,15 @@ export default function AdminUsersPage() {
         }
         description={userDetail?.email}
         className="sm:max-w-3xl"
+        footer={
+          <button
+            type="button"
+            onClick={() => setSelectedUserId(null)}
+            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-semibold text-sm active:scale-[0.98] transition-all shadow-sm flex items-center justify-center cursor-pointer"
+          >
+            ปิด
+          </button>
+        }
       >
         <div className="flex flex-col h-full">
           {/* Tabs */}
@@ -870,36 +882,122 @@ export default function AdminUsersPage() {
               </div>
             ) : activeDetailTab === "profile" ? (
               <div className="space-y-4">
-                {/* User Info Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/50 backdrop-blur-xs">
-                    <span className="text-[11px] text-[var(--pw-ink)]/60">
+                {/* Suspension reason banner if suspended */}
+                {userDetail.isSuspended && (
+                  <div className="p-3.5 rounded-xl border border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-xs space-y-1">
+                    <div className="font-bold text-[var(--pw-expense)] flex items-center gap-1.5">
+                      <UserX className="size-4" /> บัญชีนี้ถูกระงับการใช้งาน
+                    </div>
+                    <div className="text-[var(--pw-ink)]/80">
+                      เหตุผล: {userDetail.suspensionReason || "ไม่ได้ระบุเหตุผล"}
+                    </div>
+                    <div className="text-[11px] text-[var(--pw-ink)]/60">
+                      ระงับเมื่อ: {formatDisplayDateTime(userDetail.suspendedAt)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Admin Actions (Prioritized Above the Fold) */}
+                <div className="p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-[var(--pw-ink)] flex items-center gap-1.5">
+                      <Shield className="size-3.5 text-[var(--pw-primary)]" />
+                      การดำเนินการสำหรับผู้ดูแลระบบ
+                    </h4>
+                    <span className="text-[10px] text-[var(--pw-ink)]/50">Quick Actions</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {!userDetail.isEmailVerified && (
+                      <button
+                        type="button"
+                        onClick={() => handleManualVerify(userDetail)}
+                        disabled={manualVerifyMutation.isPending}
+                        className="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all active:scale-98 flex items-center gap-2.5 col-span-1 sm:col-span-2 cursor-pointer"
+                      >
+                        <UserCheck className="size-4 text-emerald-500 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-xs text-emerald-400">
+                            อนุมัติยืนยันอีเมลทันที (Manual Verify)
+                          </div>
+                          <div className="text-[10px] text-[var(--pw-ink)]/60 truncate">
+                            ยืนยันสถานะบัญชีให้ผู้ใช้ทันทีโดยไม่ต้องผ่านลิงก์อีเมล
+                          </div>
+                        </div>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleResendVerification(userDetail.id)}
+                      disabled={resendVerificationMutation.isPending || userDetail.isEmailVerified}
+                      className={cn(
+                        "p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-left transition-all active:scale-98 flex items-center gap-2.5 cursor-pointer",
+                        userDetail.isEmailVerified
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-[var(--pw-hairline)]/20"
+                      )}
+                    >
+                      <Mail className="size-4 text-[var(--pw-primary)] shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-[var(--pw-ink)]">
+                          ส่งอีเมลยืนยันตัวตนอีกครั้ง
+                        </div>
+                        <div className="text-[10px] text-[var(--pw-ink)]/60 truncate">
+                          {userDetail.isEmailVerified
+                            ? "ผู้ใช้ยืนยันอีเมลแล้ว"
+                            : "ส่งลิงก์ยืนยันไปยังอีเมล"}
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSendResetPassword(userDetail.id)}
+                      disabled={sendResetPasswordMutation.isPending}
+                      className="p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] hover:bg-[var(--pw-hairline)]/20 text-left transition-all active:scale-98 flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <KeyRound className="size-4 text-amber-500 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-[var(--pw-ink)]">
+                          ส่งลิงก์รีเซ็ตรหัสผ่าน
+                        </div>
+                        <div className="text-[10px] text-[var(--pw-ink)]/60 truncate">
+                          ส่งรหัสสำหรับตั้งรหัสผ่านใหม่ทางอีเมล
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* User Info Stats Ribbon (Compact 3-Column on mobile) */}
+                <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/50 text-center">
+                  <div>
+                    <span className="text-[10px] text-[var(--pw-ink)]/60 block truncate">
                       รายการธุรกรรม
                     </span>
-                    <div className="text-xl font-bold text-[var(--pw-ink)] mt-0.5">
+                    <div className="text-base sm:text-lg font-bold text-[var(--pw-ink)] mt-0.5">
                       {userDetail.totalTransactionsCount.toLocaleString()}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/50 backdrop-blur-xs">
-                    <span className="text-[11px] text-[var(--pw-ink)]/60">
+                  <div className="border-x border-[var(--pw-hairline)] px-1">
+                    <span className="text-[10px] text-[var(--pw-ink)]/60 block truncate">
                       บัญชีธนาคาร
                     </span>
-                    <div className="text-xl font-bold text-[var(--pw-ink)] mt-0.5">
+                    <div className="text-base sm:text-lg font-bold text-[var(--pw-ink)] mt-0.5">
                       {userDetail.totalBankAccountsCount.toLocaleString()}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/50 backdrop-blur-xs">
-                    <span className="text-[11px] text-[var(--pw-ink)]/60">
+                  <div>
+                    <span className="text-[10px] text-[var(--pw-ink)]/60 block truncate">
                       บัตรเครดิต
                     </span>
-                    <div className="text-xl font-bold text-[var(--pw-ink)] mt-0.5">
+                    <div className="text-base sm:text-lg font-bold text-[var(--pw-ink)] mt-0.5">
                       {userDetail.totalCreditCardsCount.toLocaleString()}
                     </div>
                   </div>
                 </div>
 
                 {/* Account Details Box */}
-                <div className="p-4 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/40 space-y-2 text-xs">
+                <div className="p-3.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/40 space-y-2 text-xs">
                   <div className="flex justify-between py-1 border-b border-[var(--pw-hairline)]/50">
                     <span className="text-[var(--pw-ink)]/60">วันที่สมัครสมาชิก</span>
                     <span className="font-medium text-[var(--pw-ink)]">
@@ -933,85 +1031,6 @@ export default function AdminUsersPage() {
                         )
                         .join(", ")}
                     </span>
-                  </div>
-                </div>
-
-                {/* Suspension reason if suspended */}
-                {userDetail.isSuspended && (
-                  <div className="p-3.5 rounded-xl border border-[var(--pw-expense)]/40 bg-[var(--pw-expense)]/10 text-xs space-y-1">
-                    <div className="font-bold text-[var(--pw-expense)] flex items-center gap-1.5">
-                      <UserX className="size-4" /> บัญชีนี้ถูกระงับการใช้งาน
-                    </div>
-                    <div className="text-[var(--pw-ink)]/80">
-                      เหตุผล: {userDetail.suspensionReason || "ไม่ได้ระบุเหตุผล"}
-                    </div>
-                    <div className="text-[11px] text-[var(--pw-ink)]/60">
-                      ระงับเมื่อ: {formatDisplayDateTime(userDetail.suspendedAt)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Admin Actions */}
-                <div className="pt-2">
-                  <h4 className="text-xs font-bold text-[var(--pw-ink)] mb-2.5">
-                    การดำเนินการสำหรับผู้ดูแลระบบ
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {!userDetail.isEmailVerified && (
-                      <button
-                        onClick={() => handleManualVerify(userDetail)}
-                        disabled={manualVerifyMutation.isPending}
-                        className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all duration-150 active:scale-95 flex items-center gap-2.5 col-span-1 sm:col-span-2"
-                      >
-                        <UserCheck className="size-4 text-emerald-500 shrink-0" />
-                        <div>
-                          <div className="font-medium text-xs text-emerald-400">
-                            อนุมัติยืนยันอีเมลทันที (Manual Verify)
-                          </div>
-                          <div className="text-[10px] text-[var(--pw-ink)]/60">
-                            ยืนยันสถานะบัญชีให้ผู้ใช้ทันทีโดยไม่ต้องผ่านลิงก์อีเมล
-                          </div>
-                        </div>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleResendVerification(userDetail.id)}
-                      disabled={resendVerificationMutation.isPending || userDetail.isEmailVerified}
-                      className={cn(
-                        "p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] text-left transition-all duration-150 active:scale-95 flex items-center gap-2.5",
-                        userDetail.isEmailVerified
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-[var(--pw-hairline)]/20"
-                      )}
-                    >
-                      <Mail className="size-4 text-[var(--pw-primary)] shrink-0" />
-                      <div>
-                        <div className="font-medium text-xs text-[var(--pw-ink)]">
-                          ส่งอีเมลยืนยันตัวตนอีกครั้ง
-                        </div>
-                        <div className="text-[10px] text-[var(--pw-ink)]/60">
-                          {userDetail.isEmailVerified
-                            ? "ผู้ใช้ยืนยันอีเมลแล้ว"
-                            : "ส่งลิงก์ยืนยันไปยังอีเมล"}
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => handleSendResetPassword(userDetail.id)}
-                      disabled={sendResetPasswordMutation.isPending}
-                      className="p-3 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] hover:bg-[var(--pw-hairline)]/20 text-left transition-all duration-150 active:scale-95 flex items-center gap-2.5"
-                    >
-                      <KeyRound className="size-4 text-amber-500 shrink-0" />
-                      <div>
-                        <div className="font-medium text-xs text-[var(--pw-ink)]">
-                          ส่งลิงก์รีเซ็ตรหัสผ่าน
-                        </div>
-                        <div className="text-[10px] text-[var(--pw-ink)]/60">
-                          ส่งรหัสสำหรับตั้งรหัสผ่านใหม่ทางอีเมล
-                        </div>
-                      </div>
-                    </button>
                   </div>
                 </div>
               </div>

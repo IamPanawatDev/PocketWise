@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "motion/react";
 import {
   Sliders,
@@ -9,12 +9,15 @@ import {
   Power,
   X,
   Edit2,
-  Lock,
   CheckCircle2,
   AlertTriangle,
   Settings2,
   Loader2,
+  Search,
+  ChevronRight,
+  Shield,
 } from "lucide-react";
+import { triggerHaptic } from "@/lib/haptic";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +68,15 @@ const getCategoryBadge = (key: string) => {
   return { label: "ทั่วไป", color: "bg-gray-500/10 text-gray-500 border-gray-500/20" };
 };
 
+const CATEGORY_TABS = [
+  { id: "all", label: "ทั้งหมด" },
+  { id: "jwt", label: "ความปลอดภัย & JWT" },
+  { id: "audit", label: "ประวัติการใช้งาน" },
+  { id: "token", label: "โทเคน" },
+  { id: "recurring", label: "ธุรกรรมประจำ" },
+  { id: "maintenance", label: "โหมดบำรุงรักษา" },
+];
+
 export default function AdminSettingsPage() {
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const { data: settings = [], isLoading, refetch } = useAdminSettingsQuery();
@@ -87,6 +99,30 @@ export default function AdminSettingsPage() {
   // Edit setting modal
   const [editingSetting, setEditingSetting] = useState<SystemSettingItem | null>(null);
   const [editingValue, setEditingValue] = useState("");
+
+  // Search & Category Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const filteredSettings = useMemo(() => {
+    return settings.filter((item) => {
+      if (selectedCategory !== "all") {
+        if (selectedCategory === "jwt" && !item.settingKey.startsWith("Jwt:")) return false;
+        if (selectedCategory === "audit" && !item.settingKey.startsWith("AuditLog")) return false;
+        if (selectedCategory === "token" && !item.settingKey.startsWith("RefreshToken")) return false;
+        if (selectedCategory === "recurring" && !item.settingKey.startsWith("RecurringJob")) return false;
+        if (selectedCategory === "maintenance" && !item.settingKey.startsWith("Maintenance")) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchKey = item.settingKey.toLowerCase().includes(q);
+        const matchVal = (item.settingValue || "").toLowerCase().includes(q);
+        const matchDesc = (item.description || "").toLowerCase().includes(q);
+        return matchKey || matchVal || matchDesc;
+      }
+      return true;
+    });
+  }, [settings, selectedCategory, searchQuery]);
 
 
   useEffect(() => {
@@ -178,6 +214,31 @@ export default function AdminSettingsPage() {
       toast.success("บันทึกการตั้งค่า Maintenance Mode เรียบร้อยแล้ว");
     } catch (err: any) {
       toast.error(err?.message || "เกิดข้อผิดพลาดในการบันทึกโหมดปรับปรุงระบบ");
+    }
+  };
+
+  const applyDurationPreset = (minutes: number | null) => {
+    triggerHaptic("light");
+    const now = new Date();
+    setStartsAt(now.toISOString());
+    if (minutes === null) {
+      setEndsAt("");
+    } else {
+      const end = new Date(now.getTime() + minutes * 60 * 1000);
+      setEndsAt(end.toISOString());
+    }
+  };
+
+  const handleAddCurrentUserId = () => {
+    if (!user?.id) return;
+    triggerHaptic("light");
+    const currentList = allowedUserIdsStr
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!currentList.includes(String(user.id))) {
+      currentList.push(String(user.id));
+      setAllowedUserIdsStr(currentList.join(", "));
     }
   };
 
@@ -338,9 +399,21 @@ export default function AdminSettingsPage() {
           </div>
 
           <div>
-            <label className="block font-semibold text-xs text-[var(--pw-ink)] mb-1">
-              รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้ (Allowed User IDs)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-semibold text-xs text-[var(--pw-ink)]">
+                รหัสผู้ใช้ที่ได้รับอนุญาตให้เข้าใช้งานได้ (Allowed User IDs)
+              </label>
+              {user?.id && (
+                <button
+                  type="button"
+                  onClick={handleAddCurrentUserId}
+                  className="text-[11px] font-semibold text-[var(--pw-primary)] hover:underline flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                >
+                  <Shield className="size-3" />
+                  <span>+ เพิ่ม ID ของฉัน (#{user.id})</span>
+                </button>
+              )}
+            </div>
             <Input
               type="text"
               value={allowedUserIdsStr}
@@ -351,6 +424,53 @@ export default function AdminSettingsPage() {
             <p className="text-[11px] text-[var(--pw-ink)]/50 mt-1">
               ผู้ใช้ที่มีบทบาท Admin จะได้รับอนุญาตให้เข้าใช้งานเสมอโดยอัตโนมัติ
             </p>
+          </div>
+
+          {/* Quick Duration Preset Chips */}
+          <div className="p-2.5 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/15 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-[var(--pw-ink)]">
+                ช่วงเวลาปรับปรุงด่วน (Duration Presets)
+              </span>
+              <span className="text-[10px] text-[var(--pw-ink)]/50">กดเพื่อคำนวณวันเวลาอัตโนมัติ</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => applyDurationPreset(30)}
+                className="px-2.5 py-1 text-xs rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-medium active:scale-95 transition-all cursor-pointer"
+              >
+                +30 นาที
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDurationPreset(60)}
+                className="px-2.5 py-1 text-xs rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-medium active:scale-95 transition-all cursor-pointer"
+              >
+                +1 ชั่วโมง
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDurationPreset(120)}
+                className="px-2.5 py-1 text-xs rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-medium active:scale-95 transition-all cursor-pointer"
+              >
+                +2 ชั่วโมง
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDurationPreset(240)}
+                className="px-2.5 py-1 text-xs rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)] font-medium active:scale-95 transition-all cursor-pointer"
+              >
+                +4 ชั่วโมง
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDurationPreset(null)}
+                className="px-2.5 py-1 text-xs rounded-lg border border-[var(--pw-hairline)] bg-[var(--pw-surface-onyx)] hover:bg-[var(--pw-hairline)]/30 text-[var(--pw-ink)]/70 font-medium active:scale-95 transition-all cursor-pointer"
+              >
+                จนกว่าจะปิดเอง
+              </button>
+            </div>
           </div>
 
           {/* Unified DateTimeInputs */}
@@ -440,7 +560,7 @@ export default function AdminSettingsPage() {
       </AlertDialog>
 
       {/* Section 2: General System Settings Key-Value Table */}
-      <div className="p-5 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-4">
+      <div className="p-4 sm:p-6 rounded-2xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] shadow-xs space-y-4">
         <div>
           <h2 className="font-bold text-base text-[var(--pw-ink)]">
             ตารางการตั้งค่าระบบ
@@ -448,6 +568,70 @@ export default function AdminSettingsPage() {
           <p className="text-xs text-[var(--pw-ink)]/60">
             ค่าตัวแปรคอนฟิกส่วนกลางที่จัดเก็บในตาราง SystemSettings
           </p>
+        </div>
+
+        {/* Search & Category Filter Bar */}
+        <div className="space-y-2.5">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--pw-ink)]/40 pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ค้นหาคีย์การตั้งค่า, ค่าคอนฟิก, หรือคำอธิบาย..."
+              className="pl-9 h-10 bg-[var(--pw-surface-indigo)]/50 border-[var(--pw-hairline)] text-xs sm:text-sm"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--pw-ink)]/40 hover:text-[var(--pw-ink)] cursor-pointer"
+                aria-label="ล้างคำค้นหา"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 text-xs">
+            {CATEGORY_TABS.map((tab) => {
+              const count = tab.id === "all"
+                ? settings.length
+                : settings.filter((s) => {
+                    if (tab.id === "jwt") return s.settingKey.startsWith("Jwt:");
+                    if (tab.id === "audit") return s.settingKey.startsWith("AuditLog");
+                    if (tab.id === "token") return s.settingKey.startsWith("RefreshToken");
+                    if (tab.id === "recurring") return s.settingKey.startsWith("RecurringJob");
+                    if (tab.id === "maintenance") return s.settingKey.startsWith("Maintenance");
+                    return false;
+                  }).length;
+
+              const isSelected = selectedCategory === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setSelectedCategory(tab.id);
+                  }}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-all active:scale-95 cursor-pointer",
+                    isSelected
+                      ? "bg-[var(--pw-primary)] text-white font-semibold shadow-xs"
+                      : "border border-[var(--pw-hairline)] bg-[var(--pw-surface-indigo)]/40 text-[var(--pw-ink)]/75 hover:bg-[var(--pw-surface-indigo)]"
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span className={cn(
+                    "rounded-full px-1.5 py-0.2 text-[10px] font-mono",
+                    isSelected ? "bg-white/20 text-white" : "bg-[var(--pw-hairline)]/40 text-[var(--pw-ink)]/60"
+                  )}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Loading Skeletons */}
@@ -460,9 +644,9 @@ export default function AdminSettingsPage() {
               <ListRowsSkeleton count={5} />
             </div>
           </>
-        ) : settings.length === 0 ? (
+        ) : filteredSettings.length === 0 ? (
           <div className="py-8 text-center text-[var(--pw-ink)]/60 text-xs">
-            ไม่พบรายการตั้งค่าระบบ
+            ไม่พบการตั้งค่าที่ตรงกับเงื่อนไขการค้นหา
           </div>
         ) : (
           <>
@@ -479,7 +663,7 @@ export default function AdminSettingsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--pw-hairline)]">
-                  {settings.map((item) => {
+                  {filteredSettings.map((item) => {
                     const badge = getCategoryBadge(item.settingKey);
                     return (
                       <tr
@@ -516,7 +700,7 @@ export default function AdminSettingsPage() {
                             variant="outline"
                             size="icon"
                             onClick={() => handleOpenEditSetting(item)}
-                            className="size-8"
+                            className="size-8 cursor-pointer"
                             title="แก้ไขค่านี้"
                           >
                             <Edit2 className="size-3.5" />
@@ -529,56 +713,51 @@ export default function AdminSettingsPage() {
               </table>
             </div>
 
-            {/* Mobile Card List View (< md) */}
-            <AnimatedList className="space-y-3 md:hidden">
-              {settings.map((item) => {
+            {/* Mobile Card List View (< md) - Compact Interactive Preferences Row */}
+            <AnimatedList className="space-y-2.5 md:hidden">
+              {filteredSettings.map((item) => {
                 const badge = getCategoryBadge(item.settingKey);
                 return (
                   <AnimatedListItem key={item.settingKey}>
-                    <div className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)] p-3.5 space-y-2.5 shadow-xs">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
+                    <div
+                      onClick={() => {
+                        triggerHaptic("light");
+                        handleOpenEditSetting(item);
+                      }}
+                      className="rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 hover:bg-[var(--pw-surface-indigo)]/50 active:scale-[0.98] transition-all p-3 shadow-2xs cursor-pointer select-none space-y-2"
+                    >
+                      {/* Top: Category Badge + Setting Key */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <span
                             className={cn(
-                              "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border mb-1",
+                              "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0",
                               badge.color
                             )}
                           >
                             {badge.label}
                           </span>
-                          <h4 className="font-mono font-bold text-xs text-[var(--pw-ink)] break-all">
+                          <span className="font-mono font-bold text-xs text-[var(--pw-ink)] truncate">
                             {item.settingKey}
-                          </h4>
+                          </span>
                         </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenEditSetting(item)}
-                          className="h-7 px-2.5 text-xs shrink-0 gap-1"
-                        >
-                          <Edit2 className="size-3" />
-                          <span>แก้ไข</span>
-                        </Button>
+                        <ChevronRight className="size-4 text-[var(--pw-ink)]/40 shrink-0" />
                       </div>
 
-                      <div className="p-2.5 rounded-lg bg-[var(--pw-canvas)]/60 border border-[var(--pw-hairline)]/50">
-                        <span className="text-[10px] text-[var(--pw-ink)]/50 block mb-0.5">ค่าปัจจุบัน (Value):</span>
-                        <p className="font-mono text-xs font-semibold text-[var(--pw-primary)] break-all">
+                      {/* Middle: Value Preview Capsule */}
+                      <div className="flex items-center justify-between gap-2 rounded-lg bg-[var(--pw-canvas)]/60 border border-[var(--pw-hairline)]/40 px-2.5 py-1.5">
+                        <span className="font-mono text-xs font-semibold text-[var(--pw-primary)] truncate">
                           {item.settingValue}
-                        </p>
+                        </span>
+                        <span className="text-[10px] text-[var(--pw-ink)]/45 shrink-0">แตะเพื่อแก้ไข</span>
                       </div>
 
+                      {/* Bottom: Description if available */}
                       {item.description && (
-                        <p className="text-xs text-[var(--pw-ink)]/70 leading-relaxed">
+                        <p className="text-[11px] text-[var(--pw-ink)]/60 line-clamp-1">
                           {item.description}
                         </p>
                       )}
-
-                      <div className="text-[10px] text-[var(--pw-ink)]/50 pt-1 border-t border-[var(--pw-hairline)]/50 flex justify-between">
-                        <span>อัปเดตล่าสุด:</span>
-                        <span>{formatDisplayDateTime(item.updatedAt)}</span>
-                      </div>
                     </div>
                   </AnimatedListItem>
                 );

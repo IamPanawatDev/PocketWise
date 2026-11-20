@@ -12,10 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatDisplayDateTime } from "@/lib/date-utils";
+import { triggerHaptic } from "@/lib/haptic";
 import type { AuditLogResponse } from "@/types/audit-log.types";
 import {
   ChevronLeft,
   ChevronRight,
+  Clock,
   Eye,
   FileText,
   FileUp,
@@ -23,6 +25,7 @@ import {
   Pencil,
   PlusCircle,
   Trash2,
+  User,
 } from "lucide-react";
 
 interface AuditLogTableProps {
@@ -261,48 +264,53 @@ export function AuditLogTable({
         </div>
       </Card>
 
-      {/* Mobile Card List View */}
-      <AnimatedList className="space-y-3 md:hidden">
+      {/* Mobile Card List View with Full-Card Touch Target & Scannable 2-Line Feed */}
+      <AnimatedList className="space-y-2.5 md:hidden">
         {logs.map((log) => {
           const badge = getActionBadge(log.action);
           const slipMetrics = parseSlipAuditMetrics(log);
           return (
             <AnimatedListItem key={log.auditLogId}>
-              <Card className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badge.className}`}>
+              <Card
+                onClick={() => {
+                  triggerHaptic("light");
+                  onSelectLog(log);
+                }}
+                className="p-3.5 border-[var(--pw-hairline)] bg-[var(--pw-surface)]/80 hover:bg-[var(--pw-surface-indigo)]/50 active:scale-[0.98] transition-all cursor-pointer shadow-xs select-none touch-pan-y"
+              >
+                {/* Top Row: Action Badge + Entity Type + Entity ID + Chevron */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold shrink-0 ${badge.className}`}>
                       {badge.icon}
                       {badge.label}
                     </span>
-                    <span className="ml-2 font-semibold text-[var(--pw-link)]">{log.entityType}</span>
-                    {renderSlipMetricsBadges(slipMetrics)}
+                    <span className="font-semibold text-xs sm:text-sm text-[var(--pw-link)] truncate">
+                      {log.entityType}
+                    </span>
+                    {log.entityId && (
+                      <span className="font-mono text-[10px] text-[var(--pw-ink)]/50 bg-[var(--pw-surface-onyx)] px-1.5 py-0.2 rounded border border-[var(--pw-hairline)] shrink-0">
+                        #{log.entityId}
+                      </span>
+                    )}
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onSelectLog(log)}
-                    className="h-7 px-2 text-xs"
-                  >
-                    <Eye className="mr-1 size-3.5" />
-                    ดู
-                  </Button>
+                  <ChevronRight className="size-4 text-[var(--pw-ink)]/40 shrink-0" />
                 </div>
 
-                <div className="mt-2.5 space-y-1 text-xs text-[var(--pw-ink)]/70">
-                  {log.entityId && (
-                    <div>
-                      <span className="text-[var(--pw-ink)]/40">Entity ID: </span>
-                      <span className="font-mono">{log.entityId}</span>
-                    </div>
-                  )}
-                  <div>
-                    <span className="text-[var(--pw-ink)]/40">โดย: </span>
-                    <span>{log.userDisplayName ?? (log.userId ? `User #${log.userId}` : "ระบบ")}</span>
+                {slipMetrics && (
+                  <div className="mt-1">
+                    {renderSlipMetricsBadges(slipMetrics)}
                   </div>
-                  <div>
-                    <span className="text-[var(--pw-ink)]/40">เมื่อ: </span>
+                )}
+
+                {/* Bottom Row: Performer + Date/Time */}
+                <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--pw-ink)]/65 pt-1.5 border-t border-[var(--pw-hairline)]/50">
+                  <div className="flex items-center gap-1.5 min-w-0 truncate">
+                    <User className="size-3 text-[var(--pw-ink)]/40 shrink-0" />
+                    <span className="truncate">{log.userDisplayName ?? (log.userId ? `User #${log.userId}` : "ระบบ")}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] font-medium text-[var(--pw-ink)]/50 shrink-0">
+                    <Clock className="size-3 text-[var(--pw-ink)]/40" />
                     <span>{formatDisplayDateTime(log.occurredAt)}</span>
                   </div>
                 </div>
@@ -314,7 +322,7 @@ export function AuditLogTable({
 
       {/* Pagination Controls */}
       <div className="flex flex-col items-center justify-between gap-3 px-1 py-3 text-xs text-[var(--pw-ink)]/70 sm:flex-row sm:text-sm">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between w-full sm:w-auto gap-2">
           <span>
             แสดง <span className="font-semibold text-[var(--pw-ink)]">{fromItem} - {toItem}</span> จากทั้งหมด{" "}
             <span className="font-bold text-[var(--pw-ink)]">{totalItems.toLocaleString()}</span> รายการ
@@ -342,7 +350,7 @@ export function AuditLogTable({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
           <Button
             type="button"
             variant="outline"
@@ -350,10 +358,15 @@ export function AuditLogTable({
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
             aria-label="หน้าก่อนหน้า"
+            className="min-h-[40px] px-3.5 text-xs font-medium"
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft className="size-4 mr-1" />
             ก่อนหน้า
           </Button>
+
+          <span className="font-mono text-xs px-2">
+            {page} / {Math.max(1, totalPages)}
+          </span>
 
           <Button
             type="button"
@@ -362,9 +375,10 @@ export function AuditLogTable({
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
             aria-label="หน้าถัดไป"
+            className="min-h-[40px] px-3.5 text-xs font-medium"
           >
             ถัดไป
-            <ChevronRight className="size-4" />
+            <ChevronRight className="size-4 ml-1" />
           </Button>
         </div>
       </div>
