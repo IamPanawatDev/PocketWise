@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using PocketWise.Domain.Rules;
 using PocketWise.Infrastructure.Services;
 using Xunit;
 
@@ -24,25 +25,42 @@ public class GeminiSlipOcrServiceTests
     }
 
     [Fact]
-    public async Task ExtractDataAsync_WhenApiKeyMissing_FallsBackToTesseract()
+    public async Task ExtractDataAsync_WhenApiKeyMissing_ThrowsBusinessException()
     {
         // Arrange
         var inMemoryConfig = new Dictionary<string, string?>();
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(inMemoryConfig).Build();
-        var fallback = new TesseractSlipOcrService();
         var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
         var httpClient = new HttpClient(handler);
 
-        var service = new GeminiSlipOcrService(httpClient, configuration, fallback);
+        var service = new GeminiSlipOcrService(httpClient, configuration);
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("sample image dummy"));
 
-        // Act
-        var result = await service.ExtractDataAsync(stream, "slip_150.jpg", "image/jpeg");
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<BusinessException>(() =>
+            service.ExtractDataAsync(stream, "slip_150.jpg", "image/jpeg"));
+        Assert.Equal("AI_SERVICE_UNAVAILABLE", ex.Code);
+    }
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("OCR", result.OcrProvider);
-        Assert.Equal("Tesseract OCR", result.OcrEngine);
+    [Fact]
+    public async Task ExtractDataAsync_WhenEmptyStream_ThrowsBusinessException()
+    {
+        // Arrange
+        var inMemoryConfig = new Dictionary<string, string?>
+        {
+            ["GEMINI_API_KEY"] = "fake-key"
+        };
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(inMemoryConfig).Build();
+        var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var httpClient = new HttpClient(handler);
+
+        var service = new GeminiSlipOcrService(httpClient, configuration);
+        using var stream = new MemoryStream(Array.Empty<byte>());
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<BusinessException>(() =>
+            service.ExtractDataAsync(stream, "empty.jpg", "image/jpeg"));
+        Assert.Equal("VALIDATION_ERROR", ex.Code);
     }
 
     [Fact]
@@ -54,12 +72,11 @@ public class GeminiSlipOcrServiceTests
             ["GEMINI_API_KEY"] = "fake-key"
         };
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(inMemoryConfig).Build();
-        var fallback = new TesseractSlipOcrService();
 
         var modelsListJson = @"{
   ""models"": [
     {
-      ""name"": ""models/gemini-2.0-flash"",
+      ""name"": ""models/gemini-2.5-flash"",
       ""supportedGenerationMethods"": [""generateContent""]
     }
   ]
@@ -96,7 +113,7 @@ public class GeminiSlipOcrServiceTests
         });
         var httpClient = new HttpClient(handler);
 
-        var service = new GeminiSlipOcrService(httpClient, configuration, fallback);
+        var service = new GeminiSlipOcrService(httpClient, configuration);
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("sample image bytes"));
 
         // Act
@@ -118,7 +135,7 @@ public class GeminiSlipOcrServiceTests
     }
 
     [Fact]
-    public async Task ExtractDataAsync_WhenGeminiReturnsHttpError_FallsBackToTesseractWithoutCrashing()
+    public async Task ExtractDataAsync_WhenGeminiFails_ThrowsBusinessException()
     {
         // Arrange
         var inMemoryConfig = new Dictionary<string, string?>
@@ -126,7 +143,6 @@ public class GeminiSlipOcrServiceTests
             ["GEMINI_API_KEY"] = "fake-key"
         };
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(inMemoryConfig).Build();
-        var fallback = new TesseractSlipOcrService();
 
         var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
         {
@@ -134,15 +150,12 @@ public class GeminiSlipOcrServiceTests
         });
         var httpClient = new HttpClient(handler);
 
-        var service = new GeminiSlipOcrService(httpClient, configuration, fallback);
+        var service = new GeminiSlipOcrService(httpClient, configuration);
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("sample image bytes"));
 
-        // Act
-        var result = await service.ExtractDataAsync(stream, "slip.jpg", "image/jpeg");
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("OCR", result.OcrProvider);
-        Assert.Equal("Tesseract OCR", result.OcrEngine);
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<BusinessException>(() =>
+            service.ExtractDataAsync(stream, "slip.jpg", "image/jpeg"));
+        Assert.Equal("AI_EXTRACTION_FAILED", ex.Code);
     }
 }
