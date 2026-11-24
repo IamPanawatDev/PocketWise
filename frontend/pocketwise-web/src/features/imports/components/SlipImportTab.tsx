@@ -35,6 +35,16 @@ import { NumberInput } from "@/components/ui/number-input";
 import { FormField } from "@/components/ui/form-field";
 import { DateTimeInput } from "@/components/ui/date-input";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -105,6 +115,13 @@ export function SlipImportTab() {
   const [isClearingAll, setIsClearingAll] = useState(false);
   const [isReadingFiles, setIsReadingFiles] = useState(false);
   const [isRetryingAll, setIsRetryingAll] = useState(false);
+
+  // Alert Error Dialog State
+  const [errorAlertItem, setErrorAlertItem] = useState<{
+    fileName: string;
+    errorMessage: string;
+    itemId?: string;
+  } | null>(null);
 
   // UX States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -356,7 +373,7 @@ export function SlipImportTab() {
       }
       return false;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการอ่านสลิป";
+      const msg = err instanceof Error ? err.message : "ระบบ AI ไม่สามารถอ่านข้อมูลสลิปได้";
       setBatchItems((prev) =>
         prev.map((it) =>
           it.id === item.id
@@ -369,9 +386,15 @@ export function SlipImportTab() {
         )
       );
 
+      setErrorAlertItem({
+        fileName: item.file.name,
+        errorMessage: msg,
+        itemId: item.id,
+      });
+
       if (isSingleToast) {
         toast.error("อ่านสลิปไม่สำเร็จ", {
-          description: `${msg} — กรุณากดปุ่ม 'ลองอีกครั้ง' เพื่อลองส่งอ่านใหม่โดยไม่ต้องเลือกรูปซ้ำ`,
+          description: `${msg} — กรุณากดปุ่ม 'ลองอีกครั้ง' เพื่อส่งอ่านใหม่โดยไม่ต้องเลือกรูปซ้ำ`,
         });
       } else {
         toast.error(`อ่านสลิป "${item.file.name}" ไม่สำเร็จ`, {
@@ -463,8 +486,8 @@ export function SlipImportTab() {
       const isSingle = totalBatchCount === 1;
       toast.info(
         isSingle
-          ? "กำลังอ่านข้อมูลสลิปด้วย AI / OCR..."
-          : `กำลังอ่านข้อมูลสลิป ${totalBatchCount} ใบด้วย AI / OCR...`
+          ? "กำลังอ่านข้อมูลสลิปด้วย AI..."
+          : `กำลังอ่านข้อมูลสลิป ${totalBatchCount} ใบด้วย AI...`
       );
 
       const results = await Promise.all(
@@ -1953,6 +1976,58 @@ export function SlipImportTab() {
           )}
         </div>
       )}
+
+      {/* Alert Error Modal when AI extraction fails */}
+      <AlertDialog
+        open={Boolean(errorAlertItem)}
+        onOpenChange={(open) => {
+          if (!open) setErrorAlertItem(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2.5 text-rose-500 mb-1">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-rose-500/15 border border-rose-500/30">
+                <AlertTriangle className="size-5" />
+              </div>
+              <AlertDialogTitle className="text-base sm:text-lg font-bold text-[var(--pw-ink)]">
+                ระบบ AI อ่านข้อมูลสลิปไม่สำเร็จ
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="text-xs sm:text-sm text-[var(--pw-ink)]/75 mt-2 space-y-2">
+                <span className="block font-semibold text-[var(--pw-ink)]">
+                  ไฟล์: {errorAlertItem?.fileName}
+                </span>
+                <span className="block p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 font-medium text-xs leading-relaxed">
+                  {errorAlertItem?.errorMessage || "ระบบ AI ไม่สามารถอ่านข้อมูลสลิปนี้ได้ กรุณาตรวจสอบความคมชัดของรูปภาพ หรือลองใหม่อีกครั้ง"}
+                </span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row-reverse sm:justify-end">
+            {errorAlertItem?.itemId && (
+              <AlertDialogAction
+                onClick={() => {
+                  const id = errorAlertItem.itemId;
+                  setErrorAlertItem(null);
+                  if (id) handleRetryItem(id);
+                }}
+                className="order-1 w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer shadow-md"
+              >
+                <RotateCcw className="size-4 mr-1.5" />
+                ลองอ่านอีกครั้ง
+              </AlertDialogAction>
+            )}
+            <AlertDialogCancel
+              onClick={() => setErrorAlertItem(null)}
+              className="order-2 w-full sm:w-auto cursor-pointer"
+            >
+              ปิด / กรอกข้อมูลด้วยตนเอง
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

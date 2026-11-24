@@ -8,19 +8,19 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PocketWise.Application.Features.Imports.DTOs;
 using PocketWise.Application.Interfaces;
+using PocketWise.Domain.Rules;
 
 namespace PocketWise.Infrastructure.Services;
 
 /// <summary>
-/// AI-powered slip extractor using Google Gemini (gemini-3.1-flash-lite / gemini-3.5-flash).
+/// AI-powered slip extractor using Google Gemini (gemini-2.5-flash / gemini-1.5-flash / gemini-3.5-flash).
 /// Provides high accuracy, ultra-fast turnaround (~1-2s), and zero CPU strain on the host server.
-/// If GEMINI_API_KEY is not configured or an error occurs, it automatically falls back to TesseractSlipOcrService.
+/// If AI cannot read the slip or an error occurs, it throws a BusinessException so the caller can display an alert error.
 /// </summary>
 public class GeminiSlipOcrService : ISlipOcrService
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
-    private readonly TesseractSlipOcrService _fallbackService;
     private readonly ILogger<GeminiSlipOcrService>? _logger;
 
     private static readonly Regex ThaiDateRegex = new(
@@ -36,12 +36,10 @@ public class GeminiSlipOcrService : ISlipOcrService
     public GeminiSlipOcrService(
         HttpClient httpClient,
         IConfiguration configuration,
-        TesseractSlipOcrService fallbackService,
         ILogger<GeminiSlipOcrService>? logger = null)
     {
         _httpClient = httpClient;
         _configuration = configuration;
-        _fallbackService = fallbackService;
         _logger = logger;
     }
 
@@ -58,51 +56,37 @@ public class GeminiSlipOcrService : ISlipOcrService
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            _logger?.LogWarning("[GeminiSlipOcrService] GEMINI_API_KEY is not configured. Falling back to Tesseract.");
-            fileStream.Seek(0, SeekOrigin.Begin);
-            var fallbackResult = await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
-            fallbackResult.OcrProvider = "OCR";
-            fallbackResult.OcrEngine = "Tesseract OCR";
-            return fallbackResult;
+            _logger?.LogError("[GeminiSlipOcrService] GEMINI_API_KEY is not configured.");
+            throw new BusinessException("AI_SERVICE_UNAVAILABLE", "ระบบ AI สำหรับอ่านสลิปยังไม่ได้ตั้งค่า API Key (GEMINI_API_KEY) กรุณาติดต่อผู้ดูแลระบบ");
         }
+
+        fileStream.Seek(0, SeekOrigin.Begin);
+        using var ms = new MemoryStream();
+        await fileStream.CopyToAsync(ms, cancellationToken);
+        var imageBytes = ms.ToArray();
+
+        if (imageBytes.Length == 0)
+        {
+            _logger?.LogWarning("[GeminiSlipOcrService] Empty file stream provided for {FileName}.", fileName);
+            throw new BusinessException("VALIDATION_ERROR", "ไม่พบข้อมูลไฟล์รูปภาพสำหรับอ่านข้อมูล");
+        }
+
+        var mimeType = NormalizeMimeType(contentType, fileName);
+        var base64Data = Convert.ToBase64String(imageBytes);
+
+        var configuredModel = _configuration["Gemini:Model"];
+        var modelCandidates = !string.IsNullOrWhiteSpace(configuredModel)
+            ? new[] { configuredModel, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash" }
+            : new[] { "gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash", "gemini-2.0-flash" };
 
         try
         {
-            fileStream.Seek(0, SeekOrigin.Begin);
-            using var ms = new MemoryStream();
-            await fileStream.CopyToAsync(ms, cancellationToken);
-            var imageBytes = ms.ToArray();
-
-            if (imageBytes.Length == 0)
-            {
-                _logger?.LogWarning("[GeminiSlipOcrService] Empty file stream provided for {FileName}.", fileName);
-                fileStream.Seek(0, SeekOrigin.Begin);
-                var emptyFallback = await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
-                emptyFallback.OcrProvider = "OCR";
-                emptyFallback.OcrEngine = "Tesseract OCR";
-                return emptyFallback;
-            }
-
-            var mimeType = NormalizeMimeType(contentType, fileName);
-            var base64Data = Convert.ToBase64String(imageBytes);
-
-            // Verified active models on current Google AI Studio API:
-            // 1) gemini-3.1-flash-lite: ultra-fast (~1.5s - 2.5s)
-            // 2) gemini-3.5-flash: high intelligence (~2s - 4s)
-            // 3) gemini-3.8-flash: latest flagship flash
-            var configuredModel = _configuration["Gemini:Model"];
-            var modelCandidates = !string.IsNullOrWhiteSpace(configuredModel)
-                ? new[] { configuredModel, "gemini-3.1-flash-lite", "gemini-3.5-flash" }
-                : new[] { "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash" };
-
-            SlipExtractedData? result = null;
-
             foreach (var model in modelCandidates)
             {
                 _logger?.LogInformation("[GeminiSlipOcrService] Sending slip {FileName} ({Bytes} bytes) to Gemini ({Model})...",
                     fileName, imageBytes.Length, model);
 
-                result = await TryAnalyzeWithGeminiAsync(apiKey, model, base64Data, mimeType, cancellationToken);
+                var result = await TryAnalyzeWithGeminiAsync(apiKey, model, base64Data, mimeType, cancellationToken);
                 if (result != null && (result.DetectedAmount.HasValue || !string.IsNullOrWhiteSpace(result.TransactionReference)))
                 {
                     result.OcrProvider = "AI";
@@ -113,19 +97,18 @@ public class GeminiSlipOcrService : ISlipOcrService
                 }
             }
 
-            _logger?.LogWarning("[GeminiSlipOcrService] All Gemini candidate models returned incomplete data. Falling back to Tesseract.");
+            _logger?.LogWarning("[GeminiSlipOcrService] All Gemini candidate models returned incomplete data.");
+            throw new BusinessException("AI_EXTRACTION_FAILED", "ระบบ AI ไม่สามารถอ่านข้อมูลสำคัญ (ยอดเงินหรือรหัสอ้างอิง) จากสลิปนี้ได้ กรุณาตรวจสอบความคมชัดของรูปภาพ หรือลองใหม่อีกครั้ง");
+        }
+        catch (BusinessException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "[GeminiSlipOcrService] Gemini analysis failed. Falling back to Tesseract.");
+            _logger?.LogError(ex, "[GeminiSlipOcrService] Gemini analysis failed.");
+            throw new BusinessException("AI_EXTRACTION_FAILED", $"ระบบ AI อ่านสลิปไม่สำเร็จ ({ex.Message}) กรุณาลองใหม่อีกครั้ง");
         }
-
-        // Fallback to local Tesseract
-        fileStream.Seek(0, SeekOrigin.Begin);
-        var finalFallback = await _fallbackService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
-        finalFallback.OcrProvider = "OCR";
-        finalFallback.OcrEngine = "Tesseract OCR";
-        return finalFallback;
     }
 
     private async Task<SlipExtractedData?> TryAnalyzeWithGeminiAsync(
@@ -189,17 +172,33 @@ public class GeminiSlipOcrService : ISlipOcrService
             Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
         };
 
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        attemptCts.CancelAfter(TimeSpan.FromSeconds(8));
 
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            _logger?.LogWarning("[GeminiSlipOcrService] Gemini API call to {Model} returned {StatusCode}: {Response}",
-                modelClean, response.StatusCode, responseString.Length > 300 ? responseString[..300] : responseString);
+            using var response = await _httpClient.SendAsync(request, attemptCts.Token);
+            var responseString = await response.Content.ReadAsStringAsync(attemptCts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger?.LogWarning("[GeminiSlipOcrService] Gemini API call to {Model} returned {StatusCode}: {Response}",
+                    modelClean, response.StatusCode, responseString.Length > 300 ? responseString[..300] : responseString);
+                return null;
+            }
+
+            return ParseGeminiResponse(responseString);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger?.LogWarning("[GeminiSlipOcrService] Gemini API call to {Model} timed out after 8s.", modelClean);
             return null;
         }
-
-        return ParseGeminiResponse(responseString);
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "[GeminiSlipOcrService] Gemini API call to {Model} encountered error.", modelClean);
+            return null;
+        }
     }
 
     private SlipExtractedData? ParseGeminiResponse(string responseJson)

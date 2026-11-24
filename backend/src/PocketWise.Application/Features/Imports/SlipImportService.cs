@@ -107,6 +107,11 @@ public class SlipImportService : ISlipImportService
             fileStream.Seek(0, SeekOrigin.Begin);
             var extracted = await _ocrService.ExtractDataAsync(fileStream, fileName, contentType, cancellationToken);
 
+            if (!extracted.DetectedAmount.HasValue && string.IsNullOrWhiteSpace(extracted.TransactionReference))
+            {
+                throw new BusinessException("AI_EXTRACTION_FAILED", "ระบบ AI ไม่สามารถอ่านข้อมูลสำคัญ (ยอดเงินหรือรหัสอ้างอิง) จากสลิปนี้ได้ กรุณาตรวจสอบความคมชัดของรูปภาพ หรือลองใหม่อีกครั้ง");
+            }
+
             stopwatch.Stop();
             var durationSeconds = Math.Round(stopwatch.Elapsed.TotalSeconds, 2);
             extracted.ProcessingDurationSeconds = durationSeconds;

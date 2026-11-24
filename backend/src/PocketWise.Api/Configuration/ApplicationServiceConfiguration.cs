@@ -100,7 +100,7 @@ public static class ApplicationServiceConfiguration
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddHttpClient<GeminiSlipOcrService>(client =>
         {
-            client.Timeout = TimeSpan.FromSeconds(25);
+            client.Timeout = TimeSpan.FromSeconds(20);
         });
         services.AddScoped<TesseractSlipOcrService>();
         services.AddScoped<ISlipOcrService>(sp => sp.GetRequiredService<GeminiSlipOcrService>());
