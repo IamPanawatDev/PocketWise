@@ -76,8 +76,8 @@ public class GeminiSlipOcrService : ISlipOcrService
 
         var configuredModel = _configuration["Gemini:Model"];
         var modelCandidates = !string.IsNullOrWhiteSpace(configuredModel)
-            ? new[] { configuredModel, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash" }
-            : new[] { "gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash", "gemini-2.0-flash" };
+            ? new[] { configuredModel, "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-flash-lite-latest" }
+            : new[] { "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-flash-lite-latest" };
 
         try
         {
