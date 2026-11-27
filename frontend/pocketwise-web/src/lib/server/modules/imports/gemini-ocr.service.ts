@@ -50,20 +50,26 @@ export class GeminiOcrService {
     const base64Data = imageBuffer.toString("base64");
 
     const candidateModels = [
-      "gemini-2.5-flash",
       "gemini-2.0-flash",
       "gemini-1.5-flash",
-      "gemini-flash-lite-latest",
+      "gemini-1.5-flash-8b",
+      "gemini-2.0-flash-lite-preview-02-05",
     ];
+
+    let lastErrorReason: string | undefined;
 
     for (const model of candidateModels) {
       try {
-        const result = await this.tryAnalyzeWithGemini(
+        const { result, error } = await this.tryAnalyzeWithGemini(
           apiKey,
           model,
           base64Data,
           mimeType,
         );
+
+        if (error) {
+          lastErrorReason = error;
+        }
 
         if (
           result &&
@@ -78,14 +84,15 @@ export class GeminiOcrService {
           result.processingDurationSeconds = durationSeconds;
           return result;
         }
-      } catch (err) {
+      } catch (err: unknown) {
+        lastErrorReason = err instanceof Error ? err.message : String(err);
         console.warn(`[GeminiOcrService] Model ${model} failed:`, err);
       }
     }
 
     throw new AppError(
       "AI_EXTRACTION_FAILED",
-      "ระบบ AI ไม่สามารถอ่านข้อมูลสำคัญ (ยอดเงินหรือรหัสอ้างอิง) จากสลิปนี้ได้ กรุณาตรวจสอบความคมชัดของรูปภาพ หรือลองใหม่อีกครั้ง",
+      `ระบบ AI ไม่สามารถอ่านข้อมูลสำคัญจากสลิปนี้ได้${lastErrorReason ? ` (${lastErrorReason})` : " กรุณาตรวจสอบความคมชัดของรูปภาพ หรือลองใหม่อีกครั้ง"}`,
       422,
     );
   }
@@ -95,7 +102,7 @@ export class GeminiOcrService {
     model: string,
     base64Data: string,
     mimeType: string,
-  ): Promise<SlipExtractedData | null> {
+  ): Promise<{ result: SlipExtractedData | null; error?: string }> {
     const modelClean = model.startsWith("models/")
       ? model.slice("models/".length)
       : model;
@@ -140,7 +147,7 @@ export class GeminiOcrService {
     };
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
       const res = await fetch(endpoint, {
@@ -151,11 +158,23 @@ export class GeminiOcrService {
       });
 
       if (!res.ok) {
-        return null;
+        const errorText = await res.text().catch(() => "");
+        console.warn(
+          `[GeminiOcrService] Model ${modelClean} returned HTTP ${res.status}:`,
+          errorText,
+        );
+        return {
+          result: null,
+          error: `Google API HTTP ${res.status} (${errorText.slice(0, 120)})`,
+        };
       }
 
       const json = await res.json();
-      return this.parseGeminiResponse(json);
+      return { result: this.parseGeminiResponse(json) };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[GeminiOcrService] Model ${modelClean} fetch error:`, msg);
+      return { result: null, error: msg };
     } finally {
       clearTimeout(timeout);
     }
