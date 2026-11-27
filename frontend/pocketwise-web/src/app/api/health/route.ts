@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { serverConfig } from "@/lib/server/config";
-import { db } from "@/lib/server/db";
+import { client, db } from "@/lib/server/db";
 import { sql } from "drizzle-orm";
 
 export async function GET() {
@@ -13,6 +13,7 @@ export async function GET() {
 
   let dbConnection = "not_tested";
   let dbError: string | null = null;
+  let dbErrorDetails: Record<string, unknown> | null = null;
 
   if (hasDbUrl) {
     try {
@@ -21,6 +22,15 @@ export async function GET() {
     } catch (err: unknown) {
       dbConnection = "failed";
       dbError = err instanceof Error ? err.message : String(err);
+      const anyErr = err as Record<string, unknown> | undefined;
+      dbErrorDetails = {
+        name: err instanceof Error ? err.name : undefined,
+        code: anyErr?.code,
+        errno: anyErr?.errno,
+        detail: anyErr?.detail,
+        hint: anyErr?.hint,
+        cause: anyErr?.cause ? String(anyErr.cause) : undefined,
+      };
     }
   }
 
@@ -37,6 +47,12 @@ export async function GET() {
         hasJwtSecret: hasJwtSecret,
         databaseConnection: dbConnection,
         databaseError: dbError,
+        databaseErrorDetails: dbErrorDetails,
+        dbHost: client.options.host ? String(client.options.host[0]) : undefined,
+        dbPort: client.options.port ? client.options.port[0] : undefined,
+        dbDatabase: client.options.database,
+        dbUser: client.options.user,
+        sslConfigured: Boolean(client.options.ssl),
       },
     },
     { status: isHealthy ? 200 : 503 },
