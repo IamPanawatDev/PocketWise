@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { serverConfig } from "./config";
+import { authService } from "./modules/auth/auth.service";
+import { AppError } from "./api-error";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5268";
-
-const ACCESS_COOKIE = "pw_access";
-const REFRESH_COOKIE = "pw_refresh";
-const isProd = process.env.NODE_ENV === "production";
+const API_BASE_URL = serverConfig.migration.fallbackApiBaseUrl;
+const ACCESS_COOKIE = serverConfig.cookies.accessCookieName;
+const REFRESH_COOKIE = serverConfig.cookies.refreshCookieName;
+const isProd = serverConfig.isProd;
 
 function secondsUntil(iso: string): number {
   const ms = new Date(iso).getTime() - Date.now();
@@ -32,6 +33,100 @@ export async function callAuthEndpoint(
   originUrl?: string,
   clientInfo?: { userAgent?: string; ip?: string },
 ): Promise<AuthEndpointResult> {
+  // Use in-process Next.js AuthService first
+  try {
+    if (path.includes("/auth/login")) {
+      const b = (body || {}) as { email?: string; password?: string };
+      if (!b?.email || !b?.password) {
+        return {
+          ok: false,
+          status: 400,
+          data: null,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "กรุณากรอกอีเมลและรหัสผ่าน",
+          },
+        };
+      }
+      const result = await authService.login(
+        b.email,
+        b.password,
+        clientInfo?.ip,
+        clientInfo?.userAgent,
+      );
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          accessToken: result.accessToken,
+          accessTokenExpiresAt: result.accessTokenExpiresAt.toISOString(),
+          refreshToken: result.refreshToken,
+          refreshTokenExpiresAt: result.refreshTokenExpiresAt.toISOString(),
+          user: result.user,
+        },
+        error: null,
+      };
+    }
+
+    if (path.includes("/auth/register")) {
+      const b = (body || {}) as {
+        displayName?: string;
+        email?: string;
+        password?: string;
+      };
+      if (!b?.displayName || !b?.email || !b?.password) {
+        return {
+          ok: false,
+          status: 400,
+          data: null,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "กรุณากรอกข้อมูลให้ครบถ้วน",
+          },
+        };
+      }
+      const result = await authService.register(
+        b.displayName,
+        b.email,
+        b.password,
+        clientInfo?.ip,
+        clientInfo?.userAgent,
+      );
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          accessToken: result.accessToken,
+          accessTokenExpiresAt: result.accessTokenExpiresAt.toISOString(),
+          refreshToken: result.refreshToken,
+          refreshTokenExpiresAt: result.refreshTokenExpiresAt.toISOString(),
+          user: result.user,
+        },
+        error: null,
+      };
+    }
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      return {
+        ok: false,
+        status: err.statusCode,
+        data: null,
+        error: { code: err.code, message: err.message },
+      };
+    }
+    console.error("[callAuthEndpoint] internal error:", err);
+    return {
+      ok: false,
+      status: 500,
+      data: null,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "เกิดข้อผิดพลาดในการประมวลผล",
+      },
+    };
+  }
+
+  // Fallback to fetch if not handled above
   const origin =
     originUrl ||
     (isProd ? "https://pocket-wise.vercel.app" : "http://localhost:3000");
@@ -80,24 +175,36 @@ export async function refreshAuthTokens(
 
   const promise = (async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-        cache: "no-store",
-      });
-
-      if (!res.ok) return null;
-
-      const json = (await res.json()) as {
-        success?: boolean;
-        data?: AuthTokens;
+      const result = await authService.refresh(refreshToken);
+      return {
+        accessToken: result.accessToken,
+        accessTokenExpiresAt: result.accessTokenExpiresAt.toISOString(),
+        refreshToken: result.refreshToken,
+        refreshTokenExpiresAt: result.refreshTokenExpiresAt.toISOString(),
       };
+    } catch (err) {
+      console.warn("[refreshAuthTokens] Failed via local authService:", err);
+      // Optional fallback to fetch if local fails
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+          cache: "no-store",
+        });
 
-      if (!json.success || !json.data) return null;
-      return json.data;
-    } catch {
-      return null;
+        if (!res.ok) return null;
+
+        const json = (await res.json()) as {
+          success?: boolean;
+          data?: AuthTokens;
+        };
+
+        if (!json.success || !json.data) return null;
+        return json.data;
+      } catch {
+        return null;
+      }
     } finally {
       // Keep cached for 5 seconds to gracefully deduplicate concurrent bursts of requests
       setTimeout(() => {

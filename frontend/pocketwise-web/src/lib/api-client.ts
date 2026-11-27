@@ -38,7 +38,14 @@ async function attemptClientRefresh(): Promise<boolean> {
         cache: "no-store",
         body: JSON.stringify({ refreshToken: fallback ?? undefined }),
       });
-      if (!res.ok) return false;
+      if (!res.ok) {
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.removeItem("pw_fallback_refresh");
+          } catch {}
+        }
+        return false;
+      }
       const data = await res.json();
       if (data?.refreshToken && typeof window !== "undefined") {
         try {
@@ -155,6 +162,9 @@ async function request<T>(
       !window.location.pathname.startsWith("/verify-email")
     ) {
       isRedirecting = true;
+      try {
+        localStorage.removeItem("pw_fallback_refresh");
+      } catch {}
       window.location.href = `/login?from=${encodeURIComponent(window.location.pathname)}`;
     }
 
@@ -206,6 +216,14 @@ export const apiClient = {
     return request<T>(path, {
       ...options,
       method: "PUT",
+      body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  },
+  patch<T>(path: string, body?: unknown, options?: ApiRequestOptions) {
+    const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+    return request<T>(path, {
+      ...options,
+      method: "PATCH",
       body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
     });
   },

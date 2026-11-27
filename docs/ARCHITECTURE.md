@@ -8,48 +8,33 @@
 ## 1. ภาพรวมระบบ (System Overview)
 
 ```text
-                        ┌──────────────────────────────┐
-                        │           Browser            │
-                        │  Next.js App (frontend/      │
-                        │  pocketwise-web)             │
-                        │  React 19 + Tailwind 4       │
-                        └──────────┬───────────────────┘
-                 REST + JSON (HTTPS)│          SignalR over WebSocket
-                                    │         (แจ้งเตือน/สถานะ import)
-                    ┌───────────────▼──────────────────────────────┐
-                    │  ASP.NET Core Web API                        │
-                    │  [backend/src/PocketWise.Api]                │
-                    │  ─ Controllers (thin)                        │
-                    │  ─ Hubs (NotificationHub -Phase 6)           │
-                    │  ─ Middleware (envelope/error - D8)          │
-                    │  ─ Authentication/ (JWT validate, D1)        │
-                    │  ─ Configuration/ (DI wiring)                │
-                    └───────────────┬──────────────────────────────┘
-                                    │ (เรียก Use cases / สร้างโดเมนกรรม)
-                    ┌───────────────▼──────────────────────────────┐
-                    │  PocketWise.Application                      │
-                    │  ─ Features/<feature>/ (Commands/Queries)    │
-                    │  ─ DTOs / Validators / Interfaces            │
-                    └───────────────┬──────────────────────────────┘
-                                    │ (อ้างถึงโดยไม่มี dependency กลับ)
-                    ┌───────────────▼──────────────────────────────┐
-                    │  PocketWise.Domain (แกนกลาง — ไม่มี dep ภายนอก)│
-                    │  ─ Entities / ValueObjects / Enums / Rules   │
-                    └──────────────────────────────────────────────┘
-                                    ▲
-                    ┌───────────────┴──────────────────────────────┐
-                    │  PocketWise.Infrastructure                   │
-                    │  ─ Persistence (PocketWiseDbContext)         │
-                    │  ─ Configurations (EF Fluent API)            │
-                    │  ─ Migrations / Repositories / Services      │
-                    └───────────────┬──────────────────────────────┘
-                                    │ EF Core (Npgsql provider)
-                        ┌───────────▼───────────────────┐
-                        │  PostgreSQL (Local Docker /   │
-                        │  database: pocketwise_db)     │
-                        │  Production: Supabase (D50)   │
-                        └───────────────────────────────┘
+                        ┌──────────────────────────────────────────────────────────────┐
+                        │             Vercel Full-Stack Cloud Platform                 │
+                        │                                                              │
+                        │  ┌────────────────────────┐      ┌────────────────────────┐  │
+                        │  │  Next.js 16 Web App    │      │  Next.js Route Handlers│  │
+                        │  │  (React 19 + Tailwind4)│◄────►│  (/api/v1/[...path])   │  │
+                        │  │  Client Components     │ JSON │  Modular Services      │  │
+                        │  └──────────┬─────────────┘      └───────────┬────────────┘  │
+                        │             │                                │               │
+                        │             │ SSE Stream                     │ Drizzle ORM   │
+                        │             │ (/api/v1/notifications/stream) │ Type-safe     │
+                        │             └────────────────────────────────┼───────────────┘
+                        └──────────────────────────────────────────────┼───────────────┘
+                                                                       │
+                                                       ┌───────────────▼───────────────┐
+                                                       │  PostgreSQL Database          │
+                                                       │  - Local: Docker (port 5432)  │
+                                                       │  - Production: Supabase (D50) │
+                                                       └───────────────────────────────┘
 ```
+
+> **หมายเหตุการ Cutover & Decommission (Phase 7):**
+> ระบบ Backend ทั้งหมดได้รับการ Port จาก ASP.NET Core (.NET 10 บน Render) มายัง **Next.js TypeScript Route Handlers บน Vercel** สมบูรณ์แล้ว 100% (Traffic to Render = 0% และปลดประจำการ Fallback Proxy เรียบร้อยแล้ว) โดยยังคงรักษากฎสถาปัตยกรรมระดับ Root, Data Contract, Error Envelope และ Database Schema ไว้อย่างเคร่งครัด
+
+---
+
+## 1.1 แผนผังระบบดั้งเดิมและสถาปัตยกรรมประวัติ (Historical Reference)
 
 **หลักที่ล็อกแล้ว (จาก AGENTS.md / decisions):**
 

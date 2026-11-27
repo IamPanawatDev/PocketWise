@@ -1,26 +1,34 @@
 import { NextResponse } from "next/server";
 import { clearAuthCookiesFrom } from "@/lib/server/auth-endpoints";
-import { getAccessToken } from "@/lib/server/auth";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5268";
+import {
+  getAccessToken,
+  getRefreshToken,
+  clearAuthCookies,
+} from "@/lib/server/auth";
+import { authService } from "@/lib/server/modules/auth/auth.service";
+import { verifyAccessToken } from "@/lib/server/auth/jwt";
 
 export async function POST() {
   const token = await getAccessToken();
+  const refreshToken = await getRefreshToken();
+  let userId: number | null = null;
+
   if (token) {
     try {
-      await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      });
+      const claims = await verifyAccessToken(token);
+      userId = Number(claims?.sub) || null;
     } catch {
-      // ignore network errors on logout
+      // token may be expired
     }
   }
 
+  try {
+    await authService.logout(userId, refreshToken);
+  } catch {
+    // ignore errors on logout
+  }
+
+  await clearAuthCookies();
   const res = NextResponse.json({ success: true });
   clearAuthCookiesFrom(res);
   return res;

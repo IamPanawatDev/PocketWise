@@ -6,12 +6,12 @@
 
 ## 🏗️ 1. สถาปัตยกรรมระบบภาพรวม (System Architecture)
 
-ระบบ PocketWise ใช้สถาปัตยกรรมแบบแยกส่วน (Decoupled Full-Stack Architecture) — **ผังฉบับเต็ม (ระบบ, dependency, request lifecycle, auth flow, SQL Server, SignalR) อยู่ที่ [`/docs/ARCHITECTURE.md`](file:///D:/Projects/PocketWise/docs/ARCHITECTURE.md) เท่านั้น (SoT เดียว — ห้ามเขียนโค้ดขัดกับผังนั้น)**
+ระบบ PocketWise ใช้สถาปัตยกรรมแบบ Unified Full-Stack บน Next.js 16 (App Router + Serverless Route Handlers + Drizzle ORM + Real-time SSE) บน Vercel — **ผังฉบับเต็ม (ระบบ, dependency, request lifecycle, auth flow, PostgreSQL, Realtime) อยู่ที่ [`/docs/ARCHITECTURE.md`](file:///D:/Projects/PocketWise/docs/ARCHITECTURE.md) เท่านั้น (SoT เดียว — ห้ามเขียนโค้ดขัดกับผังนั้น)**
 
 ### กฎสถาปัตยกรรมระดับ Root:
-- **Frontend ต้องไม่เชื่อมต่อกับ SQL Server โดยตรง**: การเข้าถึงข้อมูลทั้งหมดต้องผ่าน ASP.NET Core Web API เท่านั้น
-- **SignalR มีไว้สำหรับ Server-Pushed Events เท่านั้น**: ใช้แจ้งเตือนแบบ Real-time, อัปเดตสถานะงาน (Import/OCR/Status) **ห้าม** ใช้ SignalR แทนที่ REST API หรือฐานข้อมูลหลัก
-- **Single Source of Truth**: Backend เป็นผู้กำหนด Business Logic, Validation หลัก และ Data Contracts เสมอ
+- **Client Components ต้องไม่เชื่อมต่อกับ PostgreSQL / Database โดยตรง**: การเข้าถึงข้อมูลทั้งหมดต้องผ่าน API Layer (`/api/v1/*` Server Handlers) เท่านั้น
+- **Real-time Event Stream มีไว้สำหรับ Server-Pushed Events เท่านั้น**: ใช้แจ้งเตือนแบบ Real-time, อัปเดตสถานะงาน (Import/OCR/Status) ผ่าน SSE (`/api/v1/notifications/stream`) **ห้าม** ใช้แทนที่ REST API หรือฐานข้อมูลหลัก
+- **Single Source of Truth**: Backend Server Handlers เป็นผู้กำหนด Business Logic, Validation หลัก และ Data Contracts เสมอ
 
 ---
 
@@ -30,156 +30,37 @@
 4. **เพิ่ม Tool/Package แล้วต้องอัปเดตกฎและคู่มือในงานเดียวกัน**
    - เมื่อได้รับอนุมัติให้เพิ่ม dependency หรือ tool ใด ๆ (เช่น library, CLI/local tool, build/lint/test/code-generation tool หรือ SDK) ให้แก้ manifest/lock file ที่เกี่ยวข้อง และอัปเดต `AGENTS.md` ของขอบเขตนั้นในงานเดียวกัน
    - บันทึกวัตถุประสงค์ ขอบเขต/ตำแหน่งติดตั้ง วิธีใช้หรือคำสั่งมาตรฐาน การตั้งค่าที่จำเป็น และข้อกำหนดการใช้งาน เพื่อให้ AI และผู้พัฒนาคนถัดไปใช้แนวทางเดียวกัน
-   - อัปเดตรายการเวอร์ชันและคำสั่งใน `/docs/Tech_Stack.md` หรือ Appendix A/B ของ `/docs/DEVELOPMENT_GUIDELINE.md` ตามความเหมาะสม; ถ้า tool กระทบ architecture, code generation, API/schema หรือ workflow ให้ sync เอกสาร Source of Truth ที่เกี่ยวข้องด้วย
-   - ระบุว่าเป็นของที่ติดตั้งแล้วหรือเป็นเพียงตัวเลือกให้ชัดเจน และเอารายการออก/ปรับสถานะเมื่อถอดถอนหรือเลิกใช้; ห้ามบันทึก secret หรือ credential ในเอกสาร
-5. **มาตรฐาน UI, Modal, BottomSheet, Responsive, Animation และ Date (UI & UX Master Standard)**:
-   - **Desktop Modal vs Mobile BottomSheet**:
-     - ทุก Dialog หรือ Modal บนหน้าจอ Desktop (`sm` ขึ้นไป) **ต้องแสดงผลเป็น BottomSheet บนหน้าจอโทรศัพท์มือถือ (`< sm`) เท่านั้น** โดยใช้ component กลาง `@/components/ui/bottom-sheet` (ซึ่งรองรับ responsive modal/bottom-sheet ภายในตัว)
-   - **ลำดับปุ่มใน BottomSheet และ Alert Dialog บน Mobile (Mobile Button Hierarchy Rule)**:
-     - บนหน้าจอโทรศัพท์มือถือ (`< sm`) ทุก Dialog, BottomSheet, Modal, และหน้าต่างยืนยันการลบ/ดำเนินการ (`AlertDialog` / `ConfirmDialog`):
-       - **ปุ่มยืนยัน / บันทึก / ลบ (Confirm/Action/Delete) ต้องอยู่ข้างบนเสมอ (`order-1` หรือวางก่อน)**
-       - **ปุ่มยกเลิก / ปิด (Cancel) ต้องอยู่ข้างล่างเสมอ (`order-2` หรือวางหลัง)**
-       - **เหตุผล & กฎตายตัว**: เพื่อให้สอดคล้องกันทั้งเว็บและสะดวกต่อการใช้นิ้วโป้งกดบนมือถือ (ใช้ `data-slot="alert-dialog-action"` และ `data-slot="alert-dialog-cancel"` หรือ `BottomSheetFooter` ที่คุม `order` อัตโนมัติ) ห้ามสลับเอาปุ่มยกเลิกไว้ข้างบนเด็ดขาด
-   - **สไตล์ Glassmorphism (Dark / Light Theme)**:
-     - ทั้ง Modal บน Desktop และ BottomSheet บน Mobile ต้องใช้ดีไซน์สไตล์ **Glassmorphism** (`backdrop-blur-2xl`, translucent surface, subtle hairline border, glow effect)
-     - **ต้องคำนึงถึง Theme Dark และ Light เสมอ**: สีตัวอักษรและคอนทราสต์ต้องคมชัด อ่านง่าย ไม่กลืนกับพื้นหลังทั้งใน Dark Mode (`var(--pw-surface-indigo)/90`) และ Light Mode (`var(--pw-surface)/90`)
-   - **ตัวกรองเมื่อมีหลายเงื่อนไข (Filter Button & Drawer)**:
-     - หากหน้าจอมีเงื่อนไขตัวกรองตั้งแต่ 3 ตัวขึ้นไป หรือมีพื้นที่จำกัดบนมือถือ **ต้องยุบเป็นปุ่ม "ตัวกรอง" (Filter Button)** พร้อม Badge แสดงจำนวนตัวกรองที่เลือกอยู่ และเปิดเป็น BottomSheet บน Mobile เพื่อไม่ให้ฟอร์มตัวกรองกินพื้นที่หน้าจอ
-   - **การเลือกวันที่และเวลา (Date & Time Inputs)**:
-     - หากมีการเรียก input วันที่และเวลา **ห้ามใช้ native `<input type="date">` หรือ `<input type="datetime-local">` เด็ดขาด**
-     - **ต้องใช้ shared component จาก `@/components/ui/date-input`** (`DateInput` หรือ `DateTimeInput`) เท่านั้น เพื่อให้ปฏิทิน การเลือกเวลา และการบังคับใช้ปี ค.ศ. เป็นไปในแนวทางเดียวกันทั้งเว็บ
-   - **การแสดงผลวันที่และเวลา (Date Display Helper Rule)**:
-     - ทุกการแสดงผลวันที่และเวลาในหน้าจอ UI **ต้องเรียกใช้ Helper กลางจาก `@/lib/date-utils`** (`formatDisplayDate`, `formatDisplayDateTime`, `formatDisplayTime`, `formatRelativeTime`) เสมอ
-     - **ข้อกำหนดตายตัว**: แสดงผลปีเป็น **ค.ศ. เท่านั้น (ห้ามแสดงปี พ.ศ. เด็ดขาด)** และปรับตามเวลาประเทศไทย (`Asia/Bangkok`, UTC+7)
-   - **มาตรฐาน Animation ประจำระบบ**:
-     - ใช้ Motion (`motion/react`) ตามมาตรฐานที่มีอยู่:
-       - **เมื่อโหลดหน้าจอ**: ใช้ `motion.div` หรือ shared component `AnimatedList` / `PageTransition` คอนฟิก `initial={{ opacity: 0, y: 10 }}` `animate={{ opacity: 1, y: 0 }}` `transition={{ duration: 0.3 }}` (stagger children 0.05s)
-       - **ปุ่มและ Interactive Elements**: ใส่ Micro-interaction ให้มี tactile feedback: `hover:scale-102 active:scale-98 transition-transform` (หรือ `motion.button` with `whileHover={{ scale: 1.02 }}` `whileTap={{ scale: 0.98 }}`)
-       - **การ์ดและรายการ**: `hover:-translate-y-0.5 hover:shadow-md transition-all`
-       - **ตัวเลขสรุปผลยอดเงิน**: ใช้ `AnimatedNumber` จาก `@/components/ui/animated-number` เพื่อ animate ตัวเลขหมุนขึ้นอย่างนุ่มนวล
-   - **การแจ้งเตือนและการยืนยัน (AlertDialog & Toast Standard - ห้ามใช้ Browser Native)**:
-     - **ห้ามใช้ `window.confirm()` หรือ `window.alert()` ของเบราว์เซอร์โดยเด็ดขาด**: เพราะทำลาย UX และดูไม่เป็นมืออาชีพ
-     - **ต้องใช้ `AlertDialog` หรือ `ConfirmDialog` จาก `@/components/ui/alert-dialog` เสมอ** ซึ่งรองรับ Glassmorphism, Responsive (BottomSheet บน Mobile, Centered Dialog บน Desktop) และบังคับลำดับปุ่มยืนยัน/ลบอยู่บน ปุ่มยกเลิกอยู่ล่างเสมอ
-     - **ต้องมี Loading State ขณะลบรายการ**: เมื่อกดยืนยันการลบหรือดำเนินการที่ต้องรอ API ต้องแสดง Loading Spinner / Disabled State ไม่ปล่อยให้หน้าจอนิ่งค้างจนผู้ใช้รู้สึกว่าระบบค้าง
-     - **ต้องมี Toast Feedback เสมอ**: ทุกการดำเนินการสำคัญ (เช่น เพิกถอนเซสชัน, ลบรายการ, บันทึกข้อมูล, รีเซ็ตรหัสผ่าน, เปลี่ยนสถานะ) ต้องเรียกใช้ `toast.success(...)` เมื่อสำเร็จ หรือ `toast.error(...)` เมื่อเกิดข้อผิดพลาด ผ่าน `sonner` ห้ามปล่อยให้การทำงานเงียบหายไปโดยไม่มี Feedback
-   - **กฎปุ่ม Loading State เติมสีทึบ (Solid Filled Button Loading Rule)**:
-     - ทุกปุ่ม Action หรือปุ่มหลักที่มีสถานะ Loading (เช่น กำลังบันทึก, กำลังอัปโหลด, กำลังอ่านข้อมูล OCR, กำลังลบ, หรือกำลังประมวลผล) **ต้องใช้สไตล์พื้นหลังแบบเติมสีทึบ (Solid Filled Background)** เสมอ เช่น `bg-emerald-600 hover:bg-emerald-700 text-white font-bold`, `bg-blue-600 text-white font-bold`, หรือ `bg-rose-600 hover:bg-rose-700 text-white font-bold` พร้อมเงา `shadow-md`
-     - **ห้าม** ใช้ปุ่มแบบโปร่งแสงหรือสไตล์ Ghost/Outline ที่ไม่มีสีพื้นหลังทึบขณะ Loading เพราะจะกลืนกับพื้นหลัง Glassmorphism และทำให้ผู้ใช้มองไม่เห็นสถานะการทำงาน
-     - **สถานะ Disabled ขณะ Loading**: ต้องคงความทึบแสงไว้ชัดเจน (`disabled:opacity-85`) พร้อมระบุสีตัวหนังสือ `disabled:text-white` และสีพื้นหลังเดิม (เช่น `disabled:bg-emerald-600`) ป้องกันไม่ให้ปุ่มโปร่งแสงจนมองไม่เห็นตัวหนังสือหรือไอคอน
-     - **Spinner และข้อความระบุสถานะ**: ต้องมี Spinner Icon (`<Loader2 className="size-4 animate-spin text-white" />`) คู่กับข้อความบอกสถานะที่ชัดเจน (เช่น "กำลังบันทึก...", "กำลังอ่านข้อมูลสลิป...", "กำลังลบออกจากคิว...") เสมอ
-   - **การใช้งาน Dropdown / Select (ห้ามใช้ Native `<select>`)**:
-     - **ห้ามใช้ native `<select>` และ `<option>` เด็ดขาด**: เนื่องจากบนเบราว์เซอร์หรือมือถือบางรุ่น OS จะบังคับสไตล์พื้นหลังเป็นสีขาวจนตัวหนังสือกลืนมองไม่เห็น (White on White)
-     - **ต้องใช้ shared shadcn `Select` จาก `@/components/ui/select` เท่านั้น**: เพื่อให้พื้นหลังและสีตัวหนังสือปรับตาม Theme Dark / Light อย่างถูกต้อง 100%
-   - **ฟอร์มและการป้อนข้อมูลแบบ Type-Safe (Prevent Misconfiguration)**:
-     - ช่องแก้ไขค่าคอนฟิกหรือการตั้งค่า ต้องตรวจสอบประเภทข้อมูลจริงและแสดงผล input ที่ตรงประเภทเสมอ:
-       - ข้อมูล Boolean / Enabled: ต้องใช้ `Select` เลือกได้เฉพาะ `true` หรือ `false` ห้ามใช้ text input ที่ให้พิมพ์เอง
-       - ข้อมูลวันที่และเวลา: ต้องใช้ `DateTimeInput` / `DateInput` เท่านั้น
-       - ข้อมูลตัวเลข (Count, Limit, Timeout): ต้องใช้ `<input type="number">`
-   - **Mobile Header Back Navigation**:
-     - ในหน้าจอมือถือ บริเวณแถบ Header ด้านบนซ้ายข้างโลโก้ ต้องมีปุ่มย้อนกลับ (`ChevronLeft`) เพื่อให้ผู้ใช้สามารถกดย้อนกลับหน้าจอก่อนหน้าได้สะดวก ไม่ต้องพึ่งปุ่ม Back ของเบราว์เซอร์เพียงอย่างเดียว
-   - **การบริหารจัดการผู้ใช้ (Admin Self-Protection)**:
-     - บัญชี Admin จะต้อง **ไม่สามารถระงับบัญชีของตนเองได้ (Self-suspension prohibited)** ทั้งการป้องกันระดับ Backend (`AdminUserService`) และ Frontend (ซ่อนปุ่มระงับพร้อมแสดง Badge "บัญชีของคุณ")
-   - **เอกสารส่งต่องาน UI (UI Modernization Handover Guide)**:
-     - งานปรับปรุง UI/UX ทั้งหมดของระบบ (เช่น Command Palette, Filter Drawer, Button Loading States, Skeletons, Mobile Hub Drawer, Recurring Summary, Credit Card Canvas ฯลฯ) สรุปไว้ใน [`/docs/UI_MODERNIZATION_HANDOVER.md`](file:///D:/Projects/PocketWise/docs/UI_MODERNIZATION_HANDOVER.md) แล้ว — **AI ทุกตัวต้องตรวจสอบเอกสารนี้ก่อนเริ่มงาน UI เพื่อต่อยอดและไม่ทำซ้ำในสิ่งที่ทำเสร็จแล้ว**
-   - ก่อนสร้างหรือแก้ UI ให้ยึด `frontend/pocketwise-web/DESIGN.md` และกฎใน `frontend/AGENTS.md`; ใช้ shared shadcn components จาก `src/components/ui/` แทนการสร้าง native dropdown หรือ input ซ้ำเอง
-   - Dropdown ใช้ shadcn `Select` ที่ `src/components/ui/select.tsx` โดยกำหนดความกว้างจาก trigger/container คงที่และให้เมนูเท่ากับ trigger; ข้อความยาวต้อง truncate ไม่ให้ตัวเลือกดันขนาด; components ที่เพิ่มจาก shadcn ต้องคงการ map สี, radius, focus และ surface ผ่าน `--pw-*` tokens
-   - ฟิลด์ที่มี label และ validation error ใช้ `FormField` จาก `frontend/pocketwise-web/src/components/ui/form-field.tsx`; ปุ่ม, input, select และ dialog ใช้ shared components ใน `src/components/ui/` หรือ `src/components/shared/` ก่อนสร้างใหม่
-   - วันที่และเวลาที่ผู้ใช้กรอก/เห็นให้ตีความเป็น `Asia/Bangkok`; ใช้ shared shadcn `Calendar`/Popover (`src/components/ui/calendar.tsx`) ผ่าน `DateInput`/`DateTimeInput` (`src/components/ui/date-input.tsx`) และ shadcn `Select`-based time picker ใน `DateTimeInput`; ห้ามใช้ native browser date/time picker; ตรวจวันจริงและปฏิเสธปีที่เข้าลักษณะ พ.ศ. สมัยใหม่ก่อนบันทึก แสดงปี ค.ศ. และเวลา UTC+7; แปลงเป็น UTC ISO ก่อนเรียก API โดย backend/database ยังคง contract UTC
-   - ปุ่ม action ต้องมี icon ที่สื่อความหมาย, สีตาม intent, hover pointer และ disabled state ที่ชัดเจน; ปุ่ม icon-only ต้องมี accessible label
-   - Reports ใช้ Recharts `^3.10.1` ที่ติดตั้งใน `frontend/pocketwise-web/`; กราฟต้องใช้ ResponsiveContainer และ `--pw-*` design tokens, แสดงข้อมูลแยก currency และไม่ทำ aggregate ข้ามสกุลเงิน
-   - ป้องกัน route ที่ต้องล็อกอินผ่าน Next.js `src/proxy.ts` ด้วย httpOnly session cookies; หากไม่มี access/refresh token ให้ redirect ไป `/login` ก่อน render. Client-side guard ใช้เพื่อ UX เท่านั้นและห้ามแทน backend authorization
-   - UI Animation ใช้ motion (motion/react ^14.5.0); ทุกหน้าจอใช้ shared primitives: AnimatedList (staggered fade-in), AnimatedNumber (spring counter), PageTransition (route transition), และ micro-interactions บนปุ่ม (hover:scale-102 active:scale-98) และการ์ด (hover:-translate-y-0.5 hover:shadow-md)
-   - ระบบ Loading ใช้ Skeleton Shimmer (.pw-skeleton ใน globals.css) ที่มีโครงสร้างเลียนแบบคอนเทนต์จริงเสมอ ผ่าน src/components/ui/skeleton.tsx และพรีเซ็ตใน src/components/shared/Skeletons.tsx; ห้ามใช้ข้อความ <p>กำลังโหลด...</p> หรือ spinner ลอยโดดเดี่ยว
-   - หน้าต่าง Modal และ BottomSheet ทั้งหมดใช้ transition นุ่มนวลผ่านคลาส pw-dialog-overlay และ pw-bottom-sheet-content / pw-dialog-content โดยซิงค์เวลาปิดที่ 180ms เท่ากันระหว่าง Content และ Overlay ป้องกันการสะดุด/ค้าง; บน Mobile จัดปุ่มยืนยันไว้ด้านบนและปุ่มยกเลิกไว้ด้านล่างตามมาตรฐานหน้าธุรกรรม
-   - ธีมและพื้นหลังใช้ Ambient background (.pw-ambient-bg) แสดงภาพพื้นหลังเฉพาะโหมด (Dark opacity 0.15 + blur, Light opacity 0.75)
-   - ฟิลด์เลือกสีใช้ color picker ไม่บังคับให้ผู้ใช้ป้อนค่า HEX
-   - ตัวเลือกแท็กในฟอร์มธุรกรรมต้องแสดงเป็น badge ด้วยสีจริงจาก `TagResponse.color`, สีข้อความต้อง contrast อ่านได้ และสถานะเลือกต้องเห็นชัด
-   - หน้า register ต้องยืนยันว่ารหัสผ่านทั้งสองช่องตรงกัน แต่ส่งเฉพาะ contract fields ของ backend ไม่ส่ง `confirmPassword`
-6. **กฎเหล็กการใช้งานฐานข้อมูลและ MCP (Database MCP & Zero Schema Drift Policy)**:
-   - **ระหว่างการพัฒนา (Implementation Phase)**:
-     - **ต้องใช้ MCP Database ที่เชื่อมต่อกับ PostgreSQL Local (Docker) เท่านั้น** (เช่น `pocketwise-postgres` หรือ Local Connection: `localhost:5432/pocketwise_db`)
-     - **ห้าม** เรียกใช้ MCP เพื่อ Query, ทดสอบ, Seed หรือแก้ไขข้อมูลบน Supabase Production ในระหว่างการ Implement โดยเด็ดขาด เพื่อป้องกันผลกระทบต่อข้อมูลจริงของผู้ใช้
-   - **ขั้นตอนการ Deploy สู่ Production (Zero Schema Drift)**:
-     - หากมีการอัปเดต, เพิ่ม, ลบ หรือแก้ไขโครงสร้างตาราง (Columns, Tables, Data Types, Constraints, Foreign Keys หรือ Indexes) ในระหว่างการพัฒนา:
-       - ต้องสร้าง EF Core Code-First Migration ใน `PocketWise.Infrastructure` ให้เรียบร้อย
-       - **ต้องรัน Script อัปเดตโครงสร้างตารางบน Supabase (Production) ให้ตรงกับ Local 100% เสมอ** (ผ่าน `supabase_mcp.apply_migration` หรือ `execute_sql` อย่างระมัดระวัง)
-       - **ห้ามเกิด Database Schema Mismatch เด็ดขาด**: สกีมาและคอลัมน์ทั้งหมดระหว่าง Local (Implementation) และ Supabase (Production) ต้องตรงกันอย่างสมบูรณ์ ป้องกันไม่ให้เกิด Database Runtime Error หรือ 500 Internal Server Error บน Production โดยเด็ดขาด
-
----
-
-7. **ขั้นตอนการปฏิบัติงานและการเลือกโหมดการทำงาน (Execution Modes & Quality Standards)**:
-   - **การเลือกโหมดการทำงานตามขอบเขตงาน (Dual Execution Tracks)**:
-     - **Track A: Fast-Track / Direct Inline Execution (สำหรับงาน UI, ปรับแต่ง Layout/CSS, ปรับแก้คำ/ข้อความ, จัดการ Component ซ้ำซ้อน, Form tweaks, และ Bug Fix ทั่วไป)**:
-       - **ดำเนินการโดย Orchestrator (Parent Agent) แบบ Inline ทันที**: ห้ามแตก Subagent ลูกโซ่ 5–6 ตัวต่อคิวกันเพื่อขจัด Overhead (ลดเวลาการทำงานจาก 20–30 นาที เหลือเพียง 3–8 นาที)
-       - Orchestrator ทำการวิเคราะห์ ออกแบบ ลงมือแก้ไข และรัน Verification ตรวจสอบงานโดยตรงในเทิร์นเดียว
-     - **Track B: Full Multi-Agent Architecture (สำหรับงาน New Feature ขนาดใหญ่, Full-Stack Architecture, การออกแบบ Data Model/Schema ใหม่, หรือระบบ Core Business Logic ที่ซับซ้อน)**:
-       - ใช้กระบวนการ 6-Step Multi-Agent เต็มรูปแบบ: **1. Orchestrator** ➔ **2. System Planner** ➔ **3. Parallel Implementers (Backend/Frontend/DB)** ➔ **4. Review & Remediation** ➔ **5. QA Browser Testing Agent** ➔ **6. DevOps & Deployment**
-   - **การกำหนดขอบเขต Quality Gates ให้ตรงจุด (Smart Scoped Quality Gates)**:
-     - **Frontend-only Changes**: ตรวจสอบเฉพาะ `npm run lint` และ `npm run build` (หรือ `tsc --noEmit`); **ห้าม** ไปรัน `dotnet build` หรือ `dotnet test 102 ข้อ` ข้ามฝั่งให้เสียเวลา
-     - **Backend-only Changes**: ตรวจสอบเฉพาะ `dotnet build backend/PocketWise.sln -c Release` และ `dotnet test`; **ห้าม** ไปรัน Next.js build ข้ามฝั่ง
-     - **Full-Stack / Cross-Cutting Changes**: จึงจะรัน Quality Gates ทั้งสองฝั่งครบถ้วน
-   - **มาตรฐานการทดสอบ QA Step 5 แบบแบ่งระดับ (Tiered QA Protocol)**:
-     - **Tier 1 (UI, Copy, Styling, Minor Layout, Gesture)**: ทดสอบแบบ **Targeted Verification / Component Test / Headless Snapshot Check** เฉพาะจุดที่แก้ไข ใช้เวลา < 30 วินาที ห้ามเขียน script ยาวเปิดวนครบทุกหน้าในระบบ
-     - **Tier 2 (Core Business Logic, Database Flow, Slip OCR, Auth, Payment)**: ทดสอบผ่าน Playwright E2E Browser Testing โดยมุ่งเน้นเฉพาะ Flow ที่เกี่ยวข้อง
-     - **กฎเหล็กเรื่อง Browser Binary (Zero External Browser Download Policy)**: ในขั้นตอน QA ด้วย Playwright **ต้องใช้ Browser binary ที่มีอยู่แล้วในเครื่องเท่านั้น (เช่น `channel: 'msedge'`)** **ห้ามรันคำสั่ง `npx playwright install` หรือดาวน์โหลด binary ภายนอกโดยเด็ดขาด** เพื่อป้องกันอาการ Network Timeout ค้าง
-   - **กฎภาษาในการสื่อสาร (Subagent English & User Thai Communication Rule)**:
-     - ทุกขั้นตอนที่มีการแยก Subagent (ใน Track B): การส่งคำสั่ง บรีฟ มอบหมายงาน และการแลกเปลี่ยนข้อมูลระหว่าง AI ด้วยกัน (Agent-to-Agent Communication / Subagent Prompts & Messages) **ต้องสื่อสารเป็นภาษาอังกฤษ (English) ทั้งหมด 100%** เพื่อความแม่นยำ กระชับ และประสิทธิภาพสูงสุดในการประมวลผลโค้ด
-     - เมื่อ Orchestrator (Parent Agent) สื่อสารกับผู้ใช้ (User Communication) เช่น การรายงานสรุปผล การสอบถาม หรือการตอบกลับ **ต้องสื่อสารเป็นภาษาไทย (Thai) เสมอ**
-   - **กฎเหล็กหยุดรอคำสั่ง (Dev ถึง Step 5 เท่านั้น — ห้ามทำ Step 6 เองเด็ดขาด)**: ในทุกงานพัฒนา AI ต้องดำเนินการถึงแค่ **Step 5 (QA Verification)** เท่านั้น เมื่อทดสอบผ่าน 100% แล้ว **ต้องหยุดและรายงานผลให้ผู้ใช้ทราบทันที ห้ามข้ามไปทำ Step 6 (Deploy/PR) โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้เป็นกรณีไป** (เช่น "deploy", "เอาขึ้น production", "เปิด PR ได้เลย")
-   - ห้ามข้ามขั้นตอนการวางแผน และห้ามข้ามการทดสอบ QA เด็ดขาด
-
----
-
-8. **กฎเหล็กขั้นตอนการ Deploy (Strict PR-Based Deployment Protocol & Zero Schema Drift Policy)**:
-   - **นิยามของคำสั่ง "Deploy"**: เมื่อผู้ใช้สั่งให้ "Deploy" หมายถึงการนำโค้ดที่พัฒนาและตรวจสอบแล้วเข้าสู่ branch `main` ผ่าน Pull Request (PR) **โดยห้าม Push โค้ดตรงเข้า branch `main` โดยเด็ดขาด (Never Push Directly to `main`)**
-   - **10 ขั้นตอนการ Deploy มาตรฐาน (AI ต้องปฏิบัติตามลำดับโดยอัตโนมัติ)**:
-     1. **Pre-commit Checks**: ตรวจสอบสถานะโค้ดด้วย `git status` ยืนยันว่าไม่มีไฟล์ขยะ/ความลับ (เช่น `.env.local`, logs, scratch scripts, screenshots) หลุดเข้าสู่ repository
-     2. **ทดสอบ Build ทั้งสองฝั่ง (Quality Gates)**:
-        - Backend: `dotnet build backend/PocketWise.sln -c Release` (ต้องคอมไพล์ผ่าน 100%)
-        - Frontend: `cd frontend/pocketwise-web && npm run build` (ต้องคอมไพล์ผ่าน 100% ครบทุก Routes)
-     3. **เช็คฐานข้อมูล (Zero Schema Drift Check)**:
-        - หากมีการแก้ไขหรือเพิ่มตาราง/คอลัมน์ในระหว่างการพัฒนา ต้องเตรียม SQL Migration Script ให้เรียบร้อย
-        - การรัน Script อัปเดตตารางบน Supabase (Production) ต้องทำให้ตรงกับ Local และสอดคล้องกับโค้ดที่จะขึ้นสู่ `main` เสมอ
-     4. **เลือกไฟล์เข้า Staging (Stage Changes)**:
-        - ใช้ `git add <files>` (หรือ `git add .` เฉพาะไฟล์งานที่สะอาด) และตรวจสอบซ้ำด้วย `git diff --staged`
-     5. **Commit เข้า branch `develop` (Conventional Commits)**:
-        - โค้ดที่เตรียม deploy ต้อง commit เข้าสู่ branch `develop` เท่านั้น ด้วยฟอร์แมตมาตรฐาน `<type>(<scope>): <description>` (เช่น `feat(...)`, `fix(...)`)
-     6. **ซิงค์และ Push โค้ดขึ้น GitHub (Pull & Push)**:
-        - ดึงโค้ดล่าสุด: `git pull origin develop --rebase`
-        - Push โค้ดขึ้น branch develop: `git push origin develop`
-     7. **เปิด Pull Request (PR) เข้าสู่ branch `main`**:
-        - สร้าง PR จาก `develop` มุ่งหน้าไปยัง `main` พร้อมระบุ Title และคำอธิบายการเปลี่ยนแปลงอย่างชัดเจน
-     8. **ตรวจสอบสถานะ CI และ Confirm Merge**:
-        - รอตรวจสอบผล GitHub Actions CI (`ci.yml`) ให้ผ่านครบทั้ง `backend-check` และ `frontend-check`
-        - **เมื่อ CI ผ่านครบ 100% แล้ว จึงทำการ Confirm Merge เข้าสู่ branch `main` ได้ทันที**
-     9. **แก้ไขและทำซ้ำเมื่อพบปัญหา (Re-loop on Failure)**:
-        - หากเกิดข้อผิดพลาด, Build พัง หรือ CI ไม่ผ่านในขั้นตอนใด **ห้าม merge เด็ดขาด**
-        - ให้แก้ไขโค้ดในเครื่องให้ถูกต้อง แล้ววนทำซ้ำตั้งแต่ข้อ 4 ถึงข้อ 8 ใหม่อีกครั้งจนกว่าจะผ่านสมบูรณ์
-     10. **ซิงค์สกีมาพร้อมกับการ Merge เข้า `main` (Zero Schema Drift Synchronization)**:
-         - การ Apply Schema Migration บน Supabase Production ต้องทำควบคู่กับการ Merge เข้า `main` เพื่อให้ Backend API บน Render และ Frontend บน Vercel ที่ถูก trigger deploy อัตโนมัติ สามารถทำงานร่วมกับฐานข้อมูลได้ทันทีโดยไม่มี Schema Mismatch
-
----
-
----
-
-9. **มาตรฐานระบบส่งอีเมล เทมเพลต และลิงก์การทำงาน (Email Delivery & Actionable Link Master Standard — ห้ามส่ง Raw Token เด็ดขาด)**:
-   - **ห้ามพิมพ์ Token ดิบลงในอีเมลโดยไม่มีปุ่มกดหรือลิงก์เด็ดขาด (Zero Raw Token Dumps)**:
-     - ทุกอีเมลที่มีการกระทำ (Actionable Email เช่น ยืนยันอีเมล, รีเซ็ตรหัสผ่าน, คำเชิญ, อนุมัติ):
-       - **ต้องมีปุ่ม CTA (Call-to-Action)** ขนาดใหญ่ จัดกึ่งกลาง สไตล์ Responsive ที่นิ้วแตะกดได้ง่ายบนมือถือ (`<a href="{actionUrl}" target="_blank" ...>`)
-       - **ต้องมีลิงก์ URL สำรองแบบข้อความเต็ม** ด้านล่างปุ่ม เพื่อให้ผู้ใช้สามารถคลิกหรือคัดลอก (Copy-Paste) ไปวางในเบราว์เซอร์ได้หากปุ่มไม่ทำงาน
-       - **ห้ามส่งเฉพาะรหัส Token ดิบ (Raw Token String)** ใส่กล่องข้อความหรือ `<div>` ลอย ๆ โดยไม่มีลิงก์หรือปุ่มกดโดยเด็ดขาด
-   - **การเข้ารหัส Token สำหรับ URL (URL-Safe Base64 Encoding)**:
-     - Token ที่จะนำไปต่อเป็น Query Parameter ใน URL (เช่น `?token={encodedToken}`) **ต้องผ่านการเข้ารหัสด้วย `Base64UrlEncode` เสมอ** (แทนที่ `+` ด้วย `-`, แทนที่ `/` ด้วย `_`, และตัด `=` ทิ้ง) เพื่อป้องกันอักขระพิเศษหลุดหรือถูก URL Decode ผิดพลาด
-   - **การชี้โดเมนบน Production (Never Hardcode or Fallback to Localhost on Production)**:
-     - Base URL ของลิงก์ในอีเมล **ต้องไม่ตกไปที่ `http://localhost:3000` บนเซิร์ฟเวอร์จริงโดยเด็ดขาด**:
-       - ต้องมีระบบ `ResolveBaseUrl`: ตรวจสอบ `Origin` หรือ `Referer` จาก Client Request หากไม่ใช่ localhost ให้ใช้โดเมนนั้น
-       - หากไม่มี Header หรือเป็นค่าว่าง หรือส่งจาก background job/admin ต้อง Fallback ไปที่ค่าคอนฟิก `FrontendBaseUrl` ซึ่งบน Production ถูกกำหนดเป็น `https://pocket-wise.vercel.app`
-       - Route Proxy ฝั่ง Next.js Server (เช่น `/api/auth/register`) ต้องส่งต่อ Header `Origin` หรือ `Referer` ไปยัง Backend API เสมอ
-   - **มาตรฐานความสอดคล้องกันทุก Service (Consistency Across Services)**:
-     - ไม่ว่าจะส่งจาก Public Auth (`AuthService`) หรือผู้ดูแลระบบ (`AdminUserService`) หรือ Scheduled Jobs **ต้องใช้มาตรฐานเทมเพลตอีเมล, ลิงก์ และการเข้ารหัส Token เดียวกัน 100%** ห้ามเขียนเทมเพลตแบบ Placeholder ชั่วคราวเด็ดขาด
-   - **นโยบายพอร์ตคลาวด์และโปรโตคอลส่งอีเมล (Cloud Egress Port & HTTPS Delivery)**:
-     - บริการ Cloud Hosting (เช่น Render Free Tier, Vercel, Serverless) มีนโยบายบล็อกพอร์ต SMTP ขาออก (25, 465, 587)
-     - ระบบส่งอีเมลหลักของโปรเจกต์ต้องรองรับการส่งผ่าน **HTTPS (Port 443) REST API** (เช่น Google Apps Script Web App Relay หรือ API Provider) เป็นอันดับแรกเสมอ โดยมี SMTP เป็นทางเลือกรองสำหรับ Local Development
+   - อัปเดตรายการเวอร์ชันและคำสั่งใน `/docs/Tech_Stack.md` หรือ Appendix A/B ของ `/docs/DEVELOPMENT_GUIDELINE.md` ตามความเหมาะสม
+5. **มาตรฐาน UI, Modal, BottomSheet, Responsive, Animation และ Date (UI & UX Master Standard)**
+   - 📖 **Skill Pointer**: โหลดและปฏิบัติตามสกิล [`pocketwise-ui-ux`](file:///D:/Projects/PocketWise/.agents/skills/pocketwise-ui-ux/SKILL.md) ทุกครั้งที่สร้างหรือแก้ไข UI
+   - **กฎเหล็กสรุปย่อ**:
+     - **Desktop Modal vs Mobile BottomSheet**: บนจอ `< sm` ทุก Modal ต้องแสดงผลเป็น BottomSheet ผ่าน `@/components/ui/bottom-sheet`
+     - **Mobile Button Order**: ปุ่ม Action/Confirm/Delete อยู่บน (`order-1`), ปุ่ม Cancel อยู่ล่าง (`order-2`) ห้ามสลับ
+     - **วันที่และเวลา**: ห้ามใช้ native date picker; ต้องใช้ `@/components/ui/date-input` (`DateInput`/`DateTimeInput`), แสดงปี **ค.ศ. เท่านั้น (ห้ามแสดง พ.ศ.)**, ปรับเวลา UTC+7 `Asia/Bangkok` ผ่าน `@/lib/date-utils`
+     - **ปุ่ม Loading State เติมสีทึบ**: ต้องใช้พื้นหลังเติมสีทึบ (`bg-emerald-600`, `bg-blue-600`, `bg-rose-600`), Spinner ชัดเจน, `disabled:opacity-85 disabled:text-white` ห้ามใช้ปุ่มโปร่งแสงขณะ Loading
+     - **AlertDialog & Feedback**: ห้ามใช้ `window.alert()` / `window.confirm()`; ใช้ `@/components/ui/alert-dialog` และ Sonner `toast.success`/`toast.error` เสมอ
+     - **Dropdown & Forms**: ห้ามใช้ native `<select>`; ใช้ shadcn `@/components/ui/select`, Boolean ใช้ Select `true`/`false`
+6. **กฎเหล็กการใช้งานฐานข้อมูลและ MCP (Database MCP & Zero Schema Drift Policy)**
+   - 📖 **Skill Pointer**: โหลดและปฏิบัติตามสกิล [`pocketwise-database-sync`](file:///D:/Projects/PocketWise/.agents/skills/pocketwise-database-sync/SKILL.md) เมื่อทำงานกับ Database หรือ Migration
+   - **กฎเหล็กสรุปย่อ**:
+     - ระหว่างพัฒนา: **ต้องใช้ Database Local Docker เท่านั้น** (`localhost:5432/pocketwise_db`)
+     - **ห้าม** เรียกใช้ MCP เพื่อ Query, ทดสอบ, Seed หรือแก้ข้อมูลบน Supabase Production ระหว่างพัฒนาเด็ดขาด
+     - เมื่อแก้โครงสร้างตาราง: ต้องอัปเดตสกีมาและรัน Migration ให้ Local และ Supabase Production ตรงกัน 100% (Zero Schema Drift)
+7. **ขั้นตอนการปฏิบัติงานและการเลือกโหมดการทำงาน (Execution Modes & Quality Standards)**
+   - 📖 **Skill Pointer**: โหลดและปฏิบัติตามสกิล [`pocketwise-execution-workflow`](file:///D:/Projects/PocketWise/.agents/skills/pocketwise-execution-workflow/SKILL.md) เมื่อวางแผนและส่งมอบงาน
+   - **กฎเหล็กสรุปย่อ**:
+     - **Track A (Fast-Track Inline Execution)**: สำหรับงาน UI, CSS, ข้อความ, ฟอร์ม, Bug Fix ทั่วไป ➔ Orchestrator ลงมือทำเองแบบ Inline จบใน 3–8 นาที ไม่ต้องแตก Subagent
+     - **Track B (Full Multi-Agent Architecture)**: สำหรับงาน Feature ใหญ่, สถาปัตยกรรมหลัก, Auth, Schema ➔ ใช้กระบวนการ 6-Step Multi-Agent
+     - **Smart Scoped Quality Gates**: แก้ Frontend ตรวจเฉพาะ lint/build (หรือ `tsc --noEmit`); แก้ Backend ตรวจเฉพาะ `dotnet build/test`; ห้ามรันข้ามฝั่งให้เสียเวลา
+     - **Tiered QA Protocol**: Tier 1 ตรวจ Component/Snapshot < 30 วินาที; Tier 2 ทดสอบ Playwright ด้วย Browser Edge ในเครื่อง (ห้ามดาวน์โหลด external browser binary เด็ดขาด)
+     - **กฎภาษา**: สนทนากับผู้ใช้เป็น **ภาษาไทย** เสมอ; สื่อสารระหว่าง Subagent ด้วยกันเป็น **ภาษาอังกฤษ 100%**
+     - **🛑 กฎหยุดรอคำสั่ง**: พัฒนาถึงแค่ **Step 5 (QA Verification)** แล้วหยุดรายงานผลทันที **ห้ามข้ามไปทำ Step 6 (Deploy/PR) เองเด็ดขาดจนกว่าผู้ใช้จะสั่ง**
+8. **กฎเหล็กขั้นตอนการ Deploy (Strict PR-Based Deployment Protocol)**
+   - 📖 **Skill Pointer**: เมื่อผู้ใช้สั่งให้ "Deploy", "เอาขึ้น production", หรือ "เปิด PR" ให้เรียกใช้สกิล [`deploy-workflow`](file:///D:/Projects/PocketWise/.agents/skills/deploy-workflow/SKILL.md) ทันที
+   - **กฎเหล็กสรุปย่อ**: ห้าม Push โค้ดตรงเข้า `main` เด็ดขาด; Commit เข้า `develop` ➔ เปิด PR เข้า `main` ➔ เฝ้า CI ให้ผ่าน 100% ➔ Sync Supabase Schema ➔ Confirm Merge
+9. **มาตรฐานระบบส่งอีเมล เทมเพลต และลิงก์การทำงาน (Email Delivery & Actionable Link Standard)**
+   - 📖 **Skill Pointer**: โหลดและปฏิบัติตามสกิล [`pocketwise-email-delivery`](file:///D:/Projects/PocketWise/.agents/skills/pocketwise-email-delivery/SKILL.md) เมื่องานเกี่ยวข้องกับอีเมล
+   - **กฎเหล็กสรุปย่อ**: ห้ามส่ง Raw Token ดิบในอีเมล; ต้องมีปุ่ม CTA ขนาดใหญ่ + ลิงก์ URL สำรอง; Token ต้องเข้ารหัส `Base64UrlEncode`; ลิงก์ห้ามตกไปที่ `localhost` บนเซิร์ฟเวอร์จริง; ส่งผ่าน HTTPS Port 443 REST API (Cloud Egress Safe)
 
 ---
 
@@ -190,92 +71,18 @@
 | ขอบเขตงาน | เอกสาร Rule ประจำส่วน | สิ่งที่ต้องศึกษาใน Rule |
 |---|---|---|
 | **ภาพรวมทั้งโปรเจค** | [`/AGENTS.md`](file:///D:/Projects/PocketWise/AGENTS.md) | สถาปัตยกรรมรวม, Contract, กฎเหล็ก และ Policy |
-| **Backend (.NET 10)** | [`/backend/AGENTS.md`](file:///D:/Projects/PocketWise/backend/AGENTS.md) | Clean Architecture, โฟลเดอร์ที่ต้องวาง Entity, DTO, Service, Controller, Hub |
-| **Frontend (Next.js)** | [`/frontend/AGENTS.md`](file:///D:/Projects/PocketWise/frontend/AGENTS.md) | Next.js App Router, โฟลเดอร์ที่ต้องวาง Components, Features, Lib, Schemas, Types |
+| **Backend (Next.js Handlers)** | [`/frontend/pocketwise-web/src/lib/server/`](file:///D:/Projects/PocketWise/frontend/pocketwise-web/src/lib/server/) | Modular Route Handlers, Drizzle ORM, SSE Stream, Vercel Cron |
+| **Frontend (Next.js)** | [`/frontend/AGENTS.md`](file:///D:/Projects/PocketWise/frontend/AGENTS.md) | Next.js App Router, Components, Features, Lib, Schemas, Types |
+| **Backend (.NET 10 Legacy)** | [`/backend/AGENTS.md`](file:///D:/Projects/PocketWise/backend/AGENTS.md) | Clean Architecture ประวัติเดิม (Decommissioned จาก Render แล้ว) |
+| **UI & UX Standard** | [`.agents/skills/pocketwise-ui-ux`](file:///D:/Projects/PocketWise/.agents/skills/pocketwise-ui-ux/SKILL.md) | Modal/BottomSheet, Mobile Button Hierarchy, Glassmorphism, Date/Time |
+| **Database & Migration** | [`.agents/skills/pocketwise-database-sync`](file:///D:/Projects/PocketWise/.agents/skills/pocketwise-database-sync/SKILL.md) | Local Docker vs Supabase, Zero Schema Drift, Drizzle/EF Core Migrations |
+| **Execution Workflow** | [`.agents/skills/pocketwise-execution-workflow`](file:///D:/Projects/PocketWise/.agents/skills/pocketwise-execution-workflow/SKILL.md) | Track A/B, Smart Scoped Quality Gates, Tiered QA, Stop at Step 5 |
+| **Deploy Protocol** | [`.agents/skills/deploy-workflow`](file:///D:/Projects/PocketWise/.agents/skills/deploy-workflow/SKILL.md) | 10 ขั้นตอนการ Deploy มาตรฐาน, PR-Based, CI Verification |
+| **Email Delivery** | [`.agents/skills/pocketwise-email-delivery`](file:///D:/Projects/PocketWise/.agents/skills/pocketwise-email-delivery/SKILL.md) | Zero raw tokens, CTA buttons, Base64Url, HTTPS delivery port 443 |
 | **Tech Stack & Guideline** | [`/docs/Tech_Stack.md`](file:///D:/Projects/PocketWise/docs/Tech_Stack.md) | รายละเอียด Stack, Version Policy, Checklist และ Phase การพัฒนา |
-| **Architecture (ล็อกแล้ว)** | [`/docs/ARCHITECTURE.md`](file:///D:/Projects/PocketWise/docs/ARCHITECTURE.md) | ผังระบบ, ทิศทาง Dependency ระหว่าง Layer, Request lifecycle, Auth flow, กฎการเชื่อมต่อ — ห้ามสร้าง Architecture คนละแบบ |
-| **API Specification (สัญญา)** | [`/docs/API_SPECIFICATION.md`](file:///D:/Projects/PocketWise/docs/API_SPECIFICATION.md) | Conventions, Envelope, Error codes, Pagination, Auth endpoints, SignalR events — สัญญา FE↔BE ก่อนพัฒนาจริง (Swagger คือ REST spec หลัก) |
-| **Playbook ต่อ Phase** | [`/docs/DEVELOPMENT_GUIDELINE.md`](file:///D:/Projects/PocketWise/docs/DEVELOPMENT_GUIDELINE.md) | ขั้นตอนเชิงปฏิบัติต่อ Phase, คำสั่งที่ใช้จริง, สถานะความคืบหน้า, Decision Points และ Decision Ledger |
-| **Implementation Checklist** | [`/docs/IMPLEMENTATION_CHECKLIST.md`](file:///D:/Projects/PocketWise/docs/IMPLEMENTATION_CHECKLIST.md) | Checklist ติดตามงาน implement รายรายการต่อ phase — อัปเดตทุกครั้งที่ implement เสร็จ (กติกา §11 ของ playbook) |
-| **Requirements (FR)** | [`/docs/REQUIREMENTS.md`](file:///D:/Projects/PocketWise/docs/REQUIREMENTS.md) | รายการ requirement ทั้งระบบ (แปลงจาก Requirement Sheets), สถานะต่อ FR, ขอบเขตนอก scope — Source of Truth ของ "ทำอะไร" |
-| **Data Dictionary (Schema)** | [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) | **25 ตาราง** (ครบทั้งหมดตาม D13), ER Diagram, Business Rules ของข้อมูล (Source of Truth ของ schema) |
-
----
-
-## 🎨 4. Design System (DESIGN.md)
-
-โปรเจคนี้ใช้ design system กลางสำหรับงาน UI ทั้งหมด:
-
-- ไฟล์ Design System อยู่ที่ [`/frontend/pocketwise-web/DESIGN.md`](file:///D:/Projects/PocketWise/frontend/pocketwise-web/DESIGN.md) (ติดตั้งผ่าน `npx getdesign@latest add discord`)
-- **AI ที่จะเขียน UI/หน้าจอ/Component ใด ๆ ฝั่ง Frontend ต้องอ่านและอ้างอิง token จาก DESIGN.md ก่อนเสมอ** (สี, typography, radius, spacing, components, do/don'ts)
-- ห้ามออกแบบ UI โดยเดาสี/ฟอนต์/spacing เอง — ทุกค่าต้องอ้าง token จากไฟล์นี้
-- รายละเอียดกฎการใช้งานและการปรับให้เหมาะกับโปรเจคการเงิน ดู §4 ของ [`/frontend/AGENTS.md`](file:///D:/Projects/PocketWise/frontend/AGENTS.md)
-
----
-
-## 📋 5. ลำดับขั้นตอนการทำงาน (Agile Dual-Track Execution Workflow)
-
-> [!IMPORTANT]
-> **การเลือกโหมดการทำงานตามขอบเขตงาน (Track Selection Protocol)**:
-> - **Track A (Fast-Track / Direct Inline Execution)**: สำหรับงาน UI, ปรับแต่ง Layout/CSS, แก้ไขข้อความ/Text, ปรับฟอร์ม, จัดการ Component, และ Bug Fix ทั่วไป ➔ **Orchestrator ดำเนินการเองแบบ Inline ทันที ไม่ต้องแตก Subagent** เพื่อขจัดเวลาหน่วง 5–10 นาที และจบงานได้ภายใน 3–8 นาที
-> - **Track B (Full Multi-Agent Architecture)**: สำหรับงาน Feature ใหม่ขนาดใหญ่, งานที่กระทบสถาปัตยกรรมหลัก, ระบบความปลอดภัย/Auth, หรือการเปลี่ยน Data Model/Schema ➔ ใช้ขั้นตอน 6-Step Multi-Agent เต็มรูปแบบ
-
-> [!NOTE]
-> **กฎภาษาในการสื่อสารระหว่าง Agent และผู้ใช้ (Language Protocol)**:
-> - **การทำงานและสื่อสารระหว่าง AI (Agent-to-Agent / Subagent Prompts)**: ในทุกขั้นตอนที่มีการเรียก Subagent (Track B) AI ทุกตัวต้องสื่อสาร ทำงาน ส่งมอบ และคุยระหว่างกันเป็น **ภาษาอังกฤษ (English)** ทั้งหมด 100%
-> - **การสื่อสารกับผู้ใช้ (Orchestrator to User)**: Orchestrator ต้องรายงาน สรุปผล และสนทนากับผู้ใช้เป็น **ภาษาไทย (Thai)** เสมอ
-
-```mermaid
-flowchart TD
-    Start["User Request / Task Assignment"] --> Classify{"ประเมินขอบเขตงาน"}
-    
-    Classify -- "งาน UI / CSS / Text / Form / Minor Bug" --> TrackA["⚡ Track A: Fast-Track (Inline Execution)\nOrchestrator ดำเนินการโดยตรง:\n1. Plan & Direct Implementation (ในเทิร์นเดียว)\n2. Smart Scoped Quality Gates (ตรวจเฉพาะฝั่งที่แก้)\n3. Tier 1 QA (Targeted Verification / Component Test < 30s)"]
-    
-    Classify -- "ฟีเจอร์ใหญ่ / Full-Stack / Core Logic / Schema" --> TrackB["🏗️ Track B: Full Multi-Agent (6 Steps)\n1. Orchestrator ➔ 2. System Planner\n➔ 3. Parallel Implementers (Backend / Frontend / DB)\n➔ 4. Review & Remediation (Static, Lint, Build)\n➔ 5. Tier 2 QA (E2E Browser Playwright บน Edge ในเครื่อง)"]
-    
-    TrackA --> GateCheck{"Quality Gates & QA ผ่าน 100%?"}
-    TrackB --> GateCheck
-    
-    GateCheck -- "ไม่ผ่าน / มี Error" --> Remediation["แก้ไขจุดผิดพลาดและตรวจซ้ำ"]
-    Remediation --> GateCheck
-    GateCheck -- "ผ่านสมบูรณ์ 100%" --> Pause["🛑 หยุดรอคำสั่ง: Orchestrator รายงานผลให้ผู้ใช้ทราบ\n(ห้ามทำ Step Deploy ต่อเองเด็ดขาด)"]
-    
-    Pause --> UserDecision{"ผู้ใช้สั่ง\nDeploy หรือไม่?"}
-    UserDecision -- "ยังไม่สั่ง / สั่งแก้เพิ่ม" --> Start
-    UserDecision -- "สั่ง Deploy / เปิด PR" --> DeployStep["🚀 Deploy Protocol (Strict PR-Based)\n(Commit develop ➔ PR เข้า main ➔ เฝ้า CI ➔ Merge production)"]
-    DeployStep --> Done["Orchestrator สรุปผลส่งมอบงาน Production ให้ผู้ใช้"]
-```
-
-### รายละเอียดข้อกำหนดการทำงานและ Quality Gates:
-
-1. **โหมด Track A (Fast-Track / Direct Inline Execution):**
-   - **บทบาท**: Orchestrator (Parent Agent) เป็นผู้ลงมือเขียนโค้ดและทดสอบด้วยตนเอง ไม่ต้องเรียก `invoke_subagent`
-   - **ความเร็วเป้าหมาย**: จบงานภายใน 3–8 นาที
-   - **การตรวจสอบ**: ตรวจเฉพาะจุดที่แก้ไขและรัน Smart Scoped Quality Gates
-
-2. **โหมด Track B (Full 6-Step Multi-Agent Architecture):**
-   - **Step 1 (Orchestrator)**: วิเคราะห์ภาพรวม ควบคุมทิศทาง และสื่อสารกับผู้ใช้เป็นภาษาไทย
-   - **Step 2 (System Planner Subagent)**: กำหนด Data Contracts (API Request/Response DTOs) และวาง Test Scenarios
-   - **Step 3 (Parallel Implementers Subagents)**: แยกพัฒนา Backend (.NET 10), Frontend (Next.js), DB (EF Core) คู่ขนานพร้อมกัน สื่อสารเป็นภาษาอังกฤษ 100%
-   - **Step 4 (Review & Remediation Subagent)**: รวมผลงานและตรวจความถูกต้องของสถาปัตยกรรมและ Build
-   - **Step 5 (QA Browser Testing Subagent)**: รันการทดสอบเบราว์เซอร์อัตโนมัติ
-
-3. **การตรวจสอบคุณภาพแบบเฉพาะจุด (Smart Scoped Quality Gates Rule):**
-   - **เมื่อแก้เฉพาะ Frontend**: รันเฉพาะ `npm run lint` และ `npm run build` (หรือ `tsc --noEmit`); **ห้าม** รัน `dotnet build` หรือ `dotnet test` ข้ามฝั่งให้เสียเวลา
-   - **เมื่อแก้เฉพาะ Backend**: รันเฉพาะ `dotnet build backend/PocketWise.sln -c Release` และ `dotnet test`; **ห้าม** รัน Next.js build ข้ามฝั่ง
-   - **เมื่อแก้ Full-Stack หรือช่วงสุดท้ายก่อน Merge PR**: จึงจะรันตรวจสอบทั้งสองฝั่งครบถ้วน 100%
-
-4. **มาตรฐานการทดสอบ QA Step 5 แบบแบ่งระดับ (Tiered QA Protocol):**
-   - **Tier 1 (UI, Copy, Styling, Minor Layout, Animation, Gesture)**:
-     - ใช้ **Targeted Verification / Component Test / Headless Snapshot Check**
-     - ตรวจสอบเฉพาะ Component หรือหน้าที่ได้รับผลกระทบ ใช้เวลา < 30 วินาที
-     - ห้ามเขียน script ยาววนเปิดครบทุกหน้าในระบบโดยไม่จำเป็น
-   - **Tier 2 (Core Business Logic, Database Transaction, Slip OCR, Auth, Payment)**:
-     - ใช้ **Playwright E2E Browser Testing** ทดสอบ Flow ทำงานจริงทั้ง Error Cases และ Happy Path
-   - **กฎเหล็ก Browser Binary (Zero External Browser Download Policy)**:
-     - ในขั้นตอน QA ด้วย Playwright **ต้องใช้ Browser binary ที่มีอยู่แล้วในเครื่องเท่านั้น (เช่น `channel: 'msedge'`)**
-     - **ห้ามรันคำสั่ง `npx playwright install` หรือดาวน์โหลด binary จากภายนอกโดยเด็ดขาด** เพื่อป้องกันอาการ Network Timeout ค้าง
-
-5. **🛑 กฎหยุดรอคำสั่ง (Mandatory Stop & Report):**
-   - เมื่อตรวจสอบผ่าน 100% ทั้งใน Track A หรือ Track B **ต้องหยุดทำงานทันทีและรายงานผลให้ผู้ใช้ทราบ**
-   - **ห้าม** ก้าวล่วงไปเปิด PR หรือทำ Deploy โดยเด็ดขาดจนกว่าจะได้รับคำสั่งยืนยันจากผู้ใช้โดยตรง เช่น "deploy", "เอาขึ้น production" หรือ "เปิด PR ได้เลย"
+| **Architecture (ล็อกแล้ว)** | [`/docs/ARCHITECTURE.md`](file:///D:/Projects/PocketWise/docs/ARCHITECTURE.md) | ผังระบบ, Dependency ระหว่าง Layer, Request lifecycle, Auth flow |
+| **API Specification** | [`/docs/API_SPECIFICATION.md`](file:///D:/Projects/PocketWise/docs/API_SPECIFICATION.md) | Conventions, Envelope, Error codes, Pagination, Auth endpoints |
+| **Requirements (FR)** | [`/docs/REQUIREMENTS.md`](file:///D:/Projects/PocketWise/docs/REQUIREMENTS.md) | รายการ requirement ทั้งระบบ — Source of Truth ของ "ทำอะไร" |
+| **Data Dictionary (Schema)** | [`/docs/DataDictionary.md`](file:///D:/Projects/PocketWise/docs/DataDictionary.md) | 25 ตาราง, ER Diagram, Business Rules ของข้อมูล (Source of Truth ของ schema) |
+| **UI Handover Guide** | [`/docs/UI_MODERNIZATION_HANDOVER.md`](file:///D:/Projects/PocketWise/docs/UI_MODERNIZATION_HANDOVER.md) | สรุปงานปรับปรุง UI/UX ทั้งหมดของระบบ (ห้ามทำซ้ำในสิ่งที่เสร็จแล้ว) |
+| **Design System** | [`/frontend/pocketwise-web/DESIGN.md`](file:///D:/Projects/PocketWise/frontend/pocketwise-web/DESIGN.md) | Color palette, typography, radius, spacing, do/don'ts |

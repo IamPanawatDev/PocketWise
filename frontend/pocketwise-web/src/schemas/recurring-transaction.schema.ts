@@ -15,6 +15,7 @@ export const recurringTransactionSchema = z
     tagIds: z.array(z.number()).optional(),
     startDate: z.string().refine(isGregorianDateInput, "กรุณาระบุวันที่เป็นปี ค.ศ."),
     endDate: z.string().nullable(),
+    isActive: z.boolean().optional(),
   })
   .superRefine((value, context) => {
     if (value.frequency === "custom" && (!value.daysOfWeek || value.daysOfWeek.length === 0)) {

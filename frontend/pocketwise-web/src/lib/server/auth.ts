@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
+import { serverConfig } from "./config";
 
-export const ACCESS_COOKIE = "pw_access";
-export const REFRESH_COOKIE = "pw_refresh";
+export const ACCESS_COOKIE = serverConfig.cookies.accessCookieName;
+export const REFRESH_COOKIE = serverConfig.cookies.refreshCookieName;
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd = serverConfig.isProd;
 
 function secondsUntil(iso: string): number {
   const ms = new Date(iso).getTime() - Date.now();

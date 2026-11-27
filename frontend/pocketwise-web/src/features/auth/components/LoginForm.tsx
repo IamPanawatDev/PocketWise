@@ -55,6 +55,21 @@ export function LoginForm() {
     const fallback = localStorage.getItem("pw_fallback_refresh");
     if (!fallback) return;
 
+    // Prevent circular redirect bounce loop if user was already redirected from target
+    const params = new URLSearchParams(window.location.search);
+    const fromParam = params.get("from");
+    if (fromParam && sessionStorage.getItem("pw_restore_tried") === fromParam) {
+      try {
+        sessionStorage.removeItem("pw_restore_tried");
+        localStorage.removeItem("pw_fallback_refresh");
+      } catch {}
+      return;
+    }
+
+    try {
+      sessionStorage.setItem("pw_restore_tried", fromParam || "/transactions");
+    } catch {}
+
     setIsRestoring(true);
     let isCancelled = false;
     const maxRetries = 4;
@@ -129,6 +144,9 @@ export function LoginForm() {
   const onSubmit = (values: LoginFormValues) =>
     login.mutate(values, {
       onSuccess: () => {
+        try {
+          sessionStorage.removeItem("pw_restore_tried");
+        } catch {}
         window.location.href = getRedirectTarget();
       },
     });

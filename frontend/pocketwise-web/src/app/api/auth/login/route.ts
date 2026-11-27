@@ -1,26 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callAuthEndpoint, setAuthCookiesFromData } from "@/lib/server/auth-endpoints";
+import { authService } from "@/lib/server/modules/auth/auth.service";
+import { setAuthCookiesFromData } from "@/lib/server/auth-endpoints";
+import { AppError } from "@/lib/server/api-error";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const userAgent = req.headers.get("user-agent") ?? undefined;
-  const ip = req.headers.get("x-forwarded-for") ?? undefined;
-  const result = await callAuthEndpoint("/api/v1/auth/login", body, undefined, { userAgent, ip });
+  try {
+    const body = await req.json().catch(() => ({}));
+    const userAgent = req.headers.get("user-agent") ?? undefined;
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip") ??
+      undefined;
 
-  if (!result.ok || !result.data) {
+    if (!body?.email || !body?.password) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "กรุณากรอกอีเมลและรหัสผ่าน",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    const result = await authService.login(
+      body.email,
+      body.password,
+      ip,
+      userAgent,
+    );
+
+    const data = {
+      accessToken: result.accessToken,
+      accessTokenExpiresAt: result.accessTokenExpiresAt.toISOString(),
+      refreshToken: result.refreshToken,
+      refreshTokenExpiresAt: result.refreshTokenExpiresAt.toISOString(),
+      user: result.user,
+    };
+
+    const res = NextResponse.json({
+      success: true,
+      data: {
+        user: result.user,
+        refreshToken: result.refreshToken,
+      },
+    });
+
+    setAuthCookiesFromData(res, data);
+    return res;
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      return NextResponse.json(
+        { success: false, error: { code: err.code, message: err.message } },
+        { status: err.statusCode },
+      );
+    }
+    console.error("[LoginRoute] Internal error:", err);
     return NextResponse.json(
-      { success: false, error: result.error },
-      { status: result.status },
+      {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ",
+        },
+      },
+      { status: 500 },
     );
   }
-
-  const res = NextResponse.json({
-    success: true,
-    data: {
-      user: result.data.user,
-      refreshToken: result.data.refreshToken,
-    },
-  });
-  setAuthCookiesFromData(res, result.data);
-  return res;
 }
