@@ -80,44 +80,42 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    title: "ธุรกรรม & บัญชี",
+    title: "ธุรกรรม & การเงิน",
     items: [
       { href: "/transactions", label: "รายการ", icon: ReceiptText },
       { href: "/transfers", label: "โอนเงิน", icon: ArrowRightLeft },
-      { href: "/imports", label: "นำเข้าข้อมูล", icon: FileUp },
-      { href: "/bank-accounts", label: "บัญชี", icon: Landmark },
+      { href: "/imports", label: "นำเข้าสลิป", icon: FileUp },
+      { href: "/bank-accounts", label: "บัญชีธนาคาร", icon: Landmark },
       { href: "/credit-cards", label: "บัตรเครดิต", icon: CreditCard },
     ],
   },
   {
-    title: "การวางแผน & วิเคราะห์",
+    title: "วางแผน & วิเคราะห์",
     items: [
       { href: "/budgets", label: "งบประมาณ", icon: Wallet },
       { href: "/recurring-transactions", label: "รายการประจำ", icon: Repeat },
-      { href: "/reports", label: "รายงาน", icon: PieChart },
+      { href: "/reports", label: "รายงานการเงิน", icon: PieChart },
     ],
   },
   {
-    title: "การจัดการ & ตั้งค่า",
+    title: "จัดการ & ตั้งค่า",
     items: [
       { href: "/categories", label: "หมวดหมู่", icon: FolderTree },
-      { href: "/tags", label: "แท็ก", icon: Tags },
+      { href: "/tags", label: "แท็กรายการ", icon: Tags },
       { href: "/categorization", label: "จัดหมวด AI", icon: Sparkles, permission: "CATEGORIZATION_VIEW" },
       { href: "/settings", label: "ตั้งค่าบัญชี", icon: UserRoundCog },
     ],
   },
 ];
 
-
-
 const adminNav: NavItem[] = [
   { href: "/admin/overview", label: "ภาพรวมระบบ", tooltip: "ภาพรวมระบบ (Admin)", icon: LayoutDashboard },
   { href: "/admin/users", label: "จัดการผู้ใช้งาน", tooltip: "จัดการผู้ใช้งาน (Admin)", icon: Users },
-  { href: "/admin/imports", label: "งานนำเข้าทั้งระบบ", tooltip: "งานนำเข้าทั้งระบบ (Admin)", icon: FileStack },
-  { href: "/admin/security-events", label: "เหตุการณ์ความปลอดภัย", tooltip: "เหตุการณ์ความปลอดภัย (Admin)", icon: ShieldAlert },
+  { href: "/admin/imports", label: "งานนำเข้าระบบ", tooltip: "งานนำเข้าระบบ (Admin)", icon: FileStack },
+  { href: "/admin/security-events", label: "ความปลอดภัย", tooltip: "ความปลอดภัย (Admin)", icon: ShieldAlert },
   { href: "/admin/announcements", label: "ประกาศระบบ", tooltip: "ประกาศระบบ (Admin)", icon: Megaphone },
   { href: "/admin/permissions", label: "สิทธิ์และบทบาท", tooltip: "สิทธิ์และบทบาท (Admin)", icon: ShieldCheck },
-  { href: "/admin/categories", label: "หมวดหมู่มาตรฐาน", tooltip: "หมวดหมู่มาตรฐาน (Admin)", icon: FolderTree },
+  { href: "/admin/categories", label: "หมวดมาตรฐาน", tooltip: "หมวดมาตรฐาน (Admin)", icon: FolderTree },
   { href: "/admin/settings", label: "การตั้งค่าระบบ", tooltip: "การตั้งค่าระบบ & Maintenance (Admin)", icon: Sliders },
   { href: "/audit-logs", label: "ประวัติการใช้งาน", tooltip: "ประวัติการใช้งาน (Admin)", icon: History },
 ];
@@ -859,23 +857,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <AdminMobileSubnav pathname={pathname} />
         )}
 
-        {/* Desktop Top-Right Floating Theme Toggle */}
-        <div className="fixed top-3 right-6 z-30 hidden md:flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("pocketwise:open-command-palette"))}
-            className="flex items-center gap-2 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/80 px-3 py-1.5 text-xs text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-indigo)]/70 shadow-2xs backdrop-blur-md transition-all active:scale-95 cursor-pointer"
-            aria-label="ค้นหาด่วน (Ctrl+K)"
-            title="ค้นหาด่วน (Ctrl+K)"
-          >
-            <Search className="size-3.5" />
-            <span>ค้นหา...</span>
-            <kbd className="rounded border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] px-1.5 py-0.2 text-[10px] font-mono">
-              Ctrl K
-            </kbd>
-          </button>
-          <ThemeToggle />
-        </div>
+        {/* Desktop Top Header Bar (Integrated in flow, avoids floating overlap with page actions) */}
+        <header className="sticky top-0 z-20 hidden md:flex h-14 shrink-0 items-center justify-between border-b border-[var(--pw-hairline)] bg-[var(--pw-canvas)]/80 px-6 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("pocketwise:open-command-palette"))}
+              className="flex items-center gap-2 rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/80 px-3.5 py-1.5 text-xs text-[var(--pw-ink)]/65 hover:text-[var(--pw-ink)] hover:bg-[var(--pw-surface-indigo)]/70 shadow-2xs backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              aria-label="ค้นหาด่วน (Ctrl+K)"
+              title="ค้นหาด่วน (Ctrl+K)"
+            >
+              <Search className="size-3.5" />
+              <span>ค้นหาเมนูหรือธุรกรรม...</span>
+              <kbd className="rounded border border-[var(--pw-hairline)] bg-[var(--pw-canvas)] px-1.5 py-0.2 text-[10px] font-mono">
+                Ctrl K
+              </kbd>
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+          </div>
+        </header>
 
         {/* Page Container with Stagger/Slide Entrance */}
         <div className="flex-1 p-3 pb-24 sm:p-6 sm:pb-8">

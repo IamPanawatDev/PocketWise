@@ -20,7 +20,12 @@ export function useCreateRecurringTransaction() {
   return useMutation({
     mutationFn: (body: RecurringTransactionRequest) =>
       apiClient.post<RecurringTransactionResponse>("/api/v1/recurring-transactions", body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recurring-transactions"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recurring-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
+    },
   });
 }
 
@@ -29,7 +34,26 @@ export function useUpdateRecurringTransaction() {
   return useMutation({
     mutationFn: ({ id, body }: { id: number; body: UpdateRecurringTransactionRequest }) =>
       apiClient.put<RecurringTransactionResponse>(`/api/v1/recurring-transactions/${id}`, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recurring-transactions"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recurring-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
+    },
+  });
+}
+
+export function useToggleRecurringTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiClient.patch<RecurringTransactionResponse>(`/api/v1/recurring-transactions/${id}/toggle`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recurring-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
+    },
   });
 }
 

@@ -37,8 +37,9 @@ export interface RecurringTransactionRequest {
   tagIds?: number[];
   startDate: string;
   endDate: string | null;
+  isActive?: boolean;
 }
 
 export interface UpdateRecurringTransactionRequest extends RecurringTransactionRequest {
-  isActive: boolean;
+  isActive?: boolean;
 }

@@ -373,6 +373,12 @@ export function SlipImportTab() {
       }
       return false;
     } catch (err) {
+      console.error("[SlipImport] Upload & OCR failed:", {
+        file: item.file.name,
+        size: item.file.size,
+        type: item.file.type,
+        error: err,
+      });
       const msg = err instanceof Error ? err.message : "ระบบ AI ไม่สามารถอ่านข้อมูลสลิปได้";
       setBatchItems((prev) =>
         prev.map((it) =>

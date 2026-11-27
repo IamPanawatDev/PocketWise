@@ -9,6 +9,7 @@ import {
   useCreateRecurringTransaction,
   useDeleteRecurringTransaction,
   useRecurringTransactions,
+  useToggleRecurringTransaction,
   useUpdateRecurringTransaction,
 } from "@/features/recurring-transactions/hooks/useRecurringTransactions";
 import {
@@ -52,7 +53,9 @@ import {
   Clock,
   Coins,
   Loader2,
+  Pause,
   Pencil,
+  Play,
   Plus,
   Repeat,
   Save,
@@ -84,6 +87,7 @@ const initialValues = (startDate = ""): RecurringTransactionFormValues => ({
   tagIds: [],
   startDate,
   endDate: null,
+  isActive: true,
 });
 
 const frequencyLabels = {
@@ -101,6 +105,7 @@ export function RecurringTransactionsView() {
   const { data: tags = [] } = useTags();
   const create = useCreateRecurringTransaction();
   const update = useUpdateRecurringTransaction();
+  const toggle = useToggleRecurringTransaction();
   const remove = useDeleteRecurringTransaction();
   const [editing, setEditing] = useState<RecurringTransactionResponse | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -238,23 +243,36 @@ export function RecurringTransactionsView() {
   };
 
   const onSubmit = (values: RecurringTransactionFormValues) => {
+    const todayStr = toThailandDateInputValue(new Date());
+    const isFutureOrOngoing = !values.endDate || values.endDate >= todayStr;
+
+    let targetActive = values.isActive ?? true;
+    if (editing && !editing.isActive && isFutureOrOngoing && values.endDate !== editing.endDate) {
+      targetActive = true;
+    }
+
     const payload = {
       ...values,
       description: values.description || null,
       endDate: values.endDate || null,
       daysOfWeek: values.frequency === "custom" ? values.daysOfWeek : undefined,
       tagIds: values.tagIds ?? [],
+      isActive: targetActive,
     };
     if (editing) {
       update.mutate(
         {
           id: editing.recurringTransactionId,
-          body: { ...payload, isActive: editing.isActive },
+          body: payload,
         },
         {
-          onSuccess: () => {
+          onSuccess: (res) => {
             closeForm();
-            toast.success("บันทึกรายการประจำแล้ว");
+            toast.success("บันทึกรายการประจำแล้ว", {
+              description: res.isActive
+                ? "สถานะ: ออนไลน์ (พร้อมบันทึกรายการอัตโนมัติ)"
+                : "สถานะ: ออฟไลน์",
+            });
           },
           onError: (reason) =>
             toast.error(
@@ -266,7 +284,9 @@ export function RecurringTransactionsView() {
       create.mutate(payload, {
         onSuccess: () => {
           closeForm();
-          toast.success("ตั้งรายการประจำแล้ว");
+          toast.success("ตั้งรายการประจำแล้ว", {
+            description: "สถานะ: ออนไลน์ (พร้อมบันทึกรายการอัตโนมัติ)",
+          });
         },
         onError: (reason) =>
           toast.error(
@@ -278,6 +298,8 @@ export function RecurringTransactionsView() {
 
   const startEdit = (item: RecurringTransactionResponse) => {
     setEditing(item);
+    const todayStr = toThailandDateInputValue(new Date());
+    const isLive = item.isActive && (!item.endDate || item.endDate >= todayStr);
     reset({
       transactionType: item.transactionType,
       amount: item.amount,
@@ -289,8 +311,31 @@ export function RecurringTransactionsView() {
       tagIds: item.tags?.map((t) => t.tagId) ?? [],
       startDate: item.startDate,
       endDate: item.endDate,
+      isActive: isLive ? item.isActive : true,
     });
     setIsFormOpen(true);
+  };
+
+  const handleToggleActive = (item: RecurringTransactionResponse) => {
+    const todayStr = toThailandDateInputValue(new Date());
+    if (!item.isActive && item.endDate && item.endDate < todayStr) {
+      toast.info("รายการนี้สิ้นสุดแล้ว กรุณาระบุวันสิ้นสุดใหม่เพื่อเปิดใช้งาน");
+      startEdit(item);
+      return;
+    }
+
+    toggle.mutate(item.recurringTransactionId, {
+      onSuccess: (res: RecurringTransactionResponse) => {
+        toast.success(
+          res.isActive
+            ? "เปิดใช้งานรายการประจำแล้ว (ออนไลน์)"
+            : "พักการใช้งานรายการประจำแล้ว (ออฟไลน์)"
+        );
+      },
+      onError: (err) => {
+        toast.error(err instanceof ApiError ? err.message : "ไม่สามารถเปลี่ยนสถานะได้");
+      },
+    });
   };
 
   const isSaving = create.isPending || update.isPending;
@@ -568,6 +613,48 @@ export function RecurringTransactionsView() {
               </FormField>
             )}
 
+            {/* Status Switch (Online vs Offline) */}
+            <div className="flex items-center justify-between rounded-xl border border-[var(--pw-hairline)] bg-[var(--pw-surface-raised)]/50 p-3.5">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "size-2 rounded-full",
+                      watch("isActive") ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                    )}
+                  />
+                  <span className="text-sm font-semibold">
+                    สถานะการทำงาน: {watch("isActive") ? "ออนไลน์ (เปิดใช้งาน)" : "ออฟไลน์ (พักการใช้งาน)"}
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--pw-ink)]/60">
+                  {watch("isActive")
+                    ? "ระบบจะทำการบันทึกรายการอัตโนมัติตามรอบที่กำหนด"
+                    : "หยุดการบันทึกรายการอัตโนมัติชั่วคราว"}
+                </p>
+              </div>
+              <Controller
+                control={control}
+                name="isActive"
+                render={({ field }) => (
+                  <Button
+                    type="button"
+                    variant={field.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => field.onChange(!field.value)}
+                    className={cn(
+                      "cursor-pointer font-bold transition-all",
+                      field.value
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                        : "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border-rose-500/30"
+                    )}
+                  >
+                    {field.value ? "ออนไลน์" : "ออฟไลน์"}
+                  </Button>
+                )}
+              />
+            </div>
+
             <BottomSheetFooter>
               <Button
                 type="submit"
@@ -776,12 +863,15 @@ export function RecurringTransactionsView() {
                           </span>
 
                           {/* Live vs Offline Status Dot & Badge */}
-                          <span
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(item)}
+                            title="คลิกเพื่อสลับสถานะออนไลน์ / ออฟไลน์"
                             className={cn(
-                              "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold border",
+                              "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold border cursor-pointer select-none transition-all hover:scale-105 active:scale-95",
                               isLive
-                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20"
+                                : "bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20"
                             )}
                           >
                             <span
@@ -790,8 +880,8 @@ export function RecurringTransactionsView() {
                                 isLive ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
                               )}
                             />
-                            {isLive ? "Live" : "Offline"}
-                          </span>
+                            {isLive ? "ออนไลน์" : "ออฟไลน์"}
+                          </button>
                         </div>
 
                         <h2 className="mt-2 break-words text-lg font-bold">
@@ -865,14 +955,29 @@ export function RecurringTransactionsView() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={isLive ? "outline" : "default"}
+                      className={cn(
+                        "flex-1 sm:flex-none cursor-pointer font-medium",
+                        isLive
+                          ? "hover:bg-amber-500/10 hover:text-amber-500 hover:border-amber-500/30"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                      )}
+                      onClick={() => handleToggleActive(item)}
+                      disabled={toggle.isPending}
+                    >
+                      {isLive ? <Pause className="size-3.5 mr-1" /> : <Play className="size-3.5 mr-1 text-white" />}
+                      {isLive ? "พักรายการ" : "เปิดใช้งาน"}
+                    </Button>
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="flex-1 sm:flex-none"
+                      className="flex-1 sm:flex-none cursor-pointer"
                       onClick={() => startEdit(item)}
                     >
-                      <Pencil />
+                      <Pencil className="size-3.5 mr-1" />
                       แก้ไข
                     </Button>
                     <ConfirmDialog

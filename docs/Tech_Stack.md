@@ -38,7 +38,7 @@ The frontend must never connect directly to PostgreSQL. All data access goes thr
 | Real-time | ASP.NET Core SignalR | Push notifications, transaction/import status, and updates to connected clients. |
 | API contract | REST + JSON, documented with OpenAPI | Clear request/response contracts and easy frontend integration. |
 | API documentation | Microsoft.AspNetCore.OpenApi and/or Swashbuckle | Generate an OpenAPI document and interactive API docs. Verify package compatibility with the selected .NET version. |
-| Frontend framework | Next.js (App Router) | Routing, layouts, server/client rendering, and application shell. |
+| Frontend framework | Next.js 16.4.6 (App Router) | Routing, layouts, server/client rendering, and application shell. (Upgraded to 16.4.6 for official security patch) |
 | Language | TypeScript with strict mode | Type safety across UI and API contracts. |
 | Styling | Tailwind CSS | Utility-first styling and responsive layouts. |
 | UI components | shadcn/ui CLI + Radix UI + react-day-picker | Components are added as source in `frontend/pocketwise-web/src/components/ui/`; installed components are themed with PocketWise `--pw-*` tokens. The app uses Input, Select, Button, AlertDialog, a Calendar/Popover date picker backed by `react-day-picker`, and a shared Select-based time picker. |
@@ -49,7 +49,7 @@ The frontend must never connect directly to PostgreSQL. All data access goes thr
 | Reports charts | Recharts | Responsive report charts; render amounts in separate currency series and use the project design tokens. |
 | SignalR client | @microsoft/signalr (^10.0.11 — ติดตั้งแล้วใน frontend/pocketwise-web) | Connect to the ASP.NET Core SignalR hub and handle reconnects/events. |
 | Database | PostgreSQL (Local Docker `postgres:16-alpine` / Cloud: Supabase) | Relational storage for users, transactions, categories, budgets, cards, and audit records. Zero-cost hosting friendly. |
-| ORM / migrations | Entity Framework Core PostgreSQL provider (`Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.0) | Database access, LINQ, entity mapping, and schema migrations. |
+| ORM / migrations | Entity Framework Core (C# Backend) & Drizzle ORM (`drizzle-orm` ^0.45, `postgres` ^4.1, `drizzle-kit` ^0.31 ใน frontend Next.js) | C# EF Core สำหรับ Legacy Backend; Drizzle ORM สำหรับ Next.js Serverless API Route Handlers ต่อกับ Supabase PostgreSQL โดยตรง |
 | Authentication | ASP.NET Core Identity or a carefully designed external identity provider | Password hashing, account lifecycle, roles/claims, and secure sign-in. Decide cookie/BFF vs bearer-token architecture before implementation. |
 | Validation | FluentValidation (optional) + domain validation | Validate API inputs and enforce business rules server-side. Avoid duplicating rules without a clear source of truth. |
 | Logging | Microsoft.Extensions.Logging with structured logging; Serilog optional | Diagnostic logs with useful correlation IDs. Never log passwords, tokens, or full sensitive financial data. |

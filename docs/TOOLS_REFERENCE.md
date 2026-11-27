@@ -9,12 +9,12 @@
 
 ```
 PocketWise Ecosystem
-├── 🌐 Frontend: Next.js 16 (Turbopack) + TypeScript + Tailwind CSS v4 + shadcn/ui + Motion + Recharts
-├── ⚙️ Backend: ASP.NET Core Web API (.NET 10) + EF Core (Npgsql) + Tesseract OCR
+├── 🌐 Unified Full-Stack: Next.js 16 (Turbopack) + TypeScript + Tailwind CSS v4 + shadcn/ui + Motion + Recharts
+├── ⚙️ Backend API: Next.js Route Handlers (`/api/v1/*`) + Drizzle ORM + Server-Sent Events (SSE) Stream
 ├── 🗄️ Database: PostgreSQL (Local Docker: 5432 / Production: Supabase)
-├── ☁️ Hosting & Cloud: Vercel (Frontend) + Render (Backend API)
-├── ⏱️ Monitoring: UptimeRobot (Free Plan - 24/7 Keep-Alive Pinger ทุก 5 นาที)
-├── 🧪 Testing & QA: Playwright (Standard E2E Browser Testing) + xUnit (.NET 10)
+├── ☁️ Hosting & Cloud: Vercel Unified Platform (Web + Serverless APIs + Vercel Cron) [Render Decommissioned]
+├── ⏱️ Schedulers: Vercel Cron Jobs (Recurring Transactions & Cleanup)
+├── 🧪 Testing & QA: Playwright (E2E Browser Testing) + TypeScript Integration Test Suites (17 Suites)
 └── 🚀 DevOps & CI/CD: GitHub Actions (Automated PR Gates) + GitHub CLI (gh)
 ```
 
