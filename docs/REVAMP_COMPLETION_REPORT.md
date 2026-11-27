@@ -144,7 +144,7 @@ Route Handlers ทั้งหมดถูกบริหารจัดกา�
 | `GET` | `/api/v1/reports/trends` | กราฟแนวโน้มการใช้จ่ายย้อนหลัง | ✅ ปกติ |
 | `GET` | `/api/v1/reports/export` | ส่งออกรายงานเป็น CSV/Excel | ✅ ปกติ |
 | `POST` | `/api/v1/imports/slips` | อัปโหลดรูปสลิปโอนเงิน (บันทึก Audit Log ชัดเจน) | ✅ ปกติ |
-| `POST` | `/api/v1/imports/ocr` | ประมวลผล OCR สลิปผ่าน AI Engine | ✅ ปกติ |
+| `POST` | `/api/v1/imports/ocr` | ประมวลผล OCR สลิปผ่าน Google Gemini API (`gemini-3.5-flash-lite`, `gemini-flash-lite-latest`, `gemini-3.1-flash-lite`, `gemini-3.5-flash`) | ✅ ปกติ (~0.5–1.5s) |
 | `GET` | `/api/v1/imports/slips/:id` | ดึงข้อมูลสลิปที่ถอดรหัสแล้ว | ✅ ปกติ |
 | `GET` | `/api/v1/imports/slips/:id/image` | ดึงภาพสลิปต้นฉบับ | ✅ ปกติ |
 | `POST` | `/api/v1/imports/slips/:id/confirm`| ยืนยันสลิปเพื่อเปลี่ยนเป็นธุรกรรมจริง | ✅ ปกติ |
