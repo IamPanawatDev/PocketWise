@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { authService } from "@/lib/server/modules/auth/auth.service";
 import { setAuthCookiesFromData } from "@/lib/server/auth-endpoints";
 import { AppError } from "@/lib/server/api-error";
+import { serverConfig } from "@/lib/server/config";
 
 export async function POST(req: NextRequest) {
   try {
+    if (serverConfig.configError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "CONFIG_ERROR",
+            message: `การตั้งค่า Server บน Vercel ไม่ครบถ้วน: ${serverConfig.configError} (กรุณาไปที่ Vercel Dashboard > Settings > Environment Variables เพื่อเพิ่ม DATABASE_URL และ JWT_SECRET)`,
+          },
+        },
+        { status: 500 },
+      );
+    }
     const body = await req.json().catch(() => ({}));
     const userAgent = req.headers.get("user-agent") ?? undefined;
     const ip =

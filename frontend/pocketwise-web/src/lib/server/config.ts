@@ -47,24 +47,37 @@ const envSchema = z.object({
 
 function loadConfig() {
   const parsed = envSchema.safeParse(process.env);
+  const configError = !parsed.success
+    ? parsed.error.issues.map((i) => `[${i.path.join(".")}]: ${i.message}`).join(", ")
+    : null;
 
-  if (!parsed.success) {
-    const errorDetails = parsed.error.issues
-      .map((i) => ` - [${i.path.join(".")}]: ${i.message}`)
-      .join("\n");
+  if (configError) {
     console.error(
-      `❌ Invalid Server Configuration. Please check your .env.local file:\n${errorDetails}`,
+      `❌ Invalid Server Configuration. Please check your environment variables:\n${configError}`,
     );
-
-    // If running in development or build without full env, provide structured fail-safe error
-    if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-      throw new Error(`Invalid Server Configuration:\n${errorDetails}`);
-    }
   }
 
-  const env = parsed.success ? parsed.data : (process.env as unknown as z.infer<typeof envSchema>);
+  const env = parsed.success
+    ? parsed.data
+    : {
+        NODE_ENV: (process.env.NODE_ENV as "production" | "development" | "test") || "development",
+        DATABASE_URL: process.env.DATABASE_URL || "",
+        JWT_SECRET: process.env.JWT_SECRET || "fallback-secret-minimum-32-chars-long-placeholder",
+        JWT_ISSUER: process.env.JWT_ISSUER || "PocketWiseApi",
+        JWT_AUDIENCE: process.env.JWT_AUDIENCE || "PocketWiseWeb",
+        JWT_ACCESS_TOKEN_EXP_MINUTES: 60,
+        JWT_REFRESH_TOKEN_EXP_DAYS: 30,
+        AUTH_ACCESS_COOKIE: "pw_access",
+        AUTH_REFRESH_COOKIE: "pw_refresh",
+        NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+        NEXT_PUBLIC_SIGNALR_HUB_URL: process.env.NEXT_PUBLIC_SIGNALR_HUB_URL,
+        NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+        CRON_SECRET: process.env.CRON_SECRET,
+        GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+      };
 
   return {
+    configError,
     isProd: env.NODE_ENV === "production",
     nodeEnv: env.NODE_ENV,
     db: {
