@@ -174,9 +174,9 @@ export class AdminService {
       .offset((page - 1) * pageSize);
 
     const userIds = userRows.map((u) => u.id);
-    let userRolesMap = new Map<number, string[]>();
-    let lastLoginMap = new Map<number, string>();
-    let suspendedByMap = new Map<number, string>();
+    const userRolesMap = new Map<number, string[]>();
+    const lastLoginMap = new Map<number, string>();
+    const suspendedByMap = new Map<number, string>();
 
     if (userIds.length > 0) {
       // Fetch roles
