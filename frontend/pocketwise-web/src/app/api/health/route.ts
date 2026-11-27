@@ -45,6 +45,10 @@ export async function GET() {
       diagnostics: {
         hasDatabaseUrl: hasDbUrl,
         hasJwtSecret: hasJwtSecret,
+        hasGeminiApiKey: Boolean(
+          (serverConfig.ocr.geminiApiKey && serverConfig.ocr.geminiApiKey.length > 5) ||
+          (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 5)
+        ),
         databaseConnection: dbConnection,
         databaseError: dbError,
         databaseErrorDetails: dbErrorDetails,

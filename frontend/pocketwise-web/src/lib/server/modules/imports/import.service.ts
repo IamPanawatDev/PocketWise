@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import crypto from "node:crypto";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { db } from "../../db";
@@ -47,11 +48,19 @@ export class ImportService {
   private baseStoragePath: string;
 
   constructor() {
-    this.baseStoragePath = path.resolve(process.cwd(), "uploads");
-    if (!fs.existsSync(this.baseStoragePath)) {
-      try {
+    const isServerless = Boolean(
+      process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME,
+    );
+    this.baseStoragePath = isServerless
+      ? path.join(os.tmpdir(), "pocketwise-uploads")
+      : path.resolve(process.cwd(), "uploads");
+
+    try {
+      if (!fs.existsSync(this.baseStoragePath)) {
         fs.mkdirSync(this.baseStoragePath, { recursive: true });
-      } catch {}
+      }
+    } catch (e) {
+      console.warn("[ImportService] Failed to initialize storage dir:", e);
     }
   }
 
@@ -120,11 +129,15 @@ export class ImportService {
       relativeStorageKey,
     );
 
-    const targetDir = path.dirname(absoluteStoragePath);
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
+    try {
+      const targetDir = path.dirname(absoluteStoragePath);
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+      fs.writeFileSync(absoluteStoragePath, fileBuffer);
+    } catch (fsErr) {
+      console.warn("[ImportService] Ephemeral storage write skipped:", fsErr);
     }
-    fs.writeFileSync(absoluteStoragePath, fileBuffer);
 
     // 4. Run OCR extraction via Gemini (or mock if provided for testing)
     let extracted: SlipExtractedData;
