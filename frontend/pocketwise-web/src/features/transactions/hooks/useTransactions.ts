@@ -52,9 +52,9 @@ export function useCreateTransaction() {
     mutationFn: (body: CreateTransactionRequest) =>
       apiClient.post<TransactionResponse>("/api/v1/transactions", body),
     onSuccess: () => Promise.all([
-      qc.invalidateQueries({ queryKey: ["transactions"] }),
-      qc.invalidateQueries({ queryKey: ["budgets"] }),
-      qc.invalidateQueries({ queryKey: ["reports"] }),
+      qc.invalidateQueries({ queryKey: ["transactions"], refetchType: "all" }),
+      qc.invalidateQueries({ queryKey: ["budgets"], refetchType: "all" }),
+      qc.invalidateQueries({ queryKey: ["reports"], refetchType: "all" }),
       qc.invalidateQueries({ queryKey: ["bank-accounts"] }),
       qc.invalidateQueries({ queryKey: ["credit-cards"] }),
     ]),
@@ -67,9 +67,9 @@ export function useUpdateTransaction() {
     mutationFn: ({ id, body }: { id: number; body: UpdateTransactionRequest }) =>
       apiClient.put<TransactionResponse>(`/api/v1/transactions/${id}`, body),
     onSuccess: () => Promise.all([
-      qc.invalidateQueries({ queryKey: ["transactions"] }),
-      qc.invalidateQueries({ queryKey: ["budgets"] }),
-      qc.invalidateQueries({ queryKey: ["reports"] }),
+      qc.invalidateQueries({ queryKey: ["transactions"], refetchType: "all" }),
+      qc.invalidateQueries({ queryKey: ["budgets"], refetchType: "all" }),
+      qc.invalidateQueries({ queryKey: ["reports"], refetchType: "all" }),
       qc.invalidateQueries({ queryKey: ["bank-accounts"] }),
       qc.invalidateQueries({ queryKey: ["credit-cards"] }),
     ]),
@@ -82,9 +82,9 @@ export function useDeleteTransaction() {
     mutationFn: (id: number) =>
       apiClient.delete<unknown>(`/api/v1/transactions/${id}`),
     onSuccess: () => Promise.all([
-      qc.invalidateQueries({ queryKey: ["transactions"] }),
-      qc.invalidateQueries({ queryKey: ["budgets"] }),
-      qc.invalidateQueries({ queryKey: ["reports"] }),
+      qc.invalidateQueries({ queryKey: ["transactions"], refetchType: "all" }),
+      qc.invalidateQueries({ queryKey: ["budgets"], refetchType: "all" }),
+      qc.invalidateQueries({ queryKey: ["reports"], refetchType: "all" }),
       qc.invalidateQueries({ queryKey: ["bank-accounts"] }),
       qc.invalidateQueries({ queryKey: ["credit-cards"] }),
     ]),
@@ -97,9 +97,9 @@ export function useBulkDeleteTransactions() {
     mutationFn: (body: BulkDeleteTransactionsRequest) =>
       apiClient.post<number>("/api/v1/transactions/bulk-delete", body),
     onSuccess: () => Promise.all([
-      qc.invalidateQueries({ queryKey: ["transactions"] }),
-      qc.invalidateQueries({ queryKey: ["budgets"] }),
-      qc.invalidateQueries({ queryKey: ["reports"] }),
+      qc.invalidateQueries({ queryKey: ["transactions"], refetchType: "all" }),
+      qc.invalidateQueries({ queryKey: ["budgets"], refetchType: "all" }),
+      qc.invalidateQueries({ queryKey: ["reports"], refetchType: "all" }),
       qc.invalidateQueries({ queryKey: ["bank-accounts"] }),
       qc.invalidateQueries({ queryKey: ["credit-cards"] }),
     ]),

@@ -67,6 +67,7 @@ import {
   Tag,
   Trash2,
   X,
+  RotateCw,
 } from "lucide-react";
 
 function parseSearchParamsFilter(
@@ -213,7 +214,7 @@ export function TransactionList({
   const { data: tags } = useTags();
   const { data: bankAccounts } = useBankAccounts();
   const { data: creditCards } = useCreditCards();
-  const { data, isLoading } = useTransactions(filter, page, sortBy, sortDesc);
+  const { data, isLoading, isFetching, refetch } = useTransactions(filter, page, sortBy, sortDesc);
   const remove = useDeleteTransaction();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const queryClient = useQueryClient();
@@ -428,8 +429,30 @@ export function TransactionList({
       <PageHeader
         title="รายการรายรับ-รายจ่าย"
         icon={ReceiptText}
+        badge={
+          isFetching && !isLoading ? (
+            <span className="flex items-center gap-1.5 text-xs text-[var(--pw-primary)] bg-[var(--pw-primary)]/10 border border-[var(--pw-primary)]/20 px-2.5 py-0.5 rounded-full animate-pulse">
+              <LoaderCircle className="size-3 animate-spin" />
+              <span>กำลังซิงค์...</span>
+            </span>
+          ) : undefined
+        }
         action={
-          <div className="hidden sm:block">
+          <div className="hidden sm:flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isFetching}
+              onClick={() => {
+                triggerHaptic("light");
+                refetch();
+              }}
+              title="รีเฟรชข้อมูลล่าสุด"
+              className="flex items-center gap-1.5 text-xs text-[var(--pw-ink)]/70 hover:text-[var(--pw-ink)] cursor-pointer"
+            >
+              <RotateCw className={cn("size-3.5", isFetching && "animate-spin text-[var(--pw-primary)]")} />
+              <span className="hidden md:inline">รีเฟรช</span>
+            </Button>
             <Button onClick={() => { setEditing(null); setShowForm(true); }}>
               <Plus />
               เพิ่มรายการ
@@ -450,16 +473,36 @@ export function TransactionList({
             <span className="rounded-full bg-[var(--pw-hairline)]/60 px-2 py-0.5 text-[10px] font-mono text-[var(--pw-ink)]/60">
               {data?.totalItems ?? 0}
             </span>
+            {isFetching && !isLoading && (
+              <span className="flex items-center gap-1 text-[10px] font-medium text-[var(--pw-primary)] animate-pulse">
+                <LoaderCircle className="size-3 animate-spin" />
+                <span>กำลังอัปเดต...</span>
+              </span>
+            )}
           </div>
         </div>
-        <Link
-          href="/reports"
-          onClick={() => triggerHaptic("light")}
-          className="text-[11px] font-semibold text-[var(--pw-primary)] hover:underline flex items-center gap-0.5 active:scale-95 transition-all"
-        >
-          <span>ดูรายงาน</span>
-          <ChevronRight className="size-3" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={isFetching}
+            onClick={() => {
+              triggerHaptic("light");
+              refetch();
+            }}
+            className="p-1 rounded-lg text-[var(--pw-ink)]/60 hover:text-[var(--pw-primary)] active:scale-95 transition-all cursor-pointer"
+            title="รีเฟรชรายการ"
+          >
+            <RotateCw className={cn("size-3.5", isFetching && "animate-spin text-[var(--pw-primary)]")} />
+          </button>
+          <Link
+            href="/reports"
+            onClick={() => triggerHaptic("light")}
+            className="text-[11px] font-semibold text-[var(--pw-primary)] hover:underline flex items-center gap-0.5 active:scale-95 transition-all"
+          >
+            <span>ดูรายงาน</span>
+            <ChevronRight className="size-3" />
+          </Link>
+        </div>
       </div>
 
       <BottomSheet
@@ -1262,6 +1305,17 @@ export function TransactionList({
         </div>
       </BottomSheet>
 
+      {/* Background Refetch / Sync Indicator */}
+      {isFetching && !isLoading && (
+        <div className="flex items-center justify-between gap-2 px-3.5 py-2 mb-3 rounded-xl bg-[var(--pw-primary)]/10 border border-[var(--pw-primary)]/20 text-[var(--pw-primary)] text-xs font-medium backdrop-blur-md shadow-2xs animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="flex items-center gap-2">
+            <LoaderCircle className="size-4 animate-spin text-[var(--pw-primary)] shrink-0" />
+            <span>กำลังตรวจสอบและซิงค์รายการล่าสุดจากระบบ...</span>
+          </div>
+          <span className="text-[10px] text-[var(--pw-primary)]/80 font-mono hidden xs:inline">กำลังอัปเดต</span>
+        </div>
+      )}
+
       {isLoading ? (
         <TransactionCardsSkeleton count={6} />
       ) : !data || data.items.length === 0 ? (
@@ -1277,7 +1331,7 @@ export function TransactionList({
           }}
         />
       ) : (
-        <div className="space-y-4">
+        <div className={cn("space-y-4 transition-opacity duration-300", isFetching && !isLoading && "opacity-75")}>
           {/* Mobile Grouped List with Sticky Daily Headers (< sm) */}
           <div className="sm:hidden space-y-4">
             {groupedMobileItems.map((group) => (
