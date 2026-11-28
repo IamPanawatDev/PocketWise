@@ -43,9 +43,9 @@ export function useConfirmSlip() {
       ),
     onSuccess: () =>
       Promise.all([
-        qc.invalidateQueries({ queryKey: ["transactions"] }),
-        qc.invalidateQueries({ queryKey: ["budgets"] }),
-        qc.invalidateQueries({ queryKey: ["reports"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"], refetchType: "all" }),
+        qc.invalidateQueries({ queryKey: ["budgets"], refetchType: "all" }),
+        qc.invalidateQueries({ queryKey: ["reports"], refetchType: "all" }),
         qc.invalidateQueries({ queryKey: ["importJobs"] }),
         qc.invalidateQueries({ queryKey: ["bankAccounts"] }),
         qc.invalidateQueries({ queryKey: ["slip"] }),
@@ -124,11 +124,11 @@ export function useConfirmStatementItemsById(statementId: number) {
       ),
     onSuccess: () =>
       Promise.all([
-        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"], refetchType: "all" }),
         qc.invalidateQueries({ queryKey: ["statement-by-id", statementId] }),
         qc.invalidateQueries({ queryKey: ["creditCards"] }),
-        qc.invalidateQueries({ queryKey: ["budgets"] }),
-        qc.invalidateQueries({ queryKey: ["reports"] }),
+        qc.invalidateQueries({ queryKey: ["budgets"], refetchType: "all" }),
+        qc.invalidateQueries({ queryKey: ["reports"], refetchType: "all" }),
         qc.invalidateQueries({ queryKey: ["importJobs"] }),
       ]),
   });
@@ -155,12 +155,12 @@ export function useConfirmStatementItems(creditCardId: number, statementId: numb
       ),
     onSuccess: () =>
       Promise.all([
-        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"], refetchType: "all" }),
         qc.invalidateQueries({ queryKey: ["statement", creditCardId, statementId] }),
         qc.invalidateQueries({ queryKey: ["statements", creditCardId] }),
         qc.invalidateQueries({ queryKey: ["creditCards"] }),
-        qc.invalidateQueries({ queryKey: ["budgets"] }),
-        qc.invalidateQueries({ queryKey: ["reports"] }),
+        qc.invalidateQueries({ queryKey: ["budgets"], refetchType: "all" }),
+        qc.invalidateQueries({ queryKey: ["reports"], refetchType: "all" }),
         qc.invalidateQueries({ queryKey: ["importJobs"] }),
       ]),
   });
