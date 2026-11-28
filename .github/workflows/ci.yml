@@ -14,26 +14,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend-check:
-    name: Backend (.NET 10 Build & Tests)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET 10 SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Restore Dependencies
-        run: dotnet restore backend/PocketWise.sln
-
-      - name: Build Backend Solution
-        run: dotnet build backend/PocketWise.sln -c Release --no-restore
-
-      - name: Run Unit & Integration Tests
-        run: dotnet test backend/PocketWise.sln -c Release --no-build --verbosity normal
+  # Decommissioned: Backend (.NET 10) was migrated to Unified Full-Stack Next.js 16
+  # backend-check:
+  #   name: Backend (.NET 10 Build & Tests)
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Setup .NET 10 SDK
+  #       uses: actions/setup-dotnet@v4
+  #       with:
+  #         dotnet-version: "10.0.x"
+  #
+  #     - name: Restore Dependencies
+  #       run: dotnet restore backend/PocketWise.sln
+  #
+  #     - name: Build Backend Solution
+  #       run: dotnet build backend/PocketWise.sln -c Release --no-restore
+  #
+  #     - name: Run Unit & Integration Tests
+  #       run: dotnet test backend/PocketWise.sln -c Release --no-build --verbosity normal
 
   frontend-check:
     name: Frontend (Next.js Lint & Build)

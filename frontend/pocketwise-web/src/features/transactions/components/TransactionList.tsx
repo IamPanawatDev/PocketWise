@@ -429,14 +429,6 @@ export function TransactionList({
       <PageHeader
         title="รายการรายรับ-รายจ่าย"
         icon={ReceiptText}
-        badge={
-          isFetching && !isLoading ? (
-            <span className="flex items-center gap-1.5 text-xs text-[var(--pw-primary)] bg-[var(--pw-primary)]/10 border border-[var(--pw-primary)]/20 px-2.5 py-0.5 rounded-full animate-pulse">
-              <LoaderCircle className="size-3 animate-spin" />
-              <span>กำลังซิงค์...</span>
-            </span>
-          ) : undefined
-        }
         action={
           <div className="hidden sm:flex items-center gap-2">
             <Button
@@ -474,9 +466,8 @@ export function TransactionList({
               {data?.totalItems ?? 0}
             </span>
             {isFetching && !isLoading && (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-[var(--pw-primary)] animate-pulse">
+              <span className="flex items-center text-[var(--pw-primary)]">
                 <LoaderCircle className="size-3 animate-spin" />
-                <span>กำลังอัปเดต...</span>
               </span>
             )}
           </div>
@@ -1307,12 +1298,8 @@ export function TransactionList({
 
       {/* Background Refetch / Sync Indicator */}
       {isFetching && !isLoading && (
-        <div className="flex items-center justify-between gap-2 px-3.5 py-2 mb-3 rounded-xl bg-[var(--pw-primary)]/10 border border-[var(--pw-primary)]/20 text-[var(--pw-primary)] text-xs font-medium backdrop-blur-md shadow-2xs animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="flex items-center gap-2">
-            <LoaderCircle className="size-4 animate-spin text-[var(--pw-primary)] shrink-0" />
-            <span>กำลังตรวจสอบและซิงค์รายการล่าสุดจากระบบ...</span>
-          </div>
-          <span className="text-[10px] text-[var(--pw-primary)]/80 font-mono hidden xs:inline">กำลังอัปเดต</span>
+        <div className="w-full h-1 bg-[var(--pw-primary)]/15 rounded-full overflow-hidden mb-3 animate-pulse">
+          <div className="h-full bg-[var(--pw-primary)] w-full rounded-full" />
         </div>
       )}
 
